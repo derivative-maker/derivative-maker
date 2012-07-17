@@ -1,0 +1,479 @@
+#!/bin/bash
+# save as /home/user/TorBOX_source/TorBOX-CreateVM
+#########################################
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+script_help() {
+echo "
+# FLAGS / WORKFLOW:
+#
+# -tg-pre
+# -tg-install-os
+# -tg-post
+# use: sudo ./TorBOX_Image -tg-mount, tg-copyinto, tg-unmout
+#      to get the script into the VM image
+# -tg-install-script
+# -tg-export
+# (perhaps) -tg-delete
+#
+# -tw-pre
+# -tw-install-os
+# -tw-post
+# use: sudo ./TorBOX_Image -tw-mount, tw-copyinto, tw-unmout
+#      to get the script into the VM image
+# -tw-install-script
+# -tw-export
+# (perhaps) -tw-delete
+"
+}
+
+# Variables are set in -tw/g parameters at the bottom
+# of this script.
+# - VMNAME
+# - VMRAM
+
+# TODO: 
+# - Exported ova doesn't include the vdi image?
+
+# Enable debugging.
+set -x
+
+# Exit if there is an error
+set -e
+
+
+
+USERNAME="user"
+
+
+
+##############################################################################################
+# error_handler
+##############################################################################################
+error_handler() {
+echo "
+#!!! ERROR in TorBOX_CreateVM !!!#
+#!!! ERROR in TorBOX_CreateVM !!!#
+#!!! ERROR in TorBOX_CreateVM !!!#
+"
+echo "TorBOX_CreateVM: Does the VM already exist?"
+echo "TorBOX_CreateVM: X is a variable, use g or t."
+echo "TorBOX_CreateVM: If you want to delete an old VM use sudo ./TorBOX_CreateVM -tX-delete"
+
+touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+exit 1
+}
+
+
+
+root_check() {
+######################################################
+# Checking script environment
+######################################################
+# Check if we are root
+  if [ "$(id -u)" != "0" ]; then
+       echo "ERROR: This must be run as root (sudo)!"
+       exit 1
+  else
+       echo "INFO: Script running as root."
+  fi
+}
+
+
+
+general_setup() {
+trap "error_handler" ERR INT TERM
+
+# Create a new VM. Name: $VMNAME
+sudo -u $USERNAME VBoxManage createvm --name "$VMNAME" --register
+
+# Ubuntu
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ostype Ubuntu
+
+# Add SATA Controller.
+sudo -u $USERNAME VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
+
+# Create the HDD.
+sudo -u $USERNAME VBoxManage createhd --filename "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" --size $VMHDDSIZE
+
+# Attach the HDD.
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+# Add CD-ROM
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+
+# RAM
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+
+# Enable PAE.
+# Note:
+# - This is required for Ubuntu Precise.
+# - This breaks compatibility with older hardware.
+# - https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Dev#SwitchingOperatingSystemSHELLSCRIPTSENHANCEMENTWAITForWheezy
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --pae on
+
+# Hide your host CPU info [Virtualbox only]. This does not have a GUI option so on the command line run:
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --synthcpu on
+
+# ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --acpi on
+
+# ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ioapic on
+
+# Set system clock to UTC.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+}
+
+
+
+install_os_inside_vm() {
+   trap "error_handler" ERR INT TERM
+
+   # We pull the cable of the NAT adapter. While installing with preseed,
+   # we do not want to have a network connection, because its much faster.
+   # Its required to have a network card, due to limitations in upstream
+   # netcfg preseed.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
+
+   # Insert the preseed iso image.
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/TorBOX_binary/preseed.iso"
+ 
+   # VBoxSDL is does not run in background, waits until finished.
+   # No questions by VBox (such as grab mouse etc.).
+   # The preseed.iso is configured to eject the iso.
+   # The preseed.iso is configured to poweroff when its done.
+   echo "TorBOX_CreateVM: Operating system should now be installed unattended (preseed)..."
+   echo "TorBOX_CreateVM: Should not require any user interaction. If so, please report a bug."
+   echo "TorBOX_CreateVM: Check if its not frozen but be patient."
+   echo "TorBOX_CreateVM: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   echo "TorBOX_CreateVM: Please wait until it has finished."
+
+   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
+
+   echo "TorBOX_CreateVM: Virtual Box terminated without error messages."
+   echo "TorBOX_CreateVM: This is no gurantee everything went well inside the VM."
+
+   # Ensure preseed.iso gets removed.
+   echo "TorBOX_CreateVM: Removing operating system installation CD..."
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+   echo "TorBOX_CreateVM: Removed operating system installation CD."
+
+   # Plug the cable back in.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+}
+
+
+
+gateway_specific() {
+trap "error_handler" ERR INT TERM
+
+# Leave Adapter 1 as NAT.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 nat
+
+# Review: NAT adapter also gets fixed MAC shared among all TorBOX users.
+# Use case: not much yet. In case the Gateway gets broken, this one can not
+# be used as identifier. Gets interesting in future with multiple gateways.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 0800273A77FC
+
+# Prevents leaking DNS info from the host into the guest.
+# Also useful in other cases.
+# https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+
+# Prevents leaking DNS info from the host into the guest.
+# Also useful in other cases.
+# https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+}
+
+
+
+workstation_specific() {
+trap "error_handler" ERR INT TERM
+
+# 128 MB Video RAM.
+# Settings->Display->Video Memory->128 MB.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --vram 128
+
+# Add Adapter 1 (will be eth0), an internal network, IMPORTANT!
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 intnet
+
+# Remove the virtual network cable. Same reason like gateway_specific.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
+
+# Change the internal network to "torbox", IMPORTANT!
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet1 "torbox"
+
+# Enter following MAC address: 080027070B08
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 080027070B08
+
+# Enable audio controller ac97.
+# sb16 should be obsolete.
+# ac97 is hopefully better supported than intel hda.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+
+# Host audio driver can be oss, alsa or pulse.
+# Unfortunately, no auto detection avaliable.
+# Depends on host driver.
+# Ubuntu host uses pulse audio.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
+}
+
+
+
+install_script_inside_vm() {
+   trap "error_handler" ERR INT TERM
+
+   echo "TorBOX_CreateVM: $VMNAME script should now be applied unattened..."
+   echo "TorBOX_CreateVM: Should not require any user interaction. If so, please report a bug."
+   echo "TorBOX_CreateVM: Check if its not frozen but be patient."
+   echo "TorBOX_CreateVM: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
+   echo "TorBOX_CreateVM: If that happens you can press ESC to see the echos."
+   echo "TorBOX_CreateVM: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   echo "TorBOX_CreateVM: Please wait until it has finished."
+
+   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
+
+   echo "TorBOX_CreateVM: Virtual Box terminated without error messages."
+   echo "TorBOX_CreateVM: This is no gurantee everything went well inside the VM."
+}
+
+
+
+gateway_post_install_os() {
+   trap "error_handler" ERR INT TERM
+
+   # Enable Adapter 2, set to "Internal Network".
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic2 intnet
+
+   # Change the internal network to "torbox", IMPORTANT!
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet2 "torbox"
+
+   # Enter following MAC address: 0800272FCF44
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress2 0800272FCF44
+}
+
+
+
+workstation_post_install_os() {
+   trap "error_handler" ERR INT TERM
+   # Since there is also -tg-post...
+   echo "Does nothing. For the sake of completeness."
+}
+
+
+
+delete_vm() {
+trap "error_handler" ERR INT TERM
+
+# Turning off the VM without saving.
+sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
+
+# Delete old TorBOX-Gateway.
+sudo -u $USERNAME VBoxManage unregistervm "$VMNAME" --delete || true
+
+# Delete old ova.
+rm "$HOME/TorBOX_binary/$VMNAME".ova || true
+}
+
+
+
+################################################################ 
+# -tg-pre                                                      #
+################################################################ 
+if [[ "$1" = "-tg-pre" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   VMHDDSIZE="2048"
+   # Needed to increase from 128 to 256, otherwise while installing
+   # using preseed I sometimes run out of RAM. Might be reduced at the end.
+   VMRAM="256"
+   general_setup
+   gateway_specific
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-install-os"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-install-os                                               #
+################################################################ 
+if [[ "$1" = "-tg-install-os" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   install_os_inside_vm
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-post"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-post                                                     #
+################################################################ 
+if [[ "$1" = "-tg-post" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   gateway_post_install_os
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_Image -tg-mount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-install-script                                           #
+################################################################ 
+if [[ "$1" = "-tg-install-script" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   install_script_inside_vm
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-export"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-export                                                   #
+################################################################ 
+if [[ "$1" = "-tg-export" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   echo "TorBOX_CreateVM: Decreasing RAM from 256 to 128..."
+   VMRAM="128"
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/TorBOX_binary/$VMNAME".ova
+   echo "BUILD INFO: Done."
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-delete                                                   #
+################################################################ 
+if [[ "$1" = "-tg-delete" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   delete_vm
+   exit 0
+fi
+
+
+
+
+################################################################ 
+# -tw-pre                                                      #
+################################################################ 
+if [[ "$1" = "-tw-pre" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   VMHDDSIZE="8192"
+   # Reduced from 512 to 196 while installing to safe some RAM
+   # while building the VMs inside Virtual Box.
+   VMRAM="256"
+   general_setup
+   workstation_specific
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-install-os"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-install-os                                               #
+################################################################ 
+if [[ "$1" = "-tw-install-os" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   install_os_inside_vm
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-post"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-post                                                     #
+################################################################ 
+if [[ "$1" = "-tw-post" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   workstation_post_install_os
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_Image -tw-mount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-install-script                                           #
+################################################################ 
+if [[ "$1" = "-tw-install-script" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   install_script_inside_vm
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-export"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-export                                                   #
+################################################################ 
+if [[ "$1" = "-tw-export" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   echo "TorBOX_CreateVM: Increasing RAM from 196 to 512..."
+   VMRAM="512"
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/TorBOX_binary/$VMNAME".ova
+   echo "BUILD INFO: Done."
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-delete                                                   #
+################################################################ 
+if [[ "$1" = "-tw-delete" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   delete_vm
+   exit 0
+fi
+
+
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
+
+
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+echo "No option choosen. Use -help for help."
+touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+exit 1

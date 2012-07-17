@@ -1,0 +1,311 @@
+#!/bin/bash
+# save as /home/user/TorBOX_source/TorBOX_Image
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+TorBOX_DEBUG="0"
+
+script_help() {
+echo \
+"
+# FLAGS / WORKFLOW:
+# -tg-mount
+# Mounts the VM image.
+#
+# -tg-copyinto
+# Copies TorBOX_Gateway and torcheck script into VM image.
+#
+# -tg-unmount
+# Unmounts the VM image.
+#
+# -tw-mount
+# -tw-copyinto
+# -tw-unmount
+"
+}
+
+
+
+# Enable debugging.
+set -x
+
+# Exit if there is an error
+set -e
+
+
+
+USERNAME="user"
+
+
+
+##############################################################################################
+# error_handler
+##############################################################################################
+error_handler() {
+echo "
+#!!! ERROR in TorBOX_Image !!!#
+#!!! ERROR in TorBOX_Image !!!#
+#!!! ERROR in TorBOX_Image !!!#
+"
+
+echo "TorBOX_Image: unmount_vm_image..."
+unmount_vm_image
+echo "TorBOX_Image: Done."
+
+touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+exit 1
+}
+
+
+
+root_check() {
+######################################################
+# Checking script environment
+######################################################
+# Check if we are root
+if [ "$(id -u)" != "0" ]; then
+     echo "ERROR: This must be run as root (sudo)!"
+     exit 1
+else
+     echo "INFO: Script running as root."
+fi
+}
+
+
+
+mount_vm_image() {
+   trap "error_handler" ERR INT TERM
+
+   # Ensure powered is off. Otherwise disk corruption is at high risk.
+   sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
+
+   # Make sure required module to mount vdi images is installed.
+   modprobe nbd
+
+   # Create loopback dev for the image.
+   qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+
+   # Folder has to exist to mount the image.
+   mkdir -p $CHROOT_FOLDER
+
+   # Mount the partitions, that are exposed as /dev/nbd0pXXX.
+   mount -o noatime /dev/nbd0p1 $CHROOT_FOLDER
+}
+
+
+
+copy_into_vm_image() {
+   trap "error_handler" ERR INT TERM
+
+   # Make a backup of rc.local.
+   cp -n /etc/rc.local /etc/rc.local.backup
+
+   # Automatically start VM script after booting.
+   echo "#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will \"exit 0\" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+set -x
+
+# Prevent running the script over and over again.
+if [ -f \"/home/user/torboxinstalllog\" ];
+then
+   echo \"rc.local INFO: File /home/user/torboxinstalllog exists. exit 0\"
+   exit 0
+fi
+
+echo \"rc.local INFO: File /home/user/torboxinstalllog does not exist.\"
+
+# Create empty /home/user/torboxinstalllog.
+touch \"/home/user/torboxinstalllog\"
+# !HARDCODED!
+# Set owner to user for /home/user/torboxinstalllog.
+chown user \"/home/user/torboxinstalllog\"
+
+TorBOX_DEBUG=\"$TorBOX_DEBUG\"
+echo \"rc.local INFO: TorBOX_DEBUG = \$TorBOX_DEBUG\"
+echo \"rc.local INFO: running /usr/local/bin/$VMSCRIPT...\"
+
+if [ \"\$TorBOX_DEBUG\" = \"1\" ]; then
+   # The following line is tested.
+   # bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install
+
+   # Need to overrule with || otherwise rc.local stops running.   
+   bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install || true
+else
+
+   # Need to overrule with || otherwise rc.local stops running.   
+   /usr/local/bin/$VMSCRIPT -install || true
+fi
+
+echo \"rc.local INFO: end of /usr/local/bin/$VMSCRIPT.\"
+sleep 5
+
+echo \"rc.local INFO: powering off...\"
+sleep 5
+
+# The & is important. Otherwise rc.local will wait for poweroff to finish,
+# which is impossible.
+poweroff &
+
+echo \"rc.local INFO: exit 0...\"
+
+exit 0
+# end of rc.local
+   " > $CHROOT_FOLDER/etc/rc.local
+
+   # Copy VM script into VM image and make it executable.
+   cp /home/"$USERNAME"/TorBOX_source/$VMSCRIPT $CHROOT_FOLDER/usr/local/bin/
+   chmod +x $CHROOT_FOLDER/usr/local/bin/$VMSCRIPT
+
+   # Copy torcheck script into VM image and make it executable.
+   cp /home/"$USERNAME"/TorBOX_source/torcheck $CHROOT_FOLDER/usr/local/bin/
+   chmod +x $CHROOT_FOLDER/usr/local/bin/torcheck
+
+   # Delete old log, otherwise the VM script would not get executed.
+   # See rc.local above.
+   rm $CHROOT_FOLDER/home/user/torboxinstalllog || true
+
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+
+
+unmount_vm_image() {
+sync
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0
+
+# In the end unmount.
+umount $CHROOT_FOLDER
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER
+}
+
+
+
+################################################################ 
+# -tg-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tg-mount" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   mount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_Image -tg-copyinto"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-copyinto                                                 #
+################################################################ 
+if [[ "$1" = "-tg-copyinto" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   VMSCRIPT="TorBOX_Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   copy_into_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_CreateVM -tg-unmount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tg-unmount" ]]; then
+   root_check
+   VMNAME="TorBOX-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_CreateVM -tg-install-script"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tw-mount" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   mount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_Image -tw-copyinto"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-copyinto                                                 #
+################################################################ 
+if [[ "$1" = "-tw-copyinto" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   VMSCRIPT="TorBOX_Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   copy_into_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_CreateVM -tw-unmount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tw-unmount" ]]; then
+   root_check
+   VMNAME="TorBOX-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/TorBOX_binary/"$VMNAME"_image
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_CreateVM -tw-install-script"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
+
+
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+echo "No option choosen. Use -help for help."
+touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+exit 1

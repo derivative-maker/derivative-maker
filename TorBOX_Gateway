@@ -1,0 +1,1909 @@
+#!/bin/bash
+# Needs to be bash because we use "trap ERR".
+# Save as /home/user/TorBOX_source/TorBOX_Gateway
+# Homepage: https://trac.torproject.org/projects/tor/wiki/doc/TorBOX
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+script_help() {
+echo "
+############################################################################
+#       INFO                                                               #
+# Script to automatically transform an Ubuntu Server into a TorBOX-Gateway #
+# Alpha/Development version, please test and leave feedback!               #
+# Read https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/DISCLAIMER #
+#                                                                          #
+#       PREREQUISITES/ASSUMPTIONS                                          #
+# 1) You have installed Ubuntu Server 12.04 (x86 or amd64).                #
+# For later versions you will most likely only have to                     #
+# change /etc/sources.list accordingly.                                    #
+# 2) There are two network cards attached to the gateway:                  #
+# External: eth0 (with an already working connection to the Internet)      #
+# Internal: eth1 (solely used for communicating with TorBOX-Workstations)  #
+# 3) Username must be "user"! If your user name differ set the USERNAME    #
+# variable accordingly and search for "HARDCODED"                          #
+# 4) You read and understood the script, especially look search through    #
+# all occurrences of the string "!!!VERIFY!!!" and make sure that          #
+# hardcoded gpg fingerprints are correct                                   #
+#                                                                          #
+#       CHOOSE ONE OF THE FOLLOWING FLAGS                                  #
+# WARNING! Currently only -install is tested!                              #
+#                                                                          #
+# -install                                                                 #
+# Currently the only tested/supported option.                              #
+# In addition to performing a full installation this                       #
+# will enable auto-login, passwordless poweroff and                        #
+# slim down the image size.                                                #
+# Make a snapshot first so you do not have to reinstall if things break!   #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+# Only suited for VMs!                                                     #
+# In case you really want to run on bare metal:                            #
+#    comment out vm_configuration and slim_down                            #
+#    use config_network instant of staticvboxip                            #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+#                                                                          #
+# -update                                                                  #
+# Update existing TorBOX-Gateway using the latest script.                  #
+#                                                                          #
+# -uninstall                                                               #
+# undo -install                                                            #
+#                                                                          #
+# -onevm                                                                   #
+# see https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/OneVM       #
+############################################################################
+#+# OPTIONAL FEATURES
+# Normal comments. Optional feature comments look like this:
+#+# Optional feature comment, skip them you are not interested.
+
+#+# For convenient navigation through the optional feature in the script,
+#+# it is recommend to use your browsers search function. (
+#+# e.g.: Firefox: CTRL + F, in nano: CTRL + W
+#+# find #OptionalFeatureNr.X#, Highlight all, F3 to jump to the next one.)
+#+# You need to uncomment all occurrences in the script to to enable a Feature.
+
+#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr ^1^ (UNTESTED!)
+#+# #OptionalFeatureNr.2# Hidden Services. ^6^
+#+# #OptionalFeatureNr.3# Even more restrictive firewall rules. ^7^
+#+# #OptionalFeatureNr.4# More Socks Ports. ^4^
+#+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
+#+# #OptionalFeatureNr.6# Leak Testing. ^8^
+
+#+# ^1^ Read: TorBOX / Optional Configurations / isolate streams by destination port and/or destination address
+#+# for explanation.
+
+#+# ^4^ Read: TorBOX / Application Warnings And Notes / Identity correlation through circuit sharing,
+#+# for explanation.
+
+#+# ^6^ Read: TorBOX / Optional Configurations / Hosting hidden services
+#+# for explanation.
+
+#+# ^7^ Read: TorBOX / Application Warnings And Notes / TorBOXs TorBOX-Workstation is firewalled
+#+# for explanation.
+
+#+# ^8^ Read: TorBOX / Leak Tests
+#+# for explanation.
+
+############################################################################
+# NOTE FOR ADVANCED USERS
+# This script is modular. Functionality with effects is inside functions. At
+# the end of the script, you will find our command line switches. If you know
+# what you are doing, you can comment out one or another module, you do not
+# want. For example, you can use -install and comment out the slim_down function.
+# (To save time, testing or if you dislike for any other reason.)
+# The very first line of every script must be #!/bin/bash. Do not add empty lines above.
+
+############################################################################
+# NOTE FOR DEBUGGING
+# If you start the script without command line options, it will do nothing
+# important, only create a backup. You can also check for some syntax errors,
+# such as unbalanced apostrophes etc. And if you want for testing purposes,
+# simply to run only one module and not the whole script, that is also
+# possible. Scroll down the the bottom of the script, one one the last things
+# will be "INFO: No option chosen.". Make space there and add the name of the
+# function, you want to test, for example leaktest_tg. Leave the "exit 0"
+# and fi below intact.
+#
+# For extensive debugging use:
+# sudo bash -x 2>/tmp/log TorBOX-Gateway
+# This will set -x and redirect everything bash does to /tmp/log.
+# nano /tmp/log
+
+############################################################################
+# NOTE FOR CONTRIBUTORS
+# Follow our style unless there is a good reason not to (let us know on TorBOX/Dev).
+# functions() need to have a unique name
+# Be careful using echos with single/double quotes/apostrophes in comments!
+# Only use || true with care to override the trap function.
+# Search the script for TODO and help us fix them.
+"
+}
+
+######################################################
+# List of modified system files. Not all of them are backed up/restored by -uninstall
+######################################################
+# Modified files:
+# /etc/apt/sources.list
+# /etc/default/grub
+# /etc/sysctl.conf
+# /etc/network/interfaces
+# /etc/tor/torrc
+# /etc/resolv.conf - no backup
+# /etc/init/failsafe.conf
+# /etc/sudoers
+# /home/$USERNAME/.bashrc
+#
+# New files:
+# /etc/torboxfirewall.sh
+# /usr/local/bin/torbox
+# /usr/local/bin/leaktest
+# /home/$USERNAME/.vidalia/
+# /home/$USERNAME/.vidalia/vidalia.conf
+
+############################################################################
+# SCRIPT STARTS HERE
+############################################################################
+
+# Enable debugging.
+set -x
+
+######################################################
+# Variables
+######################################################
+# Set the linux username.
+# "export USERNAME=$(whoami)" will not work, since the
+# script gets, in most cases, started as root.
+USERNAME=user
+
+# Ports used by Tor (and used in /etc/torrc and /etc/torboxfirewall.sh)
+#
+# The following applications will be separated, preventing identity
+# correlation through circuit sharing. 
+
+# Transparent Proxy Ports for TorBOX-Workstation
+TRANS_PORT_TW="9040"
+
+# Transparent Proxy Ports for TorBOX-Gateway
+TRANS_PORT_TG="9041"
+DNS_PORT_TG="54"
+
+# SOCKS Ports
+# TODO: Can we use a loop?
+SOCKS_PORT_TB="9100"
+SOCKS_PORT_IRC="9101"
+SOCKS_PORT_TORBIRDY="9102"
+SOCKS_PORT_IM="9103"
+SOCKS_PORT_APT_GET="9104"
+SOCKS_PORT_GPG="9105"
+SOCKS_PORT_SSH="9106"
+SOCKS_PORT_GIT="9107"
+SOCKS_PORT_HTPDATE="9108"
+SOCKS_PORT_WGET="9109"
+SOCKS_PORT_TORCHECK="9110"
+SOCKS_PORT_BITCOIN="9111"
+SOCKS_PORT_PRIVOXY="9112"
+SOCKS_PORT_POLIPO="9113"
+
+#+# #OptionalFeatureNr.4# More Socks Ports.
+#+# You can add more here but,
+#+# you will have to edit the TorBOX-Gateway script:
+#+# - /etc/tor/torrc
+#+#   - And "sudo service tor reload" afterwards.
+#+# - /etc/torboxfirewall.sh and
+#+#   - And issue "sudo /etc/torboxfirewall.sh" afterwards.
+#+# you will also have to edit in TorBOX-Workstation script
+#+# - the line "extensions.torbutton.banned_ports" (search TorBOX-Workstation script for that term)
+#+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
+#+#   - Issue sudo TorBOX-Workstation -uwt to apply afterwards.
+#+# - the function "install_uwt_wrappers()"
+#+#   - Issue sudo TorBOX-Workstation -uwt to apply afterwards.
+#SOCKS_PORT_ETC="9198"
+#SOCKS_PORT_ETC2="9199"
+
+#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#SOCKS_PORT_ISOLATE_DEST_PORT="9200"
+#SOCKS_PORT_ISOLATE_DEST_ADDR="9201"
+
+# External interface
+EXT_IF="eth0"
+# Internal interface
+INT_IF="eth1"
+# Internal "tunnel" interface, usually the same as the Internal interface unless using vpn tunnels between workstations and gateway
+INT_TIF="eth1"
+
+# Internal interface IP. If you will not use the 192.168.0.0 network you will have to 
+# edit /etc/network/interfaces manually.
+# This IP is static, no dhcp server is managing it. (internal/isolated network)
+INT_IP="192.168.0.1"
+
+# We also set a Tor User ID automatically, search for TOR_UID
+# this can not be done at the beginning of the script because tor is not running yet...
+
+# Unattended (un)installation of packages.
+# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+export DEBIAN_FRONTEND=noninteractive
+
+######################################################
+# Checking script environment
+######################################################
+# Exit if there is an error
+set -e
+
+cd /home/$USERNAME
+
+
+
+root_check() {
+echo "
+######################################################
+# Check if we are root
+######################################################
+"
+  if [ "$(id -u)" != "0" ]; then
+      echo "ERROR: This must be run as root (sudo)"
+      exit 1
+  else
+     echo "INFO: Script running as root."
+  fi
+}
+
+
+
+backup_sysfiles() {
+echo "
+######################################################
+Backup system files
+######################################################
+"
+
+cp -n /etc/localtime /etc/localtime.backup
+cp -n /etc/apt/sources.list /etc/apt/sources.list.backup
+cp -n /etc/default/grub /etc/default/grub.backup
+cp -n /etc/sysctl.conf /etc/sysctl.conf.backup
+cp -n /etc/network/interfaces /etc/network/interfaces.backup
+cp -n /home/$USERNAME/.bashrc /home/$USERNAME/.bashrc.backup
+cp -n /etc/init/tty1.conf /etc/init/tty1.conf.backup
+cp -n /etc/init/failsafe.conf /etc/init/failsafe.conf.backup
+# /etc/tor/torrc
+# - /etc/tor/torrc.backup gets created by setup_torrc(),
+#   because torrc begins to exist, after installing Tor.
+}
+
+
+
+# Roll back configurations if the script fails.
+roll_back() {
+echo "
+######################################################
+ERROR: Script failed!
+INFO: Rolling back configuration...
+######################################################
+"
+
+echo "INFO: set +e..."
+set +e
+echo "INFO: stopping tor..."
+service tor stop
+echo "roll_back(): restoring backup files..."
+cp /etc/localtime.backup /etc/localtime
+cp /etc/apt/sources.list.backup /etc/apt/sources.list
+cp /etc/sysctl.conf.backup /etc/sysctl.conf
+cp /etc/network/interfaces.backup /etc/network/interfaces
+cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
+cp /etc/tor/torrc.backup /etc/tor/torrc
+cp /etc/init/failsafe.conf.backup /etc/init/failsafe.conf
+cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
+echo "roll_back(): deleting /etc/torboxfirewall.sh..."
+rm /etc/torboxfirewall.sh
+echo "roll_back(): deleting /usr/local/bin/leaktest..."
+rm -r /usr/local/bin/leaktest
+echo "INFO: Done." >&2
+exit 1
+}
+
+
+
+create_apt_config() {
+echo "
+######################################################
+create_apt_config
+######################################################
+"
+
+# Currently disabled. Creates empty apt.conf.
+# To use it there are some issues which would need to
+# be resolved. Probable you have to add the repositories
+# (torproject and ubuntu) on the host and run apt-get update
+# on the host first.
+
+# NOTE: If you dislike this, simply clear the content
+#       of apt.conf here. An empty apt.conf will do
+#       nothing. Please do not remove it without
+#       discussion.
+
+# TODO: Lets find a better place for apt.conf. No harm
+#       in keeping when in correct folder.
+
+# Must contain something. May not be completely empty.
+# To be completely empty we had to remove the --config-file
+# in front of every apt-get line in this script.
+echo '
+# TorBOX
+# IP of TorBOX-Workstation for building TorBOX inside TorBOX.
+# Works through Virtual Boxs NAT adapter.
+#Acquire::http { Proxy "http://192.168.0.2:3142"; };
+' > /tmp/apt.conf
+}
+
+
+
+config_etc() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+set up /etc configs
+######################################################
+"
+
+echo "INFO: Set local time zone to UTC to prevent anonymity set reduction."
+cp /usr/share/zoneinfo/UTC /etc/localtime
+
+# Workaround to fix the two minutes startup delay when dhcp client fails to write to /etc/resolv.conf
+# http://www.codewhirl.com/2011/10/ubuntu-11-10-waiting-up-to-60-more-seconds-for-network-configuration/
+ed -s  /etc/init/failsafe.conf <<< $',s/sleep 20/sleep 5/g\nw'
+ed -s  /etc/init/failsafe.conf <<< $',s/sleep 40/sleep 2/g\nw'
+ed -s  /etc/init/failsafe.conf <<< $',s/60 more/2 more/g\nw'
+ed -s  /etc/init/failsafe.conf <<< $',s/sleep 59/sleep 2/g\nw'
+}
+
+
+
+create_fix_sources_list() {
+# This function is required because preseed without network connection will mess up
+# /etc/apt/sources.list.
+
+echo "
+# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
+# newer versions of the distribution.
+deb http://us.archive.ubuntu.com/ubuntu/ precise main restricted
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise main restricted
+
+## Major bug fix updates produced after the final release of the
+## distribution.
+deb http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
+
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
+## team. Also, please note that software in universe WILL NOT receive any
+## review or updates from the Ubuntu security team.
+deb http://us.archive.ubuntu.com/ubuntu/ precise universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise universe
+deb http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
+
+## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu 
+## team, and may not be under a free licence. Please satisfy yourself as to 
+## your rights to use the software. Also, please note that software in 
+## multiverse WILL NOT receive any review or updates from the Ubuntu
+## security team.
+deb http://us.archive.ubuntu.com/ubuntu/ precise multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise multiverse
+deb http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
+
+## N.B. software from this repository may not have been tested as
+## extensively as that contained in the main release, although it includes
+## newer versions of some applications which may provide useful features.
+## Also, please note that software in backports WILL NOT receive any review
+## or updates from the Ubuntu security team.
+deb http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
+
+deb http://security.ubuntu.com/ubuntu precise-security main restricted
+deb-src http://security.ubuntu.com/ubuntu precise-security main restricted
+deb http://security.ubuntu.com/ubuntu precise-security universe
+deb-src http://security.ubuntu.com/ubuntu precise-security universe
+deb http://security.ubuntu.com/ubuntu precise-security multiverse
+deb-src http://security.ubuntu.com/ubuntu precise-security multiverse
+
+## Uncomment the following two lines to add software from Canonical's
+## 'partner' repository.
+## This software is not part of Ubuntu, but is offered by Canonical and the
+## respective vendors as a service to Ubuntu users.
+# deb http://archive.canonical.com/ubuntu precise partner
+# deb-src http://archive.canonical.com/ubuntu precise partner
+
+## Uncomment the following two lines to add software from Ubuntu's
+## 'extras' repository.
+## This software is not part of Ubuntu, but is offered by third-party
+## developers who want to ship their latest software.
+# deb http://extras.ubuntu.com/ubuntu precise main
+# deb-src http://extras.ubuntu.com/ubuntu precise main
+" > /etc/apt/sources.list
+}
+
+
+
+modify_sources_list() {
+# Add the Torporject repository, only works for Debian and derivatives.
+# "local release=" line may need to be changed if you do not use Ubuntu or Debian.
+# "lsb_release -c" and/or "cat /etc/debian_version" will tell you what version you are using.
+
+# Determine name of distribution.
+local release="$(lsb_release -cs)"
+
+# Modify sources.list.
+echo "
+# TorBOX
+# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
+# You can find a backup of the original sources.list under /etc/apt/sources.list.backup.
+
+# The torproject.org stable repository.
+deb http://deb.torproject.org/torproject.org $release main
+
+# The torproject.org alpha repository.
+#   Uncomment this in case you require the Tor alpha,
+#   which includes obfsproxy (obfuscated bridges).
+#deb http://deb.torproject.org/torproject.org experimental-$release main
+
+# End of TorBOX changes to sources.list.
+" >> /etc/apt/sources.list
+}
+
+
+
+apt_get() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Remove problematic software, install Tor and other software.
+######################################################
+"
+
+# Some apt_get() code is shared between TorBOX-Workstation and TorBOX-Gateway.
+
+echo "Checking if the system is functional and continuing apt-get if the script failed before,"
+echo "by running dpkg --configure -a. Can take a while."
+dpkg --configure -a
+
+# !!!VERIFY!!!
+#
+# https://www.torproject.org/docs/signing-keys.html.en
+# http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+#
+# https://www.torproject.org/docs/debian.html.en#ubuntu
+# http://idnxcnkne4qt76tg.onion/docs/debian.html.en#ubuntu
+
+echo "INFO: Importing torproject.org signing key..."
+rm -r gpgtmpdir/ || true
+sudo -u $USERNAME mkdir gpgtmpdir
+chmod 700 gpgtmpdir/
+sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint
+sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
+sudo -u $USERNAME gpg --homedir gpgtmpdir --export  A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
+rm -r gpgtmpdir/
+echo "INFO: Imported torproject.org signing key."
+
+echo "Refresh apt-get to include the newly added torproject.org repository."
+apt-get --config-file /tmp/apt.conf update
+
+echo "Running apt-get dist-upgrade..."
+apt-get --config-file /tmp/apt.conf --yes dist-upgrade
+
+# Remove problematic software.
+apt-get --config-file /tmp/apt.conf --yes remove --purge popularity-contest network-manager network-manager-gnome ntpdate resolvconf  || true
+
+# Make sure required software is installed and install tor.
+apt-get --config-file /tmp/apt.conf --yes install bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor tor-arm torsocks wget
+
+# TODO: console-utilities console-tools console-data something broken
+#       (proper) For what do we need it anyway?
+
+# dialog removed. Not really needed?
+
+# Additionally install obfsproxy. Disabled by default, because
+# it requires Tor Alpha and is only available in the experimental branch.
+# obfsproxy is already available as a deb package in the Tor repository.
+# https://trac.torproject.org/projects/tor/ticket/6046
+#apt-get --config-file /tmp/apt.conf --yes install obfsproxy
+
+# Backup torrc.
+cp -n /etc/tor/torrc /etc/tor/torrc.backup
+
+# Get and set Tor UID, distro specific!
+TOR_UID=`id -u debian-tor`
+
+# TOR_UID Fallback.
+if [[ "$TOR_UID" == "" ]]; then
+   echo "WARNING: TOR_UID could not be determined. Setting to 103. Should work for Ubuntu. Distro specific!"
+   TOR_UID=103
+fi
+
+# create arm wrapper script to start arm without entering a password
+echo "\
+#!/bin/bash
+sudo -u debian-tor /usr/bin/arm
+" > /usr/local/bin/arm
+
+chmod +x /usr/local/bin/arm
+
+echo '
+#
+# TorBOX help file.
+# This file will get overwritten when updating TorBOX TorBOX-Gateway through the apt_get function.
+#
+echo "The following commands are available on TorBOX TorBOX-Gateway:"
+echo "sudo dpkg-reconfigure keyboard-configuration (Change keyboard layout.)"
+echo "arm - Anonymizing Relay Monitor (Vidalia alternative, Tor Controller as console application)"
+echo "nslookup check.torproject.org - check if DNS resolution is functional"
+echo "sudo service tor restart"
+echo "reboot"
+echo "poweroff"
+echo "sudo apt-get update"
+echo "sudo apt-get dist-upgrade"
+echo " "
+echo "Important files:"
+echo "nano /etc/tor/torrc"
+echo "nano /etc/resolv.conf"
+echo "nano /etc/torboxfirewall.sh"
+echo " "
+echo "End of help."
+' > /usr/local/bin/torbox
+
+chmod +x /usr/local/bin/torbox
+}
+
+
+
+config_grub() {
+echo "
+######################################################
+# config_grub
+######################################################
+"
+echo "
+GRUB_TERMINAL=console
+" > /etc/default/grub
+
+update-grub2
+}
+
+
+
+base_desktop() {
+echo "
+######################################################
+# Installing base desktop
+######################################################
+"
+
+apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox vidalia
+}
+
+
+
+config_home() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+config_home
+######################################################
+"
+
+# TorBOX help/welcome message
+cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
+
+echo \
+'echo "Welcome to TorBOX Tor-Gateway!"
+echo "TorBOX is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for TorBOX. See Disclaimer for more information."
+echo "TorBOX is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else."
+echo "TorBOX is based on Tor."
+echo "TorBOX is experimental software by means of concept and design. Do not rely on it for strong anonymity."
+echo "Type: \"torbox\" <enter> for help."
+' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
+}
+
+
+
+fix_network() {
+echo "
+######################################################
+fix_network
+######################################################
+"
+
+# This function is required because preseed install messes up
+# /etc/network/interfaces. There is no preseed netcfg instance
+# for setting the broadcast address, which would be required
+# for Virtual Box.
+
+echo "fix_network(): overwriting /etc/network/interfaces..."
+
+echo '
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+' > /etc/network/interfaces
+
+echo "fix_network(): restarting network..."
+/etc/init.d/networking restart
+echo "fix_network(): restarted network."
+}
+
+
+
+set_sysctl() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
+######################################################
+#We need to disable IPv6 because Tor does not support IPv6 yet and may create leaks.
+#You can verify the setting applied by: cat /proc/sys/net/ipv6/conf/all/disable_ipv6, which should return 1.
+#Advanced users only: If you were unwilling or unable to disable IPv6 you would have to create an IPv6 firewall.
+#The firewall supplied by TorBOX does only protect IPv4.
+#Disable ipv4 Forwarding as per https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxy
+#You can verify the setting applied by: cat /proc/sys/net/ipv4/ip_forward, which should return 0
+#Also settings vm.swappiness=0 which you can check with sysctl -p.
+" >&2
+
+echo "
+# Appended by TorBOX to /etc/sysctcl.conf.
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv4.ip_forward = 0
+
+fs.file-max=100000
+
+vm.swappiness=0
+# End of TorBOX appends to /etc/systcl.conf.
+" >> /etc/sysctl.conf
+
+sysctl -p
+}
+
+
+
+create_swap_file() {
+echo "
+######################################################
+# create_swap_file
+######################################################
+"
+# Source: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
+
+# Creating 512 MB swap file.
+echo "INFO: Creating /swapfile1... This may take a while..."
+dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
+echo "INFO: Created /swapfile1."
+
+# Format swapfile.
+mkswap /swapfile1 --uuid 0615ba72-85b0-4183-8d54-300bb0d2e491
+
+# Set permissions.
+chown root:root /swapfile1
+
+# Set permissions.
+chmod 0600 /swapfile1
+
+# Should be probable omitted. No need. Will be restarted so or so.
+# swapon /swapfile1
+}
+
+
+
+config_uuids_fstab() {
+# code shared between TorBOX_Workstation and TorBOX_Gateway script.
+
+echo "
+######################################################
+# Configuring disk uuids and /etc/fstab
+######################################################
+"
+# Change uuid of hdd created by operating system installer.
+# WARNING: This assumes you used "Guided - use entire disk" partitioning (NOT LVM!)
+tune2fs /dev/sda1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+
+# Deactivate swap partition. Will not be created when using preseed.
+# Deactivating anyway just in case anyone manually installs the operating system.
+swapoff /dev/sda5 || true
+
+# Share the same uuid among all TorBOX users.
+# Setting anyway just in case anyone manually installs the operating system
+# and then applies the script.
+mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
+
+echo "
+# /etc/fstab: static file system information.
+#
+# Use blkid to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+proc            /proc           proc    nodev,noexec,nosuid 0       0
+
+# TorBOX /etc/fstab changes.
+
+# HDD created by operating system installer.
+# Disk UUID changed by TorBOX.
+UUID=26ada0c0-1165-4098-884d-aafd2220c2c6 /               ext4    noatime,errors=remount-ro 0       1
+
+# Swap partition NOT created by TorBOX preseed installation method.
+# Disk UUID changed by TorBOX.
+# The swap partition has been removed in favor of a swap file.
+# Advantage: with a swap file its easier to grow the virtual hdd
+# and to add the new space to the filesystem.
+# UUID=9159bf6e-e242-4510-b4c1-348db252feff none            swap    sw              0       0
+
+# Swap file created by TorBOX.
+# Disk UUID changed by TorBOX.
+# UUID=0615ba72-85b0-4183-8d54-300bb0d2e491
+/swapfile1 swap swap defaults 0 0
+
+# End of TorBOX /etc/fstab changes.
+" > /etc/fstab
+
+update-grub2
+grub-install /dev/sda
+}
+
+
+
+config_network() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up /etc/network/interfaces.
+######################################################
+"
+
+echo "config_network(): appending to /etc/network/interfaces..."
+echo '
+pre-up /etc/torboxfirewall.sh
+
+auto '$INT_IF'
+iface '$INT_IF' inet static
+address '$INT_IP'
+       netmask 255.255.255.0
+       network 192.168.0.0
+       broadcast 192.168.0.255
+
+# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
+# You can find a backup of the original interfaces under /etc/network/interfaces.backup.
+' >> /etc/network/interfaces
+}
+
+
+
+firewall_setup() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up Firewall.
+######################################################
+"
+
+echo \
+'#!/bin/sh
+
+# WARNING! Do not use single quotes/apostrophes in the firwall comments!!!
+
+###########################
+# /etc/torboxfirewall.sh
+###########################
+
+echo "OK: Latest firewall updates can always be found here:"
+echo "OK: https://trac.torproject.org/projects/tor/wiki/doc/TorBOX"
+echo "OK: Loading TorBOX firewall..."
+
+###########################
+# VARIABELS
+###########################
+
+# Destinations you don not want routed through Tor, only for TG!
+NON_TOR_TG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
+
+# Tor User ID
+TOR_UID='$TOR_UID'
+
+# Output TOR_UID for debugging purposes.
+echo "OK: TOR_UID: $TOR_UID"
+
+# DnsPort_TW
+DNS_PORT_TW=53
+
+# DnsPort_TG
+DNS_PORT_TG='$DNS_PORT_TG'
+
+# TransPort_TW
+TRANS_PORT_TW='$TRANS_PORT_TW'
+
+# TransPort_TG
+TRANS_PORT_TG='$TRANS_PORT_TG'
+
+# Socks Ports for per application circuits.
+# TODO: Can we use a loop?
+SOCKS_PORT_TB='$SOCKS_PORT_TB'
+SOCKS_PORT_IRC='$SOCKS_PORT_IRC'
+SOCKS_PORT_TORBIRDY='$SOCKS_PORT_TORBIRDY'
+SOCKS_PORT_IM='$SOCKS_PORT_IM'
+SOCKS_PORT_APT_GET='$SOCKS_PORT_APT_GET'
+SOCKS_PORT_GPG='$SOCKS_PORT_GPG'
+SOCKS_PORT_SSH='$SOCKS_PORT_SSH'
+SOCKS_PORT_GIT='$SOCKS_PORT_GIT'
+SOCKS_PORT_HTPDATE='$SOCKS_PORT_HTPDATE'
+SOCKS_PORT_WGET='$SOCKS_PORT_WGET'
+SOCKS_PORT_TORCHECK='$SOCKS_PORT_TORCHECK'
+SOCKS_PORT_BITCOIN='$SOCKS_PORT_BITCOIN'
+SOCKS_PORT_PRIVOXY='$SOCKS_PORT_PRIVOXY'
+SOCKS_PORT_POLIPO='$SOCKS_PORT_POLIPO'
+
+#+# Additional Socks Ports for per application circuits.
+#+# OptionalFeatureNr.4#
+#SOCKS_PORT_ETC='$SOCKS_PORT_ETC'
+
+#+# OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#SOCKS_PORT_ISOLATE_DEST_PORT='$SOCKS_PORT_ISOLATE_DEST_PORT'
+#SOCKS_PORT_ISOLATE_DEST_ADDR='$SOCKS_PORT_ISOLATE_DEST_ADDR'
+
+# External interface
+EXT_IF='$EXT_IF'
+# Internal interface
+INT_IF='$INT_IF'
+# Internal tunnel interface
+INT_TIF='$INT_TIF'
+
+###########################
+# IPv4 DEFAULTS
+###########################
+
+# Set secure defaults.
+iptables -P INPUT DROP
+
+# FORWARD rules does not actually do anything if forwarding is disabled. Better be safe just in case.
+iptables -P FORWARD DROP
+
+# Only the Tor process is allowed to establish outgoing connections.
+iptables -P OUTPUT DROP
+
+###########################
+# IPv4 PREPARATIONS
+###########################
+
+# Flush old rules.
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+
+############################
+# IPv4 DROP INVALID PACKAGES
+############################
+
+# DROP INVALID
+iptables -A INPUT -m state --state INVALID -j DROP
+
+# DROP INVALID SYN PACKETS
+iptables -A INPUT -p tcp --tcp-flags ALL ACK,RST,SYN,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+
+# DROP PACKETS WITH INCOMING FRAGMENTS. THIS ATTACK ONCE RESULTED IN KERNEL PANICS
+iptables -A INPUT -f -j DROP
+
+# DROP INCOMING MALFORMED XMAS PACKETS
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+
+# DROP INCOMING MALFORMED NULL PACKETS
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+###########################
+# IPv4 INPUT
+###########################
+
+# Traffic on the loopback interface is accepted.
+iptables -A INPUT -i lo -j ACCEPT
+
+# Established incoming connections are accepted.
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# Allow incoming SSH connections on the external interface.
+iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
+
+# OPTIONAL Allow incoming OpenVPN connections on the external interface.
+#iptables -A INPUT -i $EXT_IF -p tcp --dport 1194 -j ACCEPT
+
+# Allow TCP to TransPort and DNS traffic to DNSListenAddress.
+#+# SEE #OptionalFeatureNr.5#
+iptables -A INPUT -i $INT_TIF -p udp --dport 53 -j ACCEPT
+#+# SEE #OptionalFeatureNr.5#
+iptables -A INPUT -i $INT_IF -p tcp --dport $TRANS_PORT_TW -j ACCEPT
+
+# Allow socksified applications.
+# TODO: Lets use a loop where we list all SOCKS_PORT_XXX add them.
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TB -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IRC -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORBIRDY -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IM -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_APT_GET -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GPG -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_SSH -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GIT -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_HTPDATE -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_WGET -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORCHECK -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_BITCOIN -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_PRIVOXY -j ACCEPT
+iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_POLIPO -j ACCEPT
+
+#+# #OptionalFeatureNr.4# More Socks Ports.
+#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ETC -j ACCEPT
+
+#OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j ACCEPT
+#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j ACCEPT
+
+# Redirect DNS traffic to DNSPORT.
+#+# SEE #OptionalFeatureNr.5#
+iptables -t nat -A PREROUTING -i $INT_IF -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_TW
+
+# Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
+# TODO: Lets use a loop where we list all SOCKS_PORT_XXX add them.
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TB -j REDIRECT --to-ports $SOCKS_PORT_TB
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IRC -j REDIRECT --to-ports $SOCKS_PORT_IRC
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORBIRDY -j REDIRECT --to-ports $SOCKS_PORT_TORBIRDY
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IM -j REDIRECT --to-ports $SOCKS_PORT_IM
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_APT_GET -j REDIRECT --to-ports $SOCKS_PORT_APT_GET
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GPG -j REDIRECT --to-ports $SOCKS_PORT_GPG
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_SSH -j REDIRECT --to-ports $SOCKS_PORT_SSH
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GIT -j REDIRECT --to-ports $SOCKS_PORT_GIT
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_HTPDATE -j REDIRECT --to-ports $SOCKS_PORT_HTPDATE
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_WGET -j REDIRECT --to-ports $SOCKS_PORT_WGET
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORCHECK -j REDIRECT --to-ports $SOCKS_PORT_TORCHECK
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_BITCOIN -j REDIRECT --to-ports $SOCKS_PORT_BITCOIN
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_PRIVOXY -j REDIRECT --to-ports $SOCKS_PORT_PRIVOXY
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_POLIPO -j REDIRECT --to-ports $SOCKS_PORT_POLIPO
+
+#+# OptionalFeatureNr.4# More Socks Ports.
+#+# Rules for additional SocksPorts.
+#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ETC -j REDIRECT --to-ports $SOCKS_PORT_ETC
+
+#OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_PORT
+#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_ADDR
+
+# Catch all remaining tcp and redirect to TransPort.
+#+# SEE #OptionalFeatureNr.5#
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_TW
+
+#+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
+#+# Replace above rule with a more restrictive one, e.g.:
+#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports $TRANS_PORT_TW
+
+# Reject anything not explicitly allowed above.
+iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
+
+###########################
+# IPv4 FORWARD
+###########################
+
+iptables -A FORWARD -j REJECT --reject-with icmp-port-unreachable
+
+###########################
+# IPv4 OUTPUT
+###########################
+
+# No NAT for Tor itself.
+iptables -t nat -A OUTPUT -m owner --uid-owner $TOR_UID -j RETURN
+
+# Redirect of T-G DNS traffic to DnsPort_TG.
+iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_TG
+
+# Exclude connections to local network, TW, VirtualBox from being redirected through Tor.
+for NET in $NON_TOR_TG; do
+ iptables -t nat -A OUTPUT -d $NET -j RETURN
+done
+
+# Redirect all T-G TCP traffic to TransPort_TG.
+iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_TG
+
+# Existing connections are accepted.
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Accept outgoing connections to local network, TW and VirtualBox.
+for NET in $NON_TOR_TG; do
+ iptables -A OUTPUT -d $NET -j ACCEPT
+done
+
+# Tor is allowed to connect any outside target.
+iptables -A OUTPUT -m owner --uid-owner $TOR_UID -j ACCEPT
+
+# Reject all other outging traffic.
+iptables -A OUTPUT -j REJECT
+
+
+###########################
+# IPv6
+###########################
+
+# Policy DROP for all traffic as fallback.
+ip6tables -P INPUT DROP
+ip6tables -P OUTPUT DROP
+ip6tables -P FORWARD DROP
+
+# Flush old rules.
+ip6tables -F
+ip6tables -X
+ip6tables -t mangle -F
+ip6tables -t mangle -X
+ 
+# Allow unlimited access on loopback.
+#ip6tables -A INPUT -i lo -j ACCEPT
+#ip6tables -A OUTPUT -o lo -j ACCEPT
+
+# Logging in case, needed for debugging.
+#ip6tables -A INPUT -j LOG
+
+# Drop/reject all other traffic.
+ip6tables -A INPUT -j DROP
+ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable
+ip6tables -A FORWARD -j DROP
+
+###########################
+# End
+###########################
+
+echo "OK: The firewall should show any messages besides output beginning with prefix OK:..."
+echo "OK: TorBOX firewall loaded."
+' > /etc/torboxfirewall.sh
+
+chmod +x /etc/torboxfirewall.sh
+}
+
+
+
+start_network() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Restarting Network...
+######################################################
+"
+
+# Bring up the internal network and start the firewall (and workaround some stupid bug).
+echo "INFO: Bringing down all network interfaces..."
+ifdown eth1 --force
+echo "INFO: Bringing up eth0..."
+ifup eth0
+echo "INFO: Bringin up all interfaces"
+ifup -a
+echo "INFO: Networking successfully restarted."
+}
+
+
+
+setup_torrc() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up /etc/tor/torrc.
+######################################################
+"
+
+# Enable transparent proxy.
+# https://www.torproject.org/docs/tor-manual.html.en Tor stable manual.
+# https://www.torproject.org/docs/tor-manual-dev.html.en Tor alpha manual.
+
+# The "stable" repository now contains Tor 0.2.3.17-beta, refer to the
+# "alpha" manual until they completed transition.
+
+echo '
+#########################################
+# TorBOX torrc                          #
+#########################################
+# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
+
+# You can find a backup of the original torrc under /etc/tor/torrc.backup.
+
+#########################################
+# Leak Tests                            #
+#########################################
+
+#+# #OptionalFeatureNr.6# Leak Testing.
+#+#
+#+# Manual Leak Testing:
+#+# See TorBOX/LeakTests. Activate this while testing for leaks. (Step 0)
+#+# Deactivate after you are done! (Important!) (Step 9)
+#+#
+#+# Scripted Leak Testing:
+#+# If you change the following two lines, beside removing the hash (#),
+#+# beside commenting them in, you break the integrated leaktest script.
+#+# See leaktest_tg() ed.
+#+# See /TorBOX/LeakTests
+#+# on information, how to use the integrated leaktest script.
+#+#
+#ReachableDirAddresses *:80
+#ReachableORAddresses *:443
+
+#########################################
+# General Settings                      #
+#########################################
+
+# ControlPort is necessary for tor-arm and Vidalia.
+# - Vidalia has to set /var/run/tor/control (default) as
+#   Control Cookie.
+# - Arm autodetects the Control Cookie.
+# - Not using HashedControlPassword or CookieAuthentication.
+#   TorBOX-Gateway is no multi purpose machine. It is solely a
+#   Tor Gateway. As soon as an adversary has physical access
+#   or compromised TorBOX-Gateway, its Game Over anyway.
+ControlPort 9051
+ControlListenAddress 127.0.0.1
+
+Log notice syslog
+#Log notice file /var/log/tor/log
+
+User debian-tor
+
+# Not required:
+#DataDirectory /...
+#PidFile /...
+#ControlSocket /...
+#ControlSocketsGroupWritable 1
+#CookieAuthentication 1
+#CookieAuthFileGroupReadable 1
+#CookieAuthFile /...
+
+#########################################
+# Proxy Settings                        #
+#########################################
+
+VirtualAddrNetwork 10.192.0.0/10
+AutomapHostsOnResolve 1
+
+TransPort '$INT_IP':'$TRANS_PORT_TW'
+DnsPort '$INT_IP':53
+
+TransPort 127.0.0.1:'$TRANS_PORT_TG'
+DnsPort 127.0.0.1:'$DNS_PORT_TG'
+
+SocksPort '$INT_IP':'$SOCKS_PORT_TB'
+SocksPort '$INT_IP':'$SOCKS_PORT_IRC'
+SocksPort '$INT_IP':'$SOCKS_PORT_TORBIRDY'
+SocksPort '$INT_IP':'$SOCKS_PORT_IM'
+SocksPort '$INT_IP':'$SOCKS_PORT_APT_GET'
+SocksPort '$INT_IP':'$SOCKS_PORT_GPG'
+SocksPort '$INT_IP':'$SOCKS_PORT_SSH'
+SocksPort '$INT_IP':'$SOCKS_PORT_GIT'
+SocksPort '$INT_IP':'$SOCKS_PORT_HTPDATE'
+SocksPort '$INT_IP':'$SOCKS_PORT_WGET'
+SocksPort '$INT_IP':'$SOCKS_PORT_TORCHECK'
+SocksPort '$INT_IP':'$SOCKS_PORT_BITCOIN'
+SocksPort '$INT_IP':'$SOCKS_PORT_PRIVOXY'
+SocksPort '$INT_IP':'$SOCKS_PORT_POLIPO'
+
+#+# #OptionalFeatureNr.4# Additional Socks Ports.
+#SocksPort '$INT_IP':'$SOCKS_PORT_ETC'
+
+#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#SocksPort '$INT_IP':'$SOCKS_PORT_ISOLATE_DEST_PORT' IsolateDestPort
+#SocksPort '$INT_IP':'$SOCKS_PORT_ISOLATE_DEST_ADDR' IsolateDestAddr
+
+#########################################
+# Hidden Services                       #
+#########################################
+
+#+# #OptionalFeatureNr.2# Hidden Services.
+#+# Uncomment if you install a hidden service on the TorBOX-Workstation.
+#+# Check /var/lib/tor/hidden_service/hostname for your .onion address.
+#+# Backup the keys from /var/lib/tor/hidden_service/!
+#HiddenServiceDir /var/lib/tor/hidden_service/
+#HiddenServicePort 80 192.168.0.2:12345
+
+#########################################
+# Using normal (non-obfuscated) bridges #
+#########################################
+# Also read all information about bridges on https://www.torproject.org!
+# https://gitweb.torproject.org/torspec.git?a=blob_plain;hb=HEAD;f=proposals/125-bridges.txt
+# describes under "3. Bridge users." how to use bridges.
+
+# You have to find bridges yourself!
+# - source #1: https://www.torproject.org/docs/bridges#FindingMore
+# - source #2: https://bridges.torproject.org/
+# - source #3: Ask a friend.
+
+# If you want to use normal (non-obfuscated) bridges, uncomment the line below.
+#UseBridges 1 
+
+# This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own bridges!
+#bridge 60.16.182.53:9001
+#bridge 87.237.118.139:444
+#bridge 60.63.97.221:443
+
+#########################################
+# Using obfuscated bridges              #
+#########################################
+# Also read all information about obfuscated bridges and obfsproxy on https://www.torproject.org!
+# https://www.torproject.org/projects/obfsproxy-instructions.html.en
+#
+# You can either use semi-public or private bridges.
+#
+# Semi-public obfuscated bridges can be found within the Obfsproxy Tor Browser Bundle in ./Data/Tor/torrc.
+# https://www.torproject.org/projects/obfsproxy.html.en
+# Note, that those bridges might get blocked soon. And it is also not hard for the censurer,
+# to find out that you are using those semi-public bridges.
+#
+# Only friends can setup private obfuscated bridges for you.
+# (Or you have to anonymously get a server in a non-censored country yourself.)
+# official help: https://www.torproject.org/projects/obfsproxy-instructions.html.en
+# unofficial help: https://trac.torproject.org/projects/tor/wiki/TorObfsBridgeSetupForBeginners
+
+# If you want to use obfuscated bridges, uncomment the next two lines below.
+#UseBridges 1
+#ClientTransportPlugin obfs2 exec /usr/local/bin/obfsproxy --managed
+
+# This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own obfuscated bridges!
+#Bridge obfs2 128.31.0.34:1051
+
+#########################################
+# end of torrc                          #
+#########################################
+' > /etc/tor/torrc
+}
+
+
+
+start_tor() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Start Tor
+######################################################
+"
+
+# Apply new torrc settings
+service tor restart
+}
+
+
+
+config_vidalia() {
+echo "
+######################################################
+config_vidalia
+######################################################
+"
+
+apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends vidalia
+
+sudo -u $USERNAME mkdir -p /home/$USERNAME/.vidalia
+
+# Setup Vidalia to use Cookie Authentication.
+echo '
+[Tor]
+Changed=true
+AuthenticationMethod=none
+Torrc=/etc/tor/torrc
+TorExecutable=/usr/sbin/tor
+' | sudo -u $USERNAME tee -a /home/$USERNAME/.vidalia/vidalia.conf
+
+# Lift permissions to edit torrc to allow Vidalia editing torrc.
+# There should be no security implications, since TorBOX-Gateway is
+# not a multi user environment, its solely used to host Tor. On the
+# other hand, for the Tor Browser Bundle, Tor, Vidalia and Tor Browser
+# run under the very same user account.
+chmod g+rw /etc/tor/torrc
+chmod o+rw /etc/tor/torrc
+}
+
+
+
+config_dns_tg() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+config_dns_tg
+######################################################
+"
+
+# Delete /etc/resolv.conf to work around some strange bug
+# "Operation not supported While reading flags on" while
+# trying to set -i on /etc/resolv.conf.
+# Override trap function, if /etc/resolv.conf does not
+# exist or is write protected (+i).
+rm /etc/resolv.conf || true
+
+# Remove write protection from resolv.conf.
+# Override trap function, if /etc/resolv.conf does not exist.
+chattr -i /etc/resolv.conf || true
+
+# Delete file to keep care of potential leaks.
+# Override trap function, if /etc/resolv.conf does not exist.
+rm /etc/resolv.conf || true
+
+# Set nameserver to localhost.
+# iptables redirects any of TorBOX-Gateways DNS requests to DNS_PORT_TG
+# Do not override trap function, this step is essential.
+echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+# Add write protection to resolv.conf to prevent DNS leaks by getting
+# edited by DHCP.
+# Do not override trap function, this step is essential.
+chattr +i /etc/resolv.conf
+}
+
+
+
+create_rc_local() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Fixing, recreating /etc/rc.local
+######################################################
+"
+
+# /etc/rc.local was (ab)used by TorBOX-Image -tX-copyinto
+# to run TorBOX_$VM script once. That is because TorBOX_$VM
+# scripts get executed inside the VM. We restore /etc/rc.local
+# here. A new TorBOX-Image -tX-copyinto would overwrite it
+# again.
+
+# Using "" because the $USERNAME should be converted to "user"
+# by the TorBOX_Gateway script.
+echo "#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# TorBOX changes to /etc/rc.local.
+
+# TorBOX WARNING: 
+# Better make a backup of this script if you want to make changes.
+
+echo \"rc.local: Start...\"
+set -x
+setterm -blank 0 -powerdown 0
+sudo -u $USERNAME setterm -blank 0 -powerdown 0
+echo \"rc.local: End.\"
+
+# End of TorBOX changes to /etc/rc.local.
+
+exit 0
+" > /etc/rc.local
+}
+
+
+
+vm_configuration() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up VM specific /etc configs.
+######################################################
+"
+
+# Possibly DANGEROUS! Needs to be audited!
+# Race condition, syntax error detection do not apply here and we set correct permission just to make sure.
+cp /etc/sudoers /etc/sudoers.backup
+chmod 0440 /etc/sudoers.backup
+echo "
+$USERNAME $HOSTNAME=NOPASSWD: /sbin/shutdown -h now,/sbin/reboot,/sbin/poweroff
+" >> /etc/sudoers
+chmod 0440 /etc/sudoers
+
+# Enable Auto-Login (best only used in VMs).
+# For Ubuntu Oneiric and Precise:
+# HARDCODED!
+ed -s /etc/init/tty1.conf <<< $',s/exec \/sbin\/getty -8 38400 tty1/exec \/sbin\/rungetty --autologin user tty1/g\nw'
+
+# For Debian Squeeze:
+# cp -n /etc/inittab /etc/inittab.backup
+# NOTE: add cp -n /etc/inittab.backup /etc/inittab to roll_back()
+# HARDCODED!
+# ed -s /etc/inittab <<< $',s/1:2345:respawn:\/sbin\/getty 38400 tty1/1:23:respawn:\/sbin\/rungetty --autologin user tty1/g\nw'
+
+echo "
+######################################################
+Set up VM specific ~/ configs.
+######################################################
+"
+
+# Allow user to reboot and poweroff without having to supply a password:
+echo '
+# TorBOX /home/user/.bashrc changes.
+
+alias reboot="sudo reboot"
+alias poweroff="sudo poweroff"
+
+# End of TorBOX /home/user/.bashrc changes.
+' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
+}
+
+
+
+leaktest_tg() {
+# leaktest_tg() does nothing dangerous.
+# It creates only /usr/local/bin/leaktest.
+# The neccessary software for leak testing will be only installed,
+# if you run /usr/local/bin/leaktest.
+
+trap "roll_back" ERR INT TERM
+
+echo "
+######################################################
+Creating /usr/local/bin/leaktest.
+######################################################
+"
+
+echo "leaktest_tg(): Creating /usr/local/bin/leaktest."
+echo \
+'#!/bin/bash
+
+  if [ "$(id -u)" != "0" ]; then
+     echo "FATAL ERROR: This script must be run as root (sudo)"
+     exit 1
+  fi
+
+exit_function() {
+echo "INFO: Listing for leaks stopped."
+
+echo "INFO: Reverting /etc/tor/torrc to original state."
+ed -s /etc/tor/torrc <<< $'\'',s/ReachableDirAddresses \*:80/#ReachableDirAddresses *:80/g\nw'\''
+ed -s /etc/tor/torrc <<< $'\'',s/ReachableORAddresses \*:443/#ReachableORAddresses *:443/g\nw'\''
+
+echo "INFO: Reloading Tor, using normal settings again"
+service tor reload
+echo "INFO: Done."
+
+# Exit instantly, to prevent running exit_function more than once.
+exit 1
+}
+
+trap "exit_function" ERR INT TERM
+
+# Install wireshark to the TorBOX-Gateway for Leak Testing
+echo "INFO: Installing tshark if it is not installed yet"
+apt-get --yes install tshark
+
+echo "INFO: You can uninstall tshark later manually using:"
+echo "             sudo apt-get remove tshark"
+
+echo "INFO: Setting capabilities to run wireshark with user privileges."
+setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap
+
+echo "INFO: Modifying /etc/tor/torrc..."
+ed -s /etc/tor/torrc <<< $'\'',s/\#ReachableDirAddresses \*:80/ReachableDirAddresses *:80/g\nw'\''
+ed -s /etc/tor/torrc <<< $'\'',s/\#ReachableORAddresses \*:443/ReachableORAddresses *:443/g\nw'\''
+
+echo "INFO: Restarting Tor, only using port 80 and 443..."
+service tor reload
+
+echo "NOTE: You must be logged in as user and start this script with sudo leaktest"
+echo "NOTE: Otherwise you will see a lot tshark error messages."
+echo "INFO: Starting tshark as user... To stop press CTRL + C."
+# HARDCODED!
+sudo -u user tshark -S -i eth0 -f "ip and src host 10.0.2.15 and not (port 80 or port 443 or port 9001 or port 9030 or ssh)"
+' > /usr/local/bin/leaktest
+
+echo "leaktest_tg(): Making /usr/local/bin/leaktest executable."
+chmod +x /usr/local/bin/leaktest
+}
+
+
+
+one_vm() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up OneVM specific configuriations
+######################################################
+"
+
+apt-get --config-file /tmp/apt.conf --yes install virtualbox bridge-utils
+INT_IF="vnet0"
+INT_IP="172.16.0.1"
+
+echo "
+# Run firewall script
+pre-up /etc/torboxfirewall.sh
+
+# VirtualBox NAT bridge
+auto vnet0
+iface vnet0 inet static
+ address 172.16.0.1
+ netmask 255.255.255.0
+ bridge_ports none
+ bridge_maxwait 0
+ bridge_fd 1
+
+ up iptables -t nat -I POSTROUTING -s 172.16.0.0/24 -j MASQUERADE
+ down iptables -t nat -D POSTROUTING -s 172.16.0.0/24 -j MASQUERADE
+" >> /etc/network/interfaces
+
+ifup vnet0
+}
+
+
+staticvboxip() {
+trap "roll_back" ERR INT TERM
+echo "
+######################################################
+Set up static IP for external Interface
+######################################################
+"
+
+# static IP for VBox to host NAT network.
+# Disabled by default
+
+echo '
+# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
+
+# You can find a backup of the original interfaces under /etc/network/interfaces.backup.
+
+# for more information see interfaces(5)
+
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+       address 10.0.2.15
+       netmask 255.255.255.0
+       gateway 10.0.2.2
+       broadcast 10.0.2.255
+
+pre-up /etc/torboxfirewall.sh
+
+auto '$INT_IF'
+iface '$INT_IF' inet static
+       address '$INT_IP'
+       netmask 255.255.255.0
+       network 192.168.0.0
+       broadcast 192.168.0.255
+' > /etc/network/interfaces
+
+apt-get --config-file /tmp/apt.conf --yes remove --purge dhcp*
+}
+
+
+slim_down() {
+echo "
+######################################################
+Slim down the system.
+######################################################
+"
+# Remove unnecessary packages to slim down the system.
+# This list contains only packages, which waste space and are not required.
+# Unsafe or problematic packages are being removed with apt_get().
+apt-get --config-file /tmp/apt.conf --yes remove --purge vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
+pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
+friendly-recovery dosfstools command-not-found* logrotate aptitude || true
+
+echo "INFO: Stopping Tor so we can remove logs and tor data."
+service tor stop || true
+
+echo "INFO: Cleaning up..."
+# Tell bash-completion about missing man package because apt-get is not doing its job...
+rm -r /etc/bash_completion.d/man/* || true
+
+
+# This assumes you rebooted after the last kernel update. Not needed and can not be used together with debootstrap!
+# apt-get --config-file /tmp/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`)  || true
+
+# Remove openssh-server.
+apt-get --config-file /tmp/apt.conf --yes remove --purge openssh-server || true
+
+# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
+killall dhclient3 || true
+# There are .leases.
+rm /var/lib/dhcp/*.leases || true
+# And there are .lease.
+rm /var/lib/dhcp/*.lease || true
+# We are best of deleting the whole folder.
+rm -r /var/lib/dhcp/* || true
+
+# Cleanup.
+apt-get --config-file /tmp/apt.conf --yes autoremove --purge || true
+apt-get --config-file /tmp/apt.conf --yes clean || true
+
+# No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
+# Therefore /var/lib/tor should be empty.
+# Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
+# rm -r /var/lib/tor/* || true
+
+# Killing rsyslog so we can remove logs.
+stop rsyslog || true
+
+# Delete logs and other stuff.
+rm -r /tmp/* || true
+rm /var/log/installer/* || true
+rm -r /var/cache/apt/* || true
+rm -r /var/lib/apt/lists/* || true
+rm -r /var/log/installer || true
+rm /var/lib/dpkg/*-old || true
+rm /var/cache/debconf/*-old || true
+# Erase rotated logs (usually wont appear unless you left your VM running for several days).
+rm /var/log/*.[0-9] || true
+rm /var/log/*.[0-9].gz || true
+
+# Truncate all log files, keeping user group and perms.
+find /var/log -type f -exec cp /dev/null {} \;
+
+# Take care of development leaks and make resulting ova image smaller.
+# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
+# This also ensure that possible leaks we deleted before are really deleted.
+echo "INFO: Wiping free space. This can take a while."
+dd if=/dev/zero of=./zerofile bs=1024 || true
+
+# Flush the zero-file to disk before removing it.
+sync
+
+# Delete the zero-file.
+rm ./zerofile || true
+
+# Flush again after rm.
+sync
+
+# Delete bash history.
+rm /home/$USERNAME/.bash_history
+history -c
+}
+
+
+
+uninstall() {
+echo "
+######################################################
+Uninstall TorBOX-Gateway.
+######################################################
+"
+set +e
+service tor stop
+cp /etc/localtime.backup /etc/localtime
+cp /etc/apt/sources.list.backup /etc/apt/sources.list
+#might not be wise to reinstall grub config if a new kernel was installed afterwards
+#cp /etc/default/grub.backup /etc/default/grub
+cp /etc/sysctl.conf.backup /etc/sysctl.conf
+cp /etc/network/interfaces.backup /etc/network/interfaces
+cp /etc/tor/torrc.backup /etc/tor/torrc
+cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
+rm /etc/torboxfirewall.sh
+rm /usr/local/bin/torbox
+rm /usr/local/bin/leaktest
+rm /usr/local/bin/arm
+iptables -F
+iptables -t nat -F
+iptables -X
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+ifdown -a
+ifdown eth1 --force
+ifup eth0
+ifup -a
+apt-get --config-file /tmp/apt.conf --yes remove --purge tor deb.torproject.org-keyring tor-arm obfsproxy
+}
+
+
+
+uninstall_vm() {
+echo "
+######################################################
+Uninstall TorBOX-Gateway VM specific parts.
+######################################################
+"
+cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
+cp /etc/sudoers.backup /etc/sudoers
+chmod 0440 /etc/sudoers
+}
+
+
+
+################################################################
+# -install
+################################################################
+if [[ "$1" = "-install" ]]; then
+root_check              # Depends on nothing.
+backup_sysfiles         # Depends on root_check.
+create_apt_config       # Depends on root_check.
+set_sysctl              # Depends on root_check, being run only once.
+create_swap_file        # Depends on root_check, not being run again when in use.
+config_uuids_fstab      # Depends on root_check, not being run again after adding new hdds.
+create_fix_sources_list # Depends on root check, being run only once.
+modify_sources_list     # Depends on root_check, create_fix_sources_list, being run only once.
+config_etc              # Depends on root_check. Provides UTC timezone.
+config_home             # Depends on nothing.
+fix_network             # Depends on root_check, being run only once. Only suited for VMs or DHCP. Does not work in chroot.
+
+## http://lifeonubuntu.com/how-to-prevent-server-daemons-from-starting-during-apt-get-install/
+## Prevents Tor from connecting the the public Tor network while building
+## (for bridge users). Should also take care of chroot mount getting locked
+echo "#!/bin/sh
+exit 101" > /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
+
+apt_get                 # Depends on root_check, modify_sources_list, working internet connection.
+config_grub             # Depends on root_check, being run only once.
+
+## The following ones provide a graphical gateway interface (Vidalia)
+## and can be commented out to increase security.
+## Currently disabled by default because its not finished yet.
+#base_desktop           # Depends on root_check, working internet connection.
+#config_vidalia         # Depends on root_check.
+
+firewall_setup          # Depends on root_check and apt_get!
+config_network          # Depends on root_check, begin run only once.
+#staticvboxip           # Depends on root_check.
+leaktest_tg             # Depends on root_check.
+#start_network          # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
+setup_torrc             # Depends on root_check, apt-get
+#start_tor              # Depends on root_check, start_network, working internet connection, setup_torrc.
+create_rc_local         # Depends on root_check, not being run again /etc/rc.local got modified by the user. 
+vm_configuration        # Depends on root_check, create_rc_local, being run only once.
+config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+slim_down               # Must be run last.
+
+## make daemons start again
+rm -f /usr/sbin/policy-rc.d
+
+# Ensure changes get written to disk.
+sync
+
+# Inform about end.
+echo 'INFO: Script completed.' >&2
+
+# Sleep few seconds before going back to old rc.local.
+sleep 5
+
+exit 0
+fi
+
+
+
+################################################################
+# Update.                                                      #
+################################################################
+if [[ "$1" = "-update" ]]; then
+root_check              # Depends on nothing.
+
+apt-get update
+apt-get --yes dist-upgrade
+
+backup_sysfiles         # Depends on root_check.
+apt_get                 # Depends on root_check, modify_sources_list, working internet connection.
+config_grub             # Depends on root_check, being run only once.
+firewall_setup          # Depends on root_check and apt_get!
+leaktest_tg             # Depends on root_check.
+setup_torrc             # Depends on root_check, apt-get
+#staticvboxip            # Depends on root_check.
+
+start_network           # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
+start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
+config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+
+echo "
+INFO: Update complete
+" >&2
+exit 0
+fi
+
+
+
+################################################################
+# uninstall                                                    #
+################################################################
+if [[ "$1" = "-uninstall" ]]; then
+root_check
+uninstall
+
+chattr -i /etc/resolv.conf
+echo "INFO: We did not reinstall any software that previously got removed
+INFO: You need to check and edit /etc/resolv.conf manually!"
+exit 0
+fi
+
+
+
+################################################################
+# uninstall                                                    #
+################################################################
+if [[ "$1" = "-uninstall" ]]; then
+root_check
+uninstall
+uninstall_vm
+
+chattr -i /etc/resolv.conf
+echo "INFO: We did not reinstall any software that previously got removed
+INFO: You need to check and edit /etc/resolv.conf manually!"
+exit 0
+fi
+
+
+
+################################################################
+# One VM setup                                                 #
+################################################################
+if [[ "$1" = "-onevm" ]]; then
+root_check
+
+# Create empty apt.conf to remain compatible with
+# apt-get --config-file /tmp/apt.conf.
+echo '
+# TorBOX
+
+' > /tmp/apt.conf
+
+backup_sysfiles         # Depends on root_check.
+config_etc              # Depends on root_check. Provides UTC timezone.
+config_home             # Depends on root_check.
+set_sysctl              # Depends on root_check, being run only once.
+#create_fix_sources_list # Depends on root check, being run only once.
+modify_sources_list     # Depends on root_check, create_fix_sources_list, being run only once.
+apt_get                 # Depends on root_check, create_fix_sources_list, modify_sources_list, working internet connection.
+config_grub             # Depends on root_check, being run only once.
+one_vm                  # Depends on root_check, being run only once. Conflicts with config_network and staticvboxip
+
+## also depends on one_vm here
+firewall_setup          # Depends on root_check and apt_get!
+
+ifdown -a
+
+## also depends on one_vm here
+start_network           # Depends on root_check, firewall_setup, config_network/one_vm, working internet connection; breaks ssh connections
+setup_torrc             # Depends on root_check, apt-get
+start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
+config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+
+# TODO reboot doesn't seem necessary.
+echo "
+INFO: TorBOX-Gateway OneVM configuration complete.
+      Please reboot now!
+" >&2
+
+exit 0
+fi
+
+
+
+################################################################
+# Help                                                         #
+################################################################
+if [[ "$1" = "-help" ]]; then
+script_help
+exit 0
+fi
+
+
+
+################################################################
+# No option chosen.                                            #
+################################################################
+if [[ "$1" = "" ]]; then
+echo "
+INFO: No option chosen.
+
+Please run TorBOX-Gateway -help to find out more.
+"
+exit 0
+fi
+

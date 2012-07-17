@@ -1,0 +1,207 @@
+#!/bin/bash
+# Save as /home/user/TorBOX_source/Build
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+set -x
+
+USERNAME="user"
+
+script_help() {
+echo \
+"
+# assumes a cloned source folder containing all the needed script:
+# ~/TorBOX_source/Build
+# ~/TorBOX_source/GetISO
+# ~/TorBOX_source/ModifyISO
+# ~/TorBOX_CreateVM
+# ~/TorBOX_Image
+# ~/TorBOX-Gateway
+# ~/TorBOX-Workstation
+# ~/torcheck
+
+# creates separate build folder
+# FLAGS:
+# -all (NOT YET IMPLEMENTED)
+# build both Virtual machines
+#
+# -tg
+# build TorBOX-Gateway VBox machine
+#
+# -tw
+# assumes TorBOX-Gateway is running because
+# downloads go already through TorBOX-Gateway.
+# build TorBOX-Workstation VBox machine
+#
+# -clean
+# deletes the whole content of the TorBOX_binary folder
+"
+}
+
+
+
+root_check() {
+######################################################
+# Checking script environment
+######################################################
+# Check if we are root
+if [ "$(id -u)" != "0" ]; then
+     echo "ERROR: This must be run as root (sudo)!"
+     exit 1
+else
+     echo "INFO: Script running as root."
+fi
+}
+
+
+
+# If this file was created previously, delete it now.
+rm /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+
+
+
+################################################################ 
+# tg                                                           #
+################################################################ 
+if [ "$1" = "-tg" ]; then
+      root_check
+
+      $HOME/TorBOX_source/TorBOX_GetISO -download
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_ModifyISO -create
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tg-pre
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tg-install-os
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tg-post
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tg-mount
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tg-copyinto
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tg-unmount
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tg-install-script
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tg-export
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      echo "INFO: No errors."
+      exit 0
+fi
+
+
+
+################################################################ 
+# tw                                                           #
+################################################################ 
+if [[ "$1" = "-tw" ]]; then
+      root_check
+
+      # Assumes TorBOX-Gateway has already been created, i.e.
+      # operating system iso already downloaded.
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tw-pre
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      # Assumes TorBOX-Gateway is running, because downloads go already through TorBOX-Gateway.
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tw-install-os
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tw-post
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tw-mount
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tw-copyinto
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_Image -tw-unmount
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      # Assumes TorBOX-Gateway is running, because downloads go already through TorBOX-Gateway.
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tw-install-script
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      $HOME/TorBOX_source/TorBOX_CreateVM -tw-export
+      if [ -f /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+exit 0
+fi
+
+################################################################ 
+# -all                                                         #
+################################################################ 
+if [[ "$1" = "-all" ]]; then
+root_check
+
+
+
+exit 0
+fi
+
+
+
+################################################################ 
+# -clean                                                       #
+################################################################ 
+if [[ "$1" = "-all" ]]; then
+root_check
+
+TorBOX_GetISO -delete
+TorBOX_ModifyISO -delete
+TorBOX_Image -tg-unmount
+TorBOX_Image -tw-unmount
+TorBOX_CreateVM -tg-delete
+TorBOX_CreateVM -tw-delete
+
+echo "TorBOX_Build: Done."
+exit 0
+fi
+
+
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+script_help
+exit 0
+fi
+
+
+
+################################################################ 
+# no option chosen                                             # 
+################################################################ 
+if [[ "$1" = "" ]]; then 
+echo "
+INFO: No option chosen.
+
+Please append -help to find out more.
+"
+exit 0
+fi

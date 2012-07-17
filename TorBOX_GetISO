@@ -1,0 +1,153 @@
+#!/bin/bash
+# Save as /home/user/TorBOX_source/GetISO
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+script_help() {
+echo "
+# Download and verify the iso or delete the iso.
+#
+#-download
+#-delete
+#
+# (-delete untested)
+"
+}
+
+# Debugging.
+# TODO: Only if TorBOX_debug variable is set.
+set -x
+
+######################################################
+# Variables
+######################################################
+# Set the linux username.
+# "export USERNAME=$(whoami)" will not work, since the
+# script gets, in most cases, started as root.
+USERNAME="user"
+
+# change to home dir so relative paths work correctly
+cd /home/$USERNAME
+
+root_check() {
+######################################################
+# Checking script environment
+######################################################
+# Check if we are root
+  if [ "$(id -u)" != "0" ]; then
+       echo "ERROR: This must be run as root (sudo)!"
+       exit 1
+  else
+       echo "INFO: Script running as root."
+  fi
+}
+
+download_verify_iso() {
+sudo -u $USERNAME mkdir -p /home/$USERNAME/TorBOX_binary
+
+sudo -u $USERNAME wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/$USERNAME/TorBOX_binary/ubuntu-12.04-server-i386.iso
+
+#For Debian Squeeze
+#sudo -u $USERNAME wget -c "http://ftp.funet.fi/pub/linux/mirrors/debian-cdimage/6.0.5/i386/iso-cd/debian-6.0.5-i386-CD-1.iso" --output-document ...!!!...
+
+sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS --output-document /home/$USERNAME/TorBOX_binary/SHA256SUMS
+
+sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS.gpg --output-document /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg
+
+sudo -u $USERNAME rm -r /home/$USERNAME/TorBOX_binary/gpgtmpdir
+sudo -u $USERNAME mkdir -p /home/$USERNAME/TorBOX_binary/gpgtmpdir
+sudo -u $USERNAME chmod 700 /home/$USERNAME/TorBOX_binary/gpgtmpdir
+
+sudo -u $USERNAME gpg --homedir /home/$USERNAME/TorBOX_binary/gpgtmpdir --import /etc/apt/trusted.gpg
+
+# If you don't use Ubuntu:
+# Source of that fingerprint is above trusted.gpg file, I couldn't find a TLS encrypted source of it anywhere.
+# gpg --homedir gpgtmpdir --keyserver subkeys.pgp.net --recv-keys C5986B4F1257FFA86632CBA746181433FBB75451
+
+# Verify that SHA256SUMS file is signed by Ubuntu.
+sudo -u $USERNAME gpg --homedir /home/$USERNAME/TorBOX_binary/gpgtmpdir --verify /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg /home/$USERNAME/TorBOX_binary/SHA256SUMS
+
+# Check if gpg verification was successful.
+if [ "$?" = "0" ];
+then
+   echo "INFO: Successfully gpg verified SHA256SUMS."
+   DOWNLOADFAILED="0"
+   # FYI: Script will continue outside the if.
+else
+   echo "FATAL ERROR: gpg verification failed."
+   DOWNLOADFAILED="1"
+   touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+   # Script failed. End.
+   exit 1
+fi
+
+cd /home/$USERNAME/TorBOX_binary/
+
+sudo -u $USERNAME sha256sum -c /home/$USERNAME/TorBOX_binary/SHA256SUMS | grep "ubuntu-12.04-server-i386.iso: OK" || DOWNLOADFAILED="1"
+
+cd /home/$USERNAME/
+
+if [ "$DOWNLOADFAILED" = "1" ]; then
+   echo "FATAL ERROR: Download Failed!"
+   touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+   exit 1
+fi
+
+echo "INFO: Successfully downloaded and verified iso."
+exit 0
+}
+
+delete_iso() {
+rm /home/$USERNAME/TorBOX_binary/SHA256SUMS
+rm /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg
+rm /home/$USERNAME/TorBOX_binary/ubuntu-12.04-server-i386.iso
+echo "Done."
+}
+
+################################################################ 
+# -dowload                                                     #
+################################################################ 
+if [[ "$1" = "-download" ]]; then
+   root_check
+   download_verify_iso
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_ModifyISO -tg-create"
+   exit 0
+fi
+
+################################################################ 
+# -delete                                                      #
+################################################################ 
+if [[ "$1" = "-delete" ]]; then
+   root_check
+   delete_iso
+   exit 0
+fi
+
+
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
+
+
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+echo "No option choosen. Use -help for help."
+touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+exit 1

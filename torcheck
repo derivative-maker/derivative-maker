@@ -1,0 +1,389 @@
+#!/bin/bash
+# This file gets overwritten when issuing TorBOX-Workstation -update.
+# Save as /home/user/TorBOX_source/torcheck
+
+# Version: TorBOX 0.2.1
+
+# Copyright: proper
+#
+# License: GPL v3 or any later
+#
+# Any changes you pull changes into this source will be also licensed
+# under GPL v3 or any later. Additionally you grant proper the right to
+# re-license your work under a different license. If that is not acceptable,
+# you can either fork this source under GPL v3 or any later or contact proper.
+# Contact proper, if you require this source code under different license.
+
+# zenity --timeout in seconds.
+# A day has 86400 seconds. Removes old messages before posting
+# new ones in case someone was away for more than one day.
+#
+# Not sure about zenity --height=500 --width 500.
+#
+# The & at the end of a zenity line ensures, that the
+# script will not wait until zenity will be closed.
+#
+# zenity --display=:0.0 is required to make it compatible with cron
+# see http://promberger.info/linux/2009/01/02/running-x-apps-like-zenity-from-crontab-solving-cannot-open-display-problem/
+#
+# We would prefer a popup free solution. As soon as the timeout bug in
+# notify-send is fixed, we go away from zenity.
+# If we change to notification daemon later, when the timeout bug is fixed,
+# we have to ensure zenity output is compatible with being started by cron.
+#
+# This script uses /usr/bin/wget directly. Otherwise the uwt wrapper would be used.
+# Using the uwt wrapper is not desired, since that is redirect through wgets SocksPort,
+# resulting in always be using Tor or false positive.
+# If anyone would add VPN or something similar to TorBOX-Workstation
+# (i.e. connection scheme: TorBOX-Workstation -> Tor -> VPN), he would wonder
+# why it is not detected.
+# Using /usr/bin/wget directly will result in Tor's TransPort being used.
+
+error_handler() {
+   show_output
+   echo "##################################################"
+   echo "# torcheck script bug Please report this bug.    #"
+   echo "##################################################"
+   exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+if [[ "$1" = "-help" ]]; then
+   echo "torcheck 0.1 by TorBOX"
+   echo "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
+   echo " "
+   echo "Checks if,"
+   echo "-Your network connection is functional."
+   echo "-You are connected to Tor."
+   echo "Shows,"
+   echo "-Your external IP address."
+   echo "-Installed TorBrowser version."
+   echo "-Latest TorBrowser version."
+   echo "This script,"
+   echo "-Will break, if http://check.torproject.org"
+   echo " is down or content of that page is changed."
+   echo "-Works in command line interface and under"
+   echo " X Window System."
+   echo " "
+   echo "Available arguments,"
+   echo "-v for verbose output."
+   exit 0
+fi
+
+if [[ "$1" = "-v" ]]; then
+   set -x
+   TORCHECK_VERBOSE=""
+   echo "Verbose output..."
+   echo "Script running as $(whoami)"
+else
+   TORCHECK_VERBOSE="--output-file /dev/null"
+fi
+
+USERNAME="user"
+
+cd /home/$USERNAME
+
+if [ -f "/usr/local/bin/TorBOX_Gateway" ]; then
+   VM="TorBOX-Gateway"
+elif [ -f "/usr/local/bin/TorBOX_Workstation" ]; then
+   VM="TorBOX-Workstation"
+else
+   VM="torcheck script could not determine if this is TorBOX_Gateway or TorBOX_Workstation. Please report this bug."
+fi
+
+ZENITY_MESSAGE=" "
+
+# Variable needed in check_tor.
+NOT_USING_TOR="0"
+
+## this is not the most stable daemon...
+## Not used as we switched from notify-send to zenity
+#if [ "$(pgrep -f notification-daemon)" = "" ]; then
+#   /usr/lib/notification-daemon/notification-daemon &
+#fi
+
+# check if notify-send is installed
+# that is not the case for cli users
+# this is also not the case on TorBOX-Gateway
+#if [ `which notify-send` = "" ]; then
+#   notify-send() {
+#      #dummy
+#      sleep 0
+#   }
+#fi
+
+# check if zenity is installed
+# that is not the case for cli users
+# this is also not the case on TorBOX-Gateway
+if [ `which zenity` = "" ]; then
+   zenity() {
+      #dummy
+      sleep 0
+   }
+fi
+
+output() {
+   # (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
+
+   #echo "output: $1 ||| $2 ||| $3 |||"
+
+   if [ "$ZENITY_TYPE" = "--error" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      sleep 0
+   else
+      ZENITY_TYPE="$1"
+   fi
+
+   if [ "$ZENITY_TITLE" = "TorBOX ERROR" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      sleep 0
+   elif [ "$ZENITY_TITLE" = "TorBOX WARNING" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      sleep 0
+   else
+      ZENITY_TITLE="$2"
+   fi
+
+   ZENITY_MESSAGE="$ZENITY_MESSAGE
+
+$3"
+}
+
+
+
+show_output() {
+   # Show result of torcheck and TorBrowser Update check
+   zenity --display=:0.0 --timeout 86400 --title="$ZENITY_TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+}
+
+
+
+welcome() {
+echo "torcheck 0.1 by TorBOX"
+echo "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
+echo " "
+echo "-help for help."
+echo "Currently running wget against https://check.torproject.org... Will take a few seconds..."
+
+# Non-intrusive notification, that the checks are running in background.
+NOTIFY_MSG="
+Checking Tor connection and Tor Browser version...
+This will happen in background. You will be notified about the result in approximatey 15 to 30 seconds.
+"
+
+# TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+#notify-send --urgency low --expire-time 0 --app-name "TorBOX" "$NOTIFY_MSG"
+
+zenity --display=:0.0 --timeout 86400 --title="TorBOX Info" "--info" --text "$NOTIFY_MSG" &
+}
+
+
+
+disclaimer() {
+MSG="Welcome to TorBOX $VM!
+TorBOX is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for TorBOX. See Disclaimer for more information.
+TorBOX is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+TorBOX is based on Tor.
+TorBOX is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
+
+echo "$MSG"
+output "--info" "TorBOX Info" "$MSG"
+}
+
+
+
+check_network() {
+mkdir -p .torcheck_temp
+cd .torcheck_temp
+
+# Ensuring normal wget activity can not be linked to torcheck,
+# by using a SocksPort, which is solely used by torcheck.
+ip="$1" port="$2" uwt \
+/usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
+
+MSG="Time of message: `date`."
+echo "$MSG"
+output "--info" "TorBOX Info" "$MSG"
+
+if [ "$NETWORK_DOWN" = "1" ]; then
+   MSG="Your Internet connection appears to be down."
+   echo "$MSG"
+   output "--error" "TorBOX ERROR" "$MSG"
+   return
+fi
+
+NETWORK_DOWN="0"
+return
+}
+
+
+
+check_torbrowser() {
+# Getting latest version number
+ip="$1" port="$2" uwt \
+/usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions "https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+
+if [ "$GET_VERSION" = "0" ]; then
+   MSG="Tor Browser Update check failed."
+   echo "$MSG"
+   output "--error" "TorBOX ERROR" "$MSG"
+   return
+fi
+
+TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`" 
+
+# Getting currently installed version number
+# Will fail if the file does not exist.
+TBBINSTALLEDVERSION="`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
+
+if [ "$TBBINSTALLEDVERSION" != "" ]; then
+   echo "Successfully detected TorBrowser version."
+else
+   TBBINSTALLEDVERSION="UNKNOWN"
+   MSG="Could not determine currently installed
+TorBrowser version. This could be either
+because none is installed or because the
+version format changed."
+   echo "$MSG"
+   output "--error" "TorBOX ERROR" "$MSG"
+   return
+fi
+
+# Append to MSG if TorBrowser is current or not.
+if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+   # It is up to date...
+   MSG="Installed TorBrowser version: $TBBINSTALLEDVERSION
+is up to date."
+   echo "$MSG"
+   output "--info" "TorBOX Info" "$MSG"
+
+else
+   # Outdated...
+   MSG="TorBrowser version: $TBBINSTALLEDVERSION
+Latest TorBrowser version: $TBBVERSION
+
+Please issue TorBOX-Workstation -update-torbrowser"
+
+  echo "$MSG"
+  output "--error" "TorBOX WARNING" "$MSG"
+
+fi
+}
+
+
+
+check_tor() {
+# Do not test for stream isolation if Tor detection failed.
+# This variable may be set to 1, during the first run of this script.
+if [ "$NOT_USING_TOR" = "1" ]; then
+   MSG="SocksPort test could not detect Tor. Not testing Tor's TransPort."
+   echo $MSG
+   # no zenity output
+   return
+fi
+
+if [ "$1" = "SocksPort" ]; then
+   # Do not download again. Done that already in check_network.
+   echo "Testing Tor's SocksPort..."
+elif [ "$1" = "TransPort" ]; then
+   # Using wget binary to ensure the wget uwt wrapper /usr/local/bin/wget does not get used.
+   echo "Testing Tor's TransPort..."
+   /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
+   # Check if wget failed.
+   if [ "$NETWORK_DOWN" = "1" ]; then
+      MSG="SocksPort Test failed! Can not test stream isolation!"
+      echo "$MSG"
+      output "--error" "TorBOX ERROR" "$MSG"
+      return
+   fi
+else
+  MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
+  echo "$MSG"
+  output "--error" "TorBOX ERROR" "$MSG"
+  return
+fi
+
+TORCHECK="1"
+
+# If the word "Congratulations" is not found in index.html,
+# grep will return "".
+TORCHECK="`grep "Congratulations" index.html`"
+
+# Sorry, I suck at this...
+# TODO: It where helpful if "Your IP address appears to be: IP" could be
+#       stripped to "IP".
+IP="`grep IP index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`"
+
+# Store IP for later use in memory.
+if [ "$1" = "TransPort" ]; then
+   IP_TRANS_PORT="$IP"
+elif [ "$1" = "SocksPort" ]; then
+   IP_SOCKS_PORT="$IP"
+fi
+
+# Check if connected to Tor or not,
+# and choose which message to show.
+if [ "$TORCHECK" = "" ]; then
+
+   NOT_USING_TOR="1"
+   MSG="Tor's $1: Looks like you are not connected through Tor!
+There could be something wrong or it's a false positive.
+(https://check.torproject.org fails in some cases to detect exit nodes.)
+$IP"
+   echo "$MSG"
+   output "--error" "TorBOX WARNING" "$MSG"
+else
+   MSG="Tor's $1: You are successfully using Tor.
+$IP"
+   echo "$MSG"
+   output "--info" "TorBOX Info" "$MSG"
+fi
+
+# Function runs the second time.
+if [ "$1" = "TransPort" ]; then
+   # Test stream isolation.
+   # Lets compare TransPort with SocksPort.
+   if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
+      MSG="IP of Tor's TransPort and IP of Tor's SocksPort are the same!!!
+Stream isolation is appears to be defunct!!!"
+      echo "$MSG"
+      output "--info" "TorBOX ERROR" "$MSG"
+   else
+      MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ.
+Stream isolation appears to be functional."
+      echo "$MSG"
+      output "--info" "TorBOX Info" "$MSG"
+   fi
+fi
+}
+
+
+
+cleanup() {
+   cd ..
+   rm -r .torcheck_temp
+}
+
+welcome
+disclaimer
+check_network "192.168.0.1" "9110"
+
+if [ "$NETWORK_DOWN" = "1" ]; then
+   show_output
+else
+   if [ -f "/usr/local/bin/TorBOX_Workstation" ]; then
+      check_torbrowser "192.168.0.1" "9110"
+      check_tor "SocksPort"
+      check_tor "TransPort"
+   else
+      # for TorBOX-Gateway
+      check_tor "SocksPort"
+   fi
+fi
+
+show_output
+cleanup
+
+# End of torcheck script.
