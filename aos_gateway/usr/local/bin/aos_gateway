@@ -19,9 +19,9 @@ script_help() {
 echo "
 ############################################################################
 #       INFO                                                               #
-# Script to automatically transform an Ubuntu Server into a TorBOX-Gateway #
+# Script to automatically transform an Ubuntu Server into an aos-Gateway   #
 # Alpha/Development version, please test and leave feedback!               #
-# Read https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/DISCLAIMER #
+# Read DISCLAIMER!                                                         #
 #                                                                          #
 #       PREREQUISITES/ASSUMPTIONS                                          #
 # 1) You have installed Ubuntu Server 12.04 (x86 or amd64).                #
@@ -29,7 +29,7 @@ echo "
 # change /etc/sources.list accordingly.                                    #
 # 2) There are two network cards attached to the gateway:                  #
 # External: eth0 (with an already working connection to the Internet)      #
-# Internal: eth1 (solely used for communicating with TorBOX-Workstations)  #
+# Internal: eth1 (solely used for communicating with aos-Workstations)     #
 # 3) Username must be "user"! If your user name differ set the USERNAME    #
 # variable accordingly and search for "HARDCODED"                          #
 # 4) You read and understood the script, especially look search through    #
@@ -53,13 +53,13 @@ echo "
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                                                          #
 # -update                                                                  #
-# Update existing TorBOX-Gateway using the latest script.                  #
+# Update existing aos-Gateway using the latest script.                     #
 #                                                                          #
 # -uninstall                                                               #
 # undo -install                                                            #
 #                                                                          #
 # -onevm                                                                   #
-# see https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/OneVM       #
+# See OneVM documentation                                                  #
 ############################################################################
 #+# OPTIONAL FEATURES
 # Normal comments. Optional feature comments look like this:
@@ -78,19 +78,19 @@ echo "
 #+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
 #+# #OptionalFeatureNr.6# Leak Testing. ^8^
 
-#+# ^1^ Read: TorBOX / Optional Configurations / isolate streams by destination port and/or destination address
+#+# ^1^ Read: aos / Optional Configurations / isolate streams by destination port and/or destination address
 #+# for explanation.
 
-#+# ^4^ Read: TorBOX / Application Warnings And Notes / Identity correlation through circuit sharing,
+#+# ^4^ Read: aos / Application Warnings And Notes / Identity correlation through circuit sharing,
 #+# for explanation.
 
-#+# ^6^ Read: TorBOX / Optional Configurations / Hosting hidden services
+#+# ^6^ Read: aos / Optional Configurations / Hosting hidden services
 #+# for explanation.
 
-#+# ^7^ Read: TorBOX / Application Warnings And Notes / TorBOXs TorBOX-Workstation is firewalled
+#+# ^7^ Read: aos / Application Warnings And Notes / aos-Workstation is firewalled
 #+# for explanation.
 
-#+# ^8^ Read: TorBOX / Leak Tests
+#+# ^8^ Read: aos / Leak Tests
 #+# for explanation.
 
 ############################################################################
@@ -110,17 +110,17 @@ echo "
 # simply to run only one module and not the whole script, that is also
 # possible. Scroll down the the bottom of the script, one one the last things
 # will be "INFO: No option chosen.". Make space there and add the name of the
-# function, you want to test, for example leaktest_tg. Leave the "exit 0"
+# function, you want to test, for example leaktest_aos-gateway. Leave the "exit 0"
 # and fi below intact.
 #
 # For extensive debugging use:
-# sudo bash -x 2>/tmp/log TorBOX-Gateway
+# sudo bash -x 2>/tmp/log aos_gateway
 # This will set -x and redirect everything bash does to /tmp/log.
 # nano /tmp/log
 
 ############################################################################
 # NOTE FOR CONTRIBUTORS
-# Follow our style unless there is a good reason not to (let us know on TorBOX/Dev).
+# Follow our style unless there is a good reason not to (let us know on aos/Dev).
 # functions() need to have a unique name
 # Be careful using echos with single/double quotes/apostrophes in comments!
 # Only use || true with care to override the trap function.
@@ -143,8 +143,8 @@ echo "
 # /home/$USERNAME/.bashrc
 #
 # New files:
-# /etc/torboxfirewall.sh
-# /usr/local/bin/torbox
+# /usr/local/bin/aos_firewall
+# /usr/local/bin/aos
 # /usr/local/bin/leaktest
 # /home/$USERNAME/.vidalia/
 # /home/$USERNAME/.vidalia/vidalia.conf
@@ -164,17 +164,17 @@ set -x
 # script gets, in most cases, started as root.
 USERNAME=user
 
-# Ports used by Tor (and used in /etc/torrc and /etc/torboxfirewall.sh)
+# Ports used by Tor (and used in /etc/torrc and /usr/local/bin/aos_firewall)
 #
 # The following applications will be separated, preventing identity
 # correlation through circuit sharing. 
 
-# Transparent Proxy Ports for TorBOX-Workstation
-TRANS_PORT_TW="9040"
+# Transparent Proxy Ports for aos-Workstation
+TRANS_PORT_AOSW="9040"
 
-# Transparent Proxy Ports for TorBOX-Gateway
-TRANS_PORT_TG="9041"
-DNS_PORT_TG="54"
+# Transparent Proxy Ports for aos-Gateway
+TRANS_PORT_AOSG="9041"
+DNS_PORT_AOSG="54"
 
 # SOCKS Ports
 # TODO: Can we use a loop?
@@ -195,17 +195,17 @@ SOCKS_PORT_POLIPO="9113"
 
 #+# #OptionalFeatureNr.4# More Socks Ports.
 #+# You can add more here but,
-#+# you will have to edit the TorBOX-Gateway script:
+#+# you will have to edit the aos-Gateway script:
 #+# - /etc/tor/torrc
 #+#   - And "sudo service tor reload" afterwards.
-#+# - /etc/torboxfirewall.sh and
-#+#   - And issue "sudo /etc/torboxfirewall.sh" afterwards.
-#+# you will also have to edit in TorBOX-Workstation script
-#+# - the line "extensions.torbutton.banned_ports" (search TorBOX-Workstation script for that term)
+#+# - /usr/local/bin/aos_firewall
+#+#   - And issue "sudo /usr/local/bin/aos_firewall" afterwards.
+#+# you will also have to edit in aos-Workstation script
+#+# - the line "extensions.torbutton.banned_ports" (search aos-Workstation script for that term)
 #+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
-#+#   - Issue sudo TorBOX-Workstation -uwt to apply afterwards.
+#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
 #+# - the function "install_uwt_wrappers()"
-#+#   - Issue sudo TorBOX-Workstation -uwt to apply afterwards.
+#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
 #SOCKS_PORT_ETC="9198"
 #SOCKS_PORT_ETC2="9199"
 
@@ -302,8 +302,8 @@ cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
 cp /etc/tor/torrc.backup /etc/tor/torrc
 cp /etc/init/failsafe.conf.backup /etc/init/failsafe.conf
 cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-echo "roll_back(): deleting /etc/torboxfirewall.sh..."
-rm /etc/torboxfirewall.sh
+echo "roll_back(): deleting /usr/local/bin/aos_firewall"
+rm /usr/local/bin/aos_firewall
 echo "roll_back(): deleting /usr/local/bin/leaktest..."
 rm -r /usr/local/bin/leaktest
 echo "INFO: Done." >&2
@@ -337,8 +337,8 @@ create_apt_config
 # To be completely empty we had to remove the --config-file
 # in front of every apt-get line in this script.
 echo '
-# TorBOX
-# IP of TorBOX-Workstation for building TorBOX inside TorBOX.
+# aos
+# IP of aos-Workstation for building aos inside aos.
 # Works through Virtual Boxs NAT adapter.
 #Acquire::http { Proxy "http://192.168.0.2:3142"; };
 ' > /tmp/apt.conf
@@ -371,64 +371,9 @@ create_fix_sources_list() {
 # This function is required because preseed without network connection will mess up
 # /etc/apt/sources.list.
 
-echo "
-# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
-# newer versions of the distribution.
-deb http://us.archive.ubuntu.com/ubuntu/ precise main restricted
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise main restricted
-
-## Major bug fix updates produced after the final release of the
-## distribution.
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
-
-## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
-## team. Also, please note that software in universe WILL NOT receive any
-## review or updates from the Ubuntu security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise universe
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise universe
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
-
-## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu 
-## team, and may not be under a free licence. Please satisfy yourself as to 
-## your rights to use the software. Also, please note that software in 
-## multiverse WILL NOT receive any review or updates from the Ubuntu
-## security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise multiverse
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
-
-## N.B. software from this repository may not have been tested as
-## extensively as that contained in the main release, although it includes
-## newer versions of some applications which may provide useful features.
-## Also, please note that software in backports WILL NOT receive any review
-## or updates from the Ubuntu security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
-
-deb http://security.ubuntu.com/ubuntu precise-security main restricted
-deb-src http://security.ubuntu.com/ubuntu precise-security main restricted
-deb http://security.ubuntu.com/ubuntu precise-security universe
-deb-src http://security.ubuntu.com/ubuntu precise-security universe
-deb http://security.ubuntu.com/ubuntu precise-security multiverse
-deb-src http://security.ubuntu.com/ubuntu precise-security multiverse
-
-## Uncomment the following two lines to add software from Canonical's
-## 'partner' repository.
-## This software is not part of Ubuntu, but is offered by Canonical and the
-## respective vendors as a service to Ubuntu users.
-# deb http://archive.canonical.com/ubuntu precise partner
-# deb-src http://archive.canonical.com/ubuntu precise partner
-
-## Uncomment the following two lines to add software from Ubuntu's
-## 'extras' repository.
-## This software is not part of Ubuntu, but is offered by third-party
-## developers who want to ship their latest software.
-# deb http://extras.ubuntu.com/ubuntu precise main
-# deb-src http://extras.ubuntu.com/ubuntu precise main
-" > /etc/apt/sources.list
+# TODO:
+# Must be copied from /home/user/aos/aos_shared/etc/apt/sources.list
+# into vm image /etc/apt/sources.list.
 }
 
 
@@ -443,8 +388,7 @@ local release="$(lsb_release -cs)"
 
 # Modify sources.list.
 echo "
-# TorBOX
-# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
+# aos
 # You can find a backup of the original sources.list under /etc/apt/sources.list.backup.
 
 # The torproject.org stable repository.
@@ -455,7 +399,7 @@ deb http://deb.torproject.org/torproject.org $release main
 #   which includes obfsproxy (obfuscated bridges).
 #deb http://deb.torproject.org/torproject.org experimental-$release main
 
-# End of TorBOX changes to sources.list.
+# End of aos changes to sources.list.
 " >> /etc/apt/sources.list
 }
 
@@ -469,7 +413,7 @@ Remove problematic software, install Tor and other software.
 ######################################################
 "
 
-# Some apt_get() code is shared between TorBOX-Workstation and TorBOX-Gateway.
+# Some apt_get() code is shared between aos-Workstation and aos-Gateway.
 
 echo "Checking if the system is functional and continuing apt-get if the script failed before,"
 echo "by running dpkg --configure -a. Can take a while."
@@ -528,7 +472,7 @@ if [[ "$TOR_UID" == "" ]]; then
    TOR_UID=103
 fi
 
-# create arm wrapper script to start arm without entering a password
+# create arm wrapper script to start arm
 echo "\
 #!/bin/bash
 sudo -u debian-tor /usr/bin/arm
@@ -536,30 +480,12 @@ sudo -u debian-tor /usr/bin/arm
 
 chmod +x /usr/local/bin/arm
 
-echo '
-#
-# TorBOX help file.
-# This file will get overwritten when updating TorBOX TorBOX-Gateway through the apt_get function.
-#
-echo "The following commands are available on TorBOX TorBOX-Gateway:"
-echo "sudo dpkg-reconfigure keyboard-configuration (Change keyboard layout.)"
-echo "arm - Anonymizing Relay Monitor (Vidalia alternative, Tor Controller as console application)"
-echo "nslookup check.torproject.org - check if DNS resolution is functional"
-echo "sudo service tor restart"
-echo "reboot"
-echo "poweroff"
-echo "sudo apt-get update"
-echo "sudo apt-get dist-upgrade"
-echo " "
-echo "Important files:"
-echo "nano /etc/tor/torrc"
-echo "nano /etc/resolv.conf"
-echo "nano /etc/torboxfirewall.sh"
-echo " "
-echo "End of help."
-' > /usr/local/bin/torbox
+# aos helpfile
+# TODO:
+# /home/user/aos/aos_gateway/usr/local/bin/aos
+# must be copied to into vm /usr/local/bin/aos
 
-chmod +x /usr/local/bin/torbox
+chmod +x /usr/local/bin/aos
 }
 
 
@@ -599,16 +525,16 @@ config_home
 ######################################################
 "
 
-# TorBOX help/welcome message
+# aos help/welcome message
 cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
 
 echo \
-'echo "Welcome to TorBOX Tor-Gateway!"
-echo "TorBOX is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for TorBOX. See Disclaimer for more information."
-echo "TorBOX is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else."
-echo "TorBOX is based on Tor."
-echo "TorBOX is experimental software by means of concept and design. Do not rely on it for strong anonymity."
-echo "Type: \"torbox\" <enter> for help."
+'echo "Welcome to aos-Gateway!"
+echo "aos is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for aos. See Disclaimer for more information."
+echo "aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else."
+echo "aos is based on Tor."
+echo "aos is experimental software by means of concept and design. Do not rely on it for strong anonymity."
+echo "Type: \"aos\" <enter> for help."
 ' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
 }
 
@@ -652,21 +578,21 @@ IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
 #We need to disable IPv6 because Tor does not support IPv6 yet and may create leaks.
 #You can verify the setting applied by: cat /proc/sys/net/ipv6/conf/all/disable_ipv6, which should return 1.
 #Advanced users only: If you were unwilling or unable to disable IPv6 you would have to create an IPv6 firewall.
-#The firewall supplied by TorBOX does only protect IPv4.
+#The firewall supplied by aos does only protect IPv4.
 #Disable ipv4 Forwarding as per https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxy
 #You can verify the setting applied by: cat /proc/sys/net/ipv4/ip_forward, which should return 0
 #Also settings vm.swappiness=0 which you can check with sysctl -p.
 " >&2
 
 echo "
-# Appended by TorBOX to /etc/sysctcl.conf.
+# Appended by aos to /etc/sysctcl.conf.
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv4.ip_forward = 0
 
 fs.file-max=100000
 
 vm.swappiness=0
-# End of TorBOX appends to /etc/systcl.conf.
+# End of aos appends to /etc/systcl.conf.
 " >> /etc/sysctl.conf
 
 sysctl -p
@@ -703,7 +629,7 @@ chmod 0600 /swapfile1
 
 
 config_uuids_fstab() {
-# code shared between TorBOX_Workstation and TorBOX_Gateway script.
+# code shared between aos_Workstation and aos_Gateway script.
 
 echo "
 ######################################################
@@ -718,7 +644,7 @@ tune2fs /dev/sda1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
 # Deactivating anyway just in case anyone manually installs the operating system.
 swapoff /dev/sda5 || true
 
-# Share the same uuid among all TorBOX users.
+# Share the same uuid among all aos users.
 # Setting anyway just in case anyone manually installs the operating system
 # and then applies the script.
 mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
@@ -733,25 +659,25 @@ echo "
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc            /proc           proc    nodev,noexec,nosuid 0       0
 
-# TorBOX /etc/fstab changes.
+# aos /etc/fstab changes.
 
 # HDD created by operating system installer.
-# Disk UUID changed by TorBOX.
+# Disk UUID changed by aos.
 UUID=26ada0c0-1165-4098-884d-aafd2220c2c6 /               ext4    noatime,errors=remount-ro 0       1
 
-# Swap partition NOT created by TorBOX preseed installation method.
-# Disk UUID changed by TorBOX.
+# Swap partition NOT created by aos preseed installation method.
+# Disk UUID changed by aos.
 # The swap partition has been removed in favor of a swap file.
 # Advantage: with a swap file its easier to grow the virtual hdd
 # and to add the new space to the filesystem.
 # UUID=9159bf6e-e242-4510-b4c1-348db252feff none            swap    sw              0       0
 
-# Swap file created by TorBOX.
-# Disk UUID changed by TorBOX.
+# Swap file created by aos.
+# Disk UUID changed by aos.
 # UUID=0615ba72-85b0-4183-8d54-300bb0d2e491
 /swapfile1 swap swap defaults 0 0
 
-# End of TorBOX /etc/fstab changes.
+# End of aos /etc/fstab changes.
 " > /etc/fstab
 
 update-grub2
@@ -770,7 +696,7 @@ Set up /etc/network/interfaces.
 
 echo "config_network(): appending to /etc/network/interfaces..."
 echo '
-pre-up /etc/torboxfirewall.sh
+pre-up /usr/local/bin/aos_firewall
 
 auto '$INT_IF'
 iface '$INT_IF' inet static
@@ -779,7 +705,6 @@ address '$INT_IP'
        network 192.168.0.0
        broadcast 192.168.0.255
 
-# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
 # You can find a backup of the original interfaces under /etc/network/interfaces.backup.
 ' >> /etc/network/interfaces
 }
@@ -794,25 +719,23 @@ Set up Firewall.
 ######################################################
 "
 
-echo \
-'#!/bin/sh
+echo "
+#!/bin/sh
 
 # WARNING! Do not use single quotes/apostrophes in the firwall comments!!!
 
 ###########################
-# /etc/torboxfirewall.sh
+# /usr/local/bin/aos_firewall
 ###########################
 
-echo "OK: Latest firewall updates can always be found here:"
-echo "OK: https://trac.torproject.org/projects/tor/wiki/doc/TorBOX"
-echo "OK: Loading TorBOX firewall..."
+echo "OK: Loading aos firewall..."
 
 ###########################
 # VARIABELS
 ###########################
 
-# Destinations you don not want routed through Tor, only for TG!
-NON_TOR_TG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
+# Destinations you don not want routed through Tor, only for aos-Gateway!
+NON_TOR_AOSG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
 
 # Tor User ID
 TOR_UID='$TOR_UID'
@@ -820,20 +743,19 @@ TOR_UID='$TOR_UID'
 # Output TOR_UID for debugging purposes.
 echo "OK: TOR_UID: $TOR_UID"
 
-# DnsPort_TW
-DNS_PORT_TW=53
+# DnsPort_AOSW
+DNS_PORT_AOSW=53
 
-# DnsPort_TG
-DNS_PORT_TG='$DNS_PORT_TG'
+# DnsPort_AOSG
+DNS_PORT_AOSG='$DNS_PORT_AOSG'
 
-# TransPort_TW
-TRANS_PORT_TW='$TRANS_PORT_TW'
+# TransPort_AOSW
+TRANS_PORT_AOSW='$TRANS_PORT_AOSW'
 
-# TransPort_TG
-TRANS_PORT_TG='$TRANS_PORT_TG'
+# TransPort_AOSG
+TRANS_PORT_AOSG='$TRANS_PORT_AOSG'
 
 # Socks Ports for per application circuits.
-# TODO: Can we use a loop?
 SOCKS_PORT_TB='$SOCKS_PORT_TB'
 SOCKS_PORT_IRC='$SOCKS_PORT_IRC'
 SOCKS_PORT_TORBIRDY='$SOCKS_PORT_TORBIRDY'
@@ -930,10 +852,9 @@ iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
 #+# SEE #OptionalFeatureNr.5#
 iptables -A INPUT -i $INT_TIF -p udp --dport 53 -j ACCEPT
 #+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i $INT_IF -p tcp --dport $TRANS_PORT_TW -j ACCEPT
+iptables -A INPUT -i $INT_IF -p tcp --dport $TRANS_PORT_AOSW -j ACCEPT
 
 # Allow socksified applications.
-# TODO: Lets use a loop where we list all SOCKS_PORT_XXX add them.
 iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TB -j ACCEPT
 iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IRC -j ACCEPT
 iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORBIRDY -j ACCEPT
@@ -958,10 +879,9 @@ iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_POLIPO -j ACCEPT
 
 # Redirect DNS traffic to DNSPORT.
 #+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_TW
+iptables -t nat -A PREROUTING -i $INT_IF -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSW
 
 # Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
-# TODO: Lets use a loop where we list all SOCKS_PORT_XXX add them.
 iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TB -j REDIRECT --to-ports $SOCKS_PORT_TB
 iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IRC -j REDIRECT --to-ports $SOCKS_PORT_IRC
 iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORBIRDY -j REDIRECT --to-ports $SOCKS_PORT_TORBIRDY
@@ -987,11 +907,11 @@ iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_POLIPO -j RE
 
 # Catch all remaining tcp and redirect to TransPort.
 #+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_TW
+iptables -t nat -A PREROUTING -i $INT_IF -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
 
 #+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
 #+# Replace above rule with a more restrictive one, e.g.:
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports $TRANS_PORT_TW
+#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
 
 # Reject anything not explicitly allowed above.
 iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
@@ -1009,22 +929,22 @@ iptables -A FORWARD -j REJECT --reject-with icmp-port-unreachable
 # No NAT for Tor itself.
 iptables -t nat -A OUTPUT -m owner --uid-owner $TOR_UID -j RETURN
 
-# Redirect of T-G DNS traffic to DnsPort_TG.
-iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_TG
+# Redirect of T-G DNS traffic to DnsPort_AOSG.
+iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSG
 
-# Exclude connections to local network, TW, VirtualBox from being redirected through Tor.
-for NET in $NON_TOR_TG; do
+# Exclude connections to local network, AOSW, VirtualBox from being redirected through Tor.
+for NET in $NON_TOR_AOSG; do
  iptables -t nat -A OUTPUT -d $NET -j RETURN
 done
 
-# Redirect all T-G TCP traffic to TransPort_TG.
-iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_TG
+# Redirect all T-G TCP traffic to TransPort_AOSG.
+iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSG
 
 # Existing connections are accepted.
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# Accept outgoing connections to local network, TW and VirtualBox.
-for NET in $NON_TOR_TG; do
+# Accept outgoing connections to local network, AOSW and VirtualBox.
+for NET in $NON_TOR_AOSG; do
  iptables -A OUTPUT -d $NET -j ACCEPT
 done
 
@@ -1033,7 +953,6 @@ iptables -A OUTPUT -m owner --uid-owner $TOR_UID -j ACCEPT
 
 # Reject all other outging traffic.
 iptables -A OUTPUT -j REJECT
-
 
 ###########################
 # IPv6
@@ -1066,11 +985,12 @@ ip6tables -A FORWARD -j DROP
 # End
 ###########################
 
-echo "OK: The firewall should show any messages besides output beginning with prefix OK:..."
-echo "OK: TorBOX firewall loaded."
-' > /etc/torboxfirewall.sh
+echo "OK: The firewall should show any messages,"
+echo "OK: besides output beginning with prefix OK:..."
+echo "OK: aos firewall loaded."
+" > /usr/local/bin/aos_firewall
 
-chmod +x /etc/torboxfirewall.sh
+chmod +x /usr/local/bin/aos_firewall
 }
 
 
@@ -1112,10 +1032,8 @@ Set up /etc/tor/torrc.
 
 echo '
 #########################################
-# TorBOX torrc                          #
+# aos torrc                             #
 #########################################
-# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
-
 # You can find a backup of the original torrc under /etc/tor/torrc.backup.
 
 #########################################
@@ -1125,14 +1043,14 @@ echo '
 #+# #OptionalFeatureNr.6# Leak Testing.
 #+#
 #+# Manual Leak Testing:
-#+# See TorBOX/LeakTests. Activate this while testing for leaks. (Step 0)
+#+# See aos/LeakTests. Activate this while testing for leaks. (Step 0)
 #+# Deactivate after you are done! (Important!) (Step 9)
 #+#
 #+# Scripted Leak Testing:
 #+# If you change the following two lines, beside removing the hash (#),
 #+# beside commenting them in, you break the integrated leaktest script.
-#+# See leaktest_tg() ed.
-#+# See /TorBOX/LeakTests
+#+# See leaktest_aos_gateway() ed.
+#+# See /aos/LeakTests
 #+# on information, how to use the integrated leaktest script.
 #+#
 #ReachableDirAddresses *:80
@@ -1147,9 +1065,9 @@ echo '
 #   Control Cookie.
 # - Arm autodetects the Control Cookie.
 # - Not using HashedControlPassword or CookieAuthentication.
-#   TorBOX-Gateway is no multi purpose machine. It is solely a
+#   aos-Gateway is no multi purpose machine. It is solely a
 #   Tor Gateway. As soon as an adversary has physical access
-#   or compromised TorBOX-Gateway, its Game Over anyway.
+#   or compromised aos-Gateway, its Game Over anyway.
 ControlPort 9051
 ControlListenAddress 127.0.0.1
 
@@ -1174,11 +1092,11 @@ User debian-tor
 VirtualAddrNetwork 10.192.0.0/10
 AutomapHostsOnResolve 1
 
-TransPort '$INT_IP':'$TRANS_PORT_TW'
+TransPort '$INT_IP':'$TRANS_PORT_AOSW'
 DnsPort '$INT_IP':53
 
-TransPort 127.0.0.1:'$TRANS_PORT_TG'
-DnsPort 127.0.0.1:'$DNS_PORT_TG'
+TransPort 127.0.0.1:'$TRANS_PORT_AOSG'
+DnsPort 127.0.0.1:'$DNS_PORT_AOSG'
 
 SocksPort '$INT_IP':'$SOCKS_PORT_TB'
 SocksPort '$INT_IP':'$SOCKS_PORT_IRC'
@@ -1207,7 +1125,7 @@ SocksPort '$INT_IP':'$SOCKS_PORT_POLIPO'
 #########################################
 
 #+# #OptionalFeatureNr.2# Hidden Services.
-#+# Uncomment if you install a hidden service on the TorBOX-Workstation.
+#+# Uncomment if you install a hidden service on the aos-Workstation.
 #+# Check /var/lib/tor/hidden_service/hostname for your .onion address.
 #+# Backup the keys from /var/lib/tor/hidden_service/!
 #HiddenServiceDir /var/lib/tor/hidden_service/
@@ -1301,7 +1219,7 @@ TorExecutable=/usr/sbin/tor
 ' | sudo -u $USERNAME tee -a /home/$USERNAME/.vidalia/vidalia.conf
 
 # Lift permissions to edit torrc to allow Vidalia editing torrc.
-# There should be no security implications, since TorBOX-Gateway is
+# There should be no security implications, since aos-Gateway is
 # not a multi user environment, its solely used to host Tor. On the
 # other hand, for the Tor Browser Bundle, Tor, Vidalia and Tor Browser
 # run under the very same user account.
@@ -1311,11 +1229,11 @@ chmod o+rw /etc/tor/torrc
 
 
 
-config_dns_tg() {
+config_dns_aosg() {
 trap "roll_back" ERR INT TERM
 echo "
 ######################################################
-config_dns_tg
+config_dns_aosg
 ######################################################
 "
 
@@ -1335,7 +1253,7 @@ chattr -i /etc/resolv.conf || true
 rm /etc/resolv.conf || true
 
 # Set nameserver to localhost.
-# iptables redirects any of TorBOX-Gateways DNS requests to DNS_PORT_TG
+# iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
 # Do not override trap function, this step is essential.
 echo "nameserver 127.0.0.1" > /etc/resolv.conf
 
@@ -1355,14 +1273,14 @@ Fixing, recreating /etc/rc.local
 ######################################################
 "
 
-# /etc/rc.local was (ab)used by TorBOX-Image -tX-copyinto
-# to run TorBOX_$VM script once. That is because TorBOX_$VM
+# /etc/rc.local was (ab)used by aos-Image -tX-copyinto
+# to run aos_$VM script once. That is because aos_$VM
 # scripts get executed inside the VM. We restore /etc/rc.local
-# here. A new TorBOX-Image -tX-copyinto would overwrite it
+# here. A new aos-Image -tX-copyinto would overwrite it
 # again.
 
 # Using "" because the $USERNAME should be converted to "user"
-# by the TorBOX_Gateway script.
+# by the aos_gateway script.
 echo "#!/bin/sh -e
 #
 # rc.local
@@ -1376,9 +1294,9 @@ echo "#!/bin/sh -e
 #
 # By default this script does nothing.
 
-# TorBOX changes to /etc/rc.local.
+# aos changes to /etc/rc.local.
 
-# TorBOX WARNING: 
+# aos WARNING: 
 # Better make a backup of this script if you want to make changes.
 
 echo \"rc.local: Start...\"
@@ -1387,7 +1305,7 @@ setterm -blank 0 -powerdown 0
 sudo -u $USERNAME setterm -blank 0 -powerdown 0
 echo \"rc.local: End.\"
 
-# End of TorBOX changes to /etc/rc.local.
+# End of aos changes to /etc/rc.local.
 
 exit 0
 " > /etc/rc.local
@@ -1431,19 +1349,19 @@ Set up VM specific ~/ configs.
 
 # Allow user to reboot and poweroff without having to supply a password:
 echo '
-# TorBOX /home/user/.bashrc changes.
+# aos /home/user/.bashrc changes.
 
 alias reboot="sudo reboot"
 alias poweroff="sudo poweroff"
 
-# End of TorBOX /home/user/.bashrc changes.
+# End of aos /home/user/.bashrc changes.
 ' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
 }
 
 
 
-leaktest_tg() {
-# leaktest_tg() does nothing dangerous.
+leaktest_aos_gateway() {
+# leaktest_aos_gateway() does nothing dangerous.
 # It creates only /usr/local/bin/leaktest.
 # The neccessary software for leak testing will be only installed,
 # if you run /usr/local/bin/leaktest.
@@ -1456,7 +1374,7 @@ Creating /usr/local/bin/leaktest.
 ######################################################
 "
 
-echo "leaktest_tg(): Creating /usr/local/bin/leaktest."
+echo "leaktest_aos_gateway(): Creating /usr/local/bin/leaktest."
 echo \
 '#!/bin/bash
 
@@ -1482,7 +1400,7 @@ exit 1
 
 trap "exit_function" ERR INT TERM
 
-# Install wireshark to the TorBOX-Gateway for Leak Testing
+# Install wireshark to the aos-Gateway for Leak Testing
 echo "INFO: Installing tshark if it is not installed yet"
 apt-get --yes install tshark
 
@@ -1506,7 +1424,7 @@ echo "INFO: Starting tshark as user... To stop press CTRL + C."
 sudo -u user tshark -S -i eth0 -f "ip and src host 10.0.2.15 and not (port 80 or port 443 or port 9001 or port 9030 or ssh)"
 ' > /usr/local/bin/leaktest
 
-echo "leaktest_tg(): Making /usr/local/bin/leaktest executable."
+echo "leaktest_aos_gateway(): Making /usr/local/bin/leaktest executable."
 chmod +x /usr/local/bin/leaktest
 }
 
@@ -1526,7 +1444,7 @@ INT_IP="172.16.0.1"
 
 echo "
 # Run firewall script
-pre-up /etc/torboxfirewall.sh
+pre-up /usr/local/bin/aos_firewall
 
 # VirtualBox NAT bridge
 auto vnet0
@@ -1557,8 +1475,6 @@ Set up static IP for external Interface
 # Disabled by default
 
 echo '
-# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/
-
 # You can find a backup of the original interfaces under /etc/network/interfaces.backup.
 
 # for more information see interfaces(5)
@@ -1573,7 +1489,7 @@ iface eth0 inet static
        gateway 10.0.2.2
        broadcast 10.0.2.255
 
-pre-up /etc/torboxfirewall.sh
+pre-up /usr/local/bin/aos_firewall
 
 auto '$INT_IF'
 iface '$INT_IF' inet static
@@ -1675,7 +1591,7 @@ history -c
 uninstall() {
 echo "
 ######################################################
-Uninstall TorBOX-Gateway.
+Uninstall aos-Gateway.
 ######################################################
 "
 set +e
@@ -1688,8 +1604,8 @@ cp /etc/sysctl.conf.backup /etc/sysctl.conf
 cp /etc/network/interfaces.backup /etc/network/interfaces
 cp /etc/tor/torrc.backup /etc/tor/torrc
 cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-rm /etc/torboxfirewall.sh
-rm /usr/local/bin/torbox
+rm /usr/local/bin/aos_firewall
+rm /usr/local/bin/aos
 rm /usr/local/bin/leaktest
 rm /usr/local/bin/arm
 iptables -F
@@ -1709,7 +1625,7 @@ apt-get --config-file /tmp/apt.conf --yes remove --purge tor deb.torproject.org-
 uninstall_vm() {
 echo "
 ######################################################
-Uninstall TorBOX-Gateway VM specific parts.
+Uninstall aos-Gateway VM specific parts.
 ######################################################
 "
 cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
@@ -1754,13 +1670,13 @@ config_grub             # Depends on root_check, being run only once.
 firewall_setup          # Depends on root_check and apt_get!
 config_network          # Depends on root_check, begin run only once.
 #staticvboxip           # Depends on root_check.
-leaktest_tg             # Depends on root_check.
+leaktest_aos_gateway    # Depends on root_check.
 #start_network          # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
 setup_torrc             # Depends on root_check, apt-get
 #start_tor              # Depends on root_check, start_network, working internet connection, setup_torrc.
 create_rc_local         # Depends on root_check, not being run again /etc/rc.local got modified by the user. 
 vm_configuration        # Depends on root_check, create_rc_local, being run only once.
-config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+config_dns_aos_gateway  # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
 slim_down               # Must be run last.
 
 ## make daemons start again
@@ -1793,13 +1709,13 @@ backup_sysfiles         # Depends on root_check.
 apt_get                 # Depends on root_check, modify_sources_list, working internet connection.
 config_grub             # Depends on root_check, being run only once.
 firewall_setup          # Depends on root_check and apt_get!
-leaktest_tg             # Depends on root_check.
+leaktest_aos_gateway    # Depends on root_check.
 setup_torrc             # Depends on root_check, apt-get
 #staticvboxip            # Depends on root_check.
 
 start_network           # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
 start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
-config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+config_dns_aos_gateway  # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
 
 echo "
 INFO: Update complete
@@ -1849,7 +1765,7 @@ root_check
 # Create empty apt.conf to remain compatible with
 # apt-get --config-file /tmp/apt.conf.
 echo '
-# TorBOX
+# aos
 
 ' > /tmp/apt.conf
 
@@ -1872,11 +1788,11 @@ ifdown -a
 start_network           # Depends on root_check, firewall_setup, config_network/one_vm, working internet connection; breaks ssh connections
 setup_torrc             # Depends on root_check, apt-get
 start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
-config_dns_tg           # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+config_dns_aos_gateway  # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
 
 # TODO reboot doesn't seem necessary.
 echo "
-INFO: TorBOX-Gateway OneVM configuration complete.
+INFO: aos-Gateway OneVM configuration complete.
       Please reboot now!
 " >&2
 
@@ -1902,7 +1818,7 @@ if [[ "$1" = "" ]]; then
 echo "
 INFO: No option chosen.
 
-Please run TorBOX-Gateway -help to find out more.
+Please run aos-Gateway -help to find out more.
 "
 exit 0
 fi
