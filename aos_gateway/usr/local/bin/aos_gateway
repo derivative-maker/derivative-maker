@@ -177,7 +177,6 @@ TRANS_PORT_AOSG="9041"
 DNS_PORT_AOSG="54"
 
 # SOCKS Ports
-# TODO: Can we use a loop?
 SOCKS_PORT_TB="9100"
 SOCKS_PORT_IRC="9101"
 SOCKS_PORT_TORBIRDY="9102"
@@ -374,33 +373,6 @@ create_fix_sources_list() {
 # TODO:
 # Must be copied from /home/user/aos/aos_shared/etc/apt/sources.list
 # into vm image /etc/apt/sources.list.
-}
-
-
-
-modify_sources_list() {
-# Add the Torporject repository, only works for Debian and derivatives.
-# "local release=" line may need to be changed if you do not use Ubuntu or Debian.
-# "lsb_release -c" and/or "cat /etc/debian_version" will tell you what version you are using.
-
-# Determine name of distribution.
-local release="$(lsb_release -cs)"
-
-# Modify sources.list.
-echo "
-# aos
-# You can find a backup of the original sources.list under /etc/apt/sources.list.backup.
-
-# The torproject.org stable repository.
-deb http://deb.torproject.org/torproject.org $release main
-
-# The torproject.org alpha repository.
-#   Uncomment this in case you require the Tor alpha,
-#   which includes obfsproxy (obfuscated bridges).
-#deb http://deb.torproject.org/torproject.org experimental-$release main
-
-# End of aos changes to sources.list.
-" >> /etc/apt/sources.list
 }
 
 
@@ -719,276 +691,12 @@ Set up Firewall.
 ######################################################
 "
 
-echo "
-#!/bin/sh
+# TODO:
+# copy /home/user/aos/aos_gateway/usr/local/bin/aos_firewall
+# into vm /usr/local/bin/aos_firewall
 
-# WARNING! Do not use single quotes/apostrophes in the firwall comments!!!
-
-###########################
-# /usr/local/bin/aos_firewall
-###########################
-
-echo "OK: Loading aos firewall..."
-
-###########################
-# VARIABELS
-###########################
-
-# Destinations you don not want routed through Tor, only for aos-Gateway!
-NON_TOR_AOSG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
-
-# Tor User ID
-TOR_UID='$TOR_UID'
-
-# Output TOR_UID for debugging purposes.
-echo "OK: TOR_UID: $TOR_UID"
-
-# DnsPort_AOSW
-DNS_PORT_AOSW=53
-
-# DnsPort_AOSG
-DNS_PORT_AOSG='$DNS_PORT_AOSG'
-
-# TransPort_AOSW
-TRANS_PORT_AOSW='$TRANS_PORT_AOSW'
-
-# TransPort_AOSG
-TRANS_PORT_AOSG='$TRANS_PORT_AOSG'
-
-# Socks Ports for per application circuits.
-SOCKS_PORT_TB='$SOCKS_PORT_TB'
-SOCKS_PORT_IRC='$SOCKS_PORT_IRC'
-SOCKS_PORT_TORBIRDY='$SOCKS_PORT_TORBIRDY'
-SOCKS_PORT_IM='$SOCKS_PORT_IM'
-SOCKS_PORT_APT_GET='$SOCKS_PORT_APT_GET'
-SOCKS_PORT_GPG='$SOCKS_PORT_GPG'
-SOCKS_PORT_SSH='$SOCKS_PORT_SSH'
-SOCKS_PORT_GIT='$SOCKS_PORT_GIT'
-SOCKS_PORT_HTPDATE='$SOCKS_PORT_HTPDATE'
-SOCKS_PORT_WGET='$SOCKS_PORT_WGET'
-SOCKS_PORT_TORCHECK='$SOCKS_PORT_TORCHECK'
-SOCKS_PORT_BITCOIN='$SOCKS_PORT_BITCOIN'
-SOCKS_PORT_PRIVOXY='$SOCKS_PORT_PRIVOXY'
-SOCKS_PORT_POLIPO='$SOCKS_PORT_POLIPO'
-
-#+# Additional Socks Ports for per application circuits.
-#+# OptionalFeatureNr.4#
-#SOCKS_PORT_ETC='$SOCKS_PORT_ETC'
-
-#+# OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#SOCKS_PORT_ISOLATE_DEST_PORT='$SOCKS_PORT_ISOLATE_DEST_PORT'
-#SOCKS_PORT_ISOLATE_DEST_ADDR='$SOCKS_PORT_ISOLATE_DEST_ADDR'
-
-# External interface
-EXT_IF='$EXT_IF'
-# Internal interface
-INT_IF='$INT_IF'
-# Internal tunnel interface
-INT_TIF='$INT_TIF'
-
-###########################
-# IPv4 DEFAULTS
-###########################
-
-# Set secure defaults.
-iptables -P INPUT DROP
-
-# FORWARD rules does not actually do anything if forwarding is disabled. Better be safe just in case.
-iptables -P FORWARD DROP
-
-# Only the Tor process is allowed to establish outgoing connections.
-iptables -P OUTPUT DROP
-
-###########################
-# IPv4 PREPARATIONS
-###########################
-
-# Flush old rules.
-iptables -F
-iptables -X
-iptables -t nat -F
-iptables -t nat -X
-iptables -t mangle -F
-iptables -t mangle -X
-
-############################
-# IPv4 DROP INVALID PACKAGES
-############################
-
-# DROP INVALID
-iptables -A INPUT -m state --state INVALID -j DROP
-
-# DROP INVALID SYN PACKETS
-iptables -A INPUT -p tcp --tcp-flags ALL ACK,RST,SYN,FIN -j DROP
-iptables -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
-iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
-
-# DROP PACKETS WITH INCOMING FRAGMENTS. THIS ATTACK ONCE RESULTED IN KERNEL PANICS
-iptables -A INPUT -f -j DROP
-
-# DROP INCOMING MALFORMED XMAS PACKETS
-iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
-
-# DROP INCOMING MALFORMED NULL PACKETS
-iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
-
-###########################
-# IPv4 INPUT
-###########################
-
-# Traffic on the loopback interface is accepted.
-iptables -A INPUT -i lo -j ACCEPT
-
-# Established incoming connections are accepted.
-iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-# Allow incoming SSH connections on the external interface.
-iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
-
-# OPTIONAL Allow incoming OpenVPN connections on the external interface.
-#iptables -A INPUT -i $EXT_IF -p tcp --dport 1194 -j ACCEPT
-
-# Allow TCP to TransPort and DNS traffic to DNSListenAddress.
-#+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i $INT_TIF -p udp --dport 53 -j ACCEPT
-#+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i $INT_IF -p tcp --dport $TRANS_PORT_AOSW -j ACCEPT
-
-# Allow socksified applications.
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TB -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IRC -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORBIRDY -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IM -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_APT_GET -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GPG -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_SSH -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GIT -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_HTPDATE -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_WGET -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORCHECK -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_BITCOIN -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_PRIVOXY -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_POLIPO -j ACCEPT
-
-#+# #OptionalFeatureNr.4# More Socks Ports.
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ETC -j ACCEPT
-
-#OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j ACCEPT
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j ACCEPT
-
-# Redirect DNS traffic to DNSPORT.
-#+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSW
-
-# Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TB -j REDIRECT --to-ports $SOCKS_PORT_TB
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IRC -j REDIRECT --to-ports $SOCKS_PORT_IRC
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORBIRDY -j REDIRECT --to-ports $SOCKS_PORT_TORBIRDY
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IM -j REDIRECT --to-ports $SOCKS_PORT_IM
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_APT_GET -j REDIRECT --to-ports $SOCKS_PORT_APT_GET
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GPG -j REDIRECT --to-ports $SOCKS_PORT_GPG
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_SSH -j REDIRECT --to-ports $SOCKS_PORT_SSH
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GIT -j REDIRECT --to-ports $SOCKS_PORT_GIT
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_HTPDATE -j REDIRECT --to-ports $SOCKS_PORT_HTPDATE
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_WGET -j REDIRECT --to-ports $SOCKS_PORT_WGET
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORCHECK -j REDIRECT --to-ports $SOCKS_PORT_TORCHECK
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_BITCOIN -j REDIRECT --to-ports $SOCKS_PORT_BITCOIN
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_PRIVOXY -j REDIRECT --to-ports $SOCKS_PORT_PRIVOXY
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_POLIPO -j REDIRECT --to-ports $SOCKS_PORT_POLIPO
-
-#+# OptionalFeatureNr.4# More Socks Ports.
-#+# Rules for additional SocksPorts.
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ETC -j REDIRECT --to-ports $SOCKS_PORT_ETC
-
-#OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_PORT
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_ADDR
-
-# Catch all remaining tcp and redirect to TransPort.
-#+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
-
-#+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
-#+# Replace above rule with a more restrictive one, e.g.:
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
-
-# Reject anything not explicitly allowed above.
-iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
-
-###########################
-# IPv4 FORWARD
-###########################
-
-iptables -A FORWARD -j REJECT --reject-with icmp-port-unreachable
-
-###########################
-# IPv4 OUTPUT
-###########################
-
-# No NAT for Tor itself.
-iptables -t nat -A OUTPUT -m owner --uid-owner $TOR_UID -j RETURN
-
-# Redirect of T-G DNS traffic to DnsPort_AOSG.
-iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSG
-
-# Exclude connections to local network, AOSW, VirtualBox from being redirected through Tor.
-for NET in $NON_TOR_AOSG; do
- iptables -t nat -A OUTPUT -d $NET -j RETURN
-done
-
-# Redirect all T-G TCP traffic to TransPort_AOSG.
-iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSG
-
-# Existing connections are accepted.
-iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-# Accept outgoing connections to local network, AOSW and VirtualBox.
-for NET in $NON_TOR_AOSG; do
- iptables -A OUTPUT -d $NET -j ACCEPT
-done
-
-# Tor is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner $TOR_UID -j ACCEPT
-
-# Reject all other outging traffic.
-iptables -A OUTPUT -j REJECT
-
-###########################
-# IPv6
-###########################
-
-# Policy DROP for all traffic as fallback.
-ip6tables -P INPUT DROP
-ip6tables -P OUTPUT DROP
-ip6tables -P FORWARD DROP
-
-# Flush old rules.
-ip6tables -F
-ip6tables -X
-ip6tables -t mangle -F
-ip6tables -t mangle -X
- 
-# Allow unlimited access on loopback.
-#ip6tables -A INPUT -i lo -j ACCEPT
-#ip6tables -A OUTPUT -o lo -j ACCEPT
-
-# Logging in case, needed for debugging.
-#ip6tables -A INPUT -j LOG
-
-# Drop/reject all other traffic.
-ip6tables -A INPUT -j DROP
-ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable
-ip6tables -A FORWARD -j DROP
-
-###########################
-# End
-###########################
-
-echo "OK: The firewall should show any messages,"
-echo "OK: besides output beginning with prefix OK:..."
-echo "OK: aos firewall loaded."
-" > /usr/local/bin/aos_firewall
+# TODO:
+# variables inside firewall script...
 
 chmod +x /usr/local/bin/aos_firewall
 }
@@ -1023,163 +731,11 @@ Set up /etc/tor/torrc.
 ######################################################
 "
 
-# Enable transparent proxy.
-# https://www.torproject.org/docs/tor-manual.html.en Tor stable manual.
-# https://www.torproject.org/docs/tor-manual-dev.html.en Tor alpha manual.
-
-# The "stable" repository now contains Tor 0.2.3.17-beta, refer to the
-# "alpha" manual until they completed transition.
-
-echo '
-#########################################
-# aos torrc                             #
-#########################################
-# You can find a backup of the original torrc under /etc/tor/torrc.backup.
-
-#########################################
-# Leak Tests                            #
-#########################################
-
-#+# #OptionalFeatureNr.6# Leak Testing.
-#+#
-#+# Manual Leak Testing:
-#+# See aos/LeakTests. Activate this while testing for leaks. (Step 0)
-#+# Deactivate after you are done! (Important!) (Step 9)
-#+#
-#+# Scripted Leak Testing:
-#+# If you change the following two lines, beside removing the hash (#),
-#+# beside commenting them in, you break the integrated leaktest script.
-#+# See leaktest_aos_gateway() ed.
-#+# See /aos/LeakTests
-#+# on information, how to use the integrated leaktest script.
-#+#
-#ReachableDirAddresses *:80
-#ReachableORAddresses *:443
-
-#########################################
-# General Settings                      #
-#########################################
-
-# ControlPort is necessary for tor-arm and Vidalia.
-# - Vidalia has to set /var/run/tor/control (default) as
-#   Control Cookie.
-# - Arm autodetects the Control Cookie.
-# - Not using HashedControlPassword or CookieAuthentication.
-#   aos-Gateway is no multi purpose machine. It is solely a
-#   Tor Gateway. As soon as an adversary has physical access
-#   or compromised aos-Gateway, its Game Over anyway.
-ControlPort 9051
-ControlListenAddress 127.0.0.1
-
-Log notice syslog
-#Log notice file /var/log/tor/log
-
-User debian-tor
-
-# Not required:
-#DataDirectory /...
-#PidFile /...
-#ControlSocket /...
-#ControlSocketsGroupWritable 1
-#CookieAuthentication 1
-#CookieAuthFileGroupReadable 1
-#CookieAuthFile /...
-
-#########################################
-# Proxy Settings                        #
-#########################################
-
-VirtualAddrNetwork 10.192.0.0/10
-AutomapHostsOnResolve 1
-
-TransPort '$INT_IP':'$TRANS_PORT_AOSW'
-DnsPort '$INT_IP':53
-
-TransPort 127.0.0.1:'$TRANS_PORT_AOSG'
-DnsPort 127.0.0.1:'$DNS_PORT_AOSG'
-
-SocksPort '$INT_IP':'$SOCKS_PORT_TB'
-SocksPort '$INT_IP':'$SOCKS_PORT_IRC'
-SocksPort '$INT_IP':'$SOCKS_PORT_TORBIRDY'
-SocksPort '$INT_IP':'$SOCKS_PORT_IM'
-SocksPort '$INT_IP':'$SOCKS_PORT_APT_GET'
-SocksPort '$INT_IP':'$SOCKS_PORT_GPG'
-SocksPort '$INT_IP':'$SOCKS_PORT_SSH'
-SocksPort '$INT_IP':'$SOCKS_PORT_GIT'
-SocksPort '$INT_IP':'$SOCKS_PORT_HTPDATE'
-SocksPort '$INT_IP':'$SOCKS_PORT_WGET'
-SocksPort '$INT_IP':'$SOCKS_PORT_TORCHECK'
-SocksPort '$INT_IP':'$SOCKS_PORT_BITCOIN'
-SocksPort '$INT_IP':'$SOCKS_PORT_PRIVOXY'
-SocksPort '$INT_IP':'$SOCKS_PORT_POLIPO'
-
-#+# #OptionalFeatureNr.4# Additional Socks Ports.
-#SocksPort '$INT_IP':'$SOCKS_PORT_ETC'
-
-#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#SocksPort '$INT_IP':'$SOCKS_PORT_ISOLATE_DEST_PORT' IsolateDestPort
-#SocksPort '$INT_IP':'$SOCKS_PORT_ISOLATE_DEST_ADDR' IsolateDestAddr
-
-#########################################
-# Hidden Services                       #
-#########################################
-
-#+# #OptionalFeatureNr.2# Hidden Services.
-#+# Uncomment if you install a hidden service on the aos-Workstation.
-#+# Check /var/lib/tor/hidden_service/hostname for your .onion address.
-#+# Backup the keys from /var/lib/tor/hidden_service/!
-#HiddenServiceDir /var/lib/tor/hidden_service/
-#HiddenServicePort 80 192.168.0.2:12345
-
-#########################################
-# Using normal (non-obfuscated) bridges #
-#########################################
-# Also read all information about bridges on https://www.torproject.org!
-# https://gitweb.torproject.org/torspec.git?a=blob_plain;hb=HEAD;f=proposals/125-bridges.txt
-# describes under "3. Bridge users." how to use bridges.
-
-# You have to find bridges yourself!
-# - source #1: https://www.torproject.org/docs/bridges#FindingMore
-# - source #2: https://bridges.torproject.org/
-# - source #3: Ask a friend.
-
-# If you want to use normal (non-obfuscated) bridges, uncomment the line below.
-#UseBridges 1 
-
-# This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own bridges!
-#bridge 60.16.182.53:9001
-#bridge 87.237.118.139:444
-#bridge 60.63.97.221:443
-
-#########################################
-# Using obfuscated bridges              #
-#########################################
-# Also read all information about obfuscated bridges and obfsproxy on https://www.torproject.org!
-# https://www.torproject.org/projects/obfsproxy-instructions.html.en
-#
-# You can either use semi-public or private bridges.
-#
-# Semi-public obfuscated bridges can be found within the Obfsproxy Tor Browser Bundle in ./Data/Tor/torrc.
-# https://www.torproject.org/projects/obfsproxy.html.en
-# Note, that those bridges might get blocked soon. And it is also not hard for the censurer,
-# to find out that you are using those semi-public bridges.
-#
-# Only friends can setup private obfuscated bridges for you.
-# (Or you have to anonymously get a server in a non-censored country yourself.)
-# official help: https://www.torproject.org/projects/obfsproxy-instructions.html.en
-# unofficial help: https://trac.torproject.org/projects/tor/wiki/TorObfsBridgeSetupForBeginners
-
-# If you want to use obfuscated bridges, uncomment the next two lines below.
-#UseBridges 1
-#ClientTransportPlugin obfs2 exec /usr/local/bin/obfsproxy --managed
-
-# This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own obfuscated bridges!
-#Bridge obfs2 128.31.0.34:1051
-
-#########################################
-# end of torrc                          #
-#########################################
-' > /etc/tor/torrc
+# TODO:
+# - Copy /home/user/aos/aos_gateway/etc/tor/torrc
+# into vm to /etc/tor/torrc
+# - Needs testing if installing Tor will not overwrite it.
+#   Maybe it has to be copied after Tor has been installed.
 }
 
 
@@ -1199,6 +755,9 @@ service tor restart
 
 
 config_vidalia() {
+# Not in use yet.
+# Waiting for Vialia 0.3.
+
 echo "
 ######################################################
 config_vidalia
@@ -1210,13 +769,10 @@ apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends vidali
 sudo -u $USERNAME mkdir -p /home/$USERNAME/.vidalia
 
 # Setup Vidalia to use Cookie Authentication.
-echo '
-[Tor]
-Changed=true
-AuthenticationMethod=none
-Torrc=/etc/tor/torrc
-TorExecutable=/usr/sbin/tor
-' | sudo -u $USERNAME tee -a /home/$USERNAME/.vidalia/vidalia.conf
+
+# TODO:
+# /home/user/aos/aos_gateway/home/user/vidalia/vidalia.conf need to be copied
+# inside vm to /home/user/vidalia/vidalia.conf
 
 # Lift permissions to edit torrc to allow Vidalia editing torrc.
 # There should be no security implications, since aos-Gateway is
@@ -1281,34 +837,11 @@ Fixing, recreating /etc/rc.local
 
 # Using "" because the $USERNAME should be converted to "user"
 # by the aos_gateway script.
-echo "#!/bin/sh -e
-#
-# rc.local
-#
-# This script is executed at the end of each multiuser runlevel.
-# Make sure that the script will "exit 0" on success or any other
-# value on error.
-#
-# In order to enable or disable this script just change the execution
-# bits.
-#
-# By default this script does nothing.
 
-# aos changes to /etc/rc.local.
-
-# aos WARNING: 
-# Better make a backup of this script if you want to make changes.
-
-echo \"rc.local: Start...\"
-set -x
-setterm -blank 0 -powerdown 0
-sudo -u $USERNAME setterm -blank 0 -powerdown 0
-echo \"rc.local: End.\"
-
-# End of aos changes to /etc/rc.local.
-
-exit 0
-" > /etc/rc.local
+# TODO:
+# /home/user/aos/aos_gateway/etc/rc.local has to be copied
+# into vm to /etc/rc.local AFTER the aos_gateway script
+# got autostarted.
 }
 
 
@@ -1368,63 +901,9 @@ leaktest_aos_gateway() {
 
 trap "roll_back" ERR INT TERM
 
-echo "
-######################################################
-Creating /usr/local/bin/leaktest.
-######################################################
-"
+# TODO: /home/user/aos/aos_gateway/usr/local/bin/leaktest needs to be
+# copied into vm to /usr/local/bin/leaktest.
 
-echo "leaktest_aos_gateway(): Creating /usr/local/bin/leaktest."
-echo \
-'#!/bin/bash
-
-  if [ "$(id -u)" != "0" ]; then
-     echo "FATAL ERROR: This script must be run as root (sudo)"
-     exit 1
-  fi
-
-exit_function() {
-echo "INFO: Listing for leaks stopped."
-
-echo "INFO: Reverting /etc/tor/torrc to original state."
-ed -s /etc/tor/torrc <<< $'\'',s/ReachableDirAddresses \*:80/#ReachableDirAddresses *:80/g\nw'\''
-ed -s /etc/tor/torrc <<< $'\'',s/ReachableORAddresses \*:443/#ReachableORAddresses *:443/g\nw'\''
-
-echo "INFO: Reloading Tor, using normal settings again"
-service tor reload
-echo "INFO: Done."
-
-# Exit instantly, to prevent running exit_function more than once.
-exit 1
-}
-
-trap "exit_function" ERR INT TERM
-
-# Install wireshark to the aos-Gateway for Leak Testing
-echo "INFO: Installing tshark if it is not installed yet"
-apt-get --yes install tshark
-
-echo "INFO: You can uninstall tshark later manually using:"
-echo "             sudo apt-get remove tshark"
-
-echo "INFO: Setting capabilities to run wireshark with user privileges."
-setcap cap_net_raw,cap_net_admin=eip /usr/bin/dumpcap
-
-echo "INFO: Modifying /etc/tor/torrc..."
-ed -s /etc/tor/torrc <<< $'\'',s/\#ReachableDirAddresses \*:80/ReachableDirAddresses *:80/g\nw'\''
-ed -s /etc/tor/torrc <<< $'\'',s/\#ReachableORAddresses \*:443/ReachableORAddresses *:443/g\nw'\''
-
-echo "INFO: Restarting Tor, only using port 80 and 443..."
-service tor reload
-
-echo "NOTE: You must be logged in as user and start this script with sudo leaktest"
-echo "NOTE: Otherwise you will see a lot tshark error messages."
-echo "INFO: Starting tshark as user... To stop press CTRL + C."
-# HARDCODED!
-sudo -u user tshark -S -i eth0 -f "ip and src host 10.0.2.15 and not (port 80 or port 443 or port 9001 or port 9030 or ssh)"
-' > /usr/local/bin/leaktest
-
-echo "leaktest_aos_gateway(): Making /usr/local/bin/leaktest executable."
 chmod +x /usr/local/bin/leaktest
 }
 
@@ -1646,7 +1125,6 @@ set_sysctl              # Depends on root_check, being run only once.
 create_swap_file        # Depends on root_check, not being run again when in use.
 config_uuids_fstab      # Depends on root_check, not being run again after adding new hdds.
 create_fix_sources_list # Depends on root check, being run only once.
-modify_sources_list     # Depends on root_check, create_fix_sources_list, being run only once.
 config_etc              # Depends on root_check. Provides UTC timezone.
 config_home             # Depends on nothing.
 fix_network             # Depends on root_check, being run only once. Only suited for VMs or DHCP. Does not work in chroot.
@@ -1658,7 +1136,7 @@ echo "#!/bin/sh
 exit 101" > /usr/sbin/policy-rc.d
 chmod 755 /usr/sbin/policy-rc.d
 
-apt_get                 # Depends on root_check, modify_sources_list, working internet connection.
+apt_get                 # Depends on root_check, create_fix_sources_list, working internet connection.
 config_grub             # Depends on root_check, being run only once.
 
 ## The following ones provide a graphical gateway interface (Vidalia)
@@ -1706,7 +1184,7 @@ apt-get update
 apt-get --yes dist-upgrade
 
 backup_sysfiles         # Depends on root_check.
-apt_get                 # Depends on root_check, modify_sources_list, working internet connection.
+apt_get                 # Depends on root_check, create_fix_sources_list, working internet connection.
 config_grub             # Depends on root_check, being run only once.
 firewall_setup          # Depends on root_check and apt_get!
 leaktest_aos_gateway    # Depends on root_check.
@@ -1774,7 +1252,6 @@ config_etc              # Depends on root_check. Provides UTC timezone.
 config_home             # Depends on root_check.
 set_sysctl              # Depends on root_check, being run only once.
 #create_fix_sources_list # Depends on root check, being run only once.
-modify_sources_list     # Depends on root_check, create_fix_sources_list, being run only once.
 apt_get                 # Depends on root_check, create_fix_sources_list, modify_sources_list, working internet connection.
 config_grub             # Depends on root_check, being run only once.
 one_vm                  # Depends on root_check, being run only once. Conflicts with config_network and staticvboxip
