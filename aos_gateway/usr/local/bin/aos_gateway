@@ -47,8 +47,7 @@ echo "
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 # Only suited for VMs!                                                     #
 # In case you really want to run on bare metal:                            #
-#    comment out vm_configuration and slim_down                            #
-#    use config_network instant of staticvboxip                            #
+# TODO
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #
 ############################################################################
@@ -153,70 +152,7 @@ set -x
 # Set the linux username.
 # "export USERNAME=$(whoami)" will not work, since the
 # script gets, in most cases, started as root.
-USERNAME=user
-
-# Ports used by Tor (and used in /etc/torrc and /usr/local/bin/aos_firewall)
-#
-# The following applications will be separated, preventing identity
-# correlation through circuit sharing. 
-
-# Transparent Proxy Ports for aos-Workstation
-TRANS_PORT_AOSW="9040"
-
-# Transparent Proxy Ports for aos-Gateway
-TRANS_PORT_AOSG="9041"
-DNS_PORT_AOSG="54"
-
-# SOCKS Ports
-SOCKS_PORT_TB="9100"
-SOCKS_PORT_IRC="9101"
-SOCKS_PORT_TORBIRDY="9102"
-SOCKS_PORT_IM="9103"
-SOCKS_PORT_APT_GET="9104"
-SOCKS_PORT_GPG="9105"
-SOCKS_PORT_SSH="9106"
-SOCKS_PORT_GIT="9107"
-SOCKS_PORT_HTPDATE="9108"
-SOCKS_PORT_WGET="9109"
-SOCKS_PORT_TORCHECK="9110"
-SOCKS_PORT_BITCOIN="9111"
-SOCKS_PORT_PRIVOXY="9112"
-SOCKS_PORT_POLIPO="9113"
-
-#+# #OptionalFeatureNr.4# More Socks Ports.
-#+# You can add more here but,
-#+# you will have to edit the aos-Gateway script:
-#+# - /etc/tor/torrc
-#+#   - And "sudo service tor reload" afterwards.
-#+# - /usr/local/bin/aos_firewall
-#+#   - And issue "sudo /usr/local/bin/aos_firewall" afterwards.
-#+# you will also have to edit in aos-Workstation script
-#+# - the line "extensions.torbutton.banned_ports" (search aos-Workstation script for that term)
-#+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
-#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
-#+# - the function "install_uwt_wrappers()"
-#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
-#SOCKS_PORT_ETC="9198"
-#SOCKS_PORT_ETC2="9199"
-
-#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#SOCKS_PORT_ISOLATE_DEST_PORT="9200"
-#SOCKS_PORT_ISOLATE_DEST_ADDR="9201"
-
-# External interface
-EXT_IF="eth0"
-# Internal interface
-INT_IF="eth1"
-# Internal "tunnel" interface, usually the same as the Internal interface unless using vpn tunnels between workstations and gateway
-INT_TIF="eth1"
-
-# Internal interface IP. If you will not use the 192.168.0.0 network you will have to 
-# edit /etc/network/interfaces manually.
-# This IP is static, no dhcp server is managing it. (internal/isolated network)
-INT_IP="192.168.0.1"
-
-# We also set a Tor User ID automatically, search for TOR_UID
-# this can not be done at the beginning of the script because tor is not running yet...
+USERNAME="user"
 
 # Unattended (un)installation of packages.
 # Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
@@ -255,8 +191,14 @@ Backup system files
 ######################################################
 "
 
+# TODO: Move to copyinto.
+
+cp -n /etc/sudoers /etc/sudoers.backup
+chmod 0440 /etc/sudoers.backup
+
 cp -n /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-cp -n /etc/localtime /etc/localtime.backup
+#Better no backup of localtime.
+# cp -n /etc/localtime /etc/localtime.backup
 cp -n /etc/apt/sources.list /etc/apt/sources.list.backup
 cp -n /etc/default/grub /etc/default/grub.backup
 cp -n /etc/sysctl.conf /etc/sysctl.conf.backup
@@ -278,62 +220,31 @@ ERROR: Script failed!
 ######################################################
 "
 echo "ERROR: Script failed!" >&2
+sleep 5
 exit 1
 }
 
 
 
-create_apt_config() {
-echo "
-######################################################
-create_apt_config
-######################################################
-"
 
-# Currently disabled. Creates empty apt.conf.
-# To use it there are some issues which would need to
-# be resolved. Probable you have to add the repositories
-# (torproject and ubuntu) on the host and run apt-get update
-# on the host first.
 
-# NOTE: If you dislike this, simply clear the content
-#       of apt.conf here. An empty apt.conf will do
-#       nothing. Please do not remove it without
-#       discussion.
+# TODO:
+# Copy /home/user/aos/aos_gateway/usr/share/aos/apt.conf into
+# vm to /usr/share/aos/apt.conf
 
-# TODO: Lets find a better place for apt.conf. No harm
-#       in keeping when in correct folder.
-
-# Must contain something. May not be completely empty.
-# To be completely empty we had to remove the --config-file
-# in front of every apt-get line in this script.
-echo '
-# aos
-# IP of aos-Workstation for building aos inside aos.
-# Works through Virtual Boxs NAT adapter.
-#Acquire::http { Proxy "http://192.168.0.2:3142"; };
-' > /tmp/apt.conf
-}
 
 
 
 config_etc() {
 trap "error_handler" ERR INT TERM
-echo "
-######################################################
-set up /etc configs
-######################################################
-"
 
-echo "INFO: Set local time zone to UTC to prevent anonymity set reduction."
+# TODO: Move to copyinto.
 cp /usr/share/zoneinfo/UTC /etc/localtime
 
-# Workaround to fix the two minutes startup delay when dhcp client fails to write to /etc/resolv.conf
-# http://www.codewhirl.com/2011/10/ubuntu-11-10-waiting-up-to-60-more-seconds-for-network-configuration/
-ed -s  /etc/init/failsafe.conf <<< $',s/sleep 20/sleep 5/g\nw'
-ed -s  /etc/init/failsafe.conf <<< $',s/sleep 40/sleep 2/g\nw'
-ed -s  /etc/init/failsafe.conf <<< $',s/60 more/2 more/g\nw'
-ed -s  /etc/init/failsafe.conf <<< $',s/sleep 59/sleep 2/g\nw'
+# TODO:
+# - Copy /home/user/aos/aos_shared/etc/failsafe.conf into vm
+#   to /etc/failsafe.conf
+# - Add to aos-Workstation as well.
 }
 
 
@@ -377,21 +288,22 @@ sudo -u $USERNAME mkdir gpgtmpdir
 chmod 700 gpgtmpdir/
 sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint
 sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
-sudo -u $USERNAME gpg --homedir gpgtmpdir --export  A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
+sudo -u $USERNAME gpg --homedir gpgtmpdir --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
 rm -r gpgtmpdir/
 echo "INFO: Imported torproject.org signing key."
 
 echo "Refresh apt-get to include the newly added torproject.org repository."
-apt-get --config-file /tmp/apt.conf update
+apt-get --config-file /usr/share/aos/apt.conf update
 
 echo "Running apt-get dist-upgrade..."
-apt-get --config-file /tmp/apt.conf --yes dist-upgrade
+apt-get --config-file /usr/share/aos/apt.conf --yes dist-upgrade
 
 # Remove problematic software.
-apt-get --config-file /tmp/apt.conf --yes remove --purge popularity-contest network-manager network-manager-gnome ntpdate resolvconf  || true
+apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge \
+popularity-contest network-manager network-manager-gnome ntpdate resolvconf || true
 
 # Make sure required software is installed and install tor.
-apt-get --config-file /tmp/apt.conf --yes install bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor tor-arm torsocks wget
+apt-get --config-file /usr/share/aos/apt.conf --yes install bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor tor-arm torsocks wget
 
 # TODO: console-utilities console-tools console-data something broken
 #       (proper) For what do we need it anyway?
@@ -402,21 +314,12 @@ apt-get --config-file /tmp/apt.conf --yes install bash deb.torproject.org-keyrin
 # it requires Tor Alpha and is only available in the experimental branch.
 # obfsproxy is already available as a deb package in the Tor repository.
 # https://trac.torproject.org/projects/tor/ticket/6046
-#apt-get --config-file /tmp/apt.conf --yes install obfsproxy
+#apt-get --config-file /usr/share/aos/apt.conf --yes install obfsproxy
 
 # Backup torrc.
+# This line can not be moved since it will only
+# start to exist after Tor has been installed.
 cp -n /etc/tor/torrc /etc/tor/torrc.backup
-
-# Get and set Tor UID, distro specific!
-TOR_UID=`id -u debian-tor`
-
-# TODO:
-# - UID must be hardcoded into firewall script
-# TOR_UID Fallback.
-if [[ "$TOR_UID" == "" ]]; then
-   echo "WARNING: TOR_UID could not be determined. Setting to 103. Should work for Ubuntu. Distro specific!"
-   TOR_UID=103
-fi
 
 # create arm wrapper script to start arm
 # TODO:
@@ -441,9 +344,9 @@ echo "
 # config_grub
 ######################################################
 "
-echo "
-GRUB_TERMINAL=console
-" > /etc/default/grub
+# TODO:
+# Append /home/user/aos/aos_shared/etc/default/appendto_grub to
+# /etc/default/grub.
 
 update-grub2
 }
@@ -457,7 +360,7 @@ echo "
 ######################################################
 "
 
-apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox vidalia
+apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox vidalia
 }
 
 
@@ -478,43 +381,13 @@ config_home
 
 
 
-fix_network() {
-echo "
-######################################################
-fix_network
-######################################################
-"
-
-# This function is required because preseed install messes up
-# /etc/network/interfaces. There is no preseed netcfg instance
-# for setting the broadcast address, which would be required
-# for Virtual Box.
-
-echo "fix_network(): overwriting /etc/network/interfaces..."
-
-echo '
-auto lo
-iface lo inet loopback
-
-auto eth0
-iface eth0 inet dhcp
-' > /etc/network/interfaces
-
-echo "fix_network(): restarting network..."
-/etc/init.d/networking restart
-echo "fix_network(): restarted network."
-}
-
-
-
 set_sysctl() {
 trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
 ######################################################
-
-" >&2
+"
 
 # TODO: append /home/user/aos/aos_gateway/etc/appendto_sysctl.conf 
 # to vm /etc/sysctl.conf
@@ -575,64 +448,12 @@ swapoff /dev/sda5 || true
 # and then applies the script.
 mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
 
-echo "
-# /etc/fstab: static file system information.
-#
-# Use blkid to print the universally unique identifier for a
-# device; this may be used with UUID= as a more robust way to name devices
-# that works even if disks are added and removed. See fstab(5).
-
-# <file system> <mount point>   <type>  <options>       <dump>  <pass>
-proc            /proc           proc    nodev,noexec,nosuid 0       0
-
-# aos /etc/fstab changes.
-
-# HDD created by operating system installer.
-# Disk UUID changed by aos.
-UUID=26ada0c0-1165-4098-884d-aafd2220c2c6 /               ext4    noatime,errors=remount-ro 0       1
-
-# Swap partition NOT created by aos preseed installation method.
-# Disk UUID changed by aos.
-# The swap partition has been removed in favor of a swap file.
-# Advantage: with a swap file its easier to grow the virtual hdd
-# and to add the new space to the filesystem.
-# UUID=9159bf6e-e242-4510-b4c1-348db252feff none            swap    sw              0       0
-
-# Swap file created by aos.
-# Disk UUID changed by aos.
-# UUID=0615ba72-85b0-4183-8d54-300bb0d2e491
-/swapfile1 swap swap defaults 0 0
-
-# End of aos /etc/fstab changes.
-" > /etc/fstab
+# TODO:
+# /home/user/aos/aos_shared/etc/fstab has to be copied into
+# vm to /etc/fstab
 
 update-grub2
 grub-install /dev/sda
-}
-
-
-
-config_network() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Set up /etc/network/interfaces.
-######################################################
-"
-
-echo "config_network(): appending to /etc/network/interfaces..."
-echo '
-pre-up /usr/local/bin/aos_firewall
-
-auto '$INT_IF'
-iface '$INT_IF' inet static
-address '$INT_IP'
-       netmask 255.255.255.0
-       network 192.168.0.0
-       broadcast 192.168.0.255
-
-# You can find a backup of the original interfaces under /etc/network/interfaces.backup.
-' >> /etc/network/interfaces
 }
 
 
@@ -657,26 +478,6 @@ chmod +x /usr/local/bin/aos_firewall
 
 
 
-start_network() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Restarting Network...
-######################################################
-"
-
-# Bring up the internal network and start the firewall (and workaround some stupid bug).
-echo "INFO: Bringing down all network interfaces..."
-ifdown eth1 --force
-echo "INFO: Bringing up eth0..."
-ifup eth0
-echo "INFO: Bringin up all interfaces"
-ifup -a
-echo "INFO: Networking successfully restarted."
-}
-
-
-
 setup_torrc() {
 trap "error_handler" ERR INT TERM
 echo "
@@ -694,20 +495,6 @@ Set up /etc/tor/torrc.
 
 
 
-start_tor() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Start Tor
-######################################################
-"
-
-# Apply new torrc settings
-service tor restart
-}
-
-
-
 config_vidalia() {
 # Not in use yet.
 # Waiting for Vialia 0.3.
@@ -718,7 +505,7 @@ config_vidalia
 ######################################################
 "
 
-apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends vidalia
+apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recommends vidalia
 
 sudo -u $USERNAME mkdir -p /home/$USERNAME/.vidalia
 
@@ -811,25 +598,14 @@ Set up VM specific /etc configs.
 ######################################################
 "
 
-# Possibly DANGEROUS! Needs to be audited!
-# Race condition, syntax error detection do not apply here and we set correct permission just to make sure.
-cp /etc/sudoers /etc/sudoers.backup
-chmod 0440 /etc/sudoers.backup
-echo "
-$USERNAME $HOSTNAME=NOPASSWD: /sbin/shutdown -h now,/sbin/reboot,/sbin/poweroff
-" >> /etc/sudoers
+# TODO:
+# Append /home/user/aos_shared/etc/append_sudoers to
+# vm /etc/sudoers
 chmod 0440 /etc/sudoers
 
-# Enable Auto-Login (best only used in VMs).
-# For Ubuntu Oneiric and Precise:
-# HARDCODED!
-ed -s /etc/init/tty1.conf <<< $',s/exec \/sbin\/getty -8 38400 tty1/exec \/sbin\/rungetty --autologin user tty1/g\nw'
-
-# For Debian Squeeze:
-# cp -n /etc/inittab /etc/inittab.backup
-# NOTE: add cp -n /etc/inittab.backup /etc/inittab to error_handler()
-# HARDCODED!
-# ed -s /etc/inittab <<< $',s/1:2345:respawn:\/sbin\/getty 38400 tty1/1:23:respawn:\/sbin\/rungetty --autologin user tty1/g\nw'
+# TODO:
+# Copy /home/user/aos/aos_gateway/etc/init/tty1.conf into
+# vm to /etc/init/tty1.conf
 }
 
 
@@ -850,46 +626,6 @@ chmod +x /usr/local/bin/leaktest
 
 
 
-staticvboxip() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Set up static IP for external Interface
-######################################################
-"
-
-# static IP for VBox to host NAT network.
-# Disabled by default
-
-echo '
-# You can find a backup of the original interfaces under /etc/network/interfaces.backup.
-
-# for more information see interfaces(5)
-
-auto lo
-iface lo inet loopback
-
-auto eth0
-iface eth0 inet static
-       address 10.0.2.15
-       netmask 255.255.255.0
-       gateway 10.0.2.2
-       broadcast 10.0.2.255
-
-pre-up /usr/local/bin/aos_firewall
-
-auto '$INT_IF'
-iface '$INT_IF' inet static
-       address '$INT_IP'
-       netmask 255.255.255.0
-       network 192.168.0.0
-       broadcast 192.168.0.255
-' > /etc/network/interfaces
-
-apt-get --config-file /tmp/apt.conf --yes remove --purge dhcp*
-}
-
-
 slim_down() {
 echo "
 ######################################################
@@ -899,7 +635,7 @@ Slim down the system.
 # Remove unnecessary packages to slim down the system.
 # This list contains only packages, which waste space and are not required.
 # Unsafe or problematic packages are being removed with apt_get().
-apt-get --config-file /tmp/apt.conf --yes remove --purge vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
+apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
 pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
 friendly-recovery dosfstools command-not-found* logrotate aptitude || true
 
@@ -912,10 +648,10 @@ rm -r /etc/bash_completion.d/man/* || true
 
 
 # This assumes you rebooted after the last kernel update. Not needed and can not be used together with debootstrap!
-# apt-get --config-file /tmp/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`)  || true
+# apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`)  || true
 
 # Remove openssh-server.
-apt-get --config-file /tmp/apt.conf --yes remove --purge openssh-server || true
+apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge openssh-server || true
 
 # Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
 killall dhclient3 || true
@@ -927,8 +663,8 @@ rm /var/lib/dhcp/*.lease || true
 rm -r /var/lib/dhcp/* || true
 
 # Cleanup.
-apt-get --config-file /tmp/apt.conf --yes autoremove --purge || true
-apt-get --config-file /tmp/apt.conf --yes clean || true
+apt-get --config-file /usr/share/aos/apt.conf --yes autoremove --purge || true
+apt-get --config-file /usr/share/aos/apt.conf --yes clean || true
 
 # No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
 # Therefore /var/lib/tor should be empty.
@@ -981,20 +717,16 @@ history -c
 if [[ "$1" = "-install" ]]; then
 root_check              # Depends on nothing.
 backup_sysfiles         # Depends on root_check.
-create_apt_config       # Depends on root_check.
 set_sysctl              # Depends on root_check, being run only once.
 create_swap_file        # Depends on root_check, not being run again when in use.
 config_uuids_fstab      # Depends on root_check, not being run again after adding new hdds.
 create_fix_sources_list # Depends on root check, being run only once.
 config_etc              # Depends on root_check. Provides UTC timezone.
 config_home             # Depends on nothing.
-fix_network             # Depends on root_check, being run only once. Only suited for VMs or DHCP. Does not work in chroot.
 
-## http://lifeonubuntu.com/how-to-prevent-server-daemons-from-starting-during-apt-get-install/
-## Prevents Tor from connecting the the public Tor network while building
-## (for bridge users). Should also take care of chroot mount getting locked
-echo "#!/bin/sh
-exit 101" > /usr/sbin/policy-rc.d
+# TODO:
+# Copy /home/user/aos/aos_shared/usr/sbin/policy-rc.d into
+# vm to /usr/sbin/policy-rc.d
 chmod 755 /usr/sbin/policy-rc.d
 
 apt_get                 # Depends on root_check, create_fix_sources_list, working internet connection.
@@ -1007,12 +739,8 @@ config_grub             # Depends on root_check, being run only once.
 #config_vidalia         # Depends on root_check.
 
 firewall_setup          # Depends on root_check and apt_get!
-config_network          # Depends on root_check, begin run only once.
-#staticvboxip           # Depends on root_check.
 leaktest_aos_gateway    # Depends on root_check.
-#start_network          # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
 setup_torrc             # Depends on root_check, apt-get
-#start_tor              # Depends on root_check, start_network, working internet connection, setup_torrc.
 create_rc_local         # Depends on root_check, not being run again /etc/rc.local got modified by the user. 
 vm_configuration        # Depends on root_check, create_rc_local, being run only once.
 config_dns_aosg         # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
@@ -1056,4 +784,3 @@ Please run aos-Gateway -help to find out more.
 "
 exit 0
 fi
-

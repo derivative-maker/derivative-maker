@@ -9,60 +9,99 @@
 echo "OK: Loading aos firewall..."
 
 ###########################
-# VARIABELS
+# TOR_UID
+###########################
+
+# Get and set Tor UID, distro specific!
+TOR_UID="`id -u debian-tor`"
+
+# TODO:
+# - UID must be hardcoded into firewall script
+# TOR_UID Fallback.
+if [ "$TOR_UID" = "" ]; then
+   echo "WARNING: TOR_UID could not be determined. Setting to 103. Should work for Ubuntu. Distro specific!"
+   TOR_UID="103"
+fi
+
+# Output TOR_UID for debugging purposes.
+echo "OK: TOR_UID: $TOR_UID"
+
+###########################
+# interfaces
+###########################
+
+# External interface
+EXT_IF="eth0"
+# Internal interface
+INT_IF="eth1"
+# Internal "tunnel" interface, usually the same as
+# the Internal interface unless using vpn tunnels
+# between workstations and gateway
+INT_TIF="eth1"
+
+###########################
+# NON_TOR_AOSG
 ###########################
 
 # Destinations you don not want routed through Tor, only for aos-Gateway!
 NON_TOR_AOSG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
 
-# Tor User ID
-TOR_UID='$TOR_UID'
+###########################
+# ports
+###########################
 
-# Output TOR_UID for debugging purposes.
-echo "OK: TOR_UID: $TOR_UID"
+# Ports used by Tor
+# (and used in /etc/torrc and /usr/local/bin/aos_firewall)
+#
+# The following applications will be separated, preventing identity
+# correlation through circuit sharing. 
+
+# Transparent Proxy Ports for aos-Workstation
+TRANS_PORT_AOSW="9040"
 
 # DnsPort_AOSW
-DNS_PORT_AOSW=53
+DNS_PORT_AOSW="53"
 
-# DnsPort_AOSG
-DNS_PORT_AOSG='$DNS_PORT_AOSG'
-
-# TransPort_AOSW
-TRANS_PORT_AOSW='$TRANS_PORT_AOSW'
-
-# TransPort_AOSG
-TRANS_PORT_AOSG='$TRANS_PORT_AOSG'
+# Transparent Proxy Ports for aos-Gateway
+TRANS_PORT_AOSG="9041"
+DNS_PORT_AOSG="54"
 
 # Socks Ports for per application circuits.
-SOCKS_PORT_TB='$SOCKS_PORT_TB'
-SOCKS_PORT_IRC='$SOCKS_PORT_IRC'
-SOCKS_PORT_TORBIRDY='$SOCKS_PORT_TORBIRDY'
-SOCKS_PORT_IM='$SOCKS_PORT_IM'
-SOCKS_PORT_APT_GET='$SOCKS_PORT_APT_GET'
-SOCKS_PORT_GPG='$SOCKS_PORT_GPG'
-SOCKS_PORT_SSH='$SOCKS_PORT_SSH'
-SOCKS_PORT_GIT='$SOCKS_PORT_GIT'
-SOCKS_PORT_HTPDATE='$SOCKS_PORT_HTPDATE'
-SOCKS_PORT_WGET='$SOCKS_PORT_WGET'
-SOCKS_PORT_TORCHECK='$SOCKS_PORT_TORCHECK'
-SOCKS_PORT_BITCOIN='$SOCKS_PORT_BITCOIN'
-SOCKS_PORT_PRIVOXY='$SOCKS_PORT_PRIVOXY'
-SOCKS_PORT_POLIPO='$SOCKS_PORT_POLIPO'
+SOCKS_PORT_TB="9100"
+SOCKS_PORT_IRC="9101"
+SOCKS_PORT_TORBIRDY="9102"
+SOCKS_PORT_IM="9103"
+SOCKS_PORT_APT_GET="9104"
+SOCKS_PORT_GPG="9105"
+SOCKS_PORT_SSH="9106"
+SOCKS_PORT_GIT="9107"
+SOCKS_PORT_HTPDATE="9108"
+SOCKS_PORT_WGET="9109"
+SOCKS_PORT_TORCHECK="9110"
+SOCKS_PORT_BITCOIN="9111"
+SOCKS_PORT_PRIVOXY="9112"
+SOCKS_PORT_POLIPO="9113"
 
+#+# #OptionalFeatureNr.4# More Socks Ports.
 #+# Additional Socks Ports for per application circuits.
-#+# OptionalFeatureNr.4#
-#SOCKS_PORT_ETC='$SOCKS_PORT_ETC'
+#+# You can add more here but,
+#+# you will have to edit the aos-Gateway script:
+#+# - /etc/tor/torrc
+#+#   - And "sudo service tor reload" afterwards.
+#+# - /usr/local/bin/aos_firewall
+#+#   - And issue "sudo /usr/local/bin/aos_firewall" afterwards.
+#+# you will also have to edit in aos-Workstation script
+#+# - the line "extensions.torbutton.banned_ports" (search aos-Workstation script for that term)
+#+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
+#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
+#+# - the function "install_uwt_wrappers()"
+#+#   - Issue sudo aos-Workstation -uwt to apply afterwards.
+#SOCKS_PORT_ETC="9198"
+#SOCKS_PORT_ETC2="9199"
 
-#+# OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#SOCKS_PORT_ISOLATE_DEST_PORT='$SOCKS_PORT_ISOLATE_DEST_PORT'
-#SOCKS_PORT_ISOLATE_DEST_ADDR='$SOCKS_PORT_ISOLATE_DEST_ADDR'
-
-# External interface
-EXT_IF='$EXT_IF'
-# Internal interface
-INT_IF='$INT_IF'
-# Internal tunnel interface
-INT_TIF='$INT_TIF'
+#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
+#SOCKS_PORT_ISOLATE_DEST_PORT="9200"
+#SOCKS_PORT_ISOLATE_DEST_ADDR="9201"
 
 ###########################
 # IPv4 DEFAULTS
@@ -121,75 +160,75 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 # Allow incoming SSH connections on the external interface.
-iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
 
 # OPTIONAL Allow incoming OpenVPN connections on the external interface.
-#iptables -A INPUT -i $EXT_IF -p tcp --dport 1194 -j ACCEPT
+#iptables -A INPUT -i "$EXT_IF" -p tcp --dport 1194 -j ACCEPT
 
 # Allow TCP to TransPort and DNS traffic to DNSListenAddress.
 #+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i $INT_TIF -p udp --dport 53 -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p udp --dport 53 -j ACCEPT
 #+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i $INT_IF -p tcp --dport $TRANS_PORT_AOSW -j ACCEPT
+iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_AOSW" -j ACCEPT
 
 # Allow socksified applications.
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TB -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IRC -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORBIRDY -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_IM -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_APT_GET -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GPG -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_SSH -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_GIT -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_HTPDATE -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_WGET -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_TORCHECK -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_BITCOIN -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_PRIVOXY -j ACCEPT
-iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_POLIPO -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TB" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_IRC" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_IM" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_APT_GET" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_GPG" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_SSH" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_GIT" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_HTPDATE" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_WGET" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TORCHECK" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_BITCOIN" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_PRIVOXY" -j ACCEPT
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_POLIPO" -j ACCEPT
 
 #+# #OptionalFeatureNr.4# More Socks Ports.
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ETC -j ACCEPT
+#iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_ETC" -j ACCEPT
 
 #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j ACCEPT
-#iptables -A INPUT -i $INT_TIF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j ACCEPT
+#iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_PORT" -j ACCEPT
+#iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_ADDR" -j ACCEPT
 
 # Redirect DNS traffic to DNSPORT.
 #+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSW
+iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSW"
 
 # Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TB -j REDIRECT --to-ports $SOCKS_PORT_TB
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IRC -j REDIRECT --to-ports $SOCKS_PORT_IRC
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORBIRDY -j REDIRECT --to-ports $SOCKS_PORT_TORBIRDY
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_IM -j REDIRECT --to-ports $SOCKS_PORT_IM
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_APT_GET -j REDIRECT --to-ports $SOCKS_PORT_APT_GET
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GPG -j REDIRECT --to-ports $SOCKS_PORT_GPG
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_SSH -j REDIRECT --to-ports $SOCKS_PORT_SSH
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_GIT -j REDIRECT --to-ports $SOCKS_PORT_GIT
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_HTPDATE -j REDIRECT --to-ports $SOCKS_PORT_HTPDATE
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_WGET -j REDIRECT --to-ports $SOCKS_PORT_WGET
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_TORCHECK -j REDIRECT --to-ports $SOCKS_PORT_TORCHECK
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_BITCOIN -j REDIRECT --to-ports $SOCKS_PORT_BITCOIN
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_PRIVOXY -j REDIRECT --to-ports $SOCKS_PORT_PRIVOXY
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_POLIPO -j REDIRECT --to-ports $SOCKS_PORT_POLIPO
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TB" -j REDIRECT --to-ports "$SOCKS_PORT_TB"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IRC" -j REDIRECT --to-ports "$SOCKS_PORT_IRC"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j REDIRECT --to-ports "$SOCKS_PORT_TORBIRDY"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IM" -j REDIRECT --to-ports "$SOCKS_PORT_IM"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_APT_GET" -j REDIRECT --to-ports "$SOCKS_PORT_APT_GET"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_GPG" -j REDIRECT --to-ports "$SOCKS_PORT_GPG"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_SSH" -j REDIRECT --to-ports "$SOCKS_PORT_SSH"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_GIT" -j REDIRECT --to-ports "$SOCKS_PORT_GIT"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_HTPDATE" -j REDIRECT --to-ports "$SOCKS_PORT_HTPDATE"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_WGET" -j REDIRECT --to-ports "$SOCKS_PORT_WGET"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TORCHECK" -j REDIRECT --to-ports "$SOCKS_PORT_TORCHECK"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_BITCOIN" -j REDIRECT --to-ports "$SOCKS_PORT_BITCOIN"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_PRIVOXY" -j REDIRECT --to-ports "$SOCKS_PORT_PRIVOXY"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_POLIPO" -j REDIRECT --to-ports "$SOCKS_PORT_POLIPO"
 
 #+# OptionalFeatureNr.4# More Socks Ports.
 #+# Rules for additional SocksPorts.
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ETC -j REDIRECT --to-ports $SOCKS_PORT_ETC
+#iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_ETC" -j REDIRECT --to-ports "$SOCKS_PORT_ETC"
 
 #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_PORT -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_PORT
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --dport $SOCKS_PORT_ISOLATE_DEST_ADDR -j REDIRECT --to-ports $SOCKS_PORT_ISOLATE_DEST_ADDR
+#iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_PORT" -j REDIRECT --to-ports "$SOCKS_PORT_ISOLATE_DEST_PORT"
+#iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_ADDR" -j REDIRECT --to-ports "$SOCKS_PORT_ISOLATE_DEST_ADDR"
 
 # Catch all remaining tcp and redirect to TransPort.
 #+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i $INT_IF -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
+iptables -t nat -A PREROUTING -i "$INT_IF "-p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
 #+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
 #+# Replace above rule with a more restrictive one, e.g.:
-#iptables -t nat -A PREROUTING -i $INT_IF -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports $TRANS_PORT_AOSW
+#iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
 # Reject anything not explicitly allowed above.
 iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
@@ -205,29 +244,29 @@ iptables -A FORWARD -j REJECT --reject-with icmp-port-unreachable
 ###########################
 
 # No NAT for Tor itself.
-iptables -t nat -A OUTPUT -m owner --uid-owner $TOR_UID -j RETURN
+iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_UID" -j RETURN
 
 # Redirect of T-G DNS traffic to DnsPort_AOSG.
-iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT_AOSG
+iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSG"
 
 # Exclude connections to local network, AOSW, VirtualBox from being redirected through Tor.
-for NET in $NON_TOR_AOSG; do
- iptables -t nat -A OUTPUT -d $NET -j RETURN
+for NET in "$NON_TOR_AOSG"; do
+ iptables -t nat -A OUTPUT -d "$NET" -j RETURN
 done
 
 # Redirect all T-G TCP traffic to TransPort_AOSG.
-iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports $TRANS_PORT_AOSG
+iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSG"
 
 # Existing connections are accepted.
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Accept outgoing connections to local network, AOSW and VirtualBox.
-for NET in $NON_TOR_AOSG; do
- iptables -A OUTPUT -d $NET -j ACCEPT
+for NET in "$NON_TOR_AOSG;" do
+ iptables -A OUTPUT -d "$NET" -j ACCEPT
 done
 
 # Tor is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner $TOR_UID -j ACCEPT
+iptables -A OUTPUT -m owner --uid-owner "$TOR_UID" -j ACCEPT
 
 # Reject all other outging traffic.
 iptables -A OUTPUT -j REJECT
@@ -248,6 +287,7 @@ ip6tables -t mangle -F
 ip6tables -t mangle -X
  
 # Allow unlimited access on loopback.
+# Not activated, since we do not need it.
 #ip6tables -A INPUT -i lo -j ACCEPT
 #ip6tables -A OUTPUT -o lo -j ACCEPT
 
