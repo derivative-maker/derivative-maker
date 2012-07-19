@@ -255,6 +255,7 @@ Backup system files
 ######################################################
 "
 
+cp -n /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
 cp -n /etc/localtime /etc/localtime.backup
 cp -n /etc/apt/sources.list /etc/apt/sources.list.backup
 cp -n /etc/default/grub /etc/default/grub.backup
@@ -270,33 +271,13 @@ cp -n /etc/init/failsafe.conf /etc/init/failsafe.conf.backup
 
 
 
-# Roll back configurations if the script fails.
-roll_back() {
+error_handler() {
 echo "
 ######################################################
 ERROR: Script failed!
-INFO: Rolling back configuration...
 ######################################################
 "
-
-echo "INFO: set +e..."
-set +e
-echo "INFO: stopping tor..."
-service tor stop
-echo "roll_back(): restoring backup files..."
-cp /etc/localtime.backup /etc/localtime
-cp /etc/apt/sources.list.backup /etc/apt/sources.list
-cp /etc/sysctl.conf.backup /etc/sysctl.conf
-cp /etc/network/interfaces.backup /etc/network/interfaces
-cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
-cp /etc/tor/torrc.backup /etc/tor/torrc
-cp /etc/init/failsafe.conf.backup /etc/init/failsafe.conf
-cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-echo "roll_back(): deleting /usr/local/bin/aos_firewall"
-rm /usr/local/bin/aos_firewall
-echo "roll_back(): deleting /usr/local/bin/leaktest..."
-rm -r /usr/local/bin/leaktest
-echo "INFO: Done." >&2
+echo "ERROR: Script failed!" >&2
 exit 1
 }
 
@@ -337,7 +318,7 @@ echo '
 
 
 config_etc() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 set up /etc configs
@@ -369,7 +350,7 @@ create_fix_sources_list() {
 
 
 apt_get() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Remove problematic software, install Tor and other software.
@@ -438,10 +419,9 @@ if [[ "$TOR_UID" == "" ]]; then
 fi
 
 # create arm wrapper script to start arm
-echo "\
-#!/bin/bash
-sudo -u debian-tor /usr/bin/arm
-" > /usr/local/bin/arm
+# TODO:
+# copy /home/user/aos/aos_gateway/usr/local/bin/arm
+# into vm to /usr/local/bin/arm
 
 chmod +x /usr/local/bin/arm
 
@@ -483,7 +463,7 @@ apt-get --config-file /tmp/apt.conf --yes install --no-install-recommends xserve
 
 
 config_home() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 config_home
@@ -491,16 +471,9 @@ config_home
 "
 
 # aos help/welcome message
-cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-
-echo \
-'echo "Welcome to aos-Gateway!"
-echo "aos is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for aos. See Disclaimer for more information."
-echo "aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else."
-echo "aos is based on Tor."
-echo "aos is experimental software by means of concept and design. Do not rely on it for strong anonymity."
-echo "Type: \"aos\" <enter> for help."
-' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
+# TODO:
+# append content of /home/user/aos/appendto_.bashrc
+# to  /home/user/.bashrc
 }
 
 
@@ -535,30 +508,18 @@ echo "fix_network(): restarted network."
 
 
 set_sysctl() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
 ######################################################
-#We need to disable IPv6 because Tor does not support IPv6 yet and may create leaks.
-#You can verify the setting applied by: cat /proc/sys/net/ipv6/conf/all/disable_ipv6, which should return 1.
-#Advanced users only: If you were unwilling or unable to disable IPv6 you would have to create an IPv6 firewall.
-#The firewall supplied by aos does only protect IPv4.
-#Disable ipv4 Forwarding as per https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxy
-#You can verify the setting applied by: cat /proc/sys/net/ipv4/ip_forward, which should return 0
-#Also settings vm.swappiness=0 which you can check with sysctl -p.
+
 " >&2
 
-echo "
-# Appended by aos to /etc/sysctcl.conf.
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv4.ip_forward = 0
+# TODO: append /home/user/aos/aos_gateway/etc/appendto_sysctl.conf 
+# to vm /etc/sysctl.conf
 
-fs.file-max=100000
-
-vm.swappiness=0
-# End of aos appends to /etc/systcl.conf.
-" >> /etc/sysctl.conf
+/etc/sysctl.conf
 
 sysctl -p
 }
@@ -652,7 +613,7 @@ grub-install /dev/sda
 
 
 config_network() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Set up /etc/network/interfaces.
@@ -677,7 +638,7 @@ address '$INT_IP'
 
 
 firewall_setup() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Set up Firewall.
@@ -697,7 +658,7 @@ chmod +x /usr/local/bin/aos_firewall
 
 
 start_network() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Restarting Network...
@@ -717,7 +678,7 @@ echo "INFO: Networking successfully restarted."
 
 
 setup_torrc() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Set up /etc/tor/torrc.
@@ -734,7 +695,7 @@ Set up /etc/tor/torrc.
 
 
 start_tor() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Start Tor
@@ -779,7 +740,7 @@ chmod o+rw /etc/tor/torrc
 
 
 config_dns_aosg() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 config_dns_aosg
@@ -804,7 +765,10 @@ rm /etc/resolv.conf || true
 # Set nameserver to localhost.
 # iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
 # Do not override trap function, this step is essential.
-echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+# TODO:
+# copy /home/user/aos/aos_gateway/etc/resolv.conf into
+# vm to /etc/resolv.conf
 
 # Add write protection to resolv.conf to prevent DNS leaks by getting
 # edited by DHCP.
@@ -815,7 +779,7 @@ chattr +i /etc/resolv.conf
 
 
 create_rc_local() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Fixing, recreating /etc/rc.local
@@ -840,7 +804,7 @@ Fixing, recreating /etc/rc.local
 
 
 vm_configuration() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Set up VM specific /etc configs.
@@ -863,25 +827,9 @@ ed -s /etc/init/tty1.conf <<< $',s/exec \/sbin\/getty -8 38400 tty1/exec \/sbin\
 
 # For Debian Squeeze:
 # cp -n /etc/inittab /etc/inittab.backup
-# NOTE: add cp -n /etc/inittab.backup /etc/inittab to roll_back()
+# NOTE: add cp -n /etc/inittab.backup /etc/inittab to error_handler()
 # HARDCODED!
 # ed -s /etc/inittab <<< $',s/1:2345:respawn:\/sbin\/getty 38400 tty1/1:23:respawn:\/sbin\/rungetty --autologin user tty1/g\nw'
-
-echo "
-######################################################
-Set up VM specific ~/ configs.
-######################################################
-"
-
-# Allow user to reboot and poweroff without having to supply a password:
-echo '
-# aos /home/user/.bashrc changes.
-
-alias reboot="sudo reboot"
-alias poweroff="sudo poweroff"
-
-# End of aos /home/user/.bashrc changes.
-' | sudo -u $USERNAME tee -a /home/$USERNAME/.bashrc
 }
 
 
@@ -892,7 +840,7 @@ leaktest_aos_gateway() {
 # The neccessary software for leak testing will be only installed,
 # if you run /usr/local/bin/leaktest.
 
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 
 # TODO: /home/user/aos/aos_gateway/usr/local/bin/leaktest needs to be
 # copied into vm to /usr/local/bin/leaktest.
@@ -902,41 +850,8 @@ chmod +x /usr/local/bin/leaktest
 
 
 
-one_vm() {
-trap "roll_back" ERR INT TERM
-echo "
-######################################################
-Set up OneVM specific configuriations
-######################################################
-"
-
-apt-get --config-file /tmp/apt.conf --yes install virtualbox bridge-utils
-INT_IF="vnet0"
-INT_IP="172.16.0.1"
-
-echo "
-# Run firewall script
-pre-up /usr/local/bin/aos_firewall
-
-# VirtualBox NAT bridge
-auto vnet0
-iface vnet0 inet static
- address 172.16.0.1
- netmask 255.255.255.0
- bridge_ports none
- bridge_maxwait 0
- bridge_fd 1
-
- up iptables -t nat -I POSTROUTING -s 172.16.0.0/24 -j MASQUERADE
- down iptables -t nat -D POSTROUTING -s 172.16.0.0/24 -j MASQUERADE
-" >> /etc/network/interfaces
-
-ifup vnet0
-}
-
-
 staticvboxip() {
-trap "roll_back" ERR INT TERM
+trap "error_handler" ERR INT TERM
 echo "
 ######################################################
 Set up static IP for external Interface
