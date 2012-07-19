@@ -37,7 +37,6 @@ echo "
 # hardcoded gpg fingerprints are correct                                   #
 #                                                                          #
 #       CHOOSE ONE OF THE FOLLOWING FLAGS                                  #
-# WARNING! Currently only -install is tested!                              #
 #                                                                          #
 # -install                                                                 #
 # Currently the only tested/supported option.                              #
@@ -51,15 +50,7 @@ echo "
 #    comment out vm_configuration and slim_down                            #
 #    use config_network instant of staticvboxip                            #
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
-#                                                                          #
-# -update                                                                  #
-# Update existing aos-Gateway using the latest script.                     #
-#                                                                          #
-# -uninstall                                                               #
-# undo -install                                                            #
-#                                                                          #
-# -onevm                                                                   #
-# See OneVM documentation.                                                  #
+#
 ############################################################################
 #+# OPTIONAL FEATURES
 # Normal comments. Optional feature comments look like this:
@@ -1069,53 +1060,6 @@ history -c
 
 
 
-uninstall() {
-echo "
-######################################################
-Uninstall aos-Gateway.
-######################################################
-"
-set +e
-service tor stop
-cp /etc/localtime.backup /etc/localtime
-cp /etc/apt/sources.list.backup /etc/apt/sources.list
-#might not be wise to reinstall grub config if a new kernel was installed afterwards
-#cp /etc/default/grub.backup /etc/default/grub
-cp /etc/sysctl.conf.backup /etc/sysctl.conf
-cp /etc/network/interfaces.backup /etc/network/interfaces
-cp /etc/tor/torrc.backup /etc/tor/torrc
-cp /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-rm /usr/local/bin/aos_firewall
-rm /usr/local/bin/aos
-rm /usr/local/bin/leaktest
-rm /usr/local/bin/arm
-iptables -F
-iptables -t nat -F
-iptables -X
-iptables -P INPUT ACCEPT
-iptables -P OUTPUT ACCEPT
-ifdown -a
-ifdown eth1 --force
-ifup eth0
-ifup -a
-apt-get --config-file /tmp/apt.conf --yes remove --purge tor deb.torproject.org-keyring tor-arm obfsproxy
-}
-
-
-
-uninstall_vm() {
-echo "
-######################################################
-Uninstall aos-Gateway VM specific parts.
-######################################################
-"
-cp /etc/init/tty1.conf.backup /etc/init/tty1.conf
-cp /etc/sudoers.backup /etc/sudoers
-chmod 0440 /etc/sudoers
-}
-
-
-
 ################################################################
 # -install
 ################################################################
@@ -1170,110 +1114,6 @@ echo 'INFO: Script completed.' >&2
 
 # Sleep few seconds before going back to old rc.local.
 sleep 5
-
-exit 0
-fi
-
-
-
-################################################################
-# Update.                                                      #
-################################################################
-if [[ "$1" = "-update" ]]; then
-root_check              # Depends on nothing.
-
-apt-get update
-apt-get --yes dist-upgrade
-
-backup_sysfiles         # Depends on root_check.
-apt_get                 # Depends on root_check, create_fix_sources_list, working internet connection.
-config_grub             # Depends on root_check, being run only once.
-firewall_setup          # Depends on root_check and apt_get!
-leaktest_aos_gateway    # Depends on root_check.
-setup_torrc             # Depends on root_check, apt-get
-#staticvboxip            # Depends on root_check.
-
-start_network           # Depends on root_check, firewall_setup, config_network, working internet connection; breaks ssh connections
-start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
-config_dns_aosg         # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
-
-echo "
-INFO: Update complete
-" >&2
-exit 0
-fi
-
-
-
-################################################################
-# uninstall                                                    #
-################################################################
-if [[ "$1" = "-uninstall" ]]; then
-root_check
-uninstall
-
-chattr -i /etc/resolv.conf
-echo "INFO: We did not reinstall any software that previously got removed
-INFO: You need to check and edit /etc/resolv.conf manually!"
-exit 0
-fi
-
-
-
-################################################################
-# uninstall                                                    #
-################################################################
-if [[ "$1" = "-uninstall" ]]; then
-root_check
-uninstall
-uninstall_vm
-
-chattr -i /etc/resolv.conf
-echo "INFO: We did not reinstall any software that previously got removed
-INFO: You need to check and edit /etc/resolv.conf manually!"
-exit 0
-fi
-
-
-
-################################################################
-# One VM setup                                                 #
-################################################################
-if [[ "$1" = "-onevm" ]]; then
-root_check
-
-# Create empty apt.conf to remain compatible with
-# apt-get --config-file /tmp/apt.conf.
-echo '
-# aos
-
-' > /tmp/apt.conf
-
-backup_sysfiles         # Depends on root_check.
-config_etc              # Depends on root_check. Provides UTC timezone.
-config_home             # Depends on root_check.
-set_sysctl              # Depends on root_check, being run only once.
-#create_fix_sources_list # Depends on root check, being run only once.
-apt_get                 # Depends on root_check, create_fix_sources_list, modify_sources_list, working internet connection.
-config_grub             # Depends on root_check, being run only once.
-one_vm                  # Depends on root_check, being run only once. Conflicts with config_network and staticvboxip
-
-## also depends on one_vm here
-firewall_setup          # Depends on root_check and apt_get!
-
-ifdown -a
-
-## also depends on one_vm here
-start_network           # Depends on root_check, firewall_setup, config_network/one_vm, working internet connection; breaks ssh connections
-setup_torrc             # Depends on root_check, apt-get
-start_tor               # Depends on root_check, start_network, working internet connection, setup_torrc.
-config_dns_aosg         # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
-
-# TODO reboot doesn't seem necessary.
-echo "
-INFO: aos-Gateway OneVM configuration complete.
-      Please reboot now!
-" >&2
 
 exit 0
 fi
