@@ -1,0 +1,60 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+set -x
+
+# Prevent running the script over and over again.
+if [ -f "/home/user/torboxinstalllog" ];
+then
+   echo "rc.local INFO: File /home/user/torboxinstalllog exists. exit 0"
+   exit 0
+fi
+
+echo "rc.local INFO: File /home/user/torboxinstalllog does not exist."
+
+# Create empty /home/user/torboxinstalllog.
+touch "/home/user/torboxinstalllog"
+# !HARDCODED!
+# Set owner to user for /home/user/torboxinstalllog.
+chown user "/home/user/torboxinstalllog"
+
+TorBOX_DEBUG="$TorBOX_DEBUG"
+echo "rc.local INFO: TorBOX_DEBUG = $TorBOX_DEBUG"
+echo "rc.local INFO: running /usr/local/bin/$VMSCRIPT..."
+
+if [ "$TorBOX_DEBUG" = "1" ]; then
+   # The following line is tested.
+   # bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install
+
+   # Need to overrule with || otherwise rc.local stops running.   
+   bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install || true
+else
+
+   # Need to overrule with || otherwise rc.local stops running.   
+   /usr/local/bin/$VMSCRIPT -install || true
+fi
+
+echo "rc.local INFO: end of /usr/local/bin/$VMSCRIPT."
+sleep 5
+
+echo "rc.local INFO: powering off..."
+sleep 5
+
+# The & is important. Otherwise rc.local will wait for poweroff to finish,
+# which is impossible.
+poweroff &
+
+echo "rc.local INFO: exit 0..."
+
+exit 0
+# end of rc.local

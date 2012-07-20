@@ -100,7 +100,7 @@ echo "
 # simply to run only one module and not the whole script, that is also
 # possible. Scroll down the the bottom of the script, one one the last things
 # will be "INFO: No option chosen.". Make space there and add the name of the
-# function, you want to test, for example leaktest_aos_gateway. Leave the "exit 0"
+# function, you want to test, for example TODO. Leave the "exit 0"
 # and fi below intact.
 #
 # For extensive debugging use:
@@ -184,35 +184,6 @@ echo "
 
 
 
-backup_sysfiles() {
-echo "
-######################################################
-Backup system files
-######################################################
-"
-
-# TODO: Move to copyinto.
-
-cp -n /etc/sudoers /etc/sudoers.backup
-chmod 0440 /etc/sudoers.backup
-
-cp -n /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
-#Better no backup of localtime.
-# cp -n /etc/localtime /etc/localtime.backup
-cp -n /etc/apt/sources.list /etc/apt/sources.list.backup
-cp -n /etc/default/grub /etc/default/grub.backup
-cp -n /etc/sysctl.conf /etc/sysctl.conf.backup
-cp -n /etc/network/interfaces /etc/network/interfaces.backup
-cp -n /home/$USERNAME/.bashrc /home/$USERNAME/.bashrc.backup
-cp -n /etc/init/tty1.conf /etc/init/tty1.conf.backup
-cp -n /etc/init/failsafe.conf /etc/init/failsafe.conf.backup
-# /etc/tor/torrc
-# - /etc/tor/torrc.backup gets created by setup_torrc(),
-#   because torrc begins to exist, after installing Tor.
-}
-
-
-
 error_handler() {
 echo "
 ######################################################
@@ -222,40 +193,6 @@ ERROR: Script failed!
 echo "ERROR: Script failed!" >&2
 sleep 5
 exit 1
-}
-
-
-
-
-
-# TODO:
-# Copy /home/user/aos/aos_gateway/usr/share/aos/apt.conf into
-# vm to /usr/share/aos/apt.conf
-
-
-
-
-config_etc() {
-trap "error_handler" ERR INT TERM
-
-# TODO: Move to copyinto.
-cp /usr/share/zoneinfo/UTC /etc/localtime
-
-# TODO:
-# - Copy /home/user/aos/aos_shared/etc/failsafe.conf into vm
-#   to /etc/failsafe.conf
-# - Add to aos-Workstation as well.
-}
-
-
-
-create_fix_sources_list() {
-# This function is required because preseed without network connection will mess up
-# /etc/apt/sources.list.
-
-# TODO:
-# Must be copied from /home/user/aos/aos_shared/etc/apt/sources.list
-# into vm image /etc/apt/sources.list.
 }
 
 
@@ -315,25 +252,6 @@ apt-get --config-file /usr/share/aos/apt.conf --yes install bash deb.torproject.
 # obfsproxy is already available as a deb package in the Tor repository.
 # https://trac.torproject.org/projects/tor/ticket/6046
 #apt-get --config-file /usr/share/aos/apt.conf --yes install obfsproxy
-
-# Backup torrc.
-# This line can not be moved since it will only
-# start to exist after Tor has been installed.
-cp -n /etc/tor/torrc /etc/tor/torrc.backup
-
-# create arm wrapper script to start arm
-# TODO:
-# copy /home/user/aos/aos_gateway/usr/local/bin/arm
-# into vm to /usr/local/bin/arm
-
-chmod +x /usr/local/bin/arm
-
-# aos helpfile
-# TODO:
-# /home/user/aos/aos_gateway/usr/local/bin/aos
-# must be copied to into vm /usr/local/bin/aos
-
-chmod +x /usr/local/bin/aos
 }
 
 
@@ -448,49 +366,10 @@ swapoff /dev/sda5 || true
 # and then applies the script.
 mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
 
-# TODO:
-# /home/user/aos/aos_shared/etc/fstab has to be copied into
-# vm to /etc/fstab
+# fstab file got copied by copyinto
 
 update-grub2
 grub-install /dev/sda
-}
-
-
-
-firewall_setup() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Set up Firewall.
-######################################################
-"
-
-# TODO:
-# copy /home/user/aos/aos_gateway/usr/local/bin/aos_firewall
-# into vm /usr/local/bin/aos_firewall
-
-# TODO:
-# variables inside firewall script...
-
-chmod +x /usr/local/bin/aos_firewall
-}
-
-
-
-setup_torrc() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Set up /etc/tor/torrc.
-######################################################
-"
-
-# TODO:
-# - Copy /home/user/aos/aos_gateway/etc/tor/torrc
-# into vm to /etc/tor/torrc
-# - Needs testing if installing Tor will not overwrite it.
-#   Maybe it has to be copied after Tor has been installed.
 }
 
 
@@ -507,13 +386,7 @@ config_vidalia
 
 apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recommends vidalia
 
-sudo -u $USERNAME mkdir -p /home/$USERNAME/.vidalia
-
-# Setup Vidalia to use Cookie Authentication.
-
-# TODO:
-# /home/user/aos/aos_gateway/home/user/vidalia/vidalia.conf need to be copied
-# inside vm to /home/user/vidalia/vidalia.conf
+# Vidalia config file gets copied by copyinto.
 
 # Lift permissions to edit torrc to allow Vidalia editing torrc.
 # There should be no security implications, since aos-Gateway is
@@ -522,70 +395,6 @@ sudo -u $USERNAME mkdir -p /home/$USERNAME/.vidalia
 # run under the very same user account.
 chmod g+rw /etc/tor/torrc
 chmod o+rw /etc/tor/torrc
-}
-
-
-
-config_dns_aosg() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-config_dns_aosg
-######################################################
-"
-
-# Delete /etc/resolv.conf to work around some strange bug
-# "Operation not supported While reading flags on" while
-# trying to set -i on /etc/resolv.conf.
-# Override trap function, if /etc/resolv.conf does not
-# exist or is write protected (+i).
-rm /etc/resolv.conf || true
-
-# Remove write protection from resolv.conf.
-# Override trap function, if /etc/resolv.conf does not exist.
-chattr -i /etc/resolv.conf || true
-
-# Delete file to keep care of potential leaks.
-# Override trap function, if /etc/resolv.conf does not exist.
-rm /etc/resolv.conf || true
-
-# Set nameserver to localhost.
-# iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
-# Do not override trap function, this step is essential.
-
-# TODO:
-# copy /home/user/aos/aos_gateway/etc/resolv.conf into
-# vm to /etc/resolv.conf
-
-# Add write protection to resolv.conf to prevent DNS leaks by getting
-# edited by DHCP.
-# Do not override trap function, this step is essential.
-chattr +i /etc/resolv.conf
-}
-
-
-
-create_rc_local() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Fixing, recreating /etc/rc.local
-######################################################
-"
-
-# /etc/rc.local was (ab)used by aos-Image -tX-copyinto
-# to run aos_$VM script once. That is because aos_$VM
-# scripts get executed inside the VM. We restore /etc/rc.local
-# here. A new aos-Image -tX-copyinto would overwrite it
-# again.
-
-# Using "" because the $USERNAME should be converted to "user"
-# by the aos_gateway script.
-
-# TODO:
-# /home/user/aos/aos_gateway/etc/rc.local has to be copied
-# into vm to /etc/rc.local AFTER the aos_gateway script
-# got autostarted.
 }
 
 
@@ -602,26 +411,6 @@ Set up VM specific /etc configs.
 # Append /home/user/aos_shared/etc/append_sudoers to
 # vm /etc/sudoers
 chmod 0440 /etc/sudoers
-
-# TODO:
-# Copy /home/user/aos/aos_gateway/etc/init/tty1.conf into
-# vm to /etc/init/tty1.conf
-}
-
-
-
-leaktest_aos_gateway() {
-# leaktest_aos_gateway() does nothing dangerous.
-# It creates only /usr/local/bin/leaktest.
-# The neccessary software for leak testing will be only installed,
-# if you run /usr/local/bin/leaktest.
-
-trap "error_handler" ERR INT TERM
-
-# TODO: /home/user/aos/aos_gateway/usr/local/bin/leaktest needs to be
-# copied into vm to /usr/local/bin/leaktest.
-
-chmod +x /usr/local/bin/leaktest
 }
 
 
@@ -716,20 +505,16 @@ history -c
 ################################################################
 if [[ "$1" = "-install" ]]; then
 root_check              # Depends on nothing.
-backup_sysfiles         # Depends on root_check.
 set_sysctl              # Depends on root_check, being run only once.
 create_swap_file        # Depends on root_check, not being run again when in use.
 config_uuids_fstab      # Depends on root_check, not being run again after adding new hdds.
-create_fix_sources_list # Depends on root check, being run only once.
-config_etc              # Depends on root_check. Provides UTC timezone.
 config_home             # Depends on nothing.
 
 # TODO:
-# Copy /home/user/aos/aos_shared/usr/sbin/policy-rc.d into
-# vm to /usr/sbin/policy-rc.d
-chmod 755 /usr/sbin/policy-rc.d
+# Revert are firewall rules on startup.
+# Tor is not installed at the time this script runs.
 
-apt_get                 # Depends on root_check, create_fix_sources_list, working internet connection.
+apt_get                 # Depends on root_check, working internet connection.
 config_grub             # Depends on root_check, being run only once.
 
 ## The following ones provide a graphical gateway interface (Vidalia)
@@ -738,12 +523,7 @@ config_grub             # Depends on root_check, being run only once.
 #base_desktop           # Depends on root_check, working internet connection.
 #config_vidalia         # Depends on root_check.
 
-firewall_setup          # Depends on root_check and apt_get!
-leaktest_aos_gateway    # Depends on root_check.
-setup_torrc             # Depends on root_check, apt-get
-create_rc_local         # Depends on root_check, not being run again /etc/rc.local got modified by the user. 
-vm_configuration        # Depends on root_check, create_rc_local, being run only once.
-config_dns_aosg         # Depends on root_check, setup_torrc, reboot. Provides torified DNS.
+vm_configuration        # Depends on root_check, being run only once.
 slim_down               # Must be run last.
 
 ## make daemons start again

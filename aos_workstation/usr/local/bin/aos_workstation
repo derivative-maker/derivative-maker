@@ -36,8 +36,8 @@ echo \
 # (search for HARDCODED! and check the variable "USERNAME")                #
 # 3) You are using following network settings:                             #
 # Your primary (and only) network interface is eth0                        #
-# TorBOX-Workstation IP: 192.168.0.2                                       #
-# TorBOX-Gateway IP: 192.168.0.1                                           #
+# TorBOX-Workstation IP: 192.168.0.11                                      #
+# TorBOX-Gateway IP: 192.168.0.10                                          #
 # 4) TorBOX-Workstation's build environment has a working internet         #
 # connection to ubuntu mirrors                                             #
 # 5) you read and understood the script and verified all hardcoded gpg     #
@@ -172,12 +172,9 @@ root_check() {
 
 
 set_dbusmachineid() {
-echo "
-######################################################
-# Set generic UUIDs
-######################################################
-"
-echo "b08dfa6083e7567a1921a715000001fb" > /var/lib/dbus/machine-id
+
+# copy into vm /var/lib/dbus/machine-id from shared
+
 }
 
 
@@ -186,64 +183,9 @@ create_fix_sources_list() {
 # This function is required because preseed without network connection will mess up
 # /etc/apt/sources.list.
 
-echo "
-# See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
-# newer versions of the distribution.
-deb http://us.archive.ubuntu.com/ubuntu/ precise main restricted
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise main restricted
-
-## Major bug fix updates produced after the final release of the
-## distribution.
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates main restricted
-
-## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
-## team. Also, please note that software in universe WILL NOT receive any
-## review or updates from the Ubuntu security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise universe
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise universe
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
-
-## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu 
-## team, and may not be under a free licence. Please satisfy yourself as to 
-## your rights to use the software. Also, please note that software in 
-## multiverse WILL NOT receive any review or updates from the Ubuntu
-## security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise multiverse
-deb http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-updates multiverse
-
-## N.B. software from this repository may not have been tested as
-## extensively as that contained in the main release, although it includes
-## newer versions of some applications which may provide useful features.
-## Also, please note that software in backports WILL NOT receive any review
-## or updates from the Ubuntu security team.
-deb http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
-deb-src http://us.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse
-
-deb http://security.ubuntu.com/ubuntu precise-security main restricted
-deb-src http://security.ubuntu.com/ubuntu precise-security main restricted
-deb http://security.ubuntu.com/ubuntu precise-security universe
-deb-src http://security.ubuntu.com/ubuntu precise-security universe
-deb http://security.ubuntu.com/ubuntu precise-security multiverse
-deb-src http://security.ubuntu.com/ubuntu precise-security multiverse
-
-## Uncomment the following two lines to add software from Canonical's
-## 'partner' repository.
-## This software is not part of Ubuntu, but is offered by Canonical and the
-## respective vendors as a service to Ubuntu users.
-# deb http://archive.canonical.com/ubuntu precise partner
-# deb-src http://archive.canonical.com/ubuntu precise partner
-
-## Uncomment the following two lines to add software from Ubuntu's
-## 'extras' repository.
-## This software is not part of Ubuntu, but is offered by third-party
-## developers who want to ship their latest software.
-# deb http://extras.ubuntu.com/ubuntu precise main
-# deb-src http://extras.ubuntu.com/ubuntu precise main
-" > /etc/apt/sources.list
+# TODO:
+# Must be copied from /home/user/aos/aos_shared/etc/apt/sources.list
+# into vm image /etc/apt/sources.list.
 }
 
 
@@ -666,37 +608,37 @@ install_uwt_wrappers() {
 # SOCKS_PORT_APT_GET="9104"
 echo '
 #!/bin/bash
-ip=192.168.0.1 port=9104 uwt /usr/bin/apt-get $*
+ip=192.168.0.10 port=9104 uwt /usr/bin/apt-get $*
 ' > /usr/local/bin/apt-get
 
 # SOCKS_PORT_GPG="9105"
 echo '
 #!/bin/bash
-ip=192.168.0.1 port=9105 uwt /usr/bin/gpg $*
+ip=192.168.0.10 port=9105 uwt /usr/bin/gpg $*
 ' > /usr/local/bin/gpg
 
 # SOCKS_PORT_SSH="9106"
 echo '
 #!/bin/bash
-ip=192.168.0.1 port=9106 uwt /usr/bin/ssh $*
+ip=192.168.0.10 port=9106 uwt /usr/bin/ssh $*
 ' > /usr/local/bin/ssh
 
 # SOCKS_PORT_GIT="9107"
 echo '
 #!/bin/bash
-ip=192.168.0.1 port=9107 uwt /usr/bin/git $*
+ip=192.168.0.10 port=9107 uwt /usr/bin/git $*
 ' > /usr/local/bin/git
 
 # SOCKS_PORT_HTPDATE="9108"
 echo '
 #!/bin/bash
-ip=192.168.0.1 port=9108 uwt /usr/bin/htpdate $*
+ip=192.168.0.10 port=9108 uwt /usr/bin/htpdate $*
 ' > /usr/local/bin/htpdate
 
 ## SOCKS_PORT_WGET="9109"
 #echo '
 ##!/bin/bash
-#ip=192.168.0.1 port=9109 uwt /usr/bin/wget $*
+#ip=192.168.0.10 port=9109 uwt /usr/bin/wget $*
 #' > /usr/local/bin/wget
 
 # SOCKS_PORT_TORCHECK="9110"
@@ -1061,7 +1003,7 @@ echo "
 
 # Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
-# Configuring Torbutton to use SOCKSPort 9100 on 192.168.0.1 (TorBOX-Gateway);
+# Configuring Torbutton to use SOCKSPort 9100 on 192.168.0.10 (TorBOX-Gateway);
 # expanding extensions.torbutton.banned_ports with TorBOX specific ports;
 # and set homepage to TorBOX/Readme.
 # http://kb.mozillazine.org/User.js_file
@@ -1081,13 +1023,13 @@ echo '
 # 4. Copy the relevant changes to User.js.
 
 # network settings
-user_pref("network.proxy.socks", "192.168.0.1");
+user_pref("network.proxy.socks", "192.168.0.10");
 user_pref("network.proxy.socks_port", 9100);
 user_pref("extensions.torbutton.use_privoxy", false);
 user_pref("extensions.torbutton.settings_method", "custom");
-user_pref("extensions.torbutton.socks_host", "192.168.0.1");
+user_pref("extensions.torbutton.socks_host", "192.168.0.10");
 user_pref("extensions.torbutton.socks_port", 9100);
-user_pref("extensions.torbutton.custom.socks_host", "192.168.0.1");
+user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
 user_pref("extensions.torbutton.custom.socks_port", 9100);
 
 # misc settings
@@ -1285,11 +1227,11 @@ echo "
 # it starts to use local network, to connect to the internet. To prevent that,
 # and to force it, to use Tor proxy (a Socks5 server):
 #
-# /set net_proxy_host 192.168.0.1
+# /set net_proxy_host 192.168.0.10
 # /set net_proxy_port 9101
 # /set net_proxy_type 3
 # /set net_proxy_use 0
-net_proxy_host = 192.168.0.1
+net_proxy_host = 192.168.0.10
 net_proxy_port = 9101
 # Technical note: 3 = socks5
 net_proxy_type = 3
@@ -1580,7 +1522,7 @@ echo "
 #ifdown -a
 
 # SPLITOFF /home/user/TorBOX_source/TorBOX_Workstation/etc/resolv.conf
-echo "nameserver 192.168.0.1" > /etc/resolv.conf
+echo "nameserver 192.168.0.10" > /etc/resolv.conf
 
 # SPLITOFF /home/user/TorBOX_source/TorBOX_Workstation/etc/network/interfaces
 echo '
@@ -1593,11 +1535,13 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet static
 # increment last octet on additional workstations
-address 192.168.0.2
+address 192.168.0.11
        netmask 255.255.255.0
-       network 192.168.0.0
-       broadcast 192.168.0.255
-       gateway 192.168.0.1
+     # For what do we require the network and broadcast
+     # instances anyway?
+     #  network 192.168.0.0
+     #  broadcast 192.168.0.255
+       gateway 192.168.0.10
        # SPLITOFF torboxfirewall.sh to /home/user/TorBOX_source/TorBOX_Workstation/usr/local/bin/twfirewall
        pre-up /etc/torboxfirewall.sh
 ' > /etc/network/interfaces
@@ -1759,7 +1703,7 @@ iptables -A FORWARD -j DROP
 iptables -A OUTPUT -o lo -j ACCEPT
 
 # Allow TorBOX-Workstation to query TorBOX-Gateway for DNS.
-iptables -A OUTPUT -p udp --dport 53 --dst 192.168.0.1 -j ACCEPT
+iptables -A OUTPUT -p udp --dport 53 --dst 192.168.0.10 -j ACCEPT
 
 # Not sure about the next one. UDP is not supported by Tor, why not
 # block any outgoing UDP. Might have unwanted side effects when tunneling
@@ -1778,7 +1722,7 @@ iptables -A OUTPUT -p udp --dport 53 --dst 192.168.0.1 -j ACCEPT
 #     4 packets transmitted, 0 received, 100% packet loss, time 3000ms
 #
 # (4) ping torproject.org
-#     From 192.168.0.2 icmp_seq=1 Destination Port Unreachable
+#     From 192.168.0.11 icmp_seq=1 Destination Port Unreachable
 #     0 packets transmitted, 0 received, +100 errors
 #
 # The next rule ensures, that only tcp can leave and archives the desired result from (4).
@@ -1881,7 +1825,7 @@ import sys
 from scapy.all import *
 
 # define the target gateway & data payload
-target = "192.168.0.1"
+target = "192.168.0.10"
 data = "testing"
 
 # define packets
@@ -2190,7 +2134,7 @@ rm -r /var/lib/dhcp/* || true
 
 # Better save than sorry.
 # rm /etc/resolv.conf || true
-echo "nameserver 192.168.0.1" > /etc/resolv.conf
+echo "nameserver 192.168.0.10" > /etc/resolv.conf
 
 # Cleanup.
 apt-get --yes autoremove --purge || true
@@ -2549,7 +2493,7 @@ fi
 #                        Tor Browser would also demonstrate, that stream isolation is functional.
 #                           The Tor Button update check used to be broken and report false positives when being run behind a transparent proxy and probably socks port, we should test that again. If it's still broken that's a very good reason to keep the default home page changed.
 #                               (proper) Test: I used my archived old tor-browser-gnu-linux-i686-2.2.35-12-dev-en-US.tar.gz,
-#                                        used the fixed startup script and my revised user.js. Result: Update check works when using SocksPort 192.168.0.1 9100.
+#                                        used the fixed startup script and my revised user.js. Result: Update check works when using SocksPort 192.168.0.10 9100.
 #                               (proper) The problem with the code below is also, it opens Tor Browser and the readme only once after boot.
 #                                        But we should show the readme/news each time the users starts Tor Browser. We could let the script run permanently,
 #                                        safe the Tor Browser pid in memory and each time there is a new pid open the readme.

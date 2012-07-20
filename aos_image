@@ -14,6 +14,8 @@
 # adrelanos. Contact adrelanos, if you require this source code under
 # different license.
 
+AOS_SOURCE_FOLDER="/home/user/aos"
+
 TorBOX_DEBUG="0"
 
 script_help() {
@@ -112,79 +114,133 @@ copy_into_vm_image() {
    cp -n /etc/rc.local /etc/rc.local.backup
 
    # Automatically start VM script after booting.
-   echo "#!/bin/sh -e
-#
-# rc.local
-#
-# This script is executed at the end of each multiuser runlevel.
-# Make sure that the script will \"exit 0\" on success or any other
-# value on error.
-#
-# In order to enable or disable this script just change the execution
-# bits.
-#
-# By default this script does nothing.
-
-set -x
-
-# Prevent running the script over and over again.
-if [ -f \"/home/user/torboxinstalllog\" ];
-then
-   echo \"rc.local INFO: File /home/user/torboxinstalllog exists. exit 0\"
-   exit 0
-fi
-
-echo \"rc.local INFO: File /home/user/torboxinstalllog does not exist.\"
-
-# Create empty /home/user/torboxinstalllog.
-touch \"/home/user/torboxinstalllog\"
-# !HARDCODED!
-# Set owner to user for /home/user/torboxinstalllog.
-chown user \"/home/user/torboxinstalllog\"
-
-TorBOX_DEBUG=\"$TorBOX_DEBUG\"
-echo \"rc.local INFO: TorBOX_DEBUG = \$TorBOX_DEBUG\"
-echo \"rc.local INFO: running /usr/local/bin/$VMSCRIPT...\"
-
-if [ \"\$TorBOX_DEBUG\" = \"1\" ]; then
-   # The following line is tested.
-   # bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install
-
-   # Need to overrule with || otherwise rc.local stops running.   
-   bash -x 2>/home/user/torboxinstalllog /usr/local/bin/$VMSCRIPT -install || true
-else
-
-   # Need to overrule with || otherwise rc.local stops running.   
-   /usr/local/bin/$VMSCRIPT -install || true
-fi
-
-echo \"rc.local INFO: end of /usr/local/bin/$VMSCRIPT.\"
-sleep 5
-
-echo \"rc.local INFO: powering off...\"
-sleep 5
-
-# The & is important. Otherwise rc.local will wait for poweroff to finish,
-# which is impossible.
-poweroff &
-
-echo \"rc.local INFO: exit 0...\"
-
-exit 0
-# end of rc.local
-   " > $CHROOT_FOLDER/etc/rc.local
+   cp $AOS_SOURCE_FOLDER $CHROOT_FOLDER/etc/rc.local
 
    # Copy VM script into VM image and make it executable.
-   cp /home/"$USERNAME"/TorBOX_source/$VMSCRIPT $CHROOT_FOLDER/usr/local/bin/
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/"$VMSCRIPT" $CHROOT_FOLDER/usr/local/bin/
    chmod +x $CHROOT_FOLDER/usr/local/bin/$VMSCRIPT
 
    # Copy torcheck script into VM image and make it executable.
-   cp /home/"$USERNAME"/TorBOX_source/torcheck $CHROOT_FOLDER/usr/local/bin/
+   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/torcheck $CHROOT_FOLDER/usr/local/bin/
    chmod +x $CHROOT_FOLDER/usr/local/bin/torcheck
 
    # Delete old log, otherwise the VM script would not get executed.
    # See rc.local above.
    rm $CHROOT_FOLDER/home/user/torboxinstalllog || true
+
+   ##########
+   # Backup #
+   ##########
+   cp -n /etc/sudoers /etc/sudoers.backup
+   chmod 0440 /etc/sudoers.backup
+
+   cp -n /home/$USERNAME/.bashrc.backup /home/$USERNAME/.bashrc
+   #Better no backup of localtime.
+   # cp -n /etc/localtime /etc/localtime.backup
+   cp -n /etc/apt/sources.list /etc/apt/sources.list.backup
+   cp -n /etc/default/grub /etc/default/grub.backup
+   cp -n /etc/sysctl.conf /etc/sysctl.conf.backup
+   cp -n /etc/network/interfaces /etc/network/interfaces.backup
+   cp -n /home/$USERNAME/.bashrc /home/$USERNAME/.bashrc.backup
+   cp -n /etc/init/tty1.conf /etc/init/tty1.conf.backup
+   cp -n /etc/init/failsafe.conf /etc/init/failsafe.conf.backup
+
+   #########################
+   # aos-Gateway Copy Pre  #
+   #########################
+
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/share/aos/apt.conf "$CHROOT_FOLDER"/usr/share/aos/apt.conf
+
+   # create arm wrapper script to start arm
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/arm "$CHROOT_FOLDER"/usr/local/bin/arm
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/arm
+
+   # aos helpfile
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos "$CHROOT_FOLDER"/usr/local/bin/aos
+   chmod +x "$AOS_SOURCE_FOLDER"/usr/local/bin/aos
+
+   # fstab
+   cp "$AOS_SOURCE_FOLDER"/home/user/aos/aos_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
+
+   # firewall script
+   cp "$AOS_SOURCE_FOLDER"/home/user/aos/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+
+   # Create folder for vidalia.
+   sudo -u $USERNAME \
+   mkdir -p "$CHROOT_FOLDER"/home/$USERNAME/.vidalia
+
+   # Setup Vidalia to use Cookie Authentication.
+   sudo -u $USERNAME \
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
+
+   # Copy aos-Gateway leaktest script into vm and make it executable.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/leaktest "$CHROOT_FOLDER"/usr/local/bin/leaktest
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/leaktest
+
+   #########################
+   # aos-Gateway Copy Post #
+   #########################
+
+   # Backup torrc.
+   cp -n /etc/tor/torrc /etc/tor/torrc.backup
+
+   # torrc
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
+
+   # autologin tty1.conf
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
+
+   # /etc/rc.local was (ab)used by aos-Image -tX-copyinto-pre
+   # to run aos_$VM script once. That is because aos_$VM
+   # scripts get executed inside the VM. We restore /etc/rc.local
+   # here. A new aos-Image -tX-copyinto would overwrite it
+   # again.
+   cp $AOS_SOURCE_FOLDER"/aos_gateway/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
+
+   # Delete /etc/resolv.conf to work around some strange bug
+   # "Operation not supported While reading flags on" while
+   # trying to set -i on /etc/resolv.conf.
+   # Override trap function, if /etc/resolv.conf does not
+   # exist or is write protected (+i).
+   rm /etc/resolv.conf || true
+
+   # Remove write protection from resolv.conf.
+   # Override trap function, if /etc/resolv.conf does not exist.
+   chattr -i /etc/resolv.conf || true
+
+   # Delete file to keep care of potential leaks.
+   # Override trap function, if /etc/resolv.conf does not exist.
+   rm /etc/resolv.conf || true
+
+   # Set nameserver to localhost.
+   # iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
+   # Do not override trap function, this step is essential.
+   # resolv.conf
+   cp $AOS_SOURCE_FOLDER"/aos_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+
+   # Add write protection to resolv.conf to prevent DNS leaks by getting
+   # edited by DHCP.
+   # Do not override trap function, this step is essential.
+   chattr +i /etc/resolv.conf
+
+   ###############
+   # Copy shared #
+   ###############
+
+   # policy-rc.d prevent daemons from starting while using apt-get.
+   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
+   # Ensure timezone is UTC. Just to be safe, already done with preseed install.
+   cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
+
+   # Fixes the long dhcp timeout bug.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/failsafe.conf "$CHROOT_FOLDER"/etc/failsafe.conf
+
+   # This is required because preseed without network connection will mess up /etc/apt/sources.list.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.
+
 
    # Ensure changes get written before unmounting.
    sync
