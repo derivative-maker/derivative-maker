@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Installs and configures lighttp. Hidden service has also to be activated #
+# on TorBOX-Gateway, see TorBOX-Gateway script for more information.       #
+# You need to put your website into /var/www.                              #
+
+# Enable debugging.
+# set -x
+
+optional_hiddenserver() {
+echo "
+###########################################################
+# Optional hidden webserver, using lighttpd as an example #
+###########################################################
+"
+
+echo "INFO: Installing lighttpd..."
+sudo apt-get install lighttpd
+
+echo "INFO: Backing up Ubuntu-default(!) web server configuration files..."
+cp -nr /etc/lighttpd/ /etc/lighttpd.backup/
+
+echo "INFO: Configuring web server..."
+echo "\
+server.port                = 12345
+" >> /etc/lighttpd/lighttpd.conf
+
+echo "INFO: Restarting web server..."
+service lighttpd restart
+} 
+
+optional_hiddenserver

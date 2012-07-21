@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Internally used by aos_gateway and aos_workstation scripts.
+
+set -x
+
+error_handler() {
+echo "
+##################################################
+# aos_internal_checks: ERROR detected.           #
+##################################################
+"
+exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+aos_internal_checks() {
+echo "
+######################################################
+# checks
+######################################################
+"
+
+   echo "Checking if the system is functional and continuing apt-get if the script failed before,"
+   echo "by running dpkg --configure -a. Can take a while."
+   dpkg --configure -a
+
+   echo "Checking if sysctcl -p runs without an error."
+   sysctl -p
+}

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Enable verbose output.
+set -x
+
+config_xchat() {
+echo "INFO: Resetting your IRC XChat identity..."
+killall xchat
+rm -r /home/user/.xchat2
+
+# XChat settings from https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/XChat with the exception,
+# of the SOCKS settings. XChat gets its own SocksPort on TorBOX-Gateway, to prevent Identity correlation through
+# circuit sharing.
+
+# xchat.conf
+# sudo -u user mkdir .xchat2
+# sudo -u user tee .xchat2/xchat.conf
+
+# Disable DCC and CTCP replies.
+# sudo -u user tee .xchat2/ignore.conf
+
+# Remove all ctcpreplies.
+# sudo -u user tee .xchat2/ctcpreply.conf
+
+# Remove all IRC servers but the TLS version of Tors official #Tor on OFTC.
+# On port 9999, since that is not banned by so many Tor exit nodes.
+# http://www.oftc.net/oftc/
+# The OFTC TLS certificate is included in the package ca-certificates.
+# sudo -u user tee .xchat2/servlist_.conf
+
+# The following two commands require root.
+
+# 1) Prepare directory for the disabled plugins.
+mkdir -p /usr/lib/xchat/plugins.disabled/
+
+# Disable unnecessary plugins (keep perl for sasl).
+#mv /usr/lib/xchat/plugins/{python.*,tcl.*} /usr/lib/xchat/plugins.disabled/
+
+# 2) Move all plugins to plugins.disabled.
+mv /usr/lib/xchat/plugins/* /usr/lib/xchat/plugins.disabled/ || true
+
+echo "INFO: Done."
+echo "INFO: Be sure to change your circuit before you reconnect to IRC!"
+}
+
+config_xchat

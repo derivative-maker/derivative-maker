@@ -1,6 +1,7 @@
 #!/bin/bash
 # Needs to be bash because we use "trap ERR".
 # Will be copied into aos_gateway: /usr/local/bin/aos_gateway
+# by aos_image copyinto. Will be run inside VM.
 
 # Version: aos 0.3.0-developers-only
 
@@ -19,27 +20,9 @@ script_help() {
 echo "
 ############################################################################
 #       INFO                                                               #
-# Script to automatically transform an Ubuntu Server into an aos-Gateway   #
-# Alpha/Development version, please test and leave feedback!               #
 # Read DISCLAIMER!                                                         #
 #                                                                          #
-#       PREREQUISITES/ASSUMPTIONS                                          #
-# 1) You have installed Ubuntu Server 12.04 (x86 or amd64).                #
-# For later versions you will most likely only have to                     #
-# change /etc/sources.list accordingly.                                    #
-# 2) There are two network cards attached to the gateway:                  #
-# External: eth0 (with an already working connection to the Internet)      #
-# Internal: eth1 (solely used for communicating with aos-Workstations)     #
-# 3) Username must be "user"! If your user name differ set the USERNAME    #
-# variable accordingly and search for "HARDCODED"                          #
-# 4) You read and understood the script, especially look search through    #
-# all occurrences of the string "!!!VERIFY!!!" and make sure that          #
-# hardcoded gpg fingerprints are correct                                   #
-#                                                                          #
-#       CHOOSE ONE OF THE FOLLOWING FLAGS                                  #
-#                                                                          #
 # -install                                                                 #
-# Currently the only tested/supported option.                              #
 # In addition to performing a full installation this                       #
 # will enable auto-login, passwordless poweroff and                        #
 # slim down the image size.                                                #
@@ -51,6 +34,7 @@ echo "
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #
 ############################################################################
+
 #+# OPTIONAL FEATURES
 # Normal comments. Optional feature comments look like this:
 #+# Optional feature comment, skip them you are not interested.
@@ -84,23 +68,14 @@ echo "
 #+# for explanation.
 
 ############################################################################
-# NOTE FOR ADVANCED USERS
-# This script is modular. Functionality with effects is inside functions. At
-# the end of the script, you will find our command line switches. If you know
-# what you are doing, you can comment out one or another module, you do not
-# want. For example, you can use -install and comment out the slim_down function.
-# (To save time, testing or if you dislike for any other reason.)
-# The very first line of every script must be #!/bin/bash. Do not add empty lines above.
-
-############################################################################
 # NOTE FOR DEBUGGING
 # If you start the script without command line options, it will do nothing
-# important, only create a backup. You can also check for some syntax errors,
+# important. You can also check for some syntax errors,
 # such as unbalanced apostrophes etc. And if you want for testing purposes,
 # simply to run only one module and not the whole script, that is also
 # possible. Scroll down the the bottom of the script, one one the last things
 # will be "INFO: No option chosen.". Make space there and add the name of the
-# function, you want to test, for example TODO. Leave the "exit 0"
+# function, you want to test, for example create_swap_file. Leave the "exit 0"
 # and fi below intact.
 #
 # For extensive debugging use:
@@ -117,27 +92,6 @@ echo "
 # Search the script for TODO and help us fix them.
 "
 }
-
-######################################################
-# List of modified system files. Not all of them are backed up/restored by -uninstall
-######################################################
-# Modified files:
-# /etc/apt/sources.list
-# /etc/default/grub
-# /etc/sysctl.conf
-# /etc/network/interfaces
-# /etc/tor/torrc
-# /etc/resolv.conf - no backup
-# /etc/init/failsafe.conf
-# /etc/sudoers
-# /home/$USERNAME/.bashrc
-#
-# New files:
-# /usr/local/bin/aos_firewall
-# /usr/local/bin/aos
-# /usr/local/bin/leaktest
-# /home/$USERNAME/.vidalia/
-# /home/$USERNAME/.vidalia/vidalia.conf
 
 ############################################################################
 # SCRIPT STARTS HERE
@@ -166,29 +120,24 @@ set -e
 
 cd /home/$USERNAME
 
-
-
 root_check() {
-echo "
-######################################################
-# Check if we are root
-######################################################
-"
-  if [ "$(id -u)" != "0" ]; then
+   if [ "$(id -u)" != "0" ]; then
       echo "ERROR: This must be run as root (sudo)"
       exit 1
-  else
-     echo "INFO: Script running as root."
-  fi
+   else
+      echo "INFO: Script running as root."
+   fi
 }
 
-
+######################################################
+# error_handler
+######################################################
 
 error_handler() {
 echo "
-######################################################
+#####################
 ERROR: Script failed!
-######################################################
+#####################
 "
 echo "ERROR: Script failed!" >&2
 sleep 5
@@ -207,66 +156,27 @@ Remove problematic software, install Tor and other software.
 
 # Some apt_get() code is shared between aos-Workstation and aos-Gateway.
 
-echo "Checking if the system is functional and continuing apt-get if the script failed before,"
-echo "by running dpkg --configure -a. Can take a while."
-dpkg --configure -a
-
-# !!!VERIFY!!!
-#
-# https://www.torproject.org/docs/signing-keys.html.en
-# http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
-#
-# https://www.torproject.org/docs/debian.html.en#ubuntu
-# http://idnxcnkne4qt76tg.onion/docs/debian.html.en#ubuntu
-
-echo "INFO: Importing torproject.org signing key..."
-rm -r gpgtmpdir/ || true
-sudo -u $USERNAME mkdir gpgtmpdir
-chmod 700 gpgtmpdir/
-sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint
-sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
-sudo -u $USERNAME gpg --homedir gpgtmpdir --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
-rm -r gpgtmpdir/
-echo "INFO: Imported torproject.org signing key."
-
 echo "Refresh apt-get to include the newly added torproject.org repository."
 apt-get --config-file /usr/share/aos/apt.conf update
 
 echo "Running apt-get dist-upgrade..."
 apt-get --config-file /usr/share/aos/apt.conf --yes dist-upgrade
 
-# Remove problematic software.
+echo "Removing problematic software..."
 apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge \
-popularity-contest network-manager network-manager-gnome ntpdate resolvconf || true
+popularity-contest ntpdate resolvconf ufw network-manager network-manager-gnome || true
 
-# Make sure required software is installed and install tor.
-apt-get --config-file /usr/share/aos/apt.conf --yes install bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor tor-arm torsocks wget
-
-# TODO: console-utilities console-tools console-data something broken
-#       (proper) For what do we need it anyway?
-
-# dialog removed. Not really needed?
+echo "Make sure required software is installed and install tor..."
+apt-get --config-file /usr/share/aos/apt.conf --yes install \
+bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping \
+isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor \
+tor-arm torsocks wget
 
 # Additionally install obfsproxy. Disabled by default, because
 # it requires Tor Alpha and is only available in the experimental branch.
 # obfsproxy is already available as a deb package in the Tor repository.
 # https://trac.torproject.org/projects/tor/ticket/6046
 #apt-get --config-file /usr/share/aos/apt.conf --yes install obfsproxy
-}
-
-
-
-config_grub() {
-echo "
-######################################################
-# config_grub
-######################################################
-"
-# TODO:
-# Append /home/user/aos/aos_shared/etc/default/appendto_grub to
-# /etc/default/grub.
-
-update-grub2
 }
 
 
@@ -278,98 +188,7 @@ echo "
 ######################################################
 "
 
-apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox vidalia
-}
-
-
-
-config_home() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-config_home
-######################################################
-"
-
-# aos help/welcome message
-# TODO:
-# append content of /home/user/aos/appendto_.bashrc
-# to  /home/user/.bashrc
-}
-
-
-
-set_sysctl() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
-######################################################
-"
-
-# TODO: append /home/user/aos/aos_gateway/etc/appendto_sysctl.conf 
-# to vm /etc/sysctl.conf
-
-/etc/sysctl.conf
-
-sysctl -p
-}
-
-
-
-create_swap_file() {
-echo "
-######################################################
-# create_swap_file
-######################################################
-"
-# Source: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
-
-# Creating 512 MB swap file.
-echo "INFO: Creating /swapfile1... This may take a while..."
-dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
-echo "INFO: Created /swapfile1."
-
-# Format swapfile.
-mkswap /swapfile1 --uuid 0615ba72-85b0-4183-8d54-300bb0d2e491
-
-# Set permissions.
-chown root:root /swapfile1
-
-# Set permissions.
-chmod 0600 /swapfile1
-
-# Should be probable omitted. No need. Will be restarted so or so.
-# swapon /swapfile1
-}
-
-
-
-config_uuids_fstab() {
-# code shared between aos_Workstation and aos_Gateway script.
-
-echo "
-######################################################
-# Configuring disk uuids and /etc/fstab
-######################################################
-"
-# Change uuid of hdd created by operating system installer.
-# WARNING: This assumes you used "Guided - use entire disk" partitioning (NOT LVM!)
-tune2fs /dev/sda1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
-
-# Deactivate swap partition. Will not be created when using preseed.
-# Deactivating anyway just in case anyone manually installs the operating system.
-swapoff /dev/sda5 || true
-
-# Share the same uuid among all aos users.
-# Setting anyway just in case anyone manually installs the operating system
-# and then applies the script.
-mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
-
-# fstab file got copied by copyinto
-
-update-grub2
-grub-install /dev/sda
+apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox
 }
 
 
@@ -399,23 +218,7 @@ chmod o+rw /etc/tor/torrc
 
 
 
-vm_configuration() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Set up VM specific /etc configs.
-######################################################
-"
-
-# TODO:
-# Append /home/user/aos_shared/etc/append_sudoers to
-# vm /etc/sudoers
-chmod 0440 /etc/sudoers
-}
-
-
-
-slim_down() {
+aos_slim_down() {
 echo "
 ######################################################
 Slim down the system.
@@ -424,23 +227,18 @@ Slim down the system.
 # Remove unnecessary packages to slim down the system.
 # This list contains only packages, which waste space and are not required.
 # Unsafe or problematic packages are being removed with apt_get().
-apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
+apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge \
+vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
 pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
 friendly-recovery dosfstools command-not-found* logrotate aptitude || true
-
-echo "INFO: Stopping Tor so we can remove logs and tor data."
-service tor stop || true
 
 echo "INFO: Cleaning up..."
 # Tell bash-completion about missing man package because apt-get is not doing its job...
 rm -r /etc/bash_completion.d/man/* || true
 
-
-# This assumes you rebooted after the last kernel update. Not needed and can not be used together with debootstrap!
-# apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`)  || true
-
-# Remove openssh-server.
-apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge openssh-server || true
+# This assumes you rebooted after the last kernel update.
+# Can not be used together with debootstrap!
+apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`) || true
 
 # Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
 killall dhclient3 || true
@@ -504,33 +302,29 @@ history -c
 # -install
 ################################################################
 if [[ "$1" = "-install" ]]; then
-root_check              # Depends on nothing.
-set_sysctl              # Depends on root_check, being run only once.
-create_swap_file        # Depends on root_check, not being run again when in use.
-config_uuids_fstab      # Depends on root_check, not being run again after adding new hdds.
-config_home             # Depends on nothing.
+root_check                # Depends on nothing.
 
-# TODO:
-# Revert are firewall rules on startup.
-# Tor is not installed at the time this script runs.
+. /usr/share/aos/aos_internal_checks
+. /usr/share/aos/aos_create_swap_file
+. /usr/share/aos/aos_config_uuids
+. /usr/share/aos/aos_slim_down
+. /usr/share/aos/patch_torsocks
+. /usr/share/aos/import_tpo_archive_key
 
-apt_get                 # Depends on root_check, working internet connection.
-config_grub             # Depends on root_check, being run only once.
-
-## The following ones provide a graphical gateway interface (Vidalia)
-## and can be commented out to increase security.
-## Currently disabled by default because its not finished yet.
-#base_desktop           # Depends on root_check, working internet connection.
-#config_vidalia         # Depends on root_check.
-
-vm_configuration        # Depends on root_check, being run only once.
-slim_down               # Must be run last.
-
-## make daemons start again
-rm -f /usr/sbin/policy-rc.d
-
-# Ensure changes get written to disk.
-sync
+aos_internal_checks       # Depends on nothing.
+aos_create_swap_file      # Depends on root_check, not being run again when in use.
+aos_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
+import_tpo_archive_key    # Depends on working internet connection.
+apt_get                   # Depends on root_check, import_tpo_archive_key, working internet connection.
+update-grub2              # /etc/grub/default gets appended by aos_image copyinto.
+patch_torsocks            # Depends on root_check, working internet connection.
+                          # The following ones provide a graphical gateway interface (Vidalia)
+                          # and can be commented out to increase security.
+                          # Currently disabled by default because its not finished yet.
+#base_desktop             # Depends on root_check, working internet connection.
+#config_vidalia           # Depends on root_check.
+slim_down                 # Must be run last.
+sync                      # Ensure changes get written to disk.
 
 # Inform about end.
 echo 'INFO: Script completed.' >&2

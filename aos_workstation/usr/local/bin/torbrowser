@@ -1,0 +1,353 @@
+#!/bin/bash
+
+script_help() {
+# Do not run as root!
+# Not a multiuser script.
+# Only tested for user "user".
+#
+# -update
+# Check if there is an update and ask to
+# install it. Will create a backup.
+#
+# -force-install
+# Installs without asking. Will create
+# a backup. Also internally used by
+# aos_workstation script.
+#
+# -help
+# Show this help.
+}
+
+# For developers:
+# Please keep in mind, we allow running this without root. If you ever
+# make some changes, which require root, please disallow running the
+# script without root.
+
+USERNAME="user"
+
+#########################################################################
+# tb_update_check                                                       #
+#########################################################################
+
+tb_update_check() {
+#################################
+# prompt user about TBB update.
+#################################
+cd /home/$USERNAME
+rm -r tbbdownload/
+sudo -u $USERNAME mkdir tbbdownload
+cd tbbdownload
+
+echo "
+#################################
+# Getting latest version number
+#################################
+"
+
+sudo -u $USERNAME wget --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
+
+echo "
+#################################
+# Getting currently installed version number
+#################################
+"
+
+# Will fail if the file does not exist. Will not break the script.
+# TODO:
+# - (proper) Lets hardcode the path to /home/$USERNAME/tor-browser_en-US/Docs/changelog ?
+# - (proper) Needs to be changed/fixed in torcheck as well, since torcheck is currently broken.
+#   (torcheck is in /usr/local/bin/torcheck and .. relative paths do not work there.)
+TBBINSTALLEDVERSION=`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`
+
+current="$TBBINSTALLEDVERSION"
+check=""
+
+if [ "$current" != "$check" ];
+then
+	echo "INFO: Successfully detected Tor Browser version."
+else
+	echo "INFO: Could not determine the currently installed Tor Browser version."
+	echo "INFO: This could be either because none is installed or because the version format changed."
+	TBBINSTALLEDVERSION="UNKNOWN"
+fi
+
+echo "Please close TorBrowswer if you want to upgrade!"
+echo "TBB version $TBBINSTALLEDVERSION is currently installed. Do you want to replace it with $TBBVERSION?"
+echo 'If your currently installed version is higher you are likely victim of a downgrade attack, SAY NO NOW!'
+echo "If your currently installed version is lower you should upgrade, if it matches say no now."
+echo "WARNING: YOUR BROWSER WILL BE KILLED."
+echo "WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!"
+echo "INFO: The old browser and settings are automatically backed up" 
+echo "INFO: It's a good idea to delete old TBB backups once in a while if you are running low with disk space."
+echo -n "Do you want to upgrade? [y/N]"
+
+read answer
+
+if test "$answer" != "Y" -a "$answer" != "y";
+then 
+	cd /home/$USERNAME
+	echo "INFO: Deleting temporary folder tbbdownload."
+	sudo -u $USERNAME rm -r tbbdownload
+	# Exit this function.
+	exit 0
+fi
+
+echo "
+#################################
+# Killing TorBrowser if it is still running.
+#################################
+"
+
+killall firefox
+
+echo "
+#################################
+# Starting TBB download and installation
+#################################
+"
+
+config_torbrowser
+} 
+
+#########################################################################
+# tb_force_install                                                      #
+#########################################################################
+
+tb_force_install() {
+# Install TBB and patch it.
+# This part may break when the file name or RecommendedTBBVersions format changes!
+
+# Get into correct directory is required for relative paths.
+cd /home/$USERNAME
+
+# Delete old tbbdownload folder.
+rm -r tbbdownload/
+
+# Create new tbbdownload folder.
+sudo -u $USERNAME mkdir tbbdownload
+
+# Get into the tbbdownload folder.
+cd tbbdownload
+
+# Importing GPG keys...
+echo "INFO: Importing GPG keys to the temporary directory gpgtmpdir..."
+echo "INFO: The GPG keys will not be permanently added to your keyring."
+sudo -u $USERNAME mkdir gpgtmpdir
+chmod 700 gpgtmpdir/
+
+echo "INFO: Getting the GPG keys... Verify the fingerprints. Do not trust the wiki..."
+
+# !!!VERIFY!!!
+#
+# https://www.torproject.org/docs/signing-keys.html.en
+# http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+
+# !!!VERIFY!!!
+echo "INFO: Getting Erinn Clarks GPG key..."
+sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
+
+# !!!VERIFY!!!
+echo "INFO: Getting Sebastian Hahns GPG key..."
+sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+
+# !!!VERIFY!!!
+echo "INFO: Verifying Erinn Clarks GPG key..."
+sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
+
+if [ $? == 0 ];
+then
+	echo "INFO: Successfully verified Erinn Clarks GPG key."
+	# FYI: Script will continue outside the if.
+else
+	echo "ERROR: Could not verify Erinn Clarks GPG key."
+	echo "INFO: Tor Browser Download failed. Try again later using:"
+	echo "     torbrowser -update"
+	# Exit this function.
+	exit 1
+fi
+
+# !!!VERIFY!!!
+echo "INFO: Verifying Sebastian Hahns GPG key..."
+sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+
+if [ $? == 0 ];
+then
+	echo "INFO: Successfully verified Sebastian Hahns GPG key."
+	# FYI: Script will continue outside the if.
+else
+	echo "ERROR: Could not verify Sebastian Hahns GPG key."
+	echo "INFO: Tor Browser Download failed. Try again later using:"
+	echo "     torbrowser -update"
+	# Exit this function.
+	exit 1
+fi
+
+# Find out latest version.
+sudo -u $USERNAME wget --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+
+# Phrasing the last version information.
+TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
+
+# Download the latest Tor Browser Bundle and its gpg signature.
+# sudo -u $USERNAME wget http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+sudo -u $USERNAME wget https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+
+# Verify GPG signature.
+# Not using the users GPG keyring also ensures, that the key can be only
+# singed by the GPG keys we added. Signatures from random people from the
+# users keyring will be ignored.
+sudo -u $USERNAME gpg --homedir gpgtmpdir --verify tor-browser*.asc
+
+# If the exit code ? of GPG return 0, GPG verification was successful.
+if [ $? == 0 ];
+then
+	echo "INFO: Signature valid."
+	# FYI: Script will continue outside the if.
+else
+	echo "ERROR: Signature could NOT be verified. GPG exit code: $?"
+	echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
+	rm tor-browser-gnu-linux-*.tar.gz*
+
+	echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
+	cd /home/$USERNAME
+	echo "Deleting tbbdownload..."
+	sudo -u $USERNAME rm -r tbbdownload
+	# Tell about failure.
+	touch TorBrowser_installation_FAILED
+	echo "Update Failed" >&2
+	# Exit this function.
+	echo "INFO: Tor Browser Download failed. Try again later using:"
+	echo "     torbrowser -update"
+	exit 1
+fi
+
+if [ -f tor-browser-gnu-linux-*.tar.gz ];
+then
+	echo "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
+	# Unpack.
+	sudo -u $USERNAME tar -xzvf tor-browser-gnu-linux-*.tar.gz
+else
+	echo "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
+fi
+
+# Fix the start script.
+sudo -u $USERNAME ed -s tor-browser_en-US/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
+
+# Remove stuff we do not need.
+sudo -u $USERNAME rm ./tor-browser_en-US/App/{tor,vidalia}
+sudo -u $USERNAME rm -r ./tor-browser_en-US/Data/{Tor,Vidalia}
+sudo -u $USERNAME rm -r ./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}
+sudo -u $USERNAME rm -r ./tor-browser_en-US/Lib/*
+
+# Call the function create_tb_user_js().
+create_tb_user_js
+
+echo "INFO: cd /home/$USERNAME..."
+cd /home/$USERNAME
+echo "INFO: Moving old folder tor-browser_en-US..."
+sudo -u $USERNAME mv tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`"
+echo "INFO: Moving temporary folder tbbdownload/tor-browser_en-US to /home/$USERNAME/tor-browser_en-US"
+mv tbbdownload/tor-browser_en-US tor-browser_en-US
+echo "INFO: Deleting temporary folder tbbdownload..."
+sudo -u $USERNAME rm -r tbbdownload
+echo "INFO: Finished installing TBB. Can be found in /home/$USERNAME/tor-browser_en-US."
+
+exit 0
+}
+
+#########################################################################
+# tb_create_user_js                                                     #
+#########################################################################
+
+tb_create_user_js() {
+# Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
+# http://kb.mozillazine.org/User.js_file
+# Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (aos-Gateway);
+# expanding extensions.torbutton.banned_ports with aos specific ports;
+# and set homepage to aos/Readme.
+# http://kb.mozillazine.org/User.js_file
+
+echo '
+# Begin of User.js.
+# If you edit this file while Firefox is running, your changes will be
+# overwritten, when you close Firefox.
+
+# How to create the User.js network settings:
+# 1. Make a backup of prefs.js.
+# 1. Start Tor Browser with the patched start script.
+# 2. Apply aos proxy settings using the Tor Button settings dialog..
+# 3. Make a diff from the old and the new pref.js.
+# 4. Copy the relevant changes to User.js.
+
+# network settings
+user_pref("network.proxy.socks", "192.168.0.10");
+user_pref("network.proxy.socks_port", 9100);
+user_pref("extensions.torbutton.use_privoxy", false);
+user_pref("extensions.torbutton.settings_method", "custom");
+user_pref("extensions.torbutton.socks_host", "192.168.0.10");
+user_pref("extensions.torbutton.socks_port", 9100);
+user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
+user_pref("extensions.torbutton.custom.socks_port", 9100);
+
+# misc settings
+user_pref("extensions.torbutton.prompt_torbrowser", false);
+user_pref("general.autoScroll", true);
+
+# homepage
+user_pref("browser.startup.homepage", "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme");
+
+# banned ports
+# https://www.torproject.org/torbutton/en/design/
+# http://idnxcnkne4qt76tg.onion/torbutton/en/design/
+# and search for extensions.torbutton.banned_ports
+user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,9102,9103,9104,9105,9106,9107,9108,9109,9110,9111,9112,9113");
+
+# End of user.js.
+' | sudo -u $USERNAME tee /home/user/tor-browser_en-US/Data/profile/user.js
+}
+
+
+
+################################################################ 
+# -update                                                      #
+################################################################ 
+if [[ "$1" = "-update" ]]; then
+tb_update_check
+exit 0
+fi
+
+
+
+################################################################ 
+# -force-install                                               #
+################################################################ 
+if [[ "$1" = "-force-install" ]]; then
+tb_force_install
+exit 0
+fi
+
+
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+script_help
+exit 0
+fi
+
+
+
+################################################################ 
+# no option chosen                                             # 
+################################################################ 
+if [[ "$1" = "" ]]; then 
+echo "
+INFO: No option chosen.
+
+Please run torbrowser -help to find out more.
+"
+
+exit 0
+fi
