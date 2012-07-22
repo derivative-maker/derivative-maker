@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 
-# This file gets overwritten when issuing TorBOX-Workstation -update.
-
 import sys
 from scapy.all import *
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-# This file gets overwritten when issuing TorBOX-Workstation -update.
 # Will be copied into aos_g/w: /usr/local/bin/torcheck
 
 # See LICENSE in root of aos source for copyright, license and authors.
@@ -24,8 +23,8 @@
 # This script uses /usr/bin/wget directly. Otherwise the uwt wrapper would be used.
 # Using the uwt wrapper is not desired, since that is redirect through wgets SocksPort,
 # resulting in always be using Tor or false positive.
-# If anyone would add VPN or something similar to TorBOX-Workstation
-# (i.e. connection scheme: TorBOX-Workstation -> Tor -> VPN), he would wonder
+# If anyone would add VPN or something similar to aos-Workstation
+# (i.e. connection scheme: aos-Workstation -> Tor -> VPN), he would wonder
 # why it is not detected.
 # Using /usr/bin/wget directly will result in Tor's TransPort being used.
 
@@ -40,7 +39,7 @@ error_handler() {
 trap "error_handler" ERR INT TERM
 
 if [[ "$1" = "-help" ]]; then
-   echo "torcheck 0.1 by TorBOX"
+   echo "torcheck by aos"
    echo "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
    echo " "
    echo "Checks if,"
@@ -74,12 +73,12 @@ USERNAME="user"
 
 cd /home/$USERNAME
 
-if [ -f "/usr/local/bin/TorBOX_Gateway" ]; then
-   VM="TorBOX-Gateway"
-elif [ -f "/usr/local/bin/TorBOX_Workstation" ]; then
-   VM="TorBOX-Workstation"
+if [ -f "/usr/local/bin/aos_gateway" ]; then
+   VM="aos-Gateway"
+elif [ -f "/usr/local/bin/aos_Workstation" ]; then
+   VM="aos-Workstation"
 else
-   VM="torcheck script could not determine if this is TorBOX_Gateway or TorBOX_Workstation. Please report this bug."
+   VM="torcheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
 fi
 
 ZENITY_MESSAGE=" "
@@ -95,7 +94,7 @@ NOT_USING_TOR="0"
 
 # check if notify-send is installed
 # that is not the case for cli users
-# this is also not the case on TorBOX-Gateway
+# this is also not the case on aos-Gateway
 #if [ `which notify-send` = "" ]; then
 #   notify-send() {
 #      #dummy
@@ -105,7 +104,7 @@ NOT_USING_TOR="0"
 
 # check if zenity is installed
 # that is not the case for cli users
-# this is also not the case on TorBOX-Gateway
+# this is also not the case on aos-Gateway
 if [ `which zenity` = "" ]; then
    zenity() {
       #dummy
@@ -125,10 +124,10 @@ output() {
       ZENITY_TYPE="$1"
    fi
 
-   if [ "$ZENITY_TITLE" = "TorBOX ERROR" ]; then
+   if [ "$ZENITY_TITLE" = "aos ERROR" ]; then
       # Do not overwrite. Do nothing to the variables.
       sleep 0
-   elif [ "$ZENITY_TITLE" = "TorBOX WARNING" ]; then
+   elif [ "$ZENITY_TITLE" = "aos WARNING" ]; then
       # Do not overwrite. Do nothing to the variables.
       sleep 0
    else
@@ -150,7 +149,7 @@ show_output() {
 
 
 welcome() {
-echo "torcheck 0.1 by TorBOX"
+echo "torcheck by aos"
 echo "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
 echo " "
 echo "-help for help."
@@ -163,23 +162,23 @@ This will happen in background. You will be notified about the result in approxi
 "
 
 # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
-#notify-send --urgency low --expire-time 0 --app-name "TorBOX" "$NOTIFY_MSG"
+#notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
 
-zenity --display=:0.0 --timeout 86400 --title="TorBOX Info" "--info" --text "$NOTIFY_MSG" &
+zenity --display=:0.0 --timeout 86400 --title="aos Info" "--info" --text "$NOTIFY_MSG" &
 }
 
 
 
 disclaimer() {
-MSG="Welcome to TorBOX $VM!
-TorBOX is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for TorBOX. See Disclaimer for more information.
-TorBOX is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
-TorBOX is based on Tor.
-TorBOX is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+MSG="Welcome to aos $VM!
+aos is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for aos. See Disclaimer for more information.
+aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+aos is based on Tor.
+aos is experimental software by means of concept and design. Do not rely on it for strong anonymity.
 https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
 
 echo "$MSG"
-output "--info" "TorBOX Info" "$MSG"
+output "--info" "aos Info" "$MSG"
 }
 
 
@@ -195,12 +194,12 @@ ip="$1" port="$2" uwt \
 
 MSG="Time of message: `date`."
 echo "$MSG"
-output "--info" "TorBOX Info" "$MSG"
+output "--info" "aos Info" "$MSG"
 
 if [ "$NETWORK_DOWN" = "1" ]; then
    MSG="Your Internet connection appears to be down."
    echo "$MSG"
-   output "--error" "TorBOX ERROR" "$MSG"
+   output "--error" "aos ERROR" "$MSG"
    return
 fi
 
@@ -218,7 +217,7 @@ ip="$1" port="$2" uwt \
 if [ "$GET_VERSION" = "0" ]; then
    MSG="Tor Browser Update check failed."
    echo "$MSG"
-   output "--error" "TorBOX ERROR" "$MSG"
+   output "--error" "aos ERROR" "$MSG"
    return
 fi
 
@@ -237,7 +236,7 @@ TorBrowser version. This could be either
 because none is installed or because the
 version format changed."
    echo "$MSG"
-   output "--error" "TorBOX ERROR" "$MSG"
+   output "--error" "aos ERROR" "$MSG"
    return
 fi
 
@@ -247,17 +246,17 @@ if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
    MSG="Installed TorBrowser version: $TBBINSTALLEDVERSION
 is up to date."
    echo "$MSG"
-   output "--info" "TorBOX Info" "$MSG"
+   output "--info" "aos Info" "$MSG"
 
 else
    # Outdated...
    MSG="TorBrowser version: $TBBINSTALLEDVERSION
 Latest TorBrowser version: $TBBVERSION
 
-Please issue TorBOX-Workstation -update-torbrowser"
+Please issue torbrowser -update"
 
   echo "$MSG"
-  output "--error" "TorBOX WARNING" "$MSG"
+  output "--error" "aos WARNING" "$MSG"
 
 fi
 }
@@ -285,13 +284,13 @@ elif [ "$1" = "TransPort" ]; then
    if [ "$NETWORK_DOWN" = "1" ]; then
       MSG="SocksPort Test failed! Can not test stream isolation!"
       echo "$MSG"
-      output "--error" "TorBOX ERROR" "$MSG"
+      output "--error" "aos ERROR" "$MSG"
       return
    fi
 else
   MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
   echo "$MSG"
-  output "--error" "TorBOX ERROR" "$MSG"
+  output "--error" "aos ERROR" "$MSG"
   return
 fi
 
@@ -323,12 +322,12 @@ There could be something wrong or it's a false positive.
 (https://check.torproject.org fails in some cases to detect exit nodes.)
 $IP"
    echo "$MSG"
-   output "--error" "TorBOX WARNING" "$MSG"
+   output "--error" "aos WARNING" "$MSG"
 else
    MSG="Tor's $1: You are successfully using Tor.
 $IP"
    echo "$MSG"
-   output "--info" "TorBOX Info" "$MSG"
+   output "--info" "aos Info" "$MSG"
 fi
 
 # Function runs the second time.
@@ -339,12 +338,12 @@ if [ "$1" = "TransPort" ]; then
       MSG="IP of Tor's TransPort and IP of Tor's SocksPort are the same!!!
 Stream isolation is appears to be defunct!!!"
       echo "$MSG"
-      output "--info" "TorBOX ERROR" "$MSG"
+      output "--info" "aos ERROR" "$MSG"
    else
       MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ.
 Stream isolation appears to be functional."
       echo "$MSG"
-      output "--info" "TorBOX Info" "$MSG"
+      output "--info" "aos Info" "$MSG"
    fi
 fi
 }
@@ -363,12 +362,12 @@ check_network "192.168.0.10" "9110"
 if [ "$NETWORK_DOWN" = "1" ]; then
    show_output
 else
-   if [ -f "/usr/local/bin/TorBOX_Workstation" ]; then
+   if [ -f "/usr/local/bin/aos_workstation" ]; then
       check_torbrowser "192.168.0.10" "9110"
       check_tor "SocksPort"
       check_tor "TransPort"
    else
-      # for TorBOX-Gateway
+      # for aos-Gateway
       check_tor "SocksPort"
    fi
 fi

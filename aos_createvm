@@ -11,7 +11,7 @@ echo "
 # -tg-pre
 # -tg-install-os
 # -tg-post
-# use: sudo ./TorBOX_Image -tg-mount, tg-copyinto, tg-unmout
+# use: sudo ./aos_image -tg-mount, -tg-copyinto, -tg-unmout
 #      to get the script into the VM image
 # -tg-install-script
 # -tg-export
@@ -20,7 +20,7 @@ echo "
 # -tw-pre
 # -tw-install-os
 # -tw-post
-# use: sudo ./TorBOX_Image -tw-mount, tw-copyinto, tw-unmout
+# use: sudo ./aos_image -tw-mount, -tw-copyinto, -tw-unmout
 #      to get the script into the VM image
 # -tw-install-script
 # -tw-export
@@ -53,15 +53,15 @@ USERNAME="user"
 ##############################################################################################
 error_handler() {
 echo "
-#!!! ERROR in TorBOX_CreateVM !!!#
-#!!! ERROR in TorBOX_CreateVM !!!#
-#!!! ERROR in TorBOX_CreateVM !!!#
+#!!! ERROR in aos_createvm !!!#
+#!!! ERROR in aos_createvm !!!#
+#!!! ERROR in aos_createvm !!!#
 "
-echo "TorBOX_CreateVM: Does the VM already exist?"
-echo "TorBOX_CreateVM: X is a variable, use g or t."
-echo "TorBOX_CreateVM: If you want to delete an old VM use sudo ./TorBOX_CreateVM -tX-delete"
+echo "aos_createvm: Does the VM already exist?"
+echo "aos_createvm: X is a variable, use g or t."
+echo "aos_createvm: If you want to delete an old VM use sudo ./aos_createvm -tX-delete"
 
-touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 exit 1
 }
 
@@ -138,27 +138,27 @@ install_os_inside_vm() {
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
 
    # Insert the preseed iso image.
-   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/TorBOX_binary/preseed.iso"
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/aos_binary/preseed.iso"
  
    # VBoxSDL is does not run in background, waits until finished.
    # No questions by VBox (such as grab mouse etc.).
    # The preseed.iso is configured to eject the iso.
    # The preseed.iso is configured to poweroff when its done.
-   echo "TorBOX_CreateVM: Operating system should now be installed unattended (preseed)..."
-   echo "TorBOX_CreateVM: Should not require any user interaction. If so, please report a bug."
-   echo "TorBOX_CreateVM: Check if its not frozen but be patient."
-   echo "TorBOX_CreateVM: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
-   echo "TorBOX_CreateVM: Please wait until it has finished."
+   echo "aos_createvm: Operating system should now be installed unattended (preseed)..."
+   echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
+   echo "aos_createvm: Check if its not frozen but be patient."
+   echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
-   echo "TorBOX_CreateVM: Virtual Box terminated without error messages."
-   echo "TorBOX_CreateVM: This is no gurantee everything went well inside the VM."
+   echo "aos_createvm: Virtual Box terminated without error messages."
+   echo "aos_createvm: This is no gurantee everything went well inside the VM."
 
    # Ensure preseed.iso gets removed.
-   echo "TorBOX_CreateVM: Removing operating system installation CD..."
+   echo "aos_createvm: Removing operating system installation CD..."
    sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
-   echo "TorBOX_CreateVM: Removed operating system installation CD."
+   echo "aos_createvm: Removed operating system installation CD."
 
    # Plug the cable back in.
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
@@ -172,7 +172,7 @@ trap "error_handler" ERR INT TERM
 # Leave Adapter 1 as NAT.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 nat
 
-# Review: NAT adapter also gets fixed MAC shared among all TorBOX users.
+# Review: NAT adapter also gets fixed MAC shared among all aos users.
 # Use case: not much yet. In case the Gateway gets broken, this one can not
 # be used as identifier. Gets interesting in future with multiple gateways.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 0800273A77FC
@@ -206,8 +206,8 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 intnet
 # Remove the virtual network cable. Same reason like gateway_specific.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
 
-# Change the internal network to "torbox", IMPORTANT!
-sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet1 "torbox"
+# Change the internal network to "aos", IMPORTANT!
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet1 "aos"
 
 # Enter following MAC address: 080027070B08
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 080027070B08
@@ -229,18 +229,18 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
 install_script_inside_vm() {
    trap "error_handler" ERR INT TERM
 
-   echo "TorBOX_CreateVM: $VMNAME script should now be applied unattened..."
-   echo "TorBOX_CreateVM: Should not require any user interaction. If so, please report a bug."
-   echo "TorBOX_CreateVM: Check if its not frozen but be patient."
-   echo "TorBOX_CreateVM: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
-   echo "TorBOX_CreateVM: If that happens you can press ESC to see the echos."
-   echo "TorBOX_CreateVM: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
-   echo "TorBOX_CreateVM: Please wait until it has finished."
+   echo "aos_createvm: $VMNAME script should now be applied unattened..."
+   echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
+   echo "aos_createvm: Check if its not frozen but be patient."
+   echo "aos_createvm: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
+   echo "aos_createvm: If that happens you can press ESC to see the echos."
+   echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
-   echo "TorBOX_CreateVM: Virtual Box terminated without error messages."
-   echo "TorBOX_CreateVM: This is no gurantee everything went well inside the VM."
+   echo "aos_createvm: Virtual Box terminated without error messages."
+   echo "aos_createvm: This is no gurantee everything went well inside the VM."
 }
 
 
@@ -251,8 +251,8 @@ gateway_post_install_os() {
    # Enable Adapter 2, set to "Internal Network".
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic2 intnet
 
-   # Change the internal network to "torbox", IMPORTANT!
-   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet2 "torbox"
+   # Change the internal network to "aos", IMPORTANT!
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet2 "aos"
 
    # Enter following MAC address: 0800272FCF44
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress2 0800272FCF44
@@ -274,11 +274,11 @@ trap "error_handler" ERR INT TERM
 # Turning off the VM without saving.
 sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
 
-# Delete old TorBOX-Gateway.
+# Delete old aos-Gateway.
 sudo -u $USERNAME VBoxManage unregistervm "$VMNAME" --delete || true
 
 # Delete old ova.
-rm "$HOME/TorBOX_binary/$VMNAME".ova || true
+rm "$HOME/aos_binary/$VMNAME".ova || true
 }
 
 
@@ -288,14 +288,14 @@ rm "$HOME/TorBOX_binary/$VMNAME".ova || true
 ################################################################ 
 if [[ "$1" = "-tg-pre" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
+   VMNAME="aos-Gateway"
    VMHDDSIZE="2048"
    # Needed to increase from 128 to 256, otherwise while installing
    # using preseed I sometimes run out of RAM. Might be reduced at the end.
    VMRAM="256"
    general_setup
    gateway_specific
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-install-os"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-os"
    exit 0
 fi
 
@@ -306,9 +306,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tg-install-os" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
+   VMNAME="aos-Gateway"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-post"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post"
    exit 0
 fi
 
@@ -319,9 +319,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tg-post" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
+   VMNAME="aos-Gateway"
    gateway_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_Image -tg-mount"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_Image -tg-mount"
    exit 0
 fi
 
@@ -332,9 +332,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tg-install-script" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
+   VMNAME="aos-Gateway"
    install_script_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tg-export"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-export"
    exit 0
 fi
 
@@ -345,11 +345,11 @@ fi
 ################################################################ 
 if [[ "$1" = "-tg-export" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
-   echo "TorBOX_CreateVM: Decreasing RAM from 256 to 128..."
+   VMNAME="aos-Gateway"
+   echo "aos_createvm: Decreasing RAM from 256 to 128..."
    VMRAM="128"
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
-   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/TorBOX_binary/$VMNAME".ova
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
    echo "BUILD INFO: Done."
    exit 0
 fi
@@ -361,7 +361,7 @@ fi
 ################################################################ 
 if [[ "$1" = "-tg-delete" ]]; then
    root_check
-   VMNAME="TorBOX-Gateway"
+   VMNAME="aos-Gateway"
    delete_vm
    exit 0
 fi
@@ -374,14 +374,14 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-pre" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
+   VMNAME="aos-Workstation"
    VMHDDSIZE="8192"
    # Reduced from 512 to 196 while installing to safe some RAM
    # while building the VMs inside Virtual Box.
    VMRAM="256"
    general_setup
    workstation_specific
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-install-os"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-install-os"
    exit 0
 fi
 
@@ -392,9 +392,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-install-os" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
+   VMNAME="aos-Workstation"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-post"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post"
    exit 0
 fi
 
@@ -405,9 +405,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-post" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
+   VMNAME="aos-Workstation"
    workstation_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_Image -tw-mount"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_Image -tw-mount"
    exit 0
 fi
 
@@ -418,9 +418,9 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-install-script" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
+   VMNAME="aos-Workstation"
    install_script_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./TorBOX_CreateVM -tw-export"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-export"
    exit 0
 fi
 
@@ -431,11 +431,11 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-export" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
-   echo "TorBOX_CreateVM: Increasing RAM from 196 to 512..."
+   VMNAME="aos-Workstation"
+   echo "aos_createvm: Increasing RAM from 196 to 512..."
    VMRAM="512"
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
-   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/TorBOX_binary/$VMNAME".ova
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
    echo "BUILD INFO: Done."
    exit 0
 fi
@@ -447,7 +447,7 @@ fi
 ################################################################ 
 if [[ "$1" = "-tw-delete" ]]; then
    root_check
-   VMNAME="TorBOX-Workstation"
+   VMNAME="aos-Workstation"
    delete_vm
    exit 0
 fi
@@ -468,5 +468,5 @@ fi
 # no option chosen                                             #
 ################################################################ 
 echo "No option choosen. Use -help for help."
-touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 exit 1

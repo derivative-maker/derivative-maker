@@ -1,0 +1,102 @@
+copy_gateway_pre() {
+   #########################
+   # aos-Gateway Copy Pre  #
+   #########################
+
+   # Automatically start VM script after booting.
+   # Will be undone by copy_shared_post.
+   cp $AOS_SOURCE_FOLDER "$CHROOT_FOLDER"/etc/rc.local
+   chmod +x "$CHROOT_FOLDER"/etc/rc.local
+
+   # Copy VM script into VM image and make it executable.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/"$VMSCRIPT" "$CHROOT_FOLDER"/usr/local/bin/
+   chmod +x $CHROOT_FOLDER/usr/local/bin/$VMSCRIPT
+
+   # apt.conf currently empty and not used for anything.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/share/aos/apt.conf "$CHROOT_FOLDER"/usr/share/aos/apt.conf
+
+   # Copy arm wrapper script to start arm into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/arm "$CHROOT_FOLDER"/usr/local/bin/arm
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/arm
+
+   # Copy aos helpfile into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos "$CHROOT_FOLDER"/usr/local/bin/aos
+   chmod +x "$AOS_SOURCE_FOLDER"/usr/local/bin/aos
+
+   # Copy aos firewall script into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+
+   # Create folder for vidalia.
+   mkdir -p "$CHROOT_FOLDER"/home/user/.vidalia
+   chown user "$CHROOT_FOLDER"/home/user/.vidalia
+
+   # Setup Vidalia to use Cookie Authentication.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
+   chown user "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
+
+   # Copy aos-Gateway leaktest script into vm and make it executable.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/leaktest "$CHROOT_FOLDER"/usr/local/bin/leaktest
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/leaktest
+}
+
+append_gateway_pre() {
+   ##########################
+   # aos-Gateway Append Pre #
+   ##########################
+
+   # Append aos help/welcome message to .bashrc.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
+   done < "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/aos/appendto_.bashrc
+
+   # Append to sysctl.conf.
+   # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
+   done < "$AOS_SOURCE_FOLDER"/aos_gateway/etc/appendto_sysctl.conf
+}
+
+copy_gateway_post() {
+   #########################
+   # aos-Gateway Copy Post #
+   #########################
+
+   # Backup torrc inside VM.
+   cp -n "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
+
+   # Copy aos torrc into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
+
+   # Autologin, copy tty1.conf into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
+
+   # Copy interfaces into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
+
+   # Delete /etc/resolv.conf to work around some strange bug
+   # "Operation not supported While reading flags on" while
+   # trying to set -i on /etc/resolv.conf.
+   # Override trap function, if /etc/resolv.conf does not
+   # exist or is write protected (+i).
+   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
+
+   # Remove write protection from resolv.conf.
+   # Override trap function, if /etc/resolv.conf does not exist.
+   chattr -i "$CHROOT_FOLDER"/etc/resolv.conf || true
+
+   # Delete file to keep care of potential leaks.
+   # Override trap function, if /etc/resolv.conf does not exist.
+   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
+
+   # Set nameserver to localhost.
+   # iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
+   # Do not override trap function, this step is essential.
+   # resolv.conf
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+
+   # Add write protection to resolv.conf to prevent DNS leaks by getting
+   # edited by DHCP.
+   # Do not override trap function, this step is essential.
+   chattr +i "$CHROOT_FOLDER"/etc/resolv.conf 
+}

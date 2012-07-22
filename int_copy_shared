@@ -1,0 +1,118 @@
+
+backup_shared_pre() {
+   #####################
+   # Backup Shared Pre #
+   #####################
+
+   cp -n "$CHROOT_FOLDER"/etc/sudoers "$CHROOT_FOLDER"/etc/sudoers.backup
+   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers.backup
+
+   cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
+
+   # Better no backup of localtime.
+   #cp -n "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
+
+   # Better no backup of dbusmachineid.
+
+   cp -n "$CHROOT_FOLDER"/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local.backup
+   cp -n "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
+   cp -n "$CHROOT_FOLDER"/etc/default/grub "$CHROOT_FOLDER"/etc/default/grub.backup
+   cp -n "$CHROOT_FOLDER"/etc/sysctl.conf "$CHROOT_FOLDER"/etc/sysctl.conf.backup
+   cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
+   cp -n "$CHROOT_FOLDER"/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf.backup
+   cp -n "$CHROOT_FOLDER"/etc/init/tty6.conf "$CHROOT_FOLDER"/etc/init/tty6.conf.backup
+   cp -n "$CHROOT_FOLDER"/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup
+}
+
+copy_shared_pre() {
+   ###################
+   # Copy Shared Pre #
+   ###################
+
+   # Delete old log, otherwise the VM script would not get executed.
+   # See rc.local above.
+   rm $CHROOT_FOLDER/home/user/aosinstalllog || true
+
+   # policy-rc.d prevent daemons from starting while using apt-get.
+   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
+   # Ensure timezone is UTC. Just to be safe, already done with preseed install.
+   cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
+
+   # Fixes the long dhcp timeout bug.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/failsafe.conf "$CHROOT_FOLDER"/etc/failsafe.conf
+
+   # This is required because preseed without network connection will mess up /etc/apt/sources.list.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.
+
+   # dbus machine-id is shared among all aos users.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
+
+   mkdir -p "$CHROOT_FOLDER"/usr/share/aos/
+   
+   # torsocks_patch
+   # Source: https://bugs.gentoo.org/show_bug.cgi?id=395953#c7
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/torsocks_patch "$CHROOT_FOLDER"/usr/share/aos/torsocks_patch
+
+   # patch_torsocks
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/patch_torsocks "$CHROOT_FOLDER"/usr/share/aos/patch_torsocks
+
+   # uwt
+   # Using this until the feature to add ip/port through command line
+   # reaches upstream torsocks, if ever. Source:
+   # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
+   # If you make changes to uwt, please also add them "upstream"
+   # (link above).
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/uwt "$CHROOT_FOLDER"/usr/local/bin/uwt
+
+   # Copy torcheck script into VM image and make it executable.
+   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/torcheck $CHROOT_FOLDER/usr/local/bin/
+   chmod +x $CHROOT_FOLDER/usr/local/bin/torcheck
+
+   # fstab
+   # Yes, system also boots up if fstab uuids are wrong.
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
+
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_internal_checks "$CHROOT_FOLDER"/usr/share/aos/
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_create_swap_file "$CHROOT_FOLDER"/usr/share/aos/
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_config_uuids "$CHROOT_FOLDER"/usr/share/aos/
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_slim_down "$CHROOT_FOLDER"/usr/share/aos/
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/import_tpo_archive_key "$CHROOT_FOLDER"/usr/share/aos/
+}
+
+append_shared_pre() {
+   #####################
+   # Append Shared Pre #
+   #####################
+
+   # /etc/default/grub
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/default/grub
+   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/default/appendto_grub
+
+   # /etc/sudoers
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
+   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/append_sudoers
+
+   # Ensure correct permissions on sudoers.
+   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers
+   chown root /etc/sudoers.backup
+}
+
+copy_shared_post() {
+   ########################
+   # aos-Shared Copy Post #
+   ########################
+
+   # Make daemons start again.
+   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
+   # /etc/rc.local was (ab)used by aos-Image -tX-copyinto-pre
+   # to run aos_$VM script once. That is because aos_$VM
+   # scripts get executed inside the VM. We restore /etc/rc.local
+   # here. A new aos-Image -tX-copyinto would overwrite it
+   # again.
+   cp $AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local 
+}

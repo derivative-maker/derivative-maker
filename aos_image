@@ -31,14 +31,7 @@ echo \
 # Enable debugging.
 set -x
 
-# Exit if there is an error
-set -e
-
-
-
 USERNAME="user"
-
-
 
 ##############################################################################################
 # error_handler
@@ -51,12 +44,14 @@ echo "
 "
 
 echo "aos_image: unmount_vm_image..."
-unmount_vm_image
+unmount_vm_image_force
 echo "aos_image: Done."
 
 touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 exit 1
 }
+
+trap "error_handler" ERR INT TERM
 
 
 
@@ -75,9 +70,15 @@ fi
 
 
 
-mount_vm_image() {
-   trap "error_handler" ERR INT TERM
+int_copy_source() {
+   . $AOS_SOURCE_FOLDER/int_copy_shared
+   . $AOS_SOURCE_FOLDER/int_copy_gateway
+   . $AOS_SOURCE_FOLDER/int_copy_workstation
+}
 
+
+
+mount_vm_image() {
    # Ensure powered is off. Otherwise disk corruption is at high risk.
    sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
 
@@ -96,481 +97,69 @@ mount_vm_image() {
 
 
 
-copy_into_vm_image() {
-   trap "error_handler" ERR INT TERM
-
-   ##########
-   # Backup #
-   ##########
-
-   cp -n "$CHROOT_FOLDER"/etc/sudoers "$CHROOT_FOLDER"/etc/sudoers.backup
-   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers.backup
-
-   cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
-
-   # Better no backup of localtime.
-   #cp -n "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
-
-   # Better no backup of dbusmachineid.
-
-   cp -n "$CHROOT_FOLDER"/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local.backup
-   cp -n "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
-   cp -n "$CHROOT_FOLDER"/etc/default/grub "$CHROOT_FOLDER"/etc/default/grub.backup
-   cp -n "$CHROOT_FOLDER"/etc/sysctl.conf "$CHROOT_FOLDER"/etc/sysctl.conf.backup
-   cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/tty6.conf "$CHROOT_FOLDER"/etc/init/tty6.conf.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup
-
-   ###############
-   # Copy shared #
-   ###############
-
-   # Delete old log, otherwise the VM script would not get executed.
-   # See rc.local above.
-   rm $CHROOT_FOLDER/home/user/aosinstalllog || true
-
-   # policy-rc.d prevent daemons from starting while using apt-get.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
-   chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
-
-   # Ensure timezone is UTC. Just to be safe, already done with preseed install.
-   cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
-
-   # Fixes the long dhcp timeout bug.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/failsafe.conf "$CHROOT_FOLDER"/etc/failsafe.conf
-
-   # This is required because preseed without network connection will mess up /etc/apt/sources.list.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.
-
-   # dbus machine-id is shared among all aos users.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
-
-   mkdir -p "$CHROOT_FOLDER"/usr/share/aos/
-   
-   # torsocks_patch
-   # Source: https://bugs.gentoo.org/show_bug.cgi?id=395953#c7
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/torsocks_patch "$CHROOT_FOLDER"/usr/share/aos/torsocks_patch
-
-   # patch_torsocks
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/patch_torsocks "$CHROOT_FOLDER"/usr/share/aos/patch_torsocks
-
-   # uwt
-   # Using this until the feature to add ip/port through command line
-   # reaches upstream torsocks, if ever. Source:
-   # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
-   # If you make changes to uwt, please also add them "upstream"
-   # (link above).
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/uwt "$CHROOT_FOLDER"/usr/local/bin/uwt
-
-   # Copy torcheck script into VM image and make it executable.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/torcheck $CHROOT_FOLDER/usr/local/bin/
-   chmod +x $CHROOT_FOLDER/usr/local/bin/torcheck
-
-   # fstab
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
-
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_internal_checks "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_create_swap_file "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_config_uuids "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_slim_down "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/import_tpo_archive_key "$CHROOT_FOLDER"/usr/share/aos/
-
-   #################
-   # Append shared #
-   #################
-
-   # /etc/default/grub
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/default/grub
-   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/default/appendto_grub
-
-   # /etc/sudoers
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
-   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/append_sudoers
-
-   # Ensure correct permissions on sudoers.
-   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers
-   chown root /etc/sudoers.backup
-
-   #########################
-   # aos-Gateway Copy Pre  #
-   #########################
-
-   # Automatically start VM script after booting.
-   cp $AOS_SOURCE_FOLDER $CHROOT_FOLDER/etc/rc.local
-
-   # Copy VM script into VM image and make it executable.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/"$VMSCRIPT" $CHROOT_FOLDER/usr/local/bin/
-   chmod +x $CHROOT_FOLDER/usr/local/bin/$VMSCRIPT
-
-   # apt.conf currently empty and not used for anything.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/share/aos/apt.conf "$CHROOT_FOLDER"/usr/share/aos/apt.conf
-
-   # create arm wrapper script to start arm
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/arm "$CHROOT_FOLDER"/usr/local/bin/arm
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/arm
-
-   # aos helpfile
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos "$CHROOT_FOLDER"/usr/local/bin/aos
-   chmod +x "$AOS_SOURCE_FOLDER"/usr/local/bin/aos
-
-   # firewall script
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
-
-   # Create folder for vidalia.
-   sudo -u $USERNAME \
-   mkdir -p "$CHROOT_FOLDER"/home/$USERNAME/.vidalia
-
-   # Setup Vidalia to use Cookie Authentication.
-   sudo -u $USERNAME \
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
-
-   # Copy aos-Gateway leaktest script into vm and make it executable.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/leaktest "$CHROOT_FOLDER"/usr/local/bin/leaktest
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/leaktest
-
-   ##########################
-   # aos-Gateway Append Pre #
-   ##########################
-
-   # aos help/welcome message
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
-   done < "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/aos/appendto_.bashrc
-
-   # /etc/sysctl.conf
-   # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
-   done < "$AOS_SOURCE_FOLDER"/aos_gateway/etc/appendto_sysctl.conf
-
-   ########################
-   # aos-Shared Copy Post #
-   ########################
-
-   # Make daemons start again.
-   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
-
-   # /etc/rc.local was (ab)used by aos-Image -tX-copyinto-pre
-   # to run aos_$VM script once. That is because aos_$VM
-   # scripts get executed inside the VM. We restore /etc/rc.local
-   # here. A new aos-Image -tX-copyinto would overwrite it
-   # again.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
-
-   #########################
-   # aos-Gateway Copy Post #
-   #########################
-
-   # Backup torrc.
-   cp -n "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
-
-   # /etc/tor/torrc
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
-
-   # autologin /etc/init/tty1.conf
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
-
-   # /etc/network/interfaces
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
-
-   # Delete /etc/resolv.conf to work around some strange bug
-   # "Operation not supported While reading flags on" while
-   # trying to set -i on /etc/resolv.conf.
-   # Override trap function, if /etc/resolv.conf does not
-   # exist or is write protected (+i).
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Remove write protection from resolv.conf.
-   # Override trap function, if /etc/resolv.conf does not exist.
-   chattr -i "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Delete file to keep care of potential leaks.
-   # Override trap function, if /etc/resolv.conf does not exist.
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Set nameserver to localhost.
-   # iptables redirects any of aos-Gateways DNS requests to DNS_PORT_AOSG
-   # Do not override trap function, this step is essential.
-   # resolv.conf
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
-
-   # Add write protection to resolv.conf to prevent DNS leaks by getting
-   # edited by DHCP.
-   # Do not override trap function, this step is essential.
-   chattr +i "$CHROOT_FOLDER"/etc/resolv.conf
-
-   #############################
-   # aos-Workstation Copy Pre  #
-   #############################
-
-   # /usr/local/bin/hiddenserver-install
-   # TODO: Needs documentation, revision, gui, menu integration.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/hiddenserver-install "$CHROOT_FOLDER"/usr/local/bin/
-
-   # Copy the torbrowser update script.
-   # TODO: Needs documentation.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/torbrowser "$CHROOT_FOLDER"/usr/local/bin/
-
-      #########
-      # xchat #
-      #########
-
-   # Prepare /usr/share/aos/xchat2 folder.
-   mkdir "$CHROOT_FOLDER"/usr/share/aos/
-   chown user "$CHROOT_FOLDER"/usr/share/aos/
-   mkdir "$CHROOT_FOLDER"/usr/share/aos/xchat2
-   chown user "$CHROOT_FOLDER"/usr/share/aos/xchat2
-
-   # Copy xchat configuration files.
-   cp -r "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/xchat2 "$CHROOT_FOLDER"/usr/share/aos/xchat2
-
-   # /usr/local/bin/xchat-reset
-   # TODO: Needs documentation, warning, gui, menu integration.
-   cp -r "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/xchat-reset "$CHROOT_FOLDER"/usr/local/bin/
-
-      ############
-      # leaktest #
-      ############
-
-   # Create the leaktest folder.
-   mkdir -p "$CHROOT_FOLDER"/usr/share/aos/leaktest
-
-   # /usr/share/aos/leaktest/simple_ping.py
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/simple_ping.py \
-"$CHROOT_FOLDER"/usr/share/aos/leaktest/simple_ping.py
-
-   # /usr/share/aos/leaktest/exhaustive_ip_send.py
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/exhaustive_ip_send.py \
-"$CHROOT_FOLDER"/usr/share/aos/leaktest/exhaustive_ip_send.py
-
-   # /usr/share/aos/leaktest/tcp_test.py
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/tcp_test.py \
-"$CHROOT_FOLDER"/usr/share/aos/leaktest/tcp_test.py
-
-   # /usr/share/aos/leaktest/udp_test.py
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/udp_test.py \
-"$CHROOT_FOLDER"/usr/share/aos/leaktest/udp_test.py
-
-   # /usr/local/bin/leaktest
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/leaktest \
-"$CHROOT_FOLDER"/usr/local/bin/leaktest
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/leaktest
-
-   ###############################
-   # aos-Workstation Append Pre  #
-   ###############################
-
-   # .bashrc
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.bashrc
-
-   # /etc/sysctl.conf
-   # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/etc/appendto_sysctl.conf
-
-   ##################################
-   # aos-Workstation Copy Post      #
-   ##################################
-
-   # /etc/network/interfaces
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
-
-   # /etc/resolv.conf
-   # We do not need chattr +i for aos-W resolv.conf, because
-   # dhcp is never used and resolvconf was uninstalled.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
-
-   # firewall script
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
-
-   # /etc/cron.daily/torcheck
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/cron.daily/torcheck "$CHROOT_FOLDER"/etc/cron.daily/torcheck
-   chmod +x "$CHROOT_FOLDER"/etc/cron.daily/torcheck
-
-   # Enable sub pixel rendering.
-   cp -n "$CHROOT_FOLDER"/etc/fonts/conf.avail/10-sub-pixel-rgb.conf "$CHROOT_FOLDER"/etc/fonts/conf.d/
-
-   # Autologin.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/init/tty6.conf "$CHROOT_FOLDER"/aos_workstation/etc/init/tty6.conf
-
-   # Prepare dirs.
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/
-   chown user "$CHROOT_FOLDER"/home/user/.config/
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/openbox
-   chown user "$CHROOT_FOLDER"/home/user/.config/openbox
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/tint2
-   chown user "$CHROOT_FOLDER"/home/user/.config/tint2
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/libfm
-   chown user "$CHROOT_FOLDER"/home/user/.config/libfm
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
-   chown user "$CHROOT_FOLDER"/home/user/.config/autostart
-
-   # Create backup of menu.xml.
-   cp -n "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml \
-"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml.backup || true
-   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml.backup || true
-
-   # .config/openbox/menu.xml
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/openbox/menu.xml \
-"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml
-   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml
-
-   # .config/openbox/menu.xml_howto
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/openbox/menu.xml_howto \
-"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml_howto
-   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml_howto
-
-   # Copy default files to home.
-   # Tint2 example file is Ubuntu specific.
-   cp "$CHROOT_FOLDER"/usr/share/doc/tint2/examples/icon_and_text_1.tint2rc \
-"$CHROOT_FOLDER"/home/user/.config/tint2/tint2rc
-   chown user "$CHROOT_FOLDER"/home/user/.config/tint2/tint2rc
-   cp "$CHROOT_FOLDER"/etc/xdg/openbox/rc.xml "$CHROOT_FOLDER"/home/user/.config/openbox/
-   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/
-
-   # .config/libfm/libfm.conf
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/libfm/libfm.conf \
-$CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
-   chown user $CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
-
-   # .config/autostart/torcheck.desktop
-   # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
-   # Create torcheck autostart.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/autostart/torcheck.desktop \
-$CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
-   chown user $CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
-
-      #######
-      # uwt #
-      #######
-
-   # SOCKS_PORT_TB="9100"
-   # - gui application with socks proxy settings
-   # - no wrapper required
-
-   # SOCKS_PORT_IRC="9101"
-   # - gui application with socks proxy settings
-   # - no wrapper required
-
-   # SOCKS_PORT_TORBIRDY="9102"
-   # - gui application with socks proxy settings
-   # - no wrapper required
-   # - not yet installed by default
-
-   # SOCKS_PORT_IM="9103"
-   # - gui application with socks proxy settings
-   # - no wrapper required
-
-   # SOCKS_PORT_APT_GET="9104"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/apt-get "$CHROOT_FOLDER"/usr/local/bin/apt-get
-
-   # SOCKS_PORT_GPG="9105"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/gpg "$CHROOT_FOLDER"/usr/local/bin/gpg
-
-   # SOCKS_PORT_SSH="9106"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/ssh "$CHROOT_FOLDER"/usr/local/bin/ssh
-
-   # SOCKS_PORT_GIT="9107"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/git "$CHROOT_FOLDER"/usr/local/bin/git
-
-   # SOCKS_PORT_HTPDATE="9108"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/htpdate "$CHROOT_FOLDER"/usr/local/bin/htpdate
-
-   # SOCKS_PORT_WGET="9109"
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/wget "$CHROOT_FOLDER"/usr/local/bin/wget
-
-   # SOCKS_PORT_TORCHECK="9110"
-   # - pointing uwt directly to this port
-   # - no wrapper required
-
-   # SOCKS_PORT_BITCOIN="9111"
-   # - gui application with socks proxy settings
-   # - not installed by default
-   # - no wrapper required
-
-   # SOCKS_PORT_PRIVOXY="9112"
-   # - not installed by default
-   # - no wrapper required
-
-   # SOCKS_PORT_POLIPO="9113"
-   # - not installed by default
-   # - no wrapper required
-
-   # More wrappers...
-
-   # Should be safe.
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/*
-
-   ###############################
-   # aos-Workstation Append Post #
-   ###############################
-
-   # Create backup of gpg.conf.
-   cp -n "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
-   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
-
-   # Create backup of .gtkrc-2.0.
-   cp -n "$CHROOT_FOLDER"/home/user/.gtkrc-2.0 "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
-   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
-
-   # Create backup of .profile.
-   cp -n "$CHROOT_FOLDER"/home/user/.profile "$CHROOT_FOLDER"/home/user/.profile.backup
-   chown user "$CHROOT_FOLDER"/home/user/.profile.backup
-
-   # Create backup of .xinitrc.
-   cp -n "$CHROOT_FOLDER"/home/user/.xinitrc "$CHROOT_FOLDER"/home/user/.xinitrc.backup
-   chown user "$CHROOT_FOLDER"/home/user/.xinitrc.backup
-   # gpg.conf
-   # Must be post because gpg.conf has not been created by gpg
-   # before gpg has not been run at least once.
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.gnupg/appendto_gpg.conf
-
-   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
-
-   # .gtkrc-2.0
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gtkrc-2.0
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appento_.gtkrc-2.0
-   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0
-
-   # .profile
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.profile
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.profile
-   chown user "$CHROOT_FOLDER"/home/user/.profile
-
-   # .xinitrc
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.xinitrc
-   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.xinitrc
-   chown user "$CHROOT_FOLDER"/home/user/.xinitrc
-
-
-
-
-
-
-   ###############
-   # sync        #
-   ###############
-
+copy_into_vm_image_aos_gateway_pre() {
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_gateway_pre
+   append_gateway_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_gateway_post() {
+   copy_shared_post
+   copy_gateway_post
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_workstation_pre() {
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_workstation_pre
+   append_workstation_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_workstation_post() {
+   copy_shared_post
+   copy_workstation_post
+   append_workstation_post
    # Ensure changes get written before unmounting.
    sync
 }
 
 
 
+unmount_vm_image_force() {
+# Will be called if there is an error.
+# || true to avoid more errors and to ensure
+# clean unmount.
+
+# Ensure changes get written.
+sync || true
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0 || true
+
+# In the end unmount.
+umount $CHROOT_FOLDER || true
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER || true
+}
+
+
+
 unmount_vm_image() {
+# Called after copying into vm.
+# Should not trow any errors.
+
+# Ensure changes get written.
 sync
 
 # Shutdown the ndb.
@@ -594,21 +183,42 @@ if [[ "$1" = "-tg-mount" ]]; then
    VMNAME="aos-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_image -tg-copyinto"
+   echo "INFO: mount done."
    exit 0
 fi
 
 
 
 ################################################################ 
-# -tg-copyinto                                                 #
+# -tg-copyinto-pre                                             #
 ################################################################ 
-if [[ "$1" = "-tg-copyinto" ]]; then
+if [[ "$1" = "-tg-copyinto-pre" ]]; then
    root_check
    VMNAME="aos-Gateway"
    VMSCRIPT="aos_Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
-   copy_into_vm_image
+   int_copy_source
+   mount_vm_image
+   copy_into_vm_image_aos_gateway_pre
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-unmount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tg-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tg-copyinto-post" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   VMSCRIPT="aos_Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   int_copy_source
+   mount_vm_image
+   copy_into_vm_image_aos_gateway_post
+   unmount_vm_image
    echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-unmount"
    exit 0
 fi
@@ -623,7 +233,7 @@ if [[ "$1" = "-tg-unmount" ]]; then
    VMNAME="aos-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   echo "INFO: unmount done."
    exit 0
 fi
 
@@ -637,21 +247,42 @@ if [[ "$1" = "-tw-mount" ]]; then
    VMNAME="aos-Workstation"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_Image -tw-copyinto"
+   echo "INFO: mount done."
    exit 0
 fi
 
 
 
 ################################################################ 
-# -tw-copyinto                                                 #
+# -tw-copyinto-pre                                             #
 ################################################################ 
-if [[ "$1" = "-tw-copyinto" ]]; then
+if [[ "$1" = "-tw-copyinto-pre" ]]; then
    root_check
    VMNAME="aos-Workstation"
    VMSCRIPT="aos_Workstation"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
-   copy_into_vm_image
+   int_copy_source
+   mount_vm_image
+   copy_into_vm_image_aos_workstation_pre
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-unmount"
+   exit 0
+fi
+
+
+
+################################################################ 
+# -tw-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tw-copyinto-post" ]]; then
+   root_check
+   VMNAME="aos-Workstation"
+   VMSCRIPT="aos_Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   int_copy_source
+   mount_vm_image
+   copy_into_vm_image_aos_workstation_post
+   unmount_vm_image
    echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-unmount"
    exit 0
 fi
@@ -666,7 +297,7 @@ if [[ "$1" = "-tw-unmount" ]]; then
    VMNAME="aos-Workstation"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-install-script"
+   echo "INFO: unmount done."
    exit 0
 fi
 

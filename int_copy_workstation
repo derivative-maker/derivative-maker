@@ -1,0 +1,258 @@
+copy_workstation_pre() {
+   #############################
+   # aos-Workstation Copy Pre  #
+   #############################
+
+   # /usr/local/bin/hiddenserver-install
+   # TODO: Needs documentation, revision, gui, menu integration.
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/hiddenserver-install "$CHROOT_FOLDER"/usr/local/bin/
+
+   # Copy the torbrowser update script.
+   # TODO: Needs documentation.
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/torbrowser "$CHROOT_FOLDER"/usr/local/bin/
+
+      #########
+      # xchat #
+      #########
+
+   # Prepare /usr/share/aos/xchat2 folder.
+   mkdir "$CHROOT_FOLDER"/usr/share/aos/
+   chown user "$CHROOT_FOLDER"/usr/share/aos/
+   mkdir "$CHROOT_FOLDER"/usr/share/aos/xchat2
+   chown user "$CHROOT_FOLDER"/usr/share/aos/xchat2
+
+   # Copy xchat configuration files.
+   cp -r "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/xchat2 "$CHROOT_FOLDER"/usr/share/aos/xchat2
+
+   # /usr/local/bin/xchat-reset
+   # TODO: Needs documentation, warning, gui, menu integration.
+   cp -r "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/xchat-reset "$CHROOT_FOLDER"/usr/local/bin/
+
+      ############
+      # leaktest #
+      ############
+
+   # Create the leaktest folder.
+   mkdir -p "$CHROOT_FOLDER"/usr/share/aos/leaktest
+
+   # /usr/share/aos/leaktest/simple_ping.py
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/simple_ping.py \
+"$CHROOT_FOLDER"/usr/share/aos/leaktest/simple_ping.py
+
+   # /usr/share/aos/leaktest/exhaustive_ip_send.py
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/exhaustive_ip_send.py \
+"$CHROOT_FOLDER"/usr/share/aos/leaktest/exhaustive_ip_send.py
+
+   # /usr/share/aos/leaktest/tcp_test.py
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/tcp_test.py \
+"$CHROOT_FOLDER"/usr/share/aos/leaktest/tcp_test.py
+
+   # /usr/share/aos/leaktest/udp_test.py
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/share/aos/leaktest/udp_test.py \
+"$CHROOT_FOLDER"/usr/share/aos/leaktest/udp_test.py
+
+   # /usr/local/bin/leaktest
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/leaktest \
+"$CHROOT_FOLDER"/usr/local/bin/leaktest
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/leaktest
+}
+
+append_workstation_pre() {
+   ###############################
+   # aos-Workstation Append Pre  #
+   ###############################
+
+   # .bashrc
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.bashrc
+
+   # /etc/sysctl.conf
+   # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/etc/appendto_sysctl.conf
+}
+
+copy_workstation_post() {
+   ##################################
+   # aos-Workstation Copy Post      #
+   ##################################
+
+   # /etc/network/interfaces
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
+
+   # /etc/resolv.conf
+   # We do not need chattr +i for aos-W resolv.conf, because
+   # dhcp is never used and resolvconf was uninstalled.
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+
+   # firewall script
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+
+   # /etc/cron.daily/torcheck
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/cron.daily/torcheck "$CHROOT_FOLDER"/etc/cron.daily/torcheck
+   chmod +x "$CHROOT_FOLDER"/etc/cron.daily/torcheck
+
+   # Enable sub pixel rendering.
+   cp -n "$CHROOT_FOLDER"/etc/fonts/conf.avail/10-sub-pixel-rgb.conf "$CHROOT_FOLDER"/etc/fonts/conf.d/
+
+   # Autologin.
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/init/tty6.conf "$CHROOT_FOLDER"/aos_workstation/etc/init/tty6.conf
+
+   # Prepare dirs.
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/
+   chown user "$CHROOT_FOLDER"/home/user/.config/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/openbox
+   chown user "$CHROOT_FOLDER"/home/user/.config/openbox
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/tint2
+   chown user "$CHROOT_FOLDER"/home/user/.config/tint2
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/libfm
+   chown user "$CHROOT_FOLDER"/home/user/.config/libfm
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
+   chown user "$CHROOT_FOLDER"/home/user/.config/autostart
+
+   # Create backup of menu.xml.
+   cp -n "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml \
+"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml.backup || true
+   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml.backup || true
+
+   # .config/openbox/menu.xml
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/openbox/menu.xml \
+"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml
+   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml
+
+   # .config/openbox/menu.xml_howto
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/openbox/menu.xml_howto \
+"$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml_howto
+   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml_howto
+
+   # Copy default files to home.
+   # Tint2 example file is Ubuntu specific.
+   cp "$CHROOT_FOLDER"/usr/share/doc/tint2/examples/icon_and_text_1.tint2rc \
+"$CHROOT_FOLDER"/home/user/.config/tint2/tint2rc
+   chown user "$CHROOT_FOLDER"/home/user/.config/tint2/tint2rc
+   cp "$CHROOT_FOLDER"/etc/xdg/openbox/rc.xml "$CHROOT_FOLDER"/home/user/.config/openbox/
+   chown user "$CHROOT_FOLDER"/home/user/.config/openbox/
+
+   # .config/libfm/libfm.conf
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/libfm/libfm.conf \
+$CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
+   chown user $CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
+
+   # .config/autostart/torcheck.desktop
+   # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
+   # Create torcheck autostart.
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/autostart/torcheck.desktop \
+$CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
+   chown user $CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
+
+      #######
+      # uwt #
+      #######
+
+   # SOCKS_PORT_TB="9100"
+   # - gui application with socks proxy settings
+   # - no wrapper required
+
+   # SOCKS_PORT_IRC="9101"
+   # - gui application with socks proxy settings
+   # - no wrapper required
+
+   # SOCKS_PORT_TORBIRDY="9102"
+   # - gui application with socks proxy settings
+   # - no wrapper required
+   # - not yet installed by default
+
+   # SOCKS_PORT_IM="9103"
+   # - gui application with socks proxy settings
+   # - no wrapper required
+
+   # SOCKS_PORT_APT_GET="9104"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/apt-get "$CHROOT_FOLDER"/usr/local/bin/apt-get
+
+   # SOCKS_PORT_GPG="9105"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/gpg "$CHROOT_FOLDER"/usr/local/bin/gpg
+
+   # SOCKS_PORT_SSH="9106"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/ssh "$CHROOT_FOLDER"/usr/local/bin/ssh
+
+   # SOCKS_PORT_GIT="9107"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/git "$CHROOT_FOLDER"/usr/local/bin/git
+
+   # SOCKS_PORT_HTPDATE="9108"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/htpdate "$CHROOT_FOLDER"/usr/local/bin/htpdate
+
+   # SOCKS_PORT_WGET="9109"
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/usr/local/bin/wget "$CHROOT_FOLDER"/usr/local/bin/wget
+
+   # SOCKS_PORT_TORCHECK="9110"
+   # - pointing uwt directly to this port
+   # - no wrapper required
+
+   # SOCKS_PORT_BITCOIN="9111"
+   # - gui application with socks proxy settings
+   # - not installed by default
+   # - no wrapper required
+
+   # SOCKS_PORT_PRIVOXY="9112"
+   # - not installed by default
+   # - no wrapper required
+
+   # SOCKS_PORT_POLIPO="9113"
+   # - not installed by default
+   # - no wrapper required
+
+   # More wrappers...
+
+   # Should be safe.
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/*
+}
+
+append_workstation_post() {
+   ###############################
+   # aos-Workstation Append Post #
+   ###############################
+
+   # Create backup of gpg.conf.
+   cp -n "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
+   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
+
+   # Create backup of .gtkrc-2.0.
+   cp -n "$CHROOT_FOLDER"/home/user/.gtkrc-2.0 "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
+   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
+
+   # Create backup of .profile.
+   cp -n "$CHROOT_FOLDER"/home/user/.profile "$CHROOT_FOLDER"/home/user/.profile.backup
+   chown user "$CHROOT_FOLDER"/home/user/.profile.backup
+
+   # Create backup of .xinitrc.
+   cp -n "$CHROOT_FOLDER"/home/user/.xinitrc "$CHROOT_FOLDER"/home/user/.xinitrc.backup
+   chown user "$CHROOT_FOLDER"/home/user/.xinitrc.backup
+   # gpg.conf
+   # Must be post because gpg.conf has not been created by gpg
+   # before gpg has not been run at least once.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.gnupg/appendto_gpg.conf
+   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
+
+   # .gtkrc-2.0
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gtkrc-2.0
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appento_.gtkrc-2.0
+   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0
+
+   # .profile
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.profile
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.profile
+   chown user "$CHROOT_FOLDER"/home/user/.profile
+
+   # .xinitrc
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.xinitrc
+   done < "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/appendto_.xinitrc
+   chown user "$CHROOT_FOLDER"/home/user/.xinitrc
+}

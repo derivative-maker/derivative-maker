@@ -14,8 +14,7 @@ echo "
 "
 }
 
-# Debugging.
-# TODO: Only if TorBOX_debug variable is set.
+# Enable debugging.
 set -x
 
 ######################################################
@@ -43,29 +42,29 @@ root_check() {
 }
 
 download_verify_iso() {
-sudo -u $USERNAME mkdir -p /home/$USERNAME/TorBOX_binary
+sudo -u $USERNAME mkdir -p /home/$USERNAME/aos_binary
 
-sudo -u $USERNAME wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/$USERNAME/TorBOX_binary/ubuntu-12.04-server-i386.iso
+sudo -u $USERNAME wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/$USERNAME/aos_binary/ubuntu-12.04-server-i386.iso
 
 #For Debian Squeeze
 #sudo -u $USERNAME wget -c "http://ftp.funet.fi/pub/linux/mirrors/debian-cdimage/6.0.5/i386/iso-cd/debian-6.0.5-i386-CD-1.iso" --output-document ...!!!...
 
-sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS --output-document /home/$USERNAME/TorBOX_binary/SHA256SUMS
+sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS --output-document /home/$USERNAME/aos_binary/SHA256SUMS
 
-sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS.gpg --output-document /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg
+sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS.gpg --output-document /home/$USERNAME/aos_binary/SHA256SUMS.gpg
 
-sudo -u $USERNAME rm -r /home/$USERNAME/TorBOX_binary/gpgtmpdir
-sudo -u $USERNAME mkdir -p /home/$USERNAME/TorBOX_binary/gpgtmpdir
-sudo -u $USERNAME chmod 700 /home/$USERNAME/TorBOX_binary/gpgtmpdir
+sudo -u $USERNAME rm -r /home/$USERNAME/aos_binary/gpgtmpdir
+sudo -u $USERNAME mkdir -p /home/$USERNAME/aos_binary/gpgtmpdir
+sudo -u $USERNAME chmod 700 /home/$USERNAME/aos_binary/gpgtmpdir
 
-sudo -u $USERNAME gpg --homedir /home/$USERNAME/TorBOX_binary/gpgtmpdir --import /etc/apt/trusted.gpg
+sudo -u $USERNAME gpg --homedir /home/$USERNAME/aos_binary/gpgtmpdir --import /etc/apt/trusted.gpg
 
 # If you don't use Ubuntu:
 # Source of that fingerprint is above trusted.gpg file, I couldn't find a TLS encrypted source of it anywhere.
 # gpg --homedir gpgtmpdir --keyserver subkeys.pgp.net --recv-keys C5986B4F1257FFA86632CBA746181433FBB75451
 
 # Verify that SHA256SUMS file is signed by Ubuntu.
-sudo -u $USERNAME gpg --homedir /home/$USERNAME/TorBOX_binary/gpgtmpdir --verify /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg /home/$USERNAME/TorBOX_binary/SHA256SUMS
+sudo -u $USERNAME gpg --homedir /home/$USERNAME/aos_binary/gpgtmpdir --verify /home/$USERNAME/aos_binary/SHA256SUMS.gpg /home/$USERNAME/aos_binary/SHA256SUMS
 
 # Check if gpg verification was successful.
 if [ "$?" = "0" ];
@@ -76,20 +75,20 @@ then
 else
    echo "FATAL ERROR: gpg verification failed."
    DOWNLOADFAILED="1"
-   touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
    # Script failed. End.
    exit 1
 fi
 
-cd /home/$USERNAME/TorBOX_binary/
+cd /home/$USERNAME/aos_binary/
 
-sudo -u $USERNAME sha256sum -c /home/$USERNAME/TorBOX_binary/SHA256SUMS | grep "ubuntu-12.04-server-i386.iso: OK" || DOWNLOADFAILED="1"
+sudo -u $USERNAME sha256sum -c /home/$USERNAME/aos_binary/SHA256SUMS | grep "ubuntu-12.04-server-i386.iso: OK" || DOWNLOADFAILED="1"
 
 cd /home/$USERNAME/
 
 if [ "$DOWNLOADFAILED" = "1" ]; then
    echo "FATAL ERROR: Download Failed!"
-   touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
    exit 1
 fi
 
@@ -98,9 +97,9 @@ exit 0
 }
 
 delete_iso() {
-rm /home/$USERNAME/TorBOX_binary/SHA256SUMS
-rm /home/$USERNAME/TorBOX_binary/SHA256SUMS.gpg
-rm /home/$USERNAME/TorBOX_binary/ubuntu-12.04-server-i386.iso
+rm /home/$USERNAME/aos_binary/SHA256SUMS
+rm /home/$USERNAME/aos_binary/SHA256SUMS.gpg
+rm /home/$USERNAME/aos_binary/ubuntu-12.04-server-i386.iso
 echo "Done."
 }
 
@@ -110,7 +109,7 @@ echo "Done."
 if [[ "$1" = "-download" ]]; then
    root_check
    download_verify_iso
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./TorBOX_ModifyISO -tg-create"
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_modifyiso -tg-create"
    exit 0
 fi
 
@@ -139,5 +138,5 @@ fi
 # no option chosen                                             #
 ################################################################ 
 echo "No option choosen. Use -help for help."
-touch /home/$USERNAME/TorBOX_binary/TORBOX_BUILD_FAILED
+touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 exit 1
