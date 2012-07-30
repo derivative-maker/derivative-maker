@@ -1,6 +1,7 @@
 #!/bin/bash
 
 script_help() {
+echo "
 # Do not run as root!
 # Not a multiuser script.
 # Only tested for user "user".
@@ -14,9 +15,20 @@ script_help() {
 # a backup. Also internally used by
 # aos_workstation script.
 #
+# -readme
+# Starts TorBrowser and opens the aos
+# online Readme.
+#
+# -noreadme
+# Starts TorBrowser without opening
+# the aos online Readme.
+#
 # -help
 # Show this help.
+"
 }
+
+
 
 # For developers:
 # Please keep in mind, we allow running this without root. If you ever
@@ -24,6 +36,8 @@ script_help() {
 # script without root.
 
 USERNAME="user"
+
+
 
 #########################################################################
 # tb_update_check                                                       #
@@ -107,8 +121,10 @@ echo "
 #################################
 "
 
-config_torbrowser
+tb_force_install
 } 
+
+
 
 #########################################################################
 # tb_force_install                                                      #
@@ -295,7 +311,7 @@ user_pref("extensions.torbutton.prompt_torbrowser", false);
 user_pref("general.autoScroll", true);
 
 # homepage
-user_pref("browser.startup.homepage", "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme");
+# user_pref("browser.startup.homepage", "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme");
 
 # banned ports
 # https://www.torproject.org/torbutton/en/design/
@@ -305,6 +321,43 @@ user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,91
 
 # End of user.js.
 ' | sudo -u $USERNAME tee /home/user/tor-browser_en-US/Data/profile/user.js
+}
+
+
+
+#########################################################################
+# tb_start_with_readme                                                  #
+#########################################################################
+
+tb_start_with_readme() {
+   PID="`pidof firefox`"
+
+   if [ "$PID" = "" ]; then
+      echo "Starting TorBrowser"
+      ~/tor-browser_en-US/start-tor-browser &
+   else
+      echo "TBB is already running"
+   fi
+
+   while [ "$PID" = "" ]
+   do
+      PID="`pidof firefox`"
+      sleep 3
+   done
+
+   echo "Opening aos Readme"
+
+   ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme &
+}
+
+
+
+#########################################################################
+# tb_start_without_readme                                               #
+#########################################################################
+
+tb_start_without_readme() {
+   ~/tor-browser_en-US/start-tor-browser &
 }
 
 
@@ -330,6 +383,26 @@ fi
 
 
 ################################################################ 
+# -noreadme                                                    #
+################################################################ 
+if [[ "$1" = "-noreadme" ]]; then
+tb_start_without_readme
+exit 0
+fi
+
+
+
+################################################################ 
+# -readme                                                      #
+################################################################ 
+if [[ "$1" = "-readme" ]]; then
+tb_start_with_readme
+exit 0
+fi
+
+
+
+################################################################ 
 # -help                                                        #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
@@ -343,11 +416,6 @@ fi
 # no option chosen                                             # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
-echo "
-INFO: No option chosen.
-
-Please run torbrowser -help to find out more.
-"
-
+echo "aos torbrowser: No option chosen. Please run with -help to find out more."
 exit 0
 fi

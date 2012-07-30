@@ -1,0 +1,71 @@
+################################################################################
+################################################################################
+################################################################################
+
+# Get the Tails signing key:
+# https://tails.boum.org/doc/about/openpgp_keys/index.en.html
+#
+# https://tails.boum.org/contribute/git/
+git clone git://git.immerda.ch/amnesia.git
+cd amnesia
+git tag -v 0.12
+
+# Alternatively it's also possible to download Tail's CD and to unpack it.
+# sudo unsquashfs -x -dest /home/user/b filesystem.squashfs
+
+
+################################################################################
+################################################################################
+################################################################################
+
+# /amnesia/config/chroot_local-packageslists/tails-common.list contains a list of all Tails dependencies.
+# Seach for "needed by htpdate". You'll see tails_htp depends on the following packages.
+libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
+
+################################################################################
+################################################################################
+################################################################################
+
+# adduser htp
+/home/user/amnesia/config/chroot_local-hooks/06-adduser_htp
+
+################################################################################
+################################################################################
+################################################################################
+
+# We need tails_htpdate, the actual binary.
+#
+# Changed one line. Added a comment.
+# my @cmdline = ('ip=192.168.0.10 port=9108 /usr/bin/wget', @wget_options, $url);
+cp /home/user/amnesia/config/chroot_local-includes/usr/local/sbin/htpdate /home/user/aos/aos_shared/usr/local/sbin/htpdate
+
+################################################################################
+################################################################################
+################################################################################
+
+# Init script.
+mkdir -p /home/user/aos/aos_shared/etc/init.d/
+cp /home/user/amnesia/config/chroot_local-includes/etc/init.d/htpdate /home/user/aos/aos_shared/etc/init.d/htpdate
+
+################################################################################
+################################################################################
+################################################################################
+
+# Copy server pool for tails_htp.
+cp /home/user/amnesia/config/chroot_local-includes/etc/default/htpdate /home/user/aos/aos_shared/etc/default/htpdate
+
+################################################################################
+################################################################################
+################################################################################
+
+# The server pool /etc/default/htpdate contains a line:
+# config/chroot_local-includes/usr/local/bin/getTorbuttonUserAgent
+#
+# Will not be used in aso, since there is also no Ubuntu package with Tor Button.
+# Open Tor Browser about:config and search for "useragent_override", copy the value.
+# Manually add to /home/user/aos/aos_shared/etc/default/htpdate
+# Replace
+HTTP_USER_AGENT="$(/usr/local/bin/getTorbuttonUserAgent)"
+# with
+#HTTP_USER_AGENT="$(/usr/local/bin/getTorbuttonUserAgent)"
+HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0"

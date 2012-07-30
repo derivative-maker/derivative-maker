@@ -3,18 +3,7 @@
 # Will be copied into aos_workstation: /usr/local/bin/aos_workstation
 # by aos_image copyinto. Will run inside VM.
 
-# Version: aos 0.3.0-developers-only
-
-# Copyright: adrelanos (aka proper)
-#
-# License: GPL v3 or any later
-#
-# Any changes you pull changes into this source will be also licensed
-# under GPL v3 or any later. Additionally you grant adrelanos the right to
-# re-license your work under a different license. If that is not acceptable,
-# you can either fork this source under GPL v3 or any later or contact
-# adrelanos. Contact adrelanos, if you require this source code under
-# different license.
+# See LICENSE in root of aos source for copyright, license and authors.
 
 script_help() {
 echo \
@@ -27,27 +16,22 @@ echo \
 #       ASSUMPTIONS                                                        #
 # 1) You use Ubuntu                                                        #
 # 2) The main username is "user"                                           #
-# (search for HARDCODED! and check the variable "USERNAME")                #
+#    (search for HARDCODED! and check the variable "USERNAME")             #
 # 3) You are using following network settings:                             #
-# Your primary (and only) network interface is eth0                        #
-# aos-Workstation IP: 192.168.0.11                                         #
-# aos-Gateway IP: 192.168.0.10                                             #
-# 4) aos-Workstations build environment has a working internet             #
-# connection to ubuntu mirrors                                             #
+#    Your primary (and only) network interface is eth0                     #
+#    aos-Workstation IP: 192.168.0.11                                      #
+#    aos-Gateway IP: 192.168.0.10                                          #
+# 4) aos-Gateway is already read and started, host build environment has   #
+#    a working internet                                                    #
+#    connection to ubuntu mirrors                                          #
 # 5) you read and understood the script and verified all hardcoded gpg     #
-# fingerprints tagged with !!!VERIFY!!!                                    #
+#    fingerprints tagged with !!!VERIFY!!!                                 #
 #                                                                          #
 #       CHOOSE ONE OF THE FOLLOWING FLAGS                                  #
 # Available options:                                                       #
-# -install                                                                 #
 #                                                                          #
+# -install                                                                 #
 ############################################################################
-# NOTE FOR DEBUGGING
-# NOTE FOR CONTRIBUTORS
-# Same comments as under
-# https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Dev/TGScript
-# apply.
-# Search for TODO in the script and help us fix them.
 "
 }
 
@@ -115,7 +99,7 @@ apt-get --yes remove --purge ntpdate popularity-contest resolvconf ufw network-m
 
 # build-essential is required to patch_torsocks.
 echo "INFO: Installing required software..."
-apt-get --yes install --no-install-recommends nano wget gnupg ed torsocks mingetty build-essential dbus
+apt-get --yes install --no-install-recommends nano wget gnupg ed torsocks mingetty build-essential dbus dnsutils
 }
 
 
@@ -313,43 +297,3 @@ Please run aos_workstation -help to find out more.
 
 exit 0
 fi
-
-###################################################################################################################
-
-# TODO: Add this.
-#
-# Touching the default browser.startup.homepage is not a good idea, since TorButton sets the
-# "up to date" or "not up to date" homepage.
-#
-#  we don't need that anymore, with torcheck implemented we can keep the readme as the homepage
-#   (proper) When TorButton is updated and version format is changed, torcheck in tbb will still
-#            continue to work.
-#             in that case zenity should prompt the user to visit check.tpo. Not that the code below doesn't help in that case either.
-#               (proper) When visiting check.torproject.org manually, Tor Browser will not notify about updates. Afaik this only happens
-#                        on startup and the default homepage has not been touched and still is check.tpo.
-#                        That code would help in that case. If Tor Button gets updated, everyone gets the Tor Button update and if the
-#                        version format changes at the same time, Tor Buttons update notification will continue to work.
-#               (proper) Now that torcheck uses TransPort instant of SocksPort (see torcheck script comments), leaving check.tpo in
-#                        Tor Browser would also demonstrate, that stream isolation is functional.
-#                           The Tor Button update check used to be broken and report false positives when being run behind a transparent proxy and probably socks port, we should test that again. If it's still broken that's a very good reason to keep the default home page changed.
-#                               (proper) Test: I used my archived old tor-browser-gnu-linux-i686-2.2.35-12-dev-en-US.tar.gz,
-#                                        used the fixed startup script and my revised user.js. Result: Update check works when using SocksPort 192.168.0.10 9100.
-#                               (proper) The problem with the code below is also, it opens Tor Browser and the readme only once after boot.
-#                                        But we should show the readme/news each time the users starts Tor Browser. We could let the script run permanently,
-#                                        safe the Tor Browser pid in memory and each time there is a new pid open the readme.
-
-#!/bin/bash
-#if [ "$(pgrep firefox)" = "" ]; then
-#   echo "Starting TorBrowser"
-#   ~/tor-browser_en-US/start-tor-browser &
-#else
-#   echo "TBB is already running"
-#fi
-#
-#while [ "$(xlsclients | grep firefox)" = "" ]
-#do
-#   sleep 3
-#done
-#
-#echo "Opening aos Readme"
-#~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme

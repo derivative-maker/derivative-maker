@@ -75,7 +75,7 @@ cd /home/$USERNAME
 
 if [ -f "/usr/local/bin/aos_gateway" ]; then
    VM="aos-Gateway"
-elif [ -f "/usr/local/bin/aos_Workstation" ]; then
+elif [ -f "/usr/local/bin/aos_workstation" ]; then
    VM="aos-Workstation"
 else
    VM="torcheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
@@ -143,6 +143,15 @@ $3"
 
 show_output() {
    # Show result of torcheck and TorBrowser Update check
+   
+   if [ "$ZENITY_TYPE" = "--info" ]; then
+      BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+      MSG="Please support the aos's hosting and development, donate Bitcoin to:
+$BITCOIN_ADDRESS"
+      echo "$MSG"
+      output "--info" "aos Info" "$MSG"  
+   fi
+   
    zenity --display=:0.0 --timeout 86400 --title="$ZENITY_TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
 }
 
@@ -156,15 +165,15 @@ echo "-help for help."
 echo "Currently running wget against https://check.torproject.org... Will take a few seconds..."
 
 # Non-intrusive notification, that the checks are running in background.
+# TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+#notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
 NOTIFY_MSG="
 Checking Tor connection and Tor Browser version...
 This will happen in background. You will be notified about the result in approximatey 15 to 30 seconds.
 "
 
-# TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
-#notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
-
-zenity --display=:0.0 --timeout 86400 --title="aos Info" "--info" --text "$NOTIFY_MSG" &
+# The progress window will close automatically after 100% progress.
+exec 3> >(zenity --display=:0.0 --timeout 86400 --title="aos Info" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
 }
 
 
@@ -192,6 +201,8 @@ cd .torcheck_temp
 ip="$1" port="$2" uwt \
 /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
 
+echo "$PROGRESS"
+
 MSG="Time of message: `date`."
 echo "$MSG"
 output "--info" "aos Info" "$MSG"
@@ -213,6 +224,8 @@ check_torbrowser() {
 # Getting latest version number
 ip="$1" port="$2" uwt \
 /usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions "https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+
+echo "66"
 
 if [ "$GET_VERSION" = "0" ]; then
    MSG="Tor Browser Update check failed."
@@ -355,20 +368,32 @@ cleanup() {
    rm -r .torcheck_temp
 }
 
+
 welcome
 disclaimer
+
+# Zenity --progress >&3.
+# The 5% indicate, that the check has begun.
+echo 5 >&3
+
 check_network "192.168.0.10" "9110"
+echo 33 >&3
+
 
 if [ "$NETWORK_DOWN" = "1" ]; then
    show_output
 else
    if [ -f "/usr/local/bin/aos_workstation" ]; then
       check_torbrowser "192.168.0.10" "9110"
+      echo 66 >&3
       check_tor "SocksPort"
+      # No need to show progress, already feteched before.
       check_tor "TransPort"
+      echo 100 >&3
    else
       # for aos-Gateway
       check_tor "SocksPort"
+      echo 100 >&3 
    fi
 fi
 

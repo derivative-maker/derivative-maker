@@ -1,6 +1,17 @@
 #!/bin/sh
 
+###########################
+# comments
+###########################
+
 # WARNING! Do not use single quotes/apostrophes in the firwall comments!!!
+
+# --reject-with
+# http://ubuntuforums.org/showthread.php?p=12011099
+
+# Set to icmp-admin-prohibited because icmp-port-unreachable caused
+# confusion. icmp-port-unreachable looks like a bug while
+# icmp-admin-prohibited hopefully makes clear it is by design.
 
 ###########################
 # /usr/local/bin/aos_firewall
@@ -230,14 +241,23 @@ iptables -t nat -A PREROUTING -i "$INT_IF "-p tcp --syn -j REDIRECT --to-ports "
 #+# Replace above rule with a more restrictive one, e.g.:
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
+# Log.
+#iptables -A INPUT -j LOG --log-prefix "aos blocked input4: "
+
 # Reject anything not explicitly allowed above.
-iptables -A INPUT -j REJECT --reject-with icmp-port-unreachable
+# Drop is better than reject here, because we do not want to reveal its and aos-Gateway.
+# (In case someone running aos-Gateway on bare metall.)
+iptables -A INPUT -j DROP
 
 ###########################
 # IPv4 FORWARD
 ###########################
 
-iptables -A FORWARD -j REJECT --reject-with icmp-port-unreachable
+# Log.
+#iptables -A INPUT -j LOG --log-prefix "aos blocked forward4: "
+
+# Reject everything.
+iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 
 ###########################
 # IPv4 OUTPUT
@@ -268,8 +288,11 @@ done
 # Tor is allowed to connect any outside target.
 iptables -A OUTPUT -m owner --uid-owner "$TOR_UID" -j ACCEPT
 
+# Log.
+#iptables -A INPUT -j LOG --log-prefix "aos blocked output4: "
+
 # Reject all other outging traffic.
-iptables -A OUTPUT -j REJECT
+iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
 
 ###########################
 # IPv6
@@ -291,13 +314,15 @@ ip6tables -t mangle -X
 #ip6tables -A INPUT -i lo -j ACCEPT
 #ip6tables -A OUTPUT -o lo -j ACCEPT
 
-# Logging in case, needed for debugging.
-#ip6tables -A INPUT -j LOG
+# Log.
+#ip6tables -A INPUT -j LOG --log-prefix "aos blocked input6: "
+#ip6tables -A INPUT -j LOG --log-prefix "aos blocked output6: "
+#ip6tables -A INPUT -j LOG --log-prefix "aos blocked forward6: "
 
 # Drop/reject all other traffic.
 ip6tables -A INPUT -j DROP
-ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable
-ip6tables -A FORWARD -j DROP
+ip6tables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
+ip6tables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 
 ###########################
 # End
