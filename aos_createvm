@@ -42,6 +42,13 @@ USERNAME="user"
 
 
 
+SNAPSHOT_DESCRIPTION="
+   Reverts your Virtual Machine back to a clean state.
+   All changes, all installed packages, all data you created will be lost!
+"
+
+
+
 ##############################################################################################
 # error_handler
 ##############################################################################################
@@ -340,8 +347,10 @@ fi
 if [[ "$1" = "-tg-export" ]]; then
    root_check
    VMNAME="aos-Gateway"
-   echo "aos_createvm: Decreasing RAM from 256 to 128..."
    VMRAM="128"
+   echo "aos_createvm: Creating snapshot..."
+   sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   echo "aos_createvm: Decreasing RAM from 256 to 128..."
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
    sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
    echo "BUILD INFO: Done."
@@ -426,8 +435,10 @@ fi
 if [[ "$1" = "-tw-export" ]]; then
    root_check
    VMNAME="aos-Workstation"
-   echo "aos_createvm: Increasing RAM from 196 to 512..."
    VMRAM="512"
+   echo "aos_createvm: Creating snapshot..."
+   sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   echo "aos_createvm: Increasing RAM from 196 to 512..."
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
    sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
    echo "BUILD INFO: Done."

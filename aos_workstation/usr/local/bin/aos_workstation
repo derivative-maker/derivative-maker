@@ -158,6 +158,13 @@ sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
 
 
 
+config_htp() {
+   echo "creating the htp user"
+   adduser --system --quiet --group --no-create-home htp || :
+}
+
+
+
 aos_slim_down() {
 echo "
 ######################################################
@@ -245,7 +252,7 @@ history -c
 # -install
 ######################################################
 if [[ "$1" = "-install" ]]; then
-root_check                 # Depends on nothing.
+root_check                # Depends on nothing.
 
 . /usr/share/aos/aos_internal_checks
 . /usr/share/aos/aos_create_swap_file
@@ -256,18 +263,19 @@ root_check                 # Depends on nothing.
 
 . /usr/local/bin/torbrowser
 
-aos_internal_checks        # Depends on nothing.
-aos_create_swap_file       # Depends on root_check, not being run again when in use.
-aos_config_uuids_fstab     # Depends on root_check, not being run again after adding new hdds.
-#import_tpo_archive_key    # Not yet required.
-apt_get                    # Depends on root_check, working internet connection, UTC.
-update-grub2               # /etc/grub/default gets appended by aos_image copyinto.
-patch_torsocks             # Depends on root_check, working internet connection.
-base_desktop               # Depends on root_check, working internet connection.
-tb_force_install           # Depends on working internet connection.
-config_audio               # Depends on base_desktop.
-config_home                # Depends on being run only once.
-aos_slim_down              # Depends on root_check, being last function.
+aos_internal_checks       # Depends on nothing.
+aos_create_swap_file      # Depends on root_check, not being run again when in use.
+aos_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
+#import_tpo_archive_key   # Not yet required.
+apt_get                   # Depends on root_check, working internet connection, UTC.
+update-grub2              # /etc/grub/default gets appended by aos_image copyinto.
+patch_torsocks            # Depends on root_check, working internet connection.
+base_desktop              # Depends on root_check, working internet connection.
+tb_force_install          # Depends on working internet connection.
+config_audio              # Depends on base_desktop.
+config_home               # Depends on being run only once.
+config_htp                # Depends on root_check.
+aos_slim_down             # Depends on root_check, being last function.
 
 echo "Script completed, this indicates neither success nor failure." >&2
 exit 0

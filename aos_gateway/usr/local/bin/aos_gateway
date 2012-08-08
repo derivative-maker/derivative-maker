@@ -158,10 +158,11 @@ apt-get --config-file /usr/share/aos/apt.conf --yes remove --purge \
 popularity-contest ntpdate resolvconf ufw network-manager network-manager-gnome || true
 
 echo "Make sure required software is installed and install tor..."
+# build-essential is required to patch_torsocks.
 apt-get --config-file /usr/share/aos/apt.conf --yes install \
 bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping \
 isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor \
-tor-arm torsocks wget
+tor-arm torsocks wget build-essential
 
 # Additionally install obfsproxy. Disabled by default, because
 # it requires Tor Alpha and is only available in the experimental branch.
@@ -205,6 +206,28 @@ apt-get --config-file /usr/share/aos/apt.conf --yes install --no-install-recomme
 # run under the very same user account.
 chmod g+rw /etc/tor/torrc
 chmod o+rw /etc/tor/torrc
+}
+
+
+
+config_htp() {
+   echo "creating the htp user"
+   adduser --system --quiet --group --no-create-home htp || :
+}
+
+
+
+config_unsafe_user() {
+   echo "creating unsafe user"
+   # setting password of user unsafe to changeme
+   #
+   # How this password was created:
+   # sudo apt-get install whois
+   # mkpasswd
+   # changeme
+   # Resultes to aTayYxVyw5kDo.
+   useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash unsafe
+   chown unsafe /home/unsafe
 }
 
 
@@ -309,11 +332,15 @@ import_tpo_archive_key    # Depends on working internet connection.
 apt_get                   # Depends on root_check, import_tpo_archive_key, working internet connection.
 update-grub2              # /etc/grub/default gets appended by aos_image copyinto.
 patch_torsocks            # Depends on root_check, working internet connection.
-                          # The following ones provide a graphical gateway interface (Vidalia)
+
+                          # The following two provide a graphical gateway interface (Vidalia)
                           # and can be commented out to increase security.
                           # Currently disabled by default because its not finished yet.
 #base_desktop             # Depends on root_check, working internet connection.
 #config_vidalia           # Depends on root_check.
+
+config_htp                # Depends on root_check.
+config_unsafe_user        # Depends on root_check.
 slim_down                 # Must be run last.
 sync                      # Ensure changes get written to disk.
 

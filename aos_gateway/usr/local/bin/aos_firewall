@@ -1,4 +1,25 @@
-#!/bin/sh
+#!/bin/bash
+
+###########################
+# debugging
+###########################
+
+#set -x
+
+###########################
+# error_handler
+###########################
+
+set -e
+
+error_handler() {
+   echo "##################################################"
+   echo "aos firewall script failed!"
+   echo "##################################################"
+   exit 1
+}
+
+trap "error_handler" ERR INT TERM
 
 ###########################
 # comments
@@ -20,22 +41,17 @@
 echo "OK: Loading aos firewall..."
 
 ###########################
-# TOR_UID
+# USERS
 ###########################
 
-# Get and set Tor UID, distro specific!
-TOR_UID="`id -u debian-tor`"
+# Get and set Tor username, distro specific!
+TOR_USER="`id -u debian-tor`"
 
-# TODO:
-# - UID must be hardcoded into firewall script
-# TOR_UID Fallback.
-if [ "$TOR_UID" = "" ]; then
-   echo "WARNING: TOR_UID could not be determined. Setting to 103. Should work for Ubuntu. Distro specific!"
-   TOR_UID="103"
-fi
+# Get unsafe user uid.
+UNSAFE_USER="`id -u unsafe`"
 
-# Output TOR_UID for debugging purposes.
-echo "OK: TOR_UID: $TOR_UID"
+echo "OK: TOR_USER: $TOR_USER"
+echo "OK: UNSAFE_USER: $UNSAFE_USER"
 
 ###########################
 # interfaces
@@ -205,10 +221,6 @@ iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_POLIPO" -j ACCEPT
 #iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_PORT" -j ACCEPT
 #iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_ADDR" -j ACCEPT
 
-# Redirect DNS traffic to DNSPORT.
-#+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSW"
-
 # Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TB" -j REDIRECT --to-ports "$SOCKS_PORT_TB"
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IRC" -j REDIRECT --to-ports "$SOCKS_PORT_IRC"
@@ -233,16 +245,22 @@ iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_POLIPO" -
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_PORT" -j REDIRECT --to-ports "$SOCKS_PORT_ISOLATE_DEST_PORT"
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_ISOLATE_DEST_ADDR" -j REDIRECT --to-ports "$SOCKS_PORT_ISOLATE_DEST_ADDR"
 
-# Catch all remaining tcp and redirect to TransPort.
+# Redirect remaining DNS traffic to DNSPORT.
+# Only user installed applications not configured to use a SocksPort are effected.
 #+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i "$INT_IF "-p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
+iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSW"
+
+# Catch all remaining TCP and redirect to TransPort.
+# Only user installed applications not configured to use a SocksPort are effected.
+#+# SEE #OptionalFeatureNr.5#
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
 #+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
 #+# Replace above rule with a more restrictive one, e.g.:
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
 # Log.
-#iptables -A INPUT -j LOG --log-prefix "aos blocked input4: "
+iptables -A INPUT -j LOG --log-prefix "aos blocked input4: "
 
 # Reject anything not explicitly allowed above.
 # Drop is better than reject here, because we do not want to reveal its and aos-Gateway.
@@ -264,32 +282,40 @@ iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 ###########################
 
 # No NAT for Tor itself.
-iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_UID" -j RETURN
+iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
 
-# Redirect of T-G DNS traffic to DnsPort_AOSG.
-iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSG"
+# No NAT for unsafe user.
+iptables -t nat -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j RETURN
 
-# Exclude connections to local network, AOSW, VirtualBox from being redirected through Tor.
-for NET in "$NON_TOR_AOSG"; do
+### Redirect of T-G DNS traffic to DnsPort_AOSG.
+### No longer in use. Using SocksPort instant.
+##iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_AOSG"
+
+# Exclude connections to local network, aos-Workstation, VirtualBox from being redirected through Tor.
+for NET in $NON_TOR_AOSG; do
  iptables -t nat -A OUTPUT -d "$NET" -j RETURN
 done
 
-# Redirect all T-G TCP traffic to TransPort_AOSG.
-iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSG"
+### Redirect all T-G TCP traffic to TransPort_AOSG.
+### No longer in use. Using SocksPort instant.
+##iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSG"
 
 # Existing connections are accepted.
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# Accept outgoing connections to local network, AOSW and VirtualBox.
-for NET in "$NON_TOR_AOSG;" do
+# Accept outgoing connections to local network, aos-Workstation and VirtualBox.
+for NET in $NON_TOR_AOSG; do
  iptables -A OUTPUT -d "$NET" -j ACCEPT
 done
 
 # Tor is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner "$TOR_UID" -j ACCEPT
+iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
+
+# unsafe user is allowed to connect any outside target.
+iptables -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j ACCEPT
 
 # Log.
-#iptables -A INPUT -j LOG --log-prefix "aos blocked output4: "
+iptables -A INPUT -j LOG --log-prefix "aos blocked output4: "
 
 # Reject all other outging traffic.
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
@@ -321,13 +347,17 @@ ip6tables -t mangle -X
 
 # Drop/reject all other traffic.
 ip6tables -A INPUT -j DROP
-ip6tables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
-ip6tables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
+# --reject-with icmp-admin-prohibited not supported by ip6tables
+ip6tables -A OUTPUT -j REJECT
+# --reject-with icmp-admin-prohibited not supported by ip6tables
+ip6tables -A FORWARD -j REJECT
 
 ###########################
 # End
 ###########################
 
-echo "OK: The firewall should show any messages,"
+echo "OK: The firewall should not show any messages,"
 echo "OK: besides output beginning with prefix OK:..."
 echo "OK: aos firewall loaded."
+
+exit 0
