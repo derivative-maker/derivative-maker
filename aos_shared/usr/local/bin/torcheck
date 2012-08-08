@@ -70,13 +70,21 @@ else
 fi
 
 USERNAME="user"
+VERIFY_TEMPDIR="/home/$USERNAME/.torcheck_temp"
+INSTALLED_AOS_VERSION="`cat /usr/share/aos/version`"
 
 cd /home/$USERNAME
 
 if [ -f "/usr/local/bin/aos_gateway" ]; then
    VM="aos-Gateway"
+   GATEWAY_IP="127.0.0.1"
+   # SOCKS_PORT_TORCHECK="9110"
+   SOCKS_PORT_TORCHECK="9110"
 elif [ -f "/usr/local/bin/aos_workstation" ]; then
    VM="aos-Workstation"
+   GATEWAY_IP="192.168.0.10"
+   # SOCKS_PORT_TORCHECK="9110"
+   SOCKS_PORT_TORCHECK="9110"
 else
    VM="torcheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
 fi
@@ -124,7 +132,7 @@ output() {
       ZENITY_TYPE="$1"
    fi
 
-   if [ "$ZENITY_TITLE" = "aos ERROR" ]; then
+   if [ "$ZENITY_TITLE" = "ERROR" ]; then
       # Do not overwrite. Do nothing to the variables.
       sleep 0
    elif [ "$ZENITY_TITLE" = "aos WARNING" ]; then
@@ -149,10 +157,10 @@ show_output() {
       MSG="Please support the aos's hosting and development, donate Bitcoin to:
 $BITCOIN_ADDRESS"
       echo "$MSG"
-      output "--info" "aos Info" "$MSG"  
+      output "--info" "Info" "$MSG"  
    fi
    
-   zenity --display=:0.0 --timeout 86400 --title="$ZENITY_TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+   zenity --display=:0.0 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION $ZENITY_TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
 }
 
 
@@ -168,50 +176,58 @@ echo "Currently running wget against https://check.torproject.org... Will take a
 # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
 #notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
 NOTIFY_MSG="
-Checking Tor connection and Tor Browser version...
+Checking Tor connection, and Tor Browser and aos version...
 This will happen in background. You will be notified about the result in approximatey 15 to 30 seconds.
 "
 
 # The progress window will close automatically after 100% progress.
-exec 3> >(zenity --display=:0.0 --timeout 86400 --title="aos Info" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+exec 3> >(zenity --display=:0.0 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION Info" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
 }
 
 
 
 disclaimer() {
-MSG="Welcome to aos $VM!
-aos is a non-offical, community project. We are NOT affiliated with torproject.org. The Tor developers are NOT responsible for aos. See Disclaimer for more information.
-aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
-aos is based on Tor.
-aos is experimental software by means of concept and design. Do not rely on it for strong anonymity.
-https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/"
+MSG="aos is produced independently from the Tor® anonymity software and
+carries no guarantee from The Tor Project about quality, suitability
+or anything else.
+aos is experimental software by means of concept and design.
+Do not rely on it for strong anonymity.
+http://torbox.sf.net"
 
 echo "$MSG"
-output "--info" "aos Info" "$MSG"
+output "--info" "Info" "$MSG"
 }
 
 
 
-check_network() {
-mkdir -p .torcheck_temp
-cd .torcheck_temp
+preparation() {
+   rm -r "$VERIFY_TEMPDIR" 2>/dev/null || true
+   mkdir -p "$VERIFY_TEMPDIR"
+   chmod 700 "$VERIFY_TEMPDIR"
+   cd "$VERIFY_TEMPDIR"
+}
 
+
+check_network() {
 # Ensuring normal wget activity can not be linked to torcheck,
 # by using a SocksPort, which is solely used by torcheck.
-ip="$1" port="$2" uwt \
+ip="$GATEWAY_IP" port="$SOCKS_PORT_TORCHECK" uwt \
 /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
 
 echo "$PROGRESS"
 
 MSG="Time of message: `date`."
 echo "$MSG"
-output "--info" "aos Info" "$MSG"
+output "--info" "Info" "$MSG"
 
 if [ "$NETWORK_DOWN" = "1" ]; then
    MSG="Your Internet connection appears to be down."
    echo "$MSG"
-   output "--error" "aos ERROR" "$MSG"
-   return
+   output "--error" "ERROR" "$MSG"
+   show_output
+   echo 100 >&3 
+   cleanup
+   exit 0
 fi
 
 NETWORK_DOWN="0"
@@ -222,7 +238,7 @@ return
 
 check_torbrowser() {
 # Getting latest version number
-ip="$1" port="$2" uwt \
+ip="$GATEWAY_IP" port="$SOCKS_PORT_TORCHECK" uwt \
 /usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions "https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
 
 echo "66"
@@ -230,8 +246,11 @@ echo "66"
 if [ "$GET_VERSION" = "0" ]; then
    MSG="Tor Browser Update check failed."
    echo "$MSG"
-   output "--error" "aos ERROR" "$MSG"
-   return
+   output "--error" "ERROR" "$MSG"
+   show_output
+   echo 100 >&3 
+   cleanup
+   exit 0
 fi
 
 TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`" 
@@ -249,7 +268,7 @@ TorBrowser version. This could be either
 because none is installed or because the
 version format changed."
    echo "$MSG"
-   output "--error" "aos ERROR" "$MSG"
+   output "--error" "ERROR" "$MSG"
    return
 fi
 
@@ -259,7 +278,7 @@ if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
    MSG="Installed TorBrowser version: $TBBINSTALLEDVERSION
 is up to date."
    echo "$MSG"
-   output "--info" "aos Info" "$MSG"
+   output "--info" "Info" "$MSG"
 
 else
    # Outdated...
@@ -297,13 +316,13 @@ elif [ "$1" = "TransPort" ]; then
    if [ "$NETWORK_DOWN" = "1" ]; then
       MSG="SocksPort Test failed! Can not test stream isolation!"
       echo "$MSG"
-      output "--error" "aos ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG"
       return
    fi
 else
   MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
   echo "$MSG"
-  output "--error" "aos ERROR" "$MSG"
+  output "--error" "ERROR" "$MSG"
   return
 fi
 
@@ -340,10 +359,10 @@ else
    MSG="Tor's $1: You are successfully using Tor.
 $IP"
    echo "$MSG"
-   output "--info" "aos Info" "$MSG"
+   output "--info" "Info" "$MSG"
 fi
 
-# Function runs the second time.
+# Function runs for the second time.
 if [ "$1" = "TransPort" ]; then
    # Test stream isolation.
    # Lets compare TransPort with SocksPort.
@@ -351,53 +370,165 @@ if [ "$1" = "TransPort" ]; then
       MSG="IP of Tor's TransPort and IP of Tor's SocksPort are the same!!!
 Stream isolation is appears to be defunct!!!"
       echo "$MSG"
-      output "--info" "aos ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG"
    else
       MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ.
 Stream isolation appears to be functional."
       echo "$MSG"
-      output "--info" "aos Info" "$MSG"
+      output "--info" "Info" "$MSG"
    fi
 fi
+}
+
+
+
+download_aos_news() {
+   ip="$GATEWAY_IP"
+   # SOCKS_PORT_AOS_NEWS="9114"
+   # .........................................................................................................
+   SOCKS_PORT_AOS_NEWS="9113"
+
+   DOWNLOAD_NEWS="1"
+
+   ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
+/usr/bin/wget $TORCHECK_VERBOSE --output-document \
+aos_news.asc "http://torbox.sf.net/aos_news.asc" || DOWNLOAD_NEWS="0"
+
+   if [ "$DOWNLOAD_NEWS" = "0" ]; then
+      MSG="Could not download aos News."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      show_output
+      echo 100 >&3 
+      cleanup
+      exit 0
+   fi
+}
+
+
+
+verify_aos_news() {
+   gpg --homedir "$VERIFY_TEMPDIR" --fingerprint 2>/dev/null
+
+   gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/aos/adrelanos.asc 2>/dev/null
+
+   gpg --homedir "$VERIFY_TEMPDIR" --decrypt aos_news.asc > aos_news
+
+   if [ $? == 0 ];
+   then
+      MSG="Successfully verified adrelanos GPG key."
+      echo "$MSG"
+      # output "--info" "Info" "$MSG"
+      # FYI: Script will continue outside the if.
+   else
+      MSG="Could not gpg verify authenticity of aos News.
+This is either an aos Bug or attack on aos."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+   fi
+}
+
+
+
+check_aos_version() {
+   local i="0"
+   while read LINE; do
+      let i "i=i+1"
+      #echo "$i: $LINE"
+      if [ "$i" = "1" ]; then
+         LATEST_AOS_VERSION="$LINE"
+      fi
+   done < "$VERIFY_TEMPDIR/aos_news"
+
+   if [ "$INSTALLED_AOS_VERSION" = "$LATEST_AOS_VERSION" ]; then
+      # Up to date...
+      MSG="Installed aos Version: $INSTALLED_AOS_VERSION
+is up to date."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+      return
+   fi
+
+   # Outdated...
+   MSG="TorBrowser version: $INSTALLED_AOS_VERSION
+Latest TorBrowser version: $LATEST_AOS_VERSION
+   "
+   echo "$MSG"
+   output "--error" "aos WARNING" "$MSG"
+}
+
+
+
+check_aos_news() {
+   MSG=""
+   local i="0"
+   while read LINE; do
+      let i "i=i+1"
+      #echo "pre i: $i"
+      [ "$i" -lt "3" ] && continue
+      echo "post i: $i"
+      echo "LINE: $LINE"
+
+      if [ "$i" = "3" ]; then
+         MSG="$LINE"
+      else
+         MSG="$MSG
+$LINE"
+      fi
+
+   done < "$VERIFY_TEMPDIR/aos_news"
+
+   echo "MSG: $MSG"
+   output "--info" "Info" "$MSG"
 }
 
 
 
 cleanup() {
    cd ..
-   rm -r .torcheck_temp
+   rm -r "$VERIFY_TEMPDIR"
 }
+
+
+
+# check_aos_news
+# show_output
+# exit 0
 
 
 welcome
 disclaimer
+preparation
 
 # Zenity --progress >&3.
 # The 5% indicate, that the check has begun.
 echo 5 >&3
 
-check_network "192.168.0.10" "9110"
-echo 33 >&3
+check_network
+echo 25 >&3
 
 
-if [ "$NETWORK_DOWN" = "1" ]; then
-   show_output
+
+if [ -f "/usr/local/bin/aos_workstation" ]; then
+   check_torbrowser
+   echo 50 >&3
+   check_tor "SocksPort"
+   # No need to show progress, already feteched before.
+   check_tor "TransPort"
+   echo 75 >&3
+   download_aos_news
+   echo 95 >&3
+   verify_aos_news
+   check_aos_version
+   check_aos_news
 else
-   if [ -f "/usr/local/bin/aos_workstation" ]; then
-      check_torbrowser "192.168.0.10" "9110"
-      echo 66 >&3
-      check_tor "SocksPort"
-      # No need to show progress, already feteched before.
-      check_tor "TransPort"
-      echo 100 >&3
-   else
-      # for aos-Gateway
-      check_tor "SocksPort"
-      echo 100 >&3 
-   fi
+   # for aos-Gateway
+   check_tor "SocksPort"
 fi
 
+echo 100 >&3
 show_output
-cleanup
+#cleanup
+exit 0
 
 # End of torcheck script.
