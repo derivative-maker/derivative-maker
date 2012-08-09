@@ -1,16 +1,25 @@
+#!/bin/bash
+
+set -x
+set -e
+
+trap "error_handler" ERR INT TERM
+
 copy_gateway_pre() {
+trap "error_handler" ERR INT TERM
+
    #########################
    # aos-Gateway Copy Pre  #
    #########################
 
    # Automatically start VM script after booting.
    # Will be undone by copy_shared_post.
-   cp $AOS_SOURCE_FOLDER "$CHROOT_FOLDER"/etc/rc.local
+   cp "$AOS_SOURCE_FOLDER"/rc.local "$CHROOT_FOLDER"/etc/rc.local
    chmod +x "$CHROOT_FOLDER"/etc/rc.local
 
    # Copy VM script into VM image and make it executable.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/"$VMSCRIPT" "$CHROOT_FOLDER"/usr/local/bin/
-   chmod +x $CHROOT_FOLDER/usr/local/bin/$VMSCRIPT
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/"$VMSCRIPT"
 
    # apt.conf currently empty and not used for anything.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/share/aos/apt.conf "$CHROOT_FOLDER"/usr/share/aos/apt.conf
@@ -21,7 +30,7 @@ copy_gateway_pre() {
 
    # Copy aos helpfile into VM.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos "$CHROOT_FOLDER"/usr/local/bin/aos
-   chmod +x "$AOS_SOURCE_FOLDER"/usr/local/bin/aos
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos
 
    # Copy aos firewall script into VM.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
@@ -32,8 +41,8 @@ copy_gateway_pre() {
    chown user "$CHROOT_FOLDER"/home/user/.vidalia
 
    # Setup Vidalia to use Cookie Authentication.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
-   chown user "$CHROOT_FOLDER"/home/user/vidalia/vidalia.conf
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/.vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
+   chown user "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
 
    # Copy aos-Gateway leaktest script into vm and make it executable.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/leaktest "$CHROOT_FOLDER"/usr/local/bin/leaktest
@@ -41,6 +50,8 @@ copy_gateway_pre() {
 }
 
 append_gateway_pre() {
+trap "error_handler" ERR INT TERM
+
    ##########################
    # aos-Gateway Append Pre #
    ##########################
@@ -48,7 +59,7 @@ append_gateway_pre() {
    # Append aos help/welcome message to .bashrc.
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
-   done < "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/aos/appendto_.bashrc
+   done < "$AOS_SOURCE_FOLDER"/aos_gateway/home/user/appendto_.bashrc
 
    # Append to sysctl.conf.
    # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0.

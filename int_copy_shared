@@ -1,5 +1,13 @@
+#!/bin/bash
+
+set -x
+set -e
+
+trap "error_handler" ERR INT TERM
 
 backup_shared_pre() {
+trap "error_handler" ERR INT TERM
+
    #####################
    # Backup Shared Pre #
    #####################
@@ -25,6 +33,8 @@ backup_shared_pre() {
 }
 
 copy_shared_pre() {
+trap "error_handler" ERR INT TERM
+
    ###################
    # Copy Shared Pre #
    ###################
@@ -34,7 +44,7 @@ copy_shared_pre() {
    rm $CHROOT_FOLDER/home/user/aosinstalllog || true
 
    # policy-rc.d prevent daemons from starting while using apt-get.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
    chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
 
    # Ensure timezone is UTC. Just to be safe, already done with preseed install.
@@ -67,8 +77,8 @@ copy_shared_pre() {
    cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/uwt "$CHROOT_FOLDER"/usr/local/bin/uwt
 
    # Copy torcheck script into VM image and make it executable.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/torcheck $CHROOT_FOLDER/usr/local/bin/
-   chmod +x $CHROOT_FOLDER/usr/local/bin/torcheck
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/torcheck $CHROOT_FOLDER/usr/local/bin/
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/torcheck
 
    # fstab
    # Yes, system also boots up if fstab uuids are wrong.
@@ -88,6 +98,8 @@ copy_shared_pre() {
 }
 
 append_shared_pre() {
+trap "error_handler" ERR INT TERM
+
    #####################
    # Append Shared Pre #
    #####################
@@ -100,7 +112,7 @@ append_shared_pre() {
    # /etc/sudoers
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
-   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/append_sudoers
+   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/appendto_sudoers
 
    # Ensure correct permissions on sudoers.
    chmod 0440 "$CHROOT_FOLDER"/etc/sudoers
@@ -108,6 +120,8 @@ append_shared_pre() {
 }
 
 copy_shared_post() {
+trap "error_handler" ERR INT TERM
+
    ########################
    # aos-Shared Copy Post #
    ########################
@@ -120,5 +134,5 @@ copy_shared_post() {
    # scripts get executed inside the VM. We restore /etc/rc.local
    # here. A new aos-Image -tX-copyinto would overwrite it
    # again.
-   cp $AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local 
+   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local 
 }
