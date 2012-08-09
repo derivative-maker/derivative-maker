@@ -8,14 +8,34 @@ trap "error_handler" ERR INT TERM
 backup_shared_pre() {
 trap "error_handler" ERR INT TERM
 
+   #########################
+   # Backup Shared Restore #
+   #########################
+
+   # This is neccessary in case the copy into is used more then once. (Debugging)
+   # It restores the backups and therefore prevents files getting appended more than once.
+
+   cp "$CHROOT_FOLDER"/etc/sudoers.backup "$CHROOT_FOLDER"/etc/sudoers || true
+   cp "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup "$CHROOT_FOLDER"/home/$USERNAME/.bashrc || true
+   cp "$CHROOT_FOLDER"/etc/rc.local.backup "$CHROOT_FOLDER"/etc/rc.local || true
+   cp "$CHROOT_FOLDER"/etc/apt/sources.list.backup "$CHROOT_FOLDER"/etc/apt/sources.list || true
+   cp "$CHROOT_FOLDER"/etc/default/grub.backup "$CHROOT_FOLDER"/etc/default/grub || true
+   cp "$CHROOT_FOLDER"/etc/sysctl.conf.backup "$CHROOT_FOLDER"/etc/sysctl.conf || true
+   cp "$CHROOT_FOLDER"/etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces || true
+   cp "$CHROOT_FOLDER"/etc/init/tty1.conf.backup "$CHROOT_FOLDER"/etc/init/tty1.conf || true
+   cp "$CHROOT_FOLDER"/etc/init/tty6.conf.backup "$CHROOT_FOLDER"/etc/init/tty6.conf || true
+   cp "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup "$CHROOT_FOLDER"/etc/init/failsafe.conf || true
+
    #####################
    # Backup Shared Pre #
    #####################
 
    cp -n "$CHROOT_FOLDER"/etc/sudoers "$CHROOT_FOLDER"/etc/sudoers.backup
    chmod 0440 "$CHROOT_FOLDER"/etc/sudoers.backup
+   chown root /etc/sudoers.backup
 
    cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
+   chown user "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
 
    # Better no backup of localtime.
    #cp -n "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
@@ -115,8 +135,7 @@ trap "error_handler" ERR INT TERM
    done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/appendto_sudoers
 
    # Ensure correct permissions on sudoers.
-   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers
-   chown root /etc/sudoers.backup
+   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
 }
 
 copy_shared_post() {
