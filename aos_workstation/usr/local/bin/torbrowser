@@ -36,7 +36,8 @@ echo "
 # script without root.
 
 USERNAME="user"
-
+AOS_GATEWAY_IP="192.168.0.10"
+SOCKS_PORT_TBB_DOWNLOAD="9115"
 
 
 #########################################################################
@@ -58,7 +59,9 @@ echo "
 #################################
 "
 
-sudo -u $USERNAME wget --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+--output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
 
 echo "
@@ -200,14 +203,16 @@ else
 fi
 
 # Find out latest version.
-sudo -u $USERNAME wget --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+--output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 # Phrasing the last version information.
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
 
 # Download the latest Tor Browser Bundle and its gpg signature.
-# sudo -u $USERNAME wget http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
-sudo -u $USERNAME wget https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+# http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
 
 # Verify GPG signature.
 # Not using the users GPG keyring also ensures, that the key can be only
