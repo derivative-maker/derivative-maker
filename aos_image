@@ -8,28 +8,23 @@ AOS_SOURCE_FOLDER="/home/user/aos"
 script_help() {
 echo \
 "
-# FLAGS / WORKFLOW:
-
-# 1. Install operating system using: sudo ./aos_createvm -tg-install-os
-
+# -tg-copyinto-pre
+#  Run before installing script.
 #
-# 2. -tg-copyinto-pre
-#    Copies files.
-
-# 3. Run vm script using: sudo ./aos_createvm -tg-install-script
-
-# 4. -tg-copyinto-post
-#    Copies files.
-
-# -tw...
-
+# -tg-copyinto-post
+#  Run after installing script.
+#
+#
+#
 # Same for aos-workstation. Use -tw instant of -tg.
-
+#
+#
+#
 # DEBUGGING ONLY:
-
+#
 # -tg-mount
 # Mounts the VM image.
-
+#
 # -tg-unmount
 # Unmounts the VM image.
 "
@@ -39,9 +34,6 @@ echo \
 
 # Enable debugging.
 set -x
-
-# Stop on error.
-#set -x
 
 #
 set -E
@@ -101,7 +93,17 @@ mount_vm_image() {
    modprobe nbd
 
    # Create loopback dev for the image.
-   qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+   # old, was working: qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+
+   # Find name of .vdi file. New:
+   local VDI="`find  "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/*.vdi`"
+   # example result: /home/user/VirtualBox VMs/aos-Gateway/aos-Gateway-disk1.vdi
+   # For debugging its useful to clone a VM, where only the operating system has been installed,
+   # before running the script or before copying into it.
+   # When restoring the VMClone to VM, the VDI may have another name.
+
+   # Create loopback dev for the image. New:
+   qemu-nbd -c /dev/nbd0 "$VDI"
 
    # Folder has to exist to mount the image.
    mkdir -p $CHROOT_FOLDER
@@ -199,6 +201,10 @@ if [[ "$1" = "-tg-mount" ]]; then
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
    echo "INFO: mount done."
+   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   echo "- Leave the folder after you are done!!! cd ~"
+   echo "- Do not forget to run: sudo ./aos_createvm -tg-unmount"
+   echo "- Otherwise strange bugs may occour."
    exit 0
 fi
 
@@ -234,7 +240,7 @@ if [[ "$1" = "-tg-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_gateway_post
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-unmount"
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-export"
    exit 0
 fi
 
@@ -263,6 +269,10 @@ if [[ "$1" = "-tw-mount" ]]; then
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
    echo "INFO: mount done."
+   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   echo "- Leave the folder after you are done!!! cd ~"
+   echo "- Do not forget to run: sudo ./aos_createvm -tw-unmount"
+   echo "- Otherwise strange bugs may occour."
    exit 0
 fi
 
@@ -298,7 +308,7 @@ if [[ "$1" = "-tw-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_post
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-unmount"
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-export"
    exit 0
 fi
 

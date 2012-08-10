@@ -8,23 +8,22 @@ script_help() {
 echo "
 # FLAGS / WORKFLOW:
 #
-# -tg-pre
+# -tg-createvm
 # -tg-install-os
-# -tg-post
-# use: sudo ./aos_image -tg-mount, -tg-copyinto, -tg-unmout
-#      to get the script into the VM image
+# -tg-post-install-os
+#
+# -to get the files into the VM image use:
+#  sudo ./aos_image -tg-copyinto-pre
+#      
 # -tg-install-script
+# -to get the files into the VM image use:
+#  sudo ./aos_image -tg-copyinto-post
+#
 # -tg-export
 # (perhaps) -tg-delete
 #
-# -tw-pre
-# -tw-install-os
-# -tw-post
-# use: sudo ./aos_image -tw-mount, -tw-copyinto, -tw-unmout
-#      to get the script into the VM image
-# -tw-install-script
-# -tw-export
-# (perhaps) -tw-delete
+# TODO:
+# same for tw
 "
 }
 
@@ -287,9 +286,9 @@ rm "$HOME/aos_binary/$VMNAME".ova || true
 
 
 ################################################################ 
-# -tg-pre                                                      #
+# -tg-createvm                                                 #
 ################################################################ 
-if [[ "$1" = "-tg-pre" ]]; then
+if [[ "$1" = "-tg-createvm" ]]; then
    root_check
    VMNAME="aos-Gateway"
    VMHDDSIZE="2048"
@@ -311,20 +310,20 @@ if [[ "$1" = "-tg-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post-install-os"
    exit 0
 fi
 
 
 
 ################################################################ 
-# -tg-post                                                     #
+# -tg-post-install-os                                          #
 ################################################################ 
-if [[ "$1" = "-tg-post" ]]; then
+if [[ "$1" = "-tg-post-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    gateway_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_Image -tg-mount"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-script"
    exit 0
 fi
 
@@ -375,9 +374,9 @@ fi
 
 
 ################################################################ 
-# -tw-pre                                                      #
+# -tw-createvm                                                 #
 ################################################################ 
-if [[ "$1" = "-tw-pre" ]]; then
+if [[ "$1" = "-tw-createvm" ]]; then
    root_check
    VMNAME="aos-Workstation"
    VMHDDSIZE="8192"
@@ -399,20 +398,20 @@ if [[ "$1" = "-tw-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post-install-os"
    exit 0
 fi
 
 
 
 ################################################################ 
-# -tw-post                                                     #
+# -tw-post-install-os                                          #
 ################################################################ 
-if [[ "$1" = "-tw-post" ]]; then
+if [[ "$1" = "-tw-post-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    workstation_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_Image -tw-mount"
+   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_image -tw-copyinto-pre"
    exit 0
 fi
 

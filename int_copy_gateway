@@ -14,6 +14,18 @@ copy_gateway_pre() {
    cp "$AOS_SOURCE_FOLDER"/rc.local "$CHROOT_FOLDER"/etc/rc.local
    chmod +x "$CHROOT_FOLDER"/etc/rc.local
 
+   # Copy interfaces into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
+
+   # UGLY WORKAROUND:
+   echo '#!/bin/bash
+
+        echo "aos_firewall not active during build (aos_internal_install_script)."
+        exit 0
+   ' > "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+
+
    # Copy VM script into VM image and make it executable.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_internal_install_script "$CHROOT_FOLDER"/usr/local/bin/
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_internal_install_script
@@ -28,10 +40,6 @@ copy_gateway_pre() {
    # Copy aos helpfile into VM.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos "$CHROOT_FOLDER"/usr/local/bin/aos
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos
-
-   # Copy aos firewall script into VM.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
 
    # Create folder for vidalia.
    mkdir -p "$CHROOT_FOLDER"/home/user/.vidalia
@@ -73,14 +81,15 @@ copy_gateway_post() {
    # Backup torrc inside VM before replacing it with aos version.
    cp -n "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
 
+   # Copy aos firewall script into VM.
+   cp "$AOS_SOURCE_FOLDER"/aos_gateway/usr/local/bin/aos_firewall "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aos_firewall
+
    # Copy aos torrc into VM.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
 
    # Autologin, copy tty1.conf into VM.
    cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
-
-   # Copy interfaces into VM.
-   cp "$AOS_SOURCE_FOLDER"/aos_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
 
    # Delete /etc/resolv.conf to work around some strange bug
    # "Operation not supported While reading flags on" while

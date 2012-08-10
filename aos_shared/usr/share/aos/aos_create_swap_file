@@ -4,17 +4,6 @@
 
 set -x
 
-error_handler() {
-echo "
-##################################################
-# aos_create_swap_file: ERROR detected.          #
-##################################################
-"
-exit 1
-}
-
-trap "error_handler" ERR INT TERM
-
 aos_create_swap_file() {
 echo "
 ######################################################
@@ -22,6 +11,12 @@ echo "
 ######################################################
 "
 # Source: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
+
+echo "Checking if something accessing /swapfile1."
+echo "`lsof | grep /swapfile1`"
+
+echo "Delete /swapfile1 if it already exists. Only in case re-running the script."
+rm swapfile1 || true
 
 # Creating 512 MB swap file.
 echo "INFO: Creating /swapfile1... This may take a while..."
