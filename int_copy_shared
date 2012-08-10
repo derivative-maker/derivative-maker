@@ -1,13 +1,8 @@
 #!/bin/bash
 
 set -x
-set -e
-
-trap "error_handler" ERR INT TERM
 
 backup_shared_pre() {
-trap "error_handler" ERR INT TERM
-
    #########################
    # Backup Shared Restore #
    #########################
@@ -52,16 +47,16 @@ trap "error_handler" ERR INT TERM
    cp -n "$CHROOT_FOLDER"/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup
 }
 
-copy_shared_pre() {
-trap "error_handler" ERR INT TERM
 
+
+copy_shared_pre() {
    ###################
    # Copy Shared Pre #
    ###################
 
    # Delete old log, otherwise the VM script would not get executed.
    # See rc.local above.
-   rm $CHROOT_FOLDER/home/user/aosinstalllog || true
+   rm "$CHROOT_FOLDER"/home/user/aosinstalllog || true
 
    # policy-rc.d prevent daemons from starting while using apt-get.
    cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
@@ -117,9 +112,9 @@ trap "error_handler" ERR INT TERM
    cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/version "$CHROOT_FOLDER"/usr/share/aos/version
 }
 
-append_shared_pre() {
-trap "error_handler" ERR INT TERM
 
+
+append_shared_pre() {
    #####################
    # Append Shared Pre #
    #####################
@@ -138,20 +133,26 @@ trap "error_handler" ERR INT TERM
    chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
 }
 
+
+
 copy_shared_post() {
-trap "error_handler" ERR INT TERM
+   ##########################
+   # aos-Shared Delete Post #
+   ##########################
+
+   # Make daemons start again.
+   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
+   # Delete aosinstalllog.
+   rm "$CHROOT_FOLDER"/home/user/aosinstalllog || true
 
    ########################
    # aos-Shared Copy Post #
    ########################
 
-   # Make daemons start again.
-   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
-
    # /etc/rc.local was (ab)used by aos-Image -tX-copyinto-pre
-   # to run aos_$VM script once. That is because aos_$VM
-   # scripts get executed inside the VM. We restore /etc/rc.local
-   # here. A new aos-Image -tX-copyinto would overwrite it
-   # again.
+   # to run /usr/local/bin/aosinstallscript script once. That the
+   # scripts gets executed inside the VM. We restore /etc/rc.local
+   # here.
    cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local 
 }
