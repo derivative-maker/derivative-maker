@@ -11,14 +11,9 @@ echo "
 # -tg-createvm
 # -tg-install-os
 # -tg-post-install-os
-#
-# -to get the files into the VM image use:
-#  sudo ./aos_image -tg-copyinto-pre
-#      
+# -tg-copyinto-pre
 # -tg-install-script
-# -to get the files into the VM image use:
-#  sudo ./aos_image -tg-copyinto-post
-#
+# -tg-copyinto-post
 # -tg-export
 # (perhaps) -tg-delete
 #
@@ -35,10 +30,13 @@ echo "
 # Enable debugging.
 set -x
 
+#
+set -E
+
 
 
 USERNAME="user"
-
+AOS_SOURCE_FOLDER="/home/$USERNAME/aos"
 
 
 SNAPSHOT_DESCRIPTION="
@@ -66,6 +64,13 @@ exit 1
 }
 
 trap "error_handler" ERR INT TERM
+
+
+
+source "$AOS_SOURCE_FOLDER"/int_aos_image
+source "$AOS_SOURCE_FOLDER"/int_copy_shared
+source "$AOS_SOURCE_FOLDER"/int_copy_gateway
+source "$AOS_SOURCE_FOLDER"/int_copy_workstation
 
 
 
@@ -301,8 +306,6 @@ if [[ "$1" = "-tg-createvm" ]]; then
    exit 0
 fi
 
-
-
 ################################################################ 
 # -tg-install-os                                               #
 ################################################################ 
@@ -313,8 +316,6 @@ if [[ "$1" = "-tg-install-os" ]]; then
    echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post-install-os"
    exit 0
 fi
-
-
 
 ################################################################ 
 # -tg-post-install-os                                          #
@@ -327,7 +328,20 @@ if [[ "$1" = "-tg-post-install-os" ]]; then
    exit 0
 fi
 
-
+################################################################ 
+# -tg-copyinto-pre                                             #
+################################################################ 
+if [[ "$1" = "-tg-copyinto-pre" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   VMSCRIPT="aos_gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_aos_gateway_pre
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   exit 0
+fi
 
 ################################################################ 
 # -tg-install-script                                           #
@@ -340,7 +354,20 @@ if [[ "$1" = "-tg-install-script" ]]; then
    exit 0
 fi
 
-
+################################################################ 
+# -tg-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tg-copyinto-post" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   VMSCRIPT="aos_gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_aos_gateway_post
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-export"
+   exit 0
+fi
 
 ################################################################ 
 # -tg-export                                                   #
@@ -358,8 +385,6 @@ if [[ "$1" = "-tg-export" ]]; then
    exit 0
 fi
 
-
-
 ################################################################ 
 # -tg-delete                                                   #
 ################################################################ 
@@ -369,9 +394,6 @@ if [[ "$1" = "-tg-delete" ]]; then
    delete_vm
    exit 0
 fi
-
-
-
 
 ################################################################ 
 # -tw-createvm                                                 #
@@ -389,8 +411,6 @@ if [[ "$1" = "-tw-createvm" ]]; then
    exit 0
 fi
 
-
-
 ################################################################ 
 # -tw-install-os                                               #
 ################################################################ 
@@ -401,8 +421,6 @@ if [[ "$1" = "-tw-install-os" ]]; then
    echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post-install-os"
    exit 0
 fi
-
-
 
 ################################################################ 
 # -tw-post-install-os                                          #
@@ -415,7 +433,20 @@ if [[ "$1" = "-tw-post-install-os" ]]; then
    exit 0
 fi
 
-
+################################################################ 
+# -tw-copyinto-pre                                             #
+################################################################ 
+if [[ "$1" = "-tw-copyinto-pre" ]]; then
+   root_check
+   VMNAME="aos-Workstation"
+   VMSCRIPT="aos_workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_aos_workstation_pre
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   exit 0
+fi
 
 ################################################################ 
 # -tw-install-script                                           #
@@ -428,7 +459,20 @@ if [[ "$1" = "-tw-install-script" ]]; then
    exit 0
 fi
 
-
+################################################################ 
+# -tw-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tw-copyinto-post" ]]; then
+   root_check
+   VMNAME="aos-Workstation"
+   VMSCRIPT="aos_workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_aos_workstation_post
+   unmount_vm_image
+   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-export"
+   exit 0
+fi
 
 ################################################################ 
 # -tw-export                                                   #
@@ -469,6 +513,62 @@ if [[ "$1" = "-help" ]]; then
 fi
 
 
+
+################################################################ 
+# -tg-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tg-mount" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   echo "INFO: mount done."
+   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   echo "- Leave the folder after you are done!!! cd ~"
+   echo "- Do not forget to run: sudo ./aos_createvm -tg-unmount"
+   echo "- Otherwise strange bugs may occour."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tw-unmount" ]]; then
+   root_check
+   VMNAME="aos-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   unmount_vm_image
+   echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tw-mount" ]]; then
+   root_check
+   VMNAME="aos-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   mount_vm_image
+   echo "INFO: mount done."
+   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   echo "- Leave the folder after you are done!!! cd ~"
+   echo "- Do not forget to run: sudo ./aos_createvm -tw-unmount"
+   echo "- Otherwise strange bugs may occour."
+   exit 0
+fi
+
+################################################################ 
+# -tg-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tg-unmount" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
+   unmount_vm_image
+   echo "INFO: unmount done."
+   exit 0
+fi
 
 ################################################################ 
 # no option chosen                                             #

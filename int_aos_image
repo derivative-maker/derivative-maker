@@ -1,0 +1,146 @@
+#!/bin/bash
+# internally used by aos_createvm
+
+# See LICENSE in root of aos source for copyright, license and authors.
+
+# Enable debugging.
+set -x
+
+##############################################################################################
+# error_handler
+##############################################################################################
+error_handler_int_aos_image() {
+echo "
+#!!! ERROR in int_aos_image !!!#
+#!!! ERROR in int_aos_image !!!#
+#!!! ERROR in int_aos_image !!!#
+"
+
+echo "aos_image: unmount_vm_image..."
+unmount_vm_image_force
+echo "aos_image: Done."
+
+touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
+exit 1
+}
+
+
+
+mount_vm_image() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+   # Ensure powered is off. Otherwise disk corruption is at high risk.
+   sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
+
+   # Make sure required module to mount vdi images is installed.
+   modprobe nbd
+
+   # Create loopback dev for the image.
+   # old, was working: qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+
+   # Find name of .vdi file. New:
+   local VDI="`find  "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/*.vdi`"
+   # example result: /home/user/VirtualBox VMs/aos-Gateway/aos-Gateway-disk1.vdi
+   # For debugging its useful to clone a VM, where only the operating system has been installed,
+   # before running the script or before copying into it.
+   # When restoring the VMClone to VM, the VDI may have another name.
+
+   # Create loopback dev for the image. New:
+   qemu-nbd -c /dev/nbd0 "$VDI"
+
+   # Folder has to exist to mount the image.
+   mkdir -p $CHROOT_FOLDER
+
+   # Mount the partitions, that are exposed as /dev/nbd0pXXX.
+   mount -o noatime /dev/nbd0p1 $CHROOT_FOLDER
+}
+
+
+
+copy_into_vm_image_aos_gateway_pre() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_gateway_pre
+   append_gateway_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_gateway_post() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+   copy_shared_post
+   copy_gateway_post
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_workstation_pre() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_workstation_pre
+   append_workstation_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_aos_workstation_post() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+   copy_shared_post
+   copy_workstation_post
+   append_workstation_post
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+
+
+unmount_vm_image_force() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+# Will be called if there is an error.
+# || true to avoid more errors and to ensure
+# clean unmount.
+
+# Ensure changes get written.
+sync || true
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0 || true
+
+# In the end unmount.
+umount $CHROOT_FOLDER || true
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER || true
+}
+
+
+
+unmount_vm_image() {
+   trap "error_handler_int_aos_image" ERR INT TERM
+
+# Called after copying into vm.
+# Should not trow any errors.
+
+# Ensure changes get written.
+sync
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0
+
+# In the end unmount.
+umount $CHROOT_FOLDER
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER
+}
