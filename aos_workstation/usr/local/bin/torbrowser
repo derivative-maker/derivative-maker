@@ -35,8 +35,29 @@ echo "
 # make some changes, which require root, please disallow running the
 # script without root.
 
+
+
+# Debugging.
+#set -x
+
+# Exit on error.
+# set -e
+
+
+
+error_handler() {
+   echo "######################################################"
+   echo "# torbrowser aos script bug. Please report this bug. #"
+   echo "######################################################"
+   exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+
+
 USERNAME="user"
-AOS_GATEWAY_IP="192.168.0.10"
+AOS_GATEWAY_IP="192.168.1.10"
 SOCKS_PORT_TBB_DOWNLOAD="9115"
 SOCKS_PORT_TBB_GPG="9116"
 
@@ -47,12 +68,14 @@ SOCKS_PORT_TBB_GPG="9116"
 #########################################################################
 
 tb_update_check() {
+trap "error_handler" ERR INT TERM
+
 #################################
 # prompt user about TBB update.
 #################################
 cd /home/$USERNAME
-rm -r tbbdownload/
-sudo -u $USERNAME mkdir tbbdownload
+rm -r tbbdownload/ || true
+sudo -u $USERNAME mkdir -p tbbdownload
 cd tbbdownload
 
 echo "
@@ -61,7 +84,7 @@ echo "
 #################################
 "
 
-sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
@@ -72,12 +95,9 @@ echo "
 #################################
 "
 
-# Will fail if the file does not exist. Will not break the script.
-# TODO:
-# - (proper) Lets hardcode the path to /home/$USERNAME/tor-browser_en-US/Docs/changelog ?
-# - (proper) Needs to be changed/fixed in torcheck as well, since torcheck is currently broken.
-#   (torcheck is in /usr/local/bin/torcheck and .. relative paths do not work there.)
-TBBINSTALLEDVERSION=`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`
+# Will fail if the file does not exist, i.e. Tor Browser not installed.
+# Will not break the script.
+TBBINSTALLEDVERSION=`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'` || true
 
 current="$TBBINSTALLEDVERSION"
 check=""
@@ -118,7 +138,7 @@ echo "
 #################################
 "
 
-killall firefox
+killall firefox || true
 
 echo "
 #################################
@@ -136,6 +156,8 @@ tb_force_install
 #########################################################################
 
 tb_force_install() {
+trap "error_handler" ERR INT TERM
+
 # Install TBB and patch it.
 # This part may break when the file name or RecommendedTBBVersions format changes!
 
@@ -207,7 +229,7 @@ else
 fi
 
 # Find out latest version.
-sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 # Phrasing the last version information.
@@ -215,7 +237,7 @@ TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk 
 
 # Download the latest Tor Browser Bundle and its gpg signature.
 # http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
-sudo -u $USERNAME ip="$SOCKS_PORT_TBB_DOWNLOAD" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
 
 # Verify GPG signature.
@@ -286,6 +308,8 @@ exit 0
 #########################################################################
 
 tb_create_user_js() {
+trap "error_handler" ERR INT TERM
+
 # Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
 # Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (aos-Gateway);
@@ -339,6 +363,8 @@ user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,91
 #########################################################################
 
 tb_start_with_readme() {
+trap "error_handler" ERR INT TERM
+
    PID="`pidof firefox`"
 
    if [ "$PID" = "" ]; then
@@ -366,6 +392,8 @@ tb_start_with_readme() {
 #########################################################################
 
 tb_start_without_readme() {
+trap "error_handler" ERR INT TERM
+
    ~/tor-browser_en-US/start-tor-browser &
 }
 
