@@ -30,6 +30,22 @@ echo "
 
 
 
+# Comment on this script:
+# I would be very happy if this script would not be requried.
+# Unfortunately, it is required. It works arround a lot bugs:
+# - There is no deb/rpm/whatever package with Tor Browser.
+#   https://trac.torproject.org/projects/tor/ticket/5236
+#   https://trac.torproject.org/projects/tor/ticket/3994
+# - There is no way to keep Tor Browser updated.
+#   (Thandy doesn't exist yet.)
+# - There is no way to add the aos Readme well vistable to Tor Browser-
+#   https://trac.torproject.org/projects/tor/ticket/6025
+#   https://trac.torproject.org/projects/tor/ticket/6053
+# - Tor Browsers support for Isolating and Transparent Proxies is very limited:
+#   https://trac.torproject.org/projects/tor/ticket/5611
+
+
+
 # For developers:
 # Please keep in mind, we allow running this without root. If you ever
 # make some changes, which require root, please disallow running the
@@ -38,7 +54,7 @@ echo "
 
 
 # Debugging.
-#set -x
+set -x
 
 # Exit on error.
 # set -e
@@ -287,21 +303,21 @@ sudo -u $USERNAME rm -r ./tor-browser_en-US/Data/{Tor,Vidalia}
 sudo -u $USERNAME rm -r ./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}
 sudo -u $USERNAME rm -r ./tor-browser_en-US/Lib/*
 
-# Call the function create_tb_user_js().
-create_tb_user_js
+# Call the function tb_create_user_js().
+tb_create_user_js
 
-echo "INFO: cd /home/$USERNAME..."
-cd /home/$USERNAME
 echo "INFO: Moving old folder tor-browser_en-US..."
-sudo -u $USERNAME mv tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`"
+sudo -u $USERNAME mv /home/$USERNAME/tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
 echo "INFO: Moving temporary folder tbbdownload/tor-browser_en-US to /home/$USERNAME/tor-browser_en-US"
-mv tbbdownload/tor-browser_en-US tor-browser_en-US
+mv /home/$USERNAME/tbbdownload/tor-browser_en-US /home/$USERNAME/tor-browser_en-US
 echo "INFO: Deleting temporary folder tbbdownload..."
-sudo -u $USERNAME rm -r tbbdownload
+sudo -u $USERNAME rm -r /home/$USERNAME/tbbdownload
 echo "INFO: Finished installing TBB. Can be found in /home/$USERNAME/tor-browser_en-US."
 
 exit 0
 }
+
+
 
 #########################################################################
 # tb_create_user_js                                                     #
@@ -313,9 +329,7 @@ trap "error_handler" ERR INT TERM
 # Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
 # Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (aos-Gateway);
-# expanding extensions.torbutton.banned_ports with aos specific ports;
-# and set homepage to aos/Readme.
-# http://kb.mozillazine.org/User.js_file
+# expanding extensions.torbutton.banned_ports with aos specific ports.
 
 echo '
 # Begin of User.js.
@@ -350,10 +364,10 @@ user_pref("general.autoScroll", true);
 # https://www.torproject.org/torbutton/en/design/
 # http://idnxcnkne4qt76tg.onion/torbutton/en/design/
 # and search for extensions.torbutton.banned_ports
-user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,9102,9103,9104,9105,9106,9107,9108,9109,9110,9111,9112,9113, 9114, 9115,9116");
+user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,9102,9103,9104,9105,9106,9107,9108,9109,9110,9111,9112,9113,9114,9115,9116");
 
 # End of user.js.
-' | sudo -u $USERNAME tee /home/user/tor-browser_en-US/Data/profile/user.js
+' | sudo -u $USERNAME tee /home/$USERNAME/tbbdownload/tor-browser_en-US/Data/profile/user.js
 }
 
 
@@ -365,7 +379,7 @@ user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,91
 tb_start_with_readme() {
 trap "error_handler" ERR INT TERM
 
-   PID="`pidof firefox`"
+   PID="`pidof firefox`" || true
 
    if [ "$PID" = "" ]; then
       echo "Starting TorBrowser"
@@ -376,11 +390,11 @@ trap "error_handler" ERR INT TERM
 
    while [ "$PID" = "" ]
    do
-      PID="`pidof firefox`"
+      PID="`pidof firefox`" || true
       sleep 3
    done
 
-   echo "Opening aos Readme"
+   echo "Opening aos Readme..."
 
    ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme &
 }
@@ -392,7 +406,7 @@ trap "error_handler" ERR INT TERM
 #########################################################################
 
 tb_start_without_readme() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
    ~/tor-browser_en-US/start-tor-browser &
 }
