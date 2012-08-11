@@ -2,24 +2,29 @@
 # build script: /home/user/aos/aos_createvm
 #########################################
 
-# See LICENSE in root of aos source for copyright, license and authors.
+: "See LICENSE in root of aos source for copyright, license and authors."
 
 script_help() {
-echo "
-# FLAGS / WORKFLOW:
-#
-# -tg-createvm
-# -tg-install-os
-# -tg-post-install-os
-# -tg-copyinto-pre
-# -tg-install-script
-# -tg-copyinto-post
-# -tg-export
-# (perhaps) -tg-delete
-#
-# TODO:
-# same for tw
-"
+: "help: FLAGS / WORKFLOW:"
+: "help:"
+: "help: -tg-createvm"
+: "help: -tg-install-os"
+: "help: -tg-post-install-os"
+: "help: -tg-copyinto-pre"
+: "help: -tg-install-script"
+: "help: -tg-copyinto-post"
+: "help: -tg-export"
+: "help: (perhaps) -tg-delete"
+: "help:"
+: "help: -tw-createvm"
+: "help: -tw-install-os"
+: "help: -tw-post-install-os"
+: "help: -tw-copyinto-pre"
+: "help: -tw-install-script"
+: "help: -tw-copyinto-post"
+: "help: -tw-export"
+: "help: (perhaps) -tg-delete"
+: "help:"
 }
 
 # Variables are set in -tw/g parameters at the bottom
@@ -27,37 +32,25 @@ echo "
 # - VMNAME
 # - VMRAM
 
-# Enable debugging.
-set -x
-
-#
-set -E
-
-
-
-USERNAME="user"
-AOS_SOURCE_FOLDER="/home/$USERNAME/aos"
-
-
-SNAPSHOT_DESCRIPTION="
-   Reverts your Virtual Machine back to a clean state.
-   All changes, all installed packages, all data you created will be lost!
-"
-
 
 
 ##############################################################################################
 # error_handler
 ##############################################################################################
+set -o xtrace
+set -o errtrace
+set -o nounset
+set -o errexit
+
 error_handler() {
-echo "
+: echo "
 #!!! ERROR in aos_createvm !!!#
 #!!! ERROR in aos_createvm !!!#
 #!!! ERROR in aos_createvm !!!#
 "
-echo "aos_createvm: Does the VM already exist?"
-echo "aos_createvm: X is a variable, use g or t."
-echo "aos_createvm: If you want to delete an old VM use sudo ./aos_createvm -tX-delete"
+: echo "aos_createvm: Does the VM already exist?"
+: echo "aos_createvm: X is a variable, use g or t."
+: echo "aos_createvm: If you want to delete an old VM use sudo ./aos_createvm -tX-delete"
 
 touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 exit 1
@@ -67,23 +60,37 @@ trap "error_handler" ERR INT TERM
 
 
 
+##############################################################################################
+# variables
+##############################################################################################
+
+USERNAME="user"
+AOS_SOURCE_FOLDER="/home/$USERNAME/aos"
+
+SNAPSHOT_DESCRIPTION="
+   Reverts your Virtual Machine back to a clean state.
+   All changes, all installed packages, all data you created will be lost!
+"
+
+##############################################################################################
+# source
+##############################################################################################
+
 source "$AOS_SOURCE_FOLDER"/int_aos_image
 source "$AOS_SOURCE_FOLDER"/int_copy_shared
 source "$AOS_SOURCE_FOLDER"/int_copy_gateway
 source "$AOS_SOURCE_FOLDER"/int_copy_workstation
 
-
+##############################################################################################
+# root_check
+##############################################################################################
 
 root_check() {
-######################################################
-# Checking script environment
-######################################################
-# Check if we are root
   if [ "$(id -u)" != "0" ]; then
-       echo "ERROR: This must be run as root (sudo)!"
+       : echo "ERROR: This must be run as root (sudo)!"
        exit 1
   else
-       echo "INFO: Script running as root."
+       : echo "INFO: Script running as root."
   fi
 }
 
@@ -289,6 +296,23 @@ rm "$HOME/aos_binary/$VMNAME".ova || true
 }
 
 
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+if [[ $# == 0 ]]; then
+   : echo "No option choosen. Use -help for help."
+   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED || true
+   exit 1
+fi
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
 
 ################################################################ 
 # -tg-createvm                                                 #
@@ -502,18 +526,6 @@ if [[ "$1" = "-tw-delete" ]]; then
    exit 0
 fi
 
-
-
-################################################################ 
-# -help                                                        #
-################################################################ 
-if [[ "$1" = "-help" ]]; then
-   script_help
-   exit 0
-fi
-
-
-
 ################################################################ 
 # -tg-mount                                                    #
 ################################################################ 
@@ -569,10 +581,3 @@ if [[ "$1" = "-tg-unmount" ]]; then
    echo "INFO: unmount done."
    exit 0
 fi
-
-################################################################ 
-# no option chosen                                             #
-################################################################ 
-echo "No option choosen. Use -help for help."
-touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED || true
-exit 1
