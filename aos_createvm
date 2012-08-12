@@ -23,7 +23,7 @@ script_help() {
 : "help: -tw-install-script"
 : "help: -tw-copyinto-post"
 : "help: -tw-export"
-: "help: (perhaps) -tg-delete"
+: "help: (perhaps) -tw-delete"
 : "help:"
 }
 
@@ -158,21 +158,21 @@ install_os_inside_vm() {
    # No questions by VBox (such as grab mouse etc.).
    # The preseed.iso is configured to eject the iso.
    # The preseed.iso is configured to poweroff when its done.
-   echo "aos_createvm: Operating system should now be installed unattended (preseed)..."
-   echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
-   echo "aos_createvm: Check if its not frozen but be patient."
-   echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
-   echo "aos_createvm: Please wait until it has finished."
+   : echo "aos_createvm: Operating system should now be installed unattended (preseed)..."
+   : echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
+   : echo "aos_createvm: Check if its not frozen but be patient."
+   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   : echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
-   echo "aos_createvm: Virtual Box terminated without error messages."
-   echo "aos_createvm: This is no gurantee everything went well inside the VM."
+   : echo "aos_createvm: Virtual Box terminated without error messages."
+   : echo "aos_createvm: This is no gurantee everything went well inside the VM."
 
    # Ensure preseed.iso gets removed.
-   echo "aos_createvm: Removing operating system installation CD..."
+   : echo "aos_createvm: Removing operating system installation CD..."
    sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
-   echo "aos_createvm: Removed operating system installation CD."
+   : echo "aos_createvm: Removed operating system installation CD."
 
    # Plug the cable back in.
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
@@ -243,18 +243,18 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
 install_script_inside_vm() {
    trap "error_handler" ERR INT TERM
 
-   echo "aos_createvm: $VMNAME script should now be applied unattened..."
-   echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
-   echo "aos_createvm: Check if its not frozen but be patient."
-   echo "aos_createvm: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
-   echo "aos_createvm: If that happens you can press ESC to see the echos."
-   echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
-   echo "aos_createvm: Please wait until it has finished."
+   : echo "aos_createvm: $VMNAME script should now be applied unattened..."
+   : echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
+   : echo "aos_createvm: Check if its not frozen but be patient."
+   : echo "aos_createvm: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
+   : echo "aos_createvm: If that happens you can press ESC to see the echos."
+   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   : echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
-   echo "aos_createvm: Virtual Box terminated without error messages."
-   echo "aos_createvm: This is no gurantee everything went well inside the VM."
+   : echo "aos_createvm: Virtual Box terminated without error messages."
+   : echo "aos_createvm: This is no gurantee everything went well inside the VM."
 }
 
 
@@ -277,7 +277,7 @@ gateway_post_install_os() {
 workstation_post_install_os() {
    trap "error_handler" ERR INT TERM
    # Since there is also -tg-post...
-   echo "Does nothing. For the sake of completeness."
+   : echo "Does nothing. For the sake of completeness."
 }
 
 
@@ -326,7 +326,7 @@ if [[ "$1" = "-tg-createvm" ]]; then
    VMRAM="256"
    general_setup
    gateway_specific
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-os"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-os"
    exit 0
 fi
 
@@ -337,7 +337,7 @@ if [[ "$1" = "-tg-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post-install-os"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post-install-os"
    exit 0
 fi
 
@@ -348,7 +348,7 @@ if [[ "$1" = "-tg-post-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    gateway_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-script"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-copyinto-pre"
    exit 0
 fi
 
@@ -363,7 +363,7 @@ if [[ "$1" = "-tg-copyinto-pre" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_gateway_pre
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
    exit 0
 fi
 
@@ -374,7 +374,7 @@ if [[ "$1" = "-tg-install-script" ]]; then
    root_check
    VMNAME="aos-Gateway"
    install_script_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-export"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-copyinto-post"
    exit 0
 fi
 
@@ -389,7 +389,7 @@ if [[ "$1" = "-tg-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_gateway_post
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-export"
+   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-export"
    exit 0
 fi
 
@@ -400,12 +400,12 @@ if [[ "$1" = "-tg-export" ]]; then
    root_check
    VMNAME="aos-Gateway"
    VMRAM="128"
-   echo "aos_createvm: Creating snapshot..."
+   : echo "aos_createvm: Creating snapshot..."
    sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
-   echo "aos_createvm: Decreasing RAM from 256 to 128..."
+   : echo "aos_createvm: Decreasing RAM from 256 to 128..."
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
    sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
-   echo "BUILD INFO: Done."
+   : echo "BUILD INFO: Done."
    exit 0
 fi
 
@@ -431,7 +431,7 @@ if [[ "$1" = "-tw-createvm" ]]; then
    VMRAM="256"
    general_setup
    workstation_specific
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-install-os"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-install-os"
    exit 0
 fi
 
@@ -442,7 +442,7 @@ if [[ "$1" = "-tw-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    install_os_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post-install-os"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post-install-os"
    exit 0
 fi
 
@@ -453,7 +453,7 @@ if [[ "$1" = "-tw-post-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    workstation_post_install_os
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_image -tw-copyinto-pre"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_image -tw-copyinto-pre"
    exit 0
 fi
 
@@ -468,7 +468,7 @@ if [[ "$1" = "-tw-copyinto-pre" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_pre
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
    exit 0
 fi
 
@@ -479,7 +479,7 @@ if [[ "$1" = "-tw-install-script" ]]; then
    root_check
    VMNAME="aos-Workstation"
    install_script_inside_vm
-   echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-export"
+   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-copyinto-post"
    exit 0
 fi
 
@@ -494,7 +494,7 @@ if [[ "$1" = "-tw-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_post
    unmount_vm_image
-   echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-export"
+   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-export"
    exit 0
 fi
 
@@ -505,12 +505,12 @@ if [[ "$1" = "-tw-export" ]]; then
    root_check
    VMNAME="aos-Workstation"
    VMRAM="512"
-   echo "aos_createvm: Creating snapshot..."
+   : echo "aos_createvm: Creating snapshot..."
    sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
-   echo "aos_createvm: Increasing RAM from 196 to 512..."
+   : echo "aos_createvm: Increasing RAM from 196 to 512..."
    sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
    sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/aos_binary/$VMNAME".ova
-   echo "BUILD INFO: Done."
+   : echo "BUILD INFO: Done."
    exit 0
 fi
 
@@ -534,11 +534,11 @@ if [[ "$1" = "-tg-mount" ]]; then
    VMNAME="aos-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
-   echo "INFO: mount done."
-   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
-   echo "- Leave the folder after you are done!!! cd ~"
-   echo "- Do not forget to run: sudo ./aos_createvm -tg-unmount"
-   echo "- Otherwise strange bugs may occour."
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./aos_createvm -tg-unmount"
+   : echo "- Otherwise strange bugs may occour."
    exit 0
 fi
 
@@ -562,11 +562,11 @@ if [[ "$1" = "-tw-mount" ]]; then
    VMNAME="aos-Workstation"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    mount_vm_image
-   echo "INFO: mount done."
-   echo "- Mounted to: cd \"$CHROOT_FOLDER\""
-   echo "- Leave the folder after you are done!!! cd ~"
-   echo "- Do not forget to run: sudo ./aos_createvm -tw-unmount"
-   echo "- Otherwise strange bugs may occour."
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./aos_createvm -tw-unmount"
+   : echo "- Otherwise strange bugs may occour."
    exit 0
 fi
 
@@ -578,6 +578,6 @@ if [[ "$1" = "-tg-unmount" ]]; then
    VMNAME="aos-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/aos_binary/"$VMNAME"_image
    unmount_vm_image
-   echo "INFO: unmount done."
+   : echo "INFO: unmount done."
    exit 0
 fi
