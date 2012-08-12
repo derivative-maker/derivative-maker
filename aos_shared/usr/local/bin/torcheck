@@ -113,11 +113,13 @@ if [ -f "/usr/share/aos/aos_gateway" ]; then
    GATEWAY_IP="127.0.0.1"
    # SOCKS_PORT_TORCHECK="9110"
    SOCKS_PORT_TORCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
 elif [ -f "/usr/share/aos/aos_workstation" ]; then
    VM="aos-Workstation"
    GATEWAY_IP="192.168.0.10"
    # SOCKS_PORT_TORCHECK="9110"
    SOCKS_PORT_TORCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
 else
    VM="torcheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
 fi
@@ -139,17 +141,27 @@ NOT_USING_TOR="0"
 #if [ `which notify-send` = "" ]; then
 #   notify-send() {
 #      #dummy
-#      sleep 0
+#      true
 #   }
 #fi
 
 # check if zenity is installed
 # that is not the case for cli users
 # this is also not the case on aos-Gateway
-if [ `which zenity` = "" ]; then
+if [ "`which zenity`" = "" ]; then
+   # zenity is not installed.
    zenity() {
       #dummy
-      sleep 0
+      true
+   }
+   zenity_progress() {
+      #dummy
+      true
+   }
+else
+   # zenity is installed.
+   zenity_progress() {
+      echo "$1" >&3
    }
 fi
 
@@ -255,7 +267,7 @@ if [ "$NETWORK_DOWN" = "1" ]; then
    echo "$MSG"
    output "--error" "ERROR" "$MSG"
    show_output
-   echo 100 >&3 
+   zenity_progress 100
    cleanup
    exit 0
 fi
@@ -277,7 +289,7 @@ if [ "$GET_VERSION" = "0" ]; then
    echo "$MSG"
    output "--error" "ERROR" "$MSG"
    show_output
-   echo 100 >&3 
+   zenity_progress 100
    cleanup
    exit 0
 fi
@@ -400,15 +412,17 @@ fi
 
 
 check_operating_system() {
-   # Depends on /etc/sudoers: user ubuntu=NOPASSWD: /usr/bin/apt-get update
-   sudo -u root apt-get update
+   # Runing apt-get update as user (non-root).
+   # Depends on exception set in /etc/sudoers.   
+   # Minmal custom script.
+   sudo /usr/local/bin/apt-get-update
 
    # /etc/update-motd.d/90-updates-available
    # /usr/lib/update-notifier/update-motd-updates-available
    # /usr/lib/update-notifier/apt-check
    NEED_UPDATE_CHECK=yes
    local RESULT="`/usr/lib/update-notifier/apt-check --human-readable`"
-   MSG="Ubuntu updates (Still Alpha Test):
+   MSG="Ubuntu updates:
 (If there are updates, do not forget to update aos-Gateway as well.)
 $RESULT"
 
@@ -433,7 +447,7 @@ aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS="0"
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       show_output
-      echo 100 >&3 
+      zenity_progress 100
       cleanup
       exit 0
    fi
@@ -526,18 +540,17 @@ welcome
 disclaimer
 preparation
 
-# Zenity --progress >&3.
 # The 5% indicate, that the check has begun.
-echo 5 >&3
+zenity_progress 5
 
 # connection 1
 check_network
-echo 20 >&3
+zenity_progress 20
 
 if [ -f "/usr/share/aos/aos_workstation" ]; then
    # connection 2
    check_torbrowser
-   echo 40 >&3
+   zenity_progress 40
 
    # no connection
    check_tor "SocksPort"
@@ -545,15 +558,15 @@ if [ -f "/usr/share/aos/aos_workstation" ]; then
 
    # connection 3
    check_tor "TransPort"
-   echo 60 >&3
+   zenity_progress 60
 
    # connection 4
    check_operating_system
-   echo 80 >&3
+   zenity_progress 80
 
    # connection 5
    download_aos_news
-   echo 95 >&3
+   zenity_progress 95
    verify_aos_news
    check_aos_version
    check_aos_news
@@ -562,7 +575,7 @@ else
    check_tor "SocksPort"
 fi
 
-echo 100 >&3
+zenity_progress 100
 show_output
 cleanup
 exit 0
