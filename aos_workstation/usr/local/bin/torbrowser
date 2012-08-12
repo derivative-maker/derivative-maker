@@ -4,7 +4,7 @@ script_help() {
 echo "
 # Do not run as root!
 # Not a multiuser script.
-# Only tested for user "user".
+# Only tested for user \"user\".
 #
 # -update
 # Check if there is an update and ask to
@@ -38,7 +38,7 @@ echo "
 #   https://trac.torproject.org/projects/tor/ticket/3994
 # - There is no way to keep Tor Browser updated.
 #   (Thandy doesn't exist yet.)
-# - There is no way to add the aos Readme well vistable to Tor Browser-
+# - There is no way to add the aos Readme well visible to Tor Browser:
 #   https://trac.torproject.org/projects/tor/ticket/6025
 #   https://trac.torproject.org/projects/tor/ticket/6053
 # - Tor Browsers support for Isolating and Transparent Proxies is very limited:
@@ -54,10 +54,7 @@ echo "
 
 
 # Debugging.
-set -x
-
-# Exit on error.
-# set -e
+#set -x
 
 
 
@@ -68,7 +65,7 @@ error_handler() {
    exit 1
 }
 
-trap "error_handler" ERR INT TERM
+trap "error_handler" ERR
 
 
 
@@ -84,7 +81,7 @@ SOCKS_PORT_TBB_GPG="9116"
 #########################################################################
 
 tb_update_check() {
-trap "error_handler" ERR INT TERM
+trap "error_handler" ERR
 
 #################################
 # prompt user about TBB update.
@@ -133,8 +130,8 @@ echo 'If your currently installed version is higher you are likely victim of a d
 echo "If your currently installed version is lower you should upgrade, if it matches say no now."
 echo "WARNING: YOUR BROWSER WILL BE KILLED."
 echo "WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!"
-echo "INFO: The old browser and settings are automatically backed up" 
-echo "INFO: It's a good idea to delete old TBB backups once in a while if you are running low with disk space."
+echo "INFO: A backup of your old Tor Browser and settings will be created in your home folder." 
+echo "INFO: It is a good idea to delete old TBB backups once in a while if you are running low with disk space."
 echo -n "Do you want to upgrade? [y/N]"
 
 read answer
@@ -168,11 +165,50 @@ tb_force_install
 
 
 #########################################################################
+# gpg_key_verification_error                                            #
+#########################################################################
+
+gpg_key_verification_error() {
+trap "error_handler" ERR
+
+echo "ERROR: Could not verify GPG key."
+echo "INFO: Tor Browser Download failed. Try again later using:"
+echo "      torbrowser -update"
+exit 1
+}
+
+
+
+gpg_download_verification_error() {
+trap "error_handler" ERR
+
+echo "ERROR: GPG download signature could NOT be verified."
+
+# No longer deleting, might be interesting in case an adversary
+# tampered with it.
+#echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
+#rm tor-browser-gnu-linux-*.tar.gz*
+
+echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
+cd /home/$USERNAME
+#echo "Deleting tbbdownload..."
+#sudo -u $USERNAME rm -r tbbdownload
+# Tell about failure.
+touch TorBrowser_installation_FAILED
+echo "Update Failed." >&2
+echo "INFO: Tor Browser Download failed. Try again later using:"
+echo "      torbrowser -update"
+exit 1
+}
+
+
+
+#########################################################################
 # tb_force_install                                                      #
 #########################################################################
 
 tb_force_install() {
-trap "error_handler" ERR INT TERM
+trap "error_handler" ERR
 
 # Install TBB and patch it.
 # This part may break when the file name or RecommendedTBBVersions format changes!
@@ -195,7 +231,7 @@ echo "INFO: The GPG keys will not be permanently added to your keyring."
 sudo -u $USERNAME mkdir gpgtmpdir
 chmod 700 gpgtmpdir/
 
-echo "INFO: Getting the GPG keys... Verify the fingerprints. Do not trust the wiki..."
+echo "INFO: Getting the GPG keys... Verify the fingerprints."
 
 # !!!VERIFY!!!
 #
@@ -203,46 +239,28 @@ echo "INFO: Getting the GPG keys... Verify the fingerprints. Do not trust the wi
 # http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
 
 # !!!VERIFY!!!
-echo "INFO: Getting Erinn Clarks GPG key..."
+echo "INFO: Getting Erinn Clark's GPG key..."
 sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
 
 # !!!VERIFY!!!
-echo "INFO: Getting Sebastian Hahns GPG key..."
+echo "INFO: Getting Sebastian Hahn's GPG key..."
 sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
 
 # !!!VERIFY!!!
-echo "INFO: Verifying Erinn Clarks GPG key..."
+echo "INFO: Verifying Erinn Clark's GPG key..."
+trap "gpg_key_verification_error" ERR
 sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
-
-if [ $? == 0 ];
-then
-	echo "INFO: Successfully verified Erinn Clarks GPG key."
-	# FYI: Script will continue outside the if.
-else
-	echo "ERROR: Could not verify Erinn Clarks GPG key."
-	echo "INFO: Tor Browser Download failed. Try again later using:"
-	echo "     torbrowser -update"
-	# Exit this function.
-	exit 1
-fi
+echo "INFO: Successfully verified Erinn Clarks GPG key."
 
 # !!!VERIFY!!!
-echo "INFO: Verifying Sebastian Hahns GPG key..."
+echo "INFO: Verifying Sebastian Hahn's GPG key..."
+trap "gpg_key_verification_error" ERR
 sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+echo "INFO: Successfully verified Sebastian Hahns GPG key."
 
-if [ $? == 0 ];
-then
-	echo "INFO: Successfully verified Sebastian Hahns GPG key."
-	# FYI: Script will continue outside the if.
-else
-	echo "ERROR: Could not verify Sebastian Hahns GPG key."
-	echo "INFO: Tor Browser Download failed. Try again later using:"
-	echo "     torbrowser -update"
-	# Exit this function.
-	exit 1
-fi
+trap "error_handler" ERR
 
 # Find out latest version.
 sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
@@ -260,30 +278,11 @@ https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBB
 # Not using the users GPG keyring also ensures, that the key can be only
 # singed by the GPG keys we added. Signatures from random people from the
 # users keyring will be ignored.
+trap "gpg_download_verification_error" ERR
 sudo -u $USERNAME gpg --homedir gpgtmpdir --verify tor-browser*.asc
+echo "INFO: Signature valid."
 
-# If the exit code ? of GPG return 0, GPG verification was successful.
-if [ $? == 0 ];
-then
-	echo "INFO: Signature valid."
-	# FYI: Script will continue outside the if.
-else
-	echo "ERROR: Signature could NOT be verified. GPG exit code: $?"
-	echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
-	rm tor-browser-gnu-linux-*.tar.gz*
-
-	echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
-	cd /home/$USERNAME
-	echo "Deleting tbbdownload..."
-	sudo -u $USERNAME rm -r tbbdownload
-	# Tell about failure.
-	touch TorBrowser_installation_FAILED
-	echo "Update Failed" >&2
-	# Exit this function.
-	echo "INFO: Tor Browser Download failed. Try again later using:"
-	echo "     torbrowser -update"
-	exit 1
-fi
+trap "error_handler" ERR
 
 if [ -f tor-browser-gnu-linux-*.tar.gz ];
 then
@@ -324,7 +323,7 @@ exit 0
 #########################################################################
 
 tb_create_user_js() {
-trap "error_handler" ERR INT TERM
+trap "error_handler" ERR
 
 # Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
@@ -377,7 +376,7 @@ user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,91
 #########################################################################
 
 tb_start_with_readme() {
-trap "error_handler" ERR INT TERM
+trap "error_handler" ERR
 
    PID="`pidof firefox`" || true
 
@@ -406,7 +405,7 @@ trap "error_handler" ERR INT TERM
 #########################################################################
 
 tb_start_without_readme() {
-   trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR
 
    ~/tor-browser_en-US/start-tor-browser &
 }
