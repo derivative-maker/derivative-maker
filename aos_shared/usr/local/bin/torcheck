@@ -400,13 +400,18 @@ fi
 
 
 check_operating_system() {
+   # Depends on /etc/sudoers: user ubuntu=NOPASSWD: /usr/bin/apt-get update
+   sudo -u root apt-get update
+
    # /etc/update-motd.d/90-updates-available
    # /usr/lib/update-notifier/update-motd-updates-available
    # /usr/lib/update-notifier/apt-check
    NEED_UPDATE_CHECK=yes
    local RESULT="`/usr/lib/update-notifier/apt-check --human-readable`"
    MSG="Ubuntu updates (Still Alpha Test):
+(If there are updates, do not forget to update aos-Gateway as well.)
 $RESULT"
+
    echo "$MSG"
    output "--info" "Info" "$MSG"
 }
@@ -441,6 +446,7 @@ verify_aos_news() {
 
    gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/aos/adrelanos.asc 2>/dev/null
 
+# TODO BLOCKER: needs its own trap function
    gpg --homedir "$VERIFY_TEMPDIR" --decrypt aos_news.asc > aos_news
 
    if [ $? == 0 ];
