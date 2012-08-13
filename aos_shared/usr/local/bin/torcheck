@@ -117,6 +117,8 @@ preparation() {
    # Initialize more variables.
    NETWORK_DOWN="0"
    NOT_USING_TOR="0"
+   DOWNLOAD_NEWS_SUCCESS="0"
+   AOS_NEWS_VERIFY_ERROR="0"
    ZENITY_TYPE=""
    ZENITY_TITLE=""
    ZENITY_MESSAGE=""
@@ -248,7 +250,7 @@ This will happen in background. You will be notified about the result in approxi
    "
 
    # The progress window will close automatically after 100% progress.
-   exec 3> >(zenity --display=:0.0 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION Info" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   exec 3> >(zenity --display=:0.0 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
 }
 
 
@@ -266,13 +268,43 @@ $AOS_HOMEPAGE"
 
 
 
+check_htpdate() {
+  trap "error_handler" ERR INT TERM
+
+  local done_file="/var/run/htpdate/done"
+  local success_file="/var/run/htpdate/success"
+  
+  if [ ! -f "$done_file" ]; then
+    MSG="Time synchronization not done!!! Please report this bug!
+See logfile: cat /var/log/htpdate.log    
+Try again: /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!)"
+    echo "$MSG"
+    output "--error" "ERROR" "$MSG"
+    return
+  fi
+  
+  if [ ! -f "$success_file" ]; then
+    MSG="Time synchronization failed!!!
+See logfile: cat /var/log/htpdate.log
+Try again: /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!)"
+    echo "$MSG"
+    output "--error" "ERROR" "$MSG"
+    return
+  fi
+  
+  MSG="Time synchronization successful."
+  echo "$MSG"
+  output "--info" "Info" "$MSG"
+}
+
+
+
 check_network() {
    trap "error_handler" ERR INT TERM
-   
-   MSG="Time of message: `date`.
-Checking network connection..."
-   echo "$MSG"
-   output "--info" "Info" "$MSG"
+
+   echo "Checking network connection..."
 
    # Ensuring normal wget activity can not be linked to torcheck,
    # by using a SocksPort, which is solely used by torcheck.
@@ -381,12 +413,14 @@ check_tor() {
 
    # If the word "Congratulations" is not found in index.html,
    # grep will return "".
-   TORCHECK="`grep -n -e "Congratulations" index.html`"
+   # old with bug: TORCHECK="`grep "Congratulations" index.html`"
 
-   # Sorry, I suck at this...
-   # TODO: It where helpful if "Your IP address appears to be: IP" could be
-   #       stripped to "IP".
-   IP="`grep "IP" index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`"
+   # Thanks to
+   # http://stackoverflow.com/questions/7560587/supress-grep-output-but-capture-it-in-a-variable
+   local WERRORS=`echo $TORCHECK | grep "Congratulations" "index.html" 2>&1`
+
+   # TODO: ...
+   IP="`grep "IP" index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`" || true   
 
    # Store IP for later use in memory.
    if [ "$1" = "TransPort" ]; then
@@ -457,21 +491,21 @@ download_aos_news() {
    ip="$GATEWAY_IP"
    SOCKS_PORT_AOS_NEWS="9114"
 
-   DOWNLOAD_NEWS="1"
+   DOWNLOAD_NEWS_SUCCESS="1"
    echo "Checking for aos news and updates..."
 
    # Tested...
    ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
 /usr/bin/wget $TORCHECK_VERBOSE --output-document \
-aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS="0"
+aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
    # Uncomment the following three lines to test what happens
    # whenn verification fails.
    #ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
 #/usr/bin/wget $TORCHECK_VERBOSE --output-document \
-#aos_news.asc "$AOS_HOMEPAGE" || DOWNLOAD_NEWS="0"
+#aos_news.asc "$AOS_HOMEPAGE" || DOWNLOAD_NEWS_SUCCESS="0"
 
-   if [ "$DOWNLOAD_NEWS" = "0" ]; then
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
       MSG="Could not download aos News."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
@@ -493,7 +527,7 @@ verify_aos_news() {
    trap "aos_new_verification_error" ERR INT TERM
    
    # If news could not be downloaded, do not try to verify it.
-   if [ "$DOWNLOAD_NEWS" = "0" ]; then
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
       return
    fi
    
@@ -515,6 +549,12 @@ verify_aos_news() {
 check_aos_version() {
    trap "error_handler" ERR INT TERM
    
+   # If news could not be downloaded, do not check aos version.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   # If news verification failed, do not check aos version.
    if [ "$AOS_NEWS_VERIFY_ERROR" = 1 ]; then
       return
    fi
@@ -547,6 +587,12 @@ check_aos_version() {
 check_aos_news() {
    trap "error_handler" ERR INT TERM
    
+   # If news could not be downloaded, do not check aos news.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   # If news verification failed, do not check aos news.
    if [ "$AOS_NEWS_VERIFY_ERROR" = 1 ]; then
       return
    fi
@@ -590,6 +636,9 @@ torcheck_main() {
   preparation
   welcome
   disclaimer
+  check_htpdate
+  
+  #exit 0
 
   # The 5% indicate, that the check has begun.
   zenity_progress 5
