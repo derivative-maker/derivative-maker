@@ -32,11 +32,21 @@ mount_vm_image() {
    # Ensure powered is off. Otherwise disk corruption is at high risk.
    sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
 
-   # Make sure required module to mount vdi images is installed.
-   modprobe nbd
-
    # Create loopback dev for the image.
    # old, was working: qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+
+#   local SNAPSHOT_FOLDER="/home/"$USERNAME"/VirtualBox VMs/"$VMNAME"/Snapshots"
+#   local VBOX_FOLDER="/home/"$USERNAME"/VirtualBox VMs/"$VMNAME""
+
+#   if [ -d "$SNAPSHOT_FOLDER" ]; then
+#      : echo "Prefering SNAPSHOT_FOLDER: $SNAPSHOT_FOLDER."
+#      local VDI="`find  "$SNAPSHOT_FOLDER"/*.vdi`"
+#   elif [ -d "$VBOX_FOLDER" ]; then
+#      : echo "Prefering VBOX_FOLDER: $VBOX_FOLDER."
+#      local VDI="`find  "$VBOX_FOLDER"/*.vdi`"
+#   else
+#      error "mount_vm_image: can not find VM folder."
+#   fi
 
    # Find name of .vdi file. New:
    local VDI="`find  "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/*.vdi`"
@@ -44,6 +54,9 @@ mount_vm_image() {
    # For debugging its useful to clone a VM, where only the operating system has been installed,
    # before running the script or before copying into it.
    # When restoring the VMClone to VM, the VDI may have another name.
+
+   # Make sure required module to mount vdi images is installed.
+   modprobe nbd
 
    # Create loopback dev for the image. New:
    qemu-nbd -c /dev/nbd0 "$VDI"

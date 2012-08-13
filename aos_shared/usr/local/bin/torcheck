@@ -228,7 +228,7 @@ $BITCOIN_ADDRESS"
       output "--info" "Info" "$MSG"  
    fi
    
-   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION $ZENITY_TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
 }
 
 
@@ -244,10 +244,8 @@ Running checks..."
    # Non-intrusive notification, that the checks are running in background.
    # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
    #notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
-   NOTIFY_MSG="
-Checking Tor connection, and Tor Browser and aos version...
-This will happen in background. You will be notified about the result in approximately 15 to 30 seconds.
-   "
+   NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, aos version, aos news...
+This will happen in background. You will be notified about the result in approximately 15 to 30 seconds."
 
    # The progress window will close automatically after 100% progress.
    exec 3> >(zenity --display=:0.0 --timeout 86400 --title="$VM $INSTALLED_AOS_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
@@ -276,7 +274,7 @@ check_htpdate() {
   
   if [ ! -f "$done_file" ]; then
     MSG="Time synchronization not done!!! Please report this bug!
-See logfile: cat /var/log/htpdate.log    
+See logfile: tail -f -n 20 /var/log/htpdate.log    
 Try again: /etc/init.d/htpdate restart
 Last resort: manually set the clock! (In UTC!)"
     echo "$MSG"
@@ -286,7 +284,7 @@ Last resort: manually set the clock! (In UTC!)"
   
   if [ ! -f "$success_file" ]; then
     MSG="Time synchronization failed!!!
-See logfile: cat /var/log/htpdate.log
+See logfile: tail -f -n 20 /var/log/htpdate.log
 Try again: /etc/init.d/htpdate restart
 Last resort: manually set the clock! (In UTC!)"
     echo "$MSG"

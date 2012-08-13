@@ -10,8 +10,6 @@
 # error_handler
 ###########################
 
-set -e
-
 error_handler() {
    echo "##################################################"
    echo "aos firewall script failed!"
@@ -44,14 +42,16 @@ echo "OK: Loading aos firewall..."
 # USERS
 ###########################
 
-# Get and set Tor username, distro specific!
+# Get Tor username, distro specific!
 TOR_USER="`id -u debian-tor`"
 
-# Get unsafe user uid.
+# Get user uids.
 UNSAFE_USER="`id -u unsafe`"
+ROOT_USER="`id -u root`"
 
 echo "OK: TOR_USER: $TOR_USER"
 echo "OK: UNSAFE_USER: $UNSAFE_USER"
+echo "OK: ROOT_USER: $ROOT_USER"
 
 ###########################
 # interfaces
@@ -269,7 +269,7 @@ iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_AOSW"
 
 # Log.
-iptables -A INPUT -j LOG --log-prefix "aos blocked input4: "
+#iptables -A INPUT -j LOG --log-prefix "aos blocked input4: "
 
 # Reject anything not explicitly allowed above.
 # Drop is better than reject here, because we do not want to reveal its and aos-Gateway.
@@ -295,6 +295,10 @@ iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
 
 # No NAT for unsafe user.
 iptables -t nat -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j RETURN
+
+# No NAT for root user.
+# Out commented by default. For testing/debugging only.
+#iptables -t nat -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j RETURN
 
 ### Redirect of T-G DNS traffic to DnsPort_AOSG.
 ### No longer in use. Using SocksPort instant.
@@ -323,8 +327,12 @@ iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
 # unsafe user is allowed to connect any outside target.
 iptables -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j ACCEPT
 
+# root user is allowed to connect any outside target.
+# Out commented by default. For testing/debugging only.
+#iptables -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j ACCEPT
+
 # Log.
-iptables -A INPUT -j LOG --log-prefix "aos blocked output4: "
+#iptables -A INPUT -j LOG --log-prefix "aos blocked output4: "
 
 # Reject all other outging traffic.
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
