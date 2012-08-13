@@ -187,6 +187,18 @@ preparation() {
 
 
 
+kill_old_instances() {
+  trap "error_handler" ERR INT TERM
+
+  local PID="`pgrep -f "aos is produced independently from the Tor"`" || true
+  kill -9 "$PID" || true
+  
+  local PID="`pgrep -f "aos is produced independently from the Tor"`" || true
+  kill -9 "$PID" || true 
+}
+
+
+
 output() {
    # (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
    #echo "output: $1 ||| $2 ||| $3 |||"
@@ -629,14 +641,13 @@ cleanup() {
 
 torcheck_main() {
   trap "error_handler" ERR INT TERM
-
+  
   phrase_cmd_options $1
   preparation
+  kill_old_instances
   welcome
   disclaimer
   check_htpdate
-  
-  #exit 0
 
   # The 5% indicate, that the check has begun.
   zenity_progress 5

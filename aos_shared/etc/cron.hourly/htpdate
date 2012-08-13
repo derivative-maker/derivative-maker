@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# anacron runs this script every hour.
+# Not exactly at hour:00:00, but somewhat predictible.
+# We add a random delay before we run htpdate again,
+# to prevent issuing leaving a clear network fingerprint.
+# (Not always exactly at xx:yy:zz sending an request.)
+
+# Create a random number between 0 and 3600.
+#
+# Thanks to 
+# http://linux.byexamples.com/archives/128/generating-random-numbers/
+#
+# One hour has 3600 seconds.
+DELAY=$(( 100+(`od -An -N2 -i /dev/random` )%(3600-0+1) ))
+
+sleep "$DELAY"
+
+sudo -u "htp" /etc/init.d/htpdate restart
+
+exit 0
