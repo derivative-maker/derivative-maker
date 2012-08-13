@@ -57,7 +57,6 @@ $AOS_HOMEPAGE
 Checks if,
 -Your network connection is functional.
 -You are connected to Tor.
--If stream isolation is functional.
 
 Shows,
 -Your external IP address(es).
@@ -299,6 +298,7 @@ check_torbrowser() {
    trap "error_handler" ERR INT TERM
 
    GET_VERSION="1"
+   echo "Checking Tor Browser version..."
 
    # Getting latest version number
    ip="$GATEWAY_IP" port="$SOCKS_PORT_TORCHECK" uwt \
@@ -318,7 +318,8 @@ check_torbrowser() {
    TBBINSTALLEDVERSION="`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
-      echo "Successfully detected TorBrowser version."
+      # echo "Successfully detected TorBrowser version."
+      true
    else
       TBBINSTALLEDVERSION="UNKNOWN"
       MSG="Could not determine currently installed TorBrowser version. This could be either because none is installed or because the version format changed."
@@ -413,9 +414,9 @@ $IP"
       # Test stream isolation.
       # Lets compare TransPort with SocksPort.
       if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
-         MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal!!! Stream isolation is appears to be defunct!!!"
+         MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
          echo "$MSG"
-         output "--error" "ERROR" "$MSG"
+         output "--info" "Info" "$MSG"
       else
          MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
          echo "$MSG"
@@ -457,6 +458,7 @@ download_aos_news() {
    SOCKS_PORT_AOS_NEWS="9114"
 
    DOWNLOAD_NEWS="1"
+   echo "Checking for aos news and updates..."
 
    # Tested...
    ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
@@ -593,6 +595,7 @@ torcheck_main() {
   zenity_progress 5
 
   # connection 1
+  # (Download through wget's SocksPort.)
   check_network
   zenity_progress 20
 
