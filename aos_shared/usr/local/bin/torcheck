@@ -234,7 +234,7 @@ show_output() {
    
    if [ "$ZENITY_TYPE" = "--info" ]; then
       BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
-      MSG="Please support the aos's hosting and development, donate Bitcoin to:
+      local MSG="Please support the aos's hosting and development, donate Bitcoin to:
 $BITCOIN_ADDRESS"
       echo "$MSG"
       output "--info" "Info" "$MSG"  
@@ -256,7 +256,7 @@ Running checks..."
    # Non-intrusive notification, that the checks are running in background.
    # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
    #notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
-   NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, aos version, aos news...
+   local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, aos version, aos news...
 This will happen in background. You will be notified about the result in approximately 15 to 30 seconds."
 
    # The progress window will close automatically after 100% progress.
@@ -268,7 +268,7 @@ This will happen in background. You will be notified about the result in approxi
 disclaimer() {
    trap "error_handler" ERR INT TERM
 
-   MSG="aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+   local MSG="aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
 aos is experimental software by means of concept and design. Do not rely on it for strong anonymity.
 $AOS_HOMEPAGE"
 
@@ -285,27 +285,30 @@ check_htpdate() {
   local success_file="/var/run/htpdate/success"
   
   if [ ! -f "$done_file" ]; then
-    MSG="Time synchronization not done!!! Please report this bug!
+    local MSG="Network Time Synchronization not done!!! Please report this bug!
 See logfile: tail -f -n 20 /var/log/htpdate.log    
 Try again: /etc/init.d/htpdate restart
 Last resort: manually set the clock! (In UTC!)"
     echo "$MSG"
+    echo "System clock is set to: `date`"
     output "--error" "ERROR" "$MSG"
     return
   fi
   
   if [ ! -f "$success_file" ]; then
-    MSG="Time synchronization failed!!!
+    local MSG="Network Time Synchronization failed!!!
 See logfile: tail -f -n 20 /var/log/htpdate.log
 Try again: /etc/init.d/htpdate restart
 Last resort: manually set the clock! (In UTC!)"
     echo "$MSG"
+    echo "System clock is set to: `date`"
     output "--error" "ERROR" "$MSG"
     return
   fi
   
-  MSG="Time synchronization successful."
+  local MSG="Network Time Synchronization successful."
   echo "$MSG"
+  echo "System clock is set to: `date`"
   output "--info" "Info" "$MSG"
 }
 
@@ -322,7 +325,7 @@ check_network() {
 /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
-      MSG="Your Internet connection appears to be down."
+      local MSG="Your Internet connection appears to be down."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       show_output
@@ -347,7 +350,7 @@ check_torbrowser() {
 /usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions "https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
-      MSG="Tor Browser Update check failed."
+      local MSG="Tor Browser Update check failed."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       return
@@ -364,7 +367,7 @@ check_torbrowser() {
       true
    else
       TBBINSTALLEDVERSION="UNKNOWN"
-      MSG="Could not determine currently installed Tor Browser version. This could be either because none is installed or because the version format changed."
+      local MSG="Could not determine currently installed Tor Browser version. This could be either because none is installed or because the version format changed."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       return
@@ -373,14 +376,14 @@ check_torbrowser() {
    # Append to MSG if Tor Browser is current or not.
    if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
       # It is up to date...
-      MSG="Installed Tor Browser version $TBBINSTALLEDVERSION is up to date."
+      local MSG="Installed Tor Browser version $TBBINSTALLEDVERSION is up to date."
       echo "$MSG"
       output "--info" "Info" "$MSG"
    else
       # Outdated...
-      MSG="Installed Tor Browser version $TBBINSTALLEDVERSION. Latest Tor Browser version $TBBVERSION. Please run: torbrowser -update"
-     echo "$MSG"
-     output "--error" "WARNING" "$MSG"
+      local MSG="Installed Tor Browser version $TBBINSTALLEDVERSION. Latest Tor Browser version $TBBVERSION. Please run: torbrowser -update"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
    fi
 }
 
@@ -392,7 +395,7 @@ check_tor() {
    # Do not test for stream isolation if Tor detection failed.
    # This variable may be set to 1, during the first run of this script.
    if [ "$NOT_USING_TOR" = "1" ]; then
-      MSG="SocksPort test could not detect Tor. Not testing Tor's TransPort."
+      local MSG="SocksPort test could not detect Tor. Not testing Tor's TransPort."
       echo "$MSG"
       # no zenity output
       return
@@ -407,13 +410,13 @@ check_tor() {
       /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
       # Check if wget failed.
       if [ "$NETWORK_DOWN" = "1" ]; then
-         MSG="SocksPort Test failed! Can not test stream isolation!"
+         local MSG="SocksPort Test failed! Can not test stream isolation!"
          echo "$MSG"
          output "--error" "ERROR" "$MSG"
          return
       fi
    else
-     MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
+     local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
      echo "$MSG"
      output "--error" "ERROR" "$MSG"
      return
@@ -443,12 +446,12 @@ check_tor() {
    # and choose which message to show.
    if [ "$TORCHECK" = "" ]; then
       NOT_USING_TOR="1"
-      MSG="Tor's $1: Looks like you are not connected through Tor! There could be something wrong or it's a false positive. (https://check.torproject.org fails in some cases to detect exit nodes.)
+      local MSG="Tor's $1: Looks like you are not connected through Tor! There could be something wrong or it's a false positive. (https://check.torproject.org fails in some cases to detect exit nodes.)
 $IP"
       echo "$MSG"
       output "--error" "WARNING" "$MSG"
    else
-      MSG="Tor's $1: You are successfully using Tor. $IP"
+      local MSG="Tor's $1: You are successfully using Tor. $IP"
       echo "$MSG"
       output "--info" "Info" "$MSG"
    fi
@@ -458,11 +461,11 @@ $IP"
       # Test stream isolation.
       # Lets compare TransPort with SocksPort.
       if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
-         MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
          echo "$MSG"
          output "--info" "Info" "$MSG"
       else
-         MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
          echo "$MSG"
          output "--info" "Info" "$MSG"
       fi
@@ -485,7 +488,7 @@ check_operating_system() {
    # /usr/lib/update-notifier/apt-check
    NEED_UPDATE_CHECK=yes
    local RESULT="`/usr/lib/update-notifier/apt-check --human-readable`"
-   MSG="Ubuntu updates:
+   local MSG="Ubuntu updates:
 (If there are updates, do not forget to update aos-Gateway as well.)
 $RESULT"
 
@@ -516,7 +519,7 @@ aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 #aos_news.asc "$AOS_HOMEPAGE" || DOWNLOAD_NEWS_SUCCESS="0"
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
-      MSG="Could not download aos News."
+      local MSG="Could not download aos News."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
    fi
@@ -526,7 +529,7 @@ aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
 aos_new_verification_error() {
    AOS_NEWS_VERIFY_ERROR="1"
-   MSG="Could not gpg verify authenticity of aos News!!! This is either an aos Bug or attack on aos!!!"
+   local MSG="Could not gpg verify authenticity of aos News!!! This is either an aos Bug or attack on aos!!!"
    echo "$MSG"
    output "--error" "ERROR" "$MSG"
 }
@@ -549,7 +552,7 @@ verify_aos_news() {
    
    # If verification fails, trap will run aos_new_verification_error.
 
-   MSG="Successfully verified aos_news.asc with adrelanos's GPG key."
+   local MSG="Successfully verified aos_news.asc with adrelanos's GPG key."
    echo "$MSG"
    # output "--info" "Info" "$MSG"   
 }
@@ -580,14 +583,14 @@ check_aos_version() {
 
    if [ "$INSTALLED_AOS_VERSION" = "$LATEST_AOS_VERSION" ]; then
       # Up to date...
-      MSG="Installed aos Version $INSTALLED_AOS_VERSION is up to date."
+      local MSG="Installed aos Version $INSTALLED_AOS_VERSION is up to date."
       echo "$MSG"
       output "--info" "Info" "$MSG"
       return
    fi
 
    # Outdated...
-   MSG="Installed aos version $INSTALLED_AOS_VERSION. Latest aos version $LATEST_AOS_VERSION. Please update aos!!!"
+   local MSG="Installed aos version $INSTALLED_AOS_VERSION. Latest aos version $LATEST_AOS_VERSION. Please update aos!!!"
    echo "$MSG"
    output "--error" "WARNING" "$MSG"
 }
@@ -607,7 +610,7 @@ check_aos_news() {
       return
    fi
 
-   MSG=""
+   local MSG=""
    local i="0"
    while read LINE; do
       let i "i=i+1"
@@ -617,9 +620,9 @@ check_aos_news() {
       #echo "LINE: $LINE"
 
       if [ "$i" = "3" ]; then
-         MSG="$LINE"
+         local MSG="$LINE"
       else
-         MSG="$MSG
+         local MSG="$MSG
 $LINE"
       fi
    done < "$VERIFY_TEMPDIR/aos_news"
