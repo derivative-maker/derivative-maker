@@ -235,7 +235,7 @@ show_output() {
    # Show result of torcheck and TorBrowser Update check
    
    if [ "$ZENITY_TYPE" = "--info" ]; then
-      BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+      local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
       local MSG="Please support the aos's hosting and development, donate Bitcoin to:
 $BITCOIN_ADDRESS"
       echo "$MSG"
@@ -287,10 +287,12 @@ check_htpdate() {
   local success_file="/var/run/htpdate/success"
   
   if [ ! -f "$done_file" ]; then
-    local MSG="Network Time Synchronization not done!!! Please report this bug!
+    local MSG='Network Time Synchronization not done!!! Please report this bug!
 See logfile: tail -f -n 20 /var/log/htpdate.log    
-Try again: /etc/init.d/htpdate restart
-Last resort: manually set the clock! (In UTC!)"
+Try again: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
     echo "$MSG"
     echo "System clock is set to: `date`"
     output "--error" "ERROR" "$MSG"
@@ -298,10 +300,12 @@ Last resort: manually set the clock! (In UTC!)"
   fi
   
   if [ ! -f "$success_file" ]; then
-    local MSG="Network Time Synchronization failed!!!
+    local MSG='Network Time Synchronization failed!!!
 See logfile: tail -f -n 20 /var/log/htpdate.log
-Try again: /etc/init.d/htpdate restart
-Last resort: manually set the clock! (In UTC!)"
+Try again: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
     echo "$MSG"
     echo "System clock is set to: `date`"
     output "--error" "ERROR" "$MSG"
