@@ -58,14 +58,14 @@ echo "
 
 
 
-error_handler() {
+tb_error_handler() {
    echo "######################################################"
    echo "# torbrowser aos script bug. Please report this bug. #"
    echo "######################################################"
    exit 1
 }
 
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 
 
@@ -81,14 +81,14 @@ SOCKS_PORT_TBB_GPG="9116"
 #########################################################################
 
 tb_update_check() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 #################################
 # prompt user about TBB update.
 #################################
-cd /home/$USERNAME
-rm -r tbbdownload/ || true
-sudo -u $USERNAME mkdir -p tbbdownload
+cd "/home/"$USERNAME""
+rm -r "tbbdownload/" || true
+sudo -u "$USERNAME" mkdir -p "tbbdownload"
 cd tbbdownload
 
 echo "
@@ -97,7 +97,7 @@ echo "
 #################################
 "
 
-sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
@@ -138,9 +138,9 @@ read answer
 
 if test "$answer" != "Y" -a "$answer" != "y";
 then 
-	cd /home/$USERNAME
+	cd "/home/"$USERNAME""
 	echo "INFO: Deleting temporary folder tbbdownload."
-	sudo -u $USERNAME rm -r tbbdownload
+	sudo -u "$USERNAME" rm -r "tbbdownload" || true
 	# Exit this function.
 	exit 0
 fi
@@ -169,7 +169,7 @@ tb_force_install
 #########################################################################
 
 gpg_key_verification_error() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 echo "ERROR: Could not verify GPG key."
 echo "INFO: Tor Browser Download failed. Try again later using:"
@@ -180,7 +180,7 @@ exit 1
 
 
 gpg_download_verification_error() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 echo "ERROR: GPG download signature could NOT be verified."
 
@@ -190,9 +190,9 @@ echo "ERROR: GPG download signature could NOT be verified."
 #rm tor-browser-gnu-linux-*.tar.gz*
 
 echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
-cd /home/$USERNAME
+cd "/home/"$USERNAME""
 #echo "Deleting tbbdownload..."
-#sudo -u $USERNAME rm -r tbbdownload
+#sudo -u "$USERNAME" rm -r "tbbdownload" || true
 # Tell about failure.
 touch TorBrowser_installation_FAILED
 echo "Update Failed." >&2
@@ -208,28 +208,28 @@ exit 1
 #########################################################################
 
 tb_force_install() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 # Install TBB and patch it.
 # This part may break when the file name or RecommendedTBBVersions format changes!
 
 # Get into correct directory is required for relative paths.
-cd /home/$USERNAME
+cd "/home/"$USERNAME""
 
 # Delete old tbbdownload folder.
-rm -r tbbdownload/
+rm -r "tbbdownload/" || true
 
 # Create new tbbdownload folder.
-sudo -u $USERNAME mkdir tbbdownload
+sudo -u "$USERNAME" mkdir -p "tbbdownload"
 
 # Get into the tbbdownload folder.
-cd tbbdownload
+cd "tbbdownload"
 
 # Importing GPG keys...
 echo "INFO: Importing GPG keys to the temporary directory gpgtmpdir..."
 echo "INFO: The GPG keys will not be permanently added to your keyring."
-sudo -u $USERNAME mkdir gpgtmpdir
-chmod 700 gpgtmpdir/
+sudo -u "$USERNAME" mkdir "gpgtmpdir"
+chmod 700 "gpgtmpdir/"
 
 echo "INFO: Getting the GPG keys... Verify the fingerprints."
 
@@ -240,38 +240,38 @@ echo "INFO: Getting the GPG keys... Verify the fingerprints."
 
 # !!!VERIFY!!!
 echo "INFO: Getting Erinn Clark's GPG key..."
-sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
---homedir gpgtmpdir --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
+sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
+--homedir "gpgtmpdir" --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
 
 # !!!VERIFY!!!
 echo "INFO: Getting Sebastian Hahn's GPG key..."
-sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
---homedir gpgtmpdir --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
+--homedir "gpgtmpdir" --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
 
 # !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
 trap "gpg_key_verification_error" ERR
-sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
-echo "INFO: Successfully verified Erinn Clarks GPG key."
+sudo -u "$USERNAME" gpg --homedir "gpgtmpdir" --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
+echo "INFO: Successfully verified Erinn Clark's GPG key."
 
 # !!!VERIFY!!!
 echo "INFO: Verifying Sebastian Hahn's GPG key..."
 trap "gpg_key_verification_error" ERR
-sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
-echo "INFO: Successfully verified Sebastian Hahns GPG key."
+sudo -u "$USERNAME" gpg --homedir "gpgtmpdir" --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 # Find out latest version.
-sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 # Phrasing the last version information.
-TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
+TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`"
 
 # Download the latest Tor Browser Bundle and its gpg signature.
 # http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
-sudo -u $USERNAME ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
+sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
 
 # Verify GPG signature.
@@ -279,16 +279,16 @@ https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBB
 # singed by the GPG keys we added. Signatures from random people from the
 # users keyring will be ignored.
 trap "gpg_download_verification_error" ERR
-sudo -u $USERNAME gpg --homedir gpgtmpdir --verify tor-browser*.asc
+sudo -u "$USERNAME" gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
 echo "INFO: Signature valid."
 
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 if [ -f tor-browser-gnu-linux-*.tar.gz ];
 then
 	echo "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
 	# Unpack.
-	sudo -u $USERNAME tar -xzvf tor-browser-gnu-linux-*.tar.gz
+	sudo -u "$USERNAME" tar -xzvf tor-browser-gnu-linux-*.tar.gz
 else
 	echo "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
@@ -297,20 +297,20 @@ fi
 sudo -u $USERNAME ed -s tor-browser_en-US/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
 
 # Remove stuff we do not need.
-sudo -u $USERNAME rm ./tor-browser_en-US/App/{tor,vidalia}
-sudo -u $USERNAME rm -r ./tor-browser_en-US/Data/{Tor,Vidalia}
-sudo -u $USERNAME rm -r ./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}
-sudo -u $USERNAME rm -r ./tor-browser_en-US/Lib/*
+sudo -u "$USERNAME" rm "./tor-browser_en-US/App/{tor,vidalia}"
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Data/{Tor,Vidalia}"
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}"
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Lib/*"
 
 # Call the function tb_create_user_js().
 tb_create_user_js
 
 echo "INFO: Moving old folder tor-browser_en-US..."
-sudo -u $USERNAME mv /home/$USERNAME/tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
+sudo -u "$USERNAME" mv /home/$USERNAME/tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
 echo "INFO: Moving temporary folder tbbdownload/tor-browser_en-US to /home/$USERNAME/tor-browser_en-US"
-mv /home/$USERNAME/tbbdownload/tor-browser_en-US /home/$USERNAME/tor-browser_en-US
+mv "/home/"$USERNAME"/tbbdownload/tor-browser_en-US" "/home/"$USERNAME"/tor-browser_en-US"
 echo "INFO: Deleting temporary folder tbbdownload..."
-sudo -u $USERNAME rm -r /home/$USERNAME/tbbdownload
+sudo -u "$USERNAME" rm -r "/home/"$USERNAME"/tbbdownload"
 echo "INFO: Finished installing TBB. Can be found in /home/$USERNAME/tor-browser_en-US."
 
 exit 0
@@ -323,7 +323,7 @@ exit 0
 #########################################################################
 
 tb_create_user_js() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
 # Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
@@ -376,7 +376,7 @@ user_pref("extensions.torbutton.banned_ports", "8118,8123,9050,9051,9100,9101,91
 #########################################################################
 
 tb_start_with_readme() {
-trap "error_handler" ERR
+trap "tb_error_handler" ERR
 
    PID="`pidof firefox`" || true
 
@@ -405,7 +405,7 @@ trap "error_handler" ERR
 #########################################################################
 
 tb_start_without_readme() {
-   trap "error_handler" ERR
+   trap "tb_error_handler" ERR
 
    ~/tor-browser_en-US/start-tor-browser &
 }
@@ -467,5 +467,7 @@ fi
 ################################################################ 
 if [[ "$1" = "" ]]; then 
 echo "aos torbrowser: No option chosen. Please run with -help to find out more."
-exit 0
+#This script gets sources by aos_internal_install_script. 
+#an exit 0 at the end would break it.
+#exit 0
 fi

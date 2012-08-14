@@ -109,9 +109,12 @@ apt-get --yes remove --purge ntpdate popularity-contest resolvconf ufw network-m
 #      build-essential
 # required for tails_htp:
 #      libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
+# required for torcheck, provides /usr/lib/update-notifier/apt-check:
+#      update-notifier-common
 echo "INFO: Installing required software..."
 apt-get --yes install --no-install-recommends nano wget gnupg ed torsocks mingetty build-essential dbus dnsutils \
-libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
+libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl \
+update-notifier-common
 }
 
 
@@ -186,9 +189,10 @@ sudo -u "$USERNAME" gpg --fingerprint
 
 
 config_htp() {
-   trap "error_handler" ERR INT TERM
-   echo "creating the htp user"
+   echo "Creating the htp user..."
    adduser --system --quiet --group --no-create-home htp || :
+   echo "Adding htpdate init script..."
+   update-rc.d htpdate defaults
 }
 
 
@@ -284,14 +288,14 @@ history -c
 if [[ "$1" = "-install" ]]; then
 root_check                # Depends on nothing.
 
-. /usr/share/aos/aos_internal_checks
-. /usr/share/aos/aos_create_swap_file
-. /usr/share/aos/aos_config_uuids
-. /usr/share/aos/aos_slim_down
-. /usr/share/aos/patch_torsocks
-. /usr/share/aos/import_tpo_archive_key
+source /usr/share/aos/aos_internal_checks
+source /usr/share/aos/aos_create_swap_file
+source /usr/share/aos/aos_config_uuids
+source /usr/share/aos/aos_slim_down
+source /usr/share/aos/patch_torsocks
+source /usr/share/aos/import_tpo_archive_key
 
-. /usr/local/bin/torbrowser
+source /usr/local/bin/torbrowser
 
 aos_internal_checks       # Depends on nothing.
 aos_create_swap_file      # Depends on root_check, not being run again when in use.
