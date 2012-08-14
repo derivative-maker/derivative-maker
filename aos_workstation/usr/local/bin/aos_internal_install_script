@@ -88,6 +88,8 @@ root_check() {
 
 
 apt_get() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 # Updating system, removing problematic software
@@ -115,15 +117,20 @@ libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-pe
 
 
 base_desktop() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 # Installing base desktop
 ######################################################
 "
 
+# required for gnome-terminal:
+# gnome-themes-standard
+
 apt-get --yes install --no-install-recommends xserver-xorg xinit openbox obmenu pcmanfm evince \
 libasound2 file-roller xchat gpicview gnome-mplayer tint2 unrar-free alsa alsa-utils \
-mplayer leafpad gnome-terminal zenity
+mplayer leafpad gnome-terminal zenity gnome-themes-standard
 
 # We should install the following at some later point...
 # - Thunderbird with TorBirdy, once added to deb repository.
@@ -135,6 +142,8 @@ mplayer leafpad gnome-terminal zenity
 
 
 config_audio() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 # Set up audio
@@ -149,12 +158,18 @@ amixer set PCM 70 unmute
 
 
 config_home() {
+trap "error_handler" ERR INT TERM
+
+# Thanks to:
+# https://bbs.archlinux.org/viewtopic.php?id=116451
+# http://askubuntu.com/questions/98135/gnome-terminal-ignores-gtk-theme
+
 # Fixing black on black for gnome-terminal.
 # Thanks to: http://ubuntuforums.org/showthread.php?t=1513791
 # Thanks to: https://gist.github.com/1397104
-sudo -u $USERNAME gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
-sudo -u $USERNAME gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
-sudo -u $USERNAME gconftool-2 --type string --set /apps/gnome-terminal/profiles/Default/foreground_color "#FFFFFFFFFFFF"
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/foreground_color" --type string "#FFFFFFFFFFFF"
 
 # Run gpg at least once to create the GPG default files
 # gpg.conf, pubring.gpg and trustdb.gpg.
@@ -162,13 +177,16 @@ sudo -u $USERNAME gconftool-2 --type string --set /apps/gnome-terminal/profiles/
 # added to let GPG terminate itself after creating the
 # configuration files. GPG run with no options would
 # result in GPG running interactively.
-sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+# old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+# new:
+sudo -u "$USERNAME" gpg --fingerprint
 # gpg.conf gets appened by aos_image append post.
 }
 
 
 
 config_htp() {
+   trap "error_handler" ERR INT TERM
    echo "creating the htp user"
    adduser --system --quiet --group --no-create-home htp || :
 }
@@ -176,6 +194,8 @@ config_htp() {
 
 
 aos_slim_down() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 Slim down the system.
@@ -283,7 +303,7 @@ patch_torsocks            # Depends on root_check, working internet connection.
 base_desktop              # Depends on root_check, working internet connection.
 tb_force_install          # Depends on working internet connection.
 config_audio              # Depends on base_desktop.
-config_home               # Depends on being run only once.
+config_home               # Depends on nothing.
 config_htp                # Depends on root_check.
 aos_slim_down             # Depends on root_check, being last function.
 

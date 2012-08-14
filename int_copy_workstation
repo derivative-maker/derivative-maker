@@ -120,8 +120,11 @@ copy_workstation_post() {
    # Enable sub pixel rendering.
    cp -n "$CHROOT_FOLDER"/etc/fonts/conf.avail/10-sub-pixel-rgb.conf "$CHROOT_FOLDER"/etc/fonts/conf.d/
 
+   # Ensure folder exist.
+   mkdir -p "$CHROOT_FOLDER"/etc/init/
+
    # Autologin.
-   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/init/tty6.conf "$CHROOT_FOLDER"/aos_workstation/etc/init/tty6.conf
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/etc/init/tty6.conf "$CHROOT_FOLDER"/etc/init/tty6.conf
 
    # Prepare dirs.
    mkdir -p "$CHROOT_FOLDER"/home/user/.config/
@@ -134,6 +137,8 @@ copy_workstation_post() {
    chown user "$CHROOT_FOLDER"/home/user/.config/libfm
    mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
    chown user "$CHROOT_FOLDER"/home/user/.config/autostart
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/gtk-3.0
+   chown user "$CHROOT_FOLDER"/home/user/.config/gtk-3.0
 
    # Create backup of menu.xml.
    cp -n "$CHROOT_FOLDER"/home/user/.config/openbox/menu.xml \
@@ -160,15 +165,20 @@ copy_workstation_post() {
 
    # .config/libfm/libfm.conf
    cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/libfm/libfm.conf \
-$CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
-   chown user $CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
+"$CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
+   chown user "$CHROOT_FOLDER"/home/user/.config/libfm/libfm.conf
 
    # .config/autostart/torcheck.desktop
    # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
    # Create torcheck autostart.
    cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/autostart/torcheck.desktop \
-$CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
-   chown user $CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
+"$CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
+   chown user "$CHROOT_FOLDER"/home/user/.config/autostart/torcheck.desktop
+
+   # .config/gtk-3.0/settings.ini
+   cp "$AOS_SOURCE_FOLDER"/aos_workstation/home/user/.config/gtk-3.0/settings.ini \
+"$CHROOT_FOLDER"/home/user/.config/gtk-3.0/settings.ini
+   chown user "$CHROOT_FOLDER"/home/user/.config/gtk-3.0/settings.ini
 
       #######
       # uwt #
@@ -254,20 +264,21 @@ append_workstation_post() {
       ##########
 
    # Create backup of gpg.conf.
+   # Do not override. This is important.
    cp -n "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
    chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
 
    # Create backup of .gtkrc-2.0.
-   cp -n "$CHROOT_FOLDER"/home/user/.gtkrc-2.0 "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
-   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup
+   cp -n "$CHROOT_FOLDER"/home/user/.gtkrc-2.0 "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup || true
+   chown user "$CHROOT_FOLDER"/home/user/.gtkrc-2.0.backup || true
 
    # Create backup of .profile.
-   cp -n "$CHROOT_FOLDER"/home/user/.profile "$CHROOT_FOLDER"/home/user/.profile.backup
-   chown user "$CHROOT_FOLDER"/home/user/.profile.backup
+   cp -n "$CHROOT_FOLDER"/home/user/.profile "$CHROOT_FOLDER"/home/user/.profile.backup || true
+   chown user "$CHROOT_FOLDER"/home/user/.profile.backup || true
 
    # Create backup of .xinitrc.
-   cp -n "$CHROOT_FOLDER"/home/user/.xinitrc "$CHROOT_FOLDER"/home/user/.xinitrc.backup
-   chown user "$CHROOT_FOLDER"/home/user/.xinitrc.backup
+   cp -n "$CHROOT_FOLDER"/home/user/.xinitrc "$CHROOT_FOLDER"/home/user/.xinitrc.backup || true
+   chown user "$CHROOT_FOLDER"/home/user/.xinitrc.backup || true
 
       ##########
       # Append #
