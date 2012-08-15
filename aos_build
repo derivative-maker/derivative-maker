@@ -17,10 +17,11 @@ echo \
 # -tw
 # assumes aos-Gateway is running because
 # downloads go already through aos-Gateway.
-# Builds aos-Workstation VBox machine
+# Builds aos-Workstation VBox machine.
 #
 # -clean
 # deletes the whole content of the aos_binary folder
+# (untested)
 "
 }
 
@@ -29,6 +30,7 @@ echo \
 set -x
 
 USERNAME="user"
+AOS_SOURCE_FOLDER="/home/$USERNAME/aos"
 
 
 
@@ -58,31 +60,31 @@ rm /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 if [ "$1" = "-tg" ]; then
       root_check
 
-      $HOME/aos/aos_getiso -download
+      "$AOS_SOURCE_FOLDER"/aos_getiso -download
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_modifyiso -create
+      "$AOS_SOURCE_FOLDER"/aos_modifyiso -create
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tg-pre
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-createvm
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tg-install-os
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-os
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tg-post
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-post-install-os
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_image -tg-copyinto-pre
+      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-pre
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tg-install-script
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-script
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_image -tg-copyinto-post
+      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-post
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tg-export
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-export
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       echo "INFO: No errors."
@@ -97,32 +99,30 @@ fi
 if [[ "$1" = "-tw" ]]; then
       root_check
 
-      # Assumes aos-Gateway has already been created, i.e.
-      # operating system iso already downloaded.
+      : Assumes aos-Gateway has already been created, i.e.
+      : operating system iso already downloaded and preseed added.
 
-      $HOME/aos/aos_createvm -tw-pre
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-createvm
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      # Assumes aos-Gateway is running, because downloads go already through aos-Gateway.
-
-      $HOME/aos/aos_createvm -tw-install-os
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-os
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tw-post
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-post-install-os
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_image -tw-copyinto-pre
+      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-pre
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      # Assumes aos-Gateway is running, because downloads go already through aos-Gateway.
+      : Assumes aos-Gateway is running, because downloads already go through aos-Gateway.
 
-      $HOME/aos/aos_createvm -tw-install-script
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-script
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_image -tw-copyinto-post
+      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-post
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      $HOME/aos/aos_createvm -tw-export
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-export
       if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       exit 0
@@ -147,12 +147,12 @@ fi
 if [[ "$1" = "-all" ]]; then
 root_check
 
-aos_getiso -delete
-aos_modifyiso -delete
-aos_image -tg-unmount
-aos_image -tw-unmount
-aos_createvm -tg-delete
-aos_createvm -tw-delete
+"$AOS_SOURCE_FOLDER"/aos_getiso -delete
+"$AOS_SOURCE_FOLDER"/aos_modifyiso -delete
+"$AOS_SOURCE_FOLDER"/aos_createvm -tg-unmount
+"$AOS_SOURCE_FOLDER"/aos_createvm -tw-unmount
+"$AOS_SOURCE_FOLDER"/aos_createvm -tg-delete
+"$AOS_SOURCE_FOLDER"/aos_createvm -tw-delete
 
 echo "aos_Build: Done."
 exit 0
