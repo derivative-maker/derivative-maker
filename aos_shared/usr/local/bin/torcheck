@@ -335,8 +335,7 @@ check_network() {
 
    # Ensuring normal wget activity can not be linked to torcheck,
    # by using a SocksPort, which is solely used by torcheck.
-   ip="$GATEWAY_IP" port="$SOCKS_PORT_TORCHECK" uwt \
-/usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document index.html https://check.torproject.org" || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
       local MSG="Your Internet connection appears to be down."
@@ -360,8 +359,8 @@ check_torbrowser() {
    echo "Checking Tor Browser version..."
 
    # Getting latest version number
-   ip="$GATEWAY_IP" port="$SOCKS_PORT_TORCHECK" uwt \
-/usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions "https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
+   -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed."
@@ -421,7 +420,7 @@ check_tor() {
    elif [ "$1" = "TransPort" ]; then
       # Using wget binary to ensure the wget uwt wrapper /usr/local/bin/wget does not get used.
       echo "Testing Tor's TransPort..."
-      /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html "https://check.torproject.org" || NETWORK_DOWN="1"
+      /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
       # Check if wget failed.
       if [ "$NETWORK_DOWN" = "1" ]; then
          local MSG="SocksPort Test failed! Can not test stream isolation!"
@@ -544,15 +543,14 @@ download_aos_news() {
    echo "Checking for aos news and updates..."
 
    # Tested...
-   ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
-/usr/bin/wget $TORCHECK_VERBOSE --output-document \
-aos_news.asc "$AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
+   -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document \
+   aos_news.asc $AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
    # Uncomment the following three lines to test what happens
-   # when verification fails.
-   #ip="$GATEWAY_IP" port="$SOCKS_PORT_AOS_NEWS" uwt \
-#/usr/bin/wget $TORCHECK_VERBOSE --output-document \
-#aos_news.asc "$AOS_HOMEPAGE" || DOWNLOAD_NEWS_SUCCESS="0"
+   #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
+   #-c "/usr/bin/wget $TORCHECK_VERBOSE --output-document \
+   #aos_news.asc $AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
       local MSG="Could not download aos News."

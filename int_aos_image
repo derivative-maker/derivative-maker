@@ -29,9 +29,11 @@ exit 1
 mount_vm_image() {
    trap "error_handler_int_aos_image" ERR INT TERM
 
+   sync
    # Ensure powered is off. Otherwise disk corruption is at high risk.
    sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
-
+   sync
+   
    # Create loopback dev for the image.
    # old, was working: qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
 
@@ -64,8 +66,10 @@ mount_vm_image() {
    # Folder has to exist to mount the image.
    mkdir -p $CHROOT_FOLDER
 
+   sync
    # Mount the partitions, that are exposed as /dev/nbd0pXXX.
    mount -o noatime /dev/nbd0p1 $CHROOT_FOLDER
+   sync
 }
 
 
@@ -134,6 +138,9 @@ umount $CHROOT_FOLDER || true
 # Delete temporary folder.
 # It did not contain anything. It was only a mount point.
 rm -r $CHROOT_FOLDER || true
+
+# Ensure changes get written.
+sync || true
 }
 
 
@@ -156,4 +163,7 @@ umount $CHROOT_FOLDER
 # Delete temporary folder.
 # It did not contain anything. It was only a mount point.
 rm -r $CHROOT_FOLDER
+
+# Ensure changes get written.
+sync
 }
