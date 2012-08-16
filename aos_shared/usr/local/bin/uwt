@@ -1,6 +1,8 @@
-#! /bin/sh
+#!/bin/bash
 
-# Update 11
+# Update 12
+
+# https://trac.torproject.org/projects/tor/wiki/doc/torsocks
 
 # ***************************************************************************
 # *                                                                         *
@@ -51,11 +53,22 @@
 # Define and ensure we have tsocks
 # XXX: what if we do not have which?
 TORSOCKS="`which torsocks`"
-PROG=
-VERBOSE=
+
+if [ -z "$UWT_VERBOSE" ]; then
+	# echo "UWT_VERBOSE: did not exist."
+	UWT_VERBOSE="0"
+else
+	if [ "$UWT_VERBOSE" = "1" ]; then
+		set -x
+	fi
+fi
+#echo "UWT_VERBOSE: $UWT_VERBOSE"
 
 usage () {
-	echo "Usage: $0 [-h] [-v] [ <command> [<options>...]"
+	echo "Usage: $0 [-h] [-v] [-t server_type] [-i ip] [-p port] [-c \"<command> [<options>...\"]"
+	echo "Example: $0 [-t 5] [-i 127.0.0.1] [-p 9050] [-c \"wget https://check.torproject.org\"]"
+        echo "sudo uwt -t 5 -i 192.168.1.10 -p 9104 -c \"/usr/bin/apt-get --yes dist-upgrade\""
+	exit 0
 }
 
 set_id () {
@@ -69,23 +82,38 @@ if [ "$#" = 0 ]; then
 	exit 1
 fi
 
-# TODO:
-# IP and PORTS can be set below.
+# Thanks to
+# http://aplawrence.com/Unix/getopts.html
+while getopts  "hvi:p:c:t:" FLAG
+do
+  #echo "FLAG: $FLAG | OPTARG: $OPTARG"
+  if [ "$FLAG" = "h" ]; then
+      usage
+  fi
+  if [ "$FLAG" = "v" ]; then
+      set -x
+      UWT_VERBOSE="1"
+  fi
+  if [ "$FLAG" = "i" ]; then
+      ip="$OPTARG"
+  fi
+  if [ "$FLAG" = "p" ]; then
+      port="$OPTARG"
+  fi
+  if [ "$FLAG" = "c" ]; then
+      command="$OPTARG"
+  fi
+  if [ "$FLAG" = "t" ]; then
+      server_type="$OPTARG"
+  fi
 
-while [ "$1" ]; do
-	case "$1" in
-		-h|--h*)
-			usage
-			exit 0
-			;;
-		-v|--v*)
-			VERBOSE=YesPlease
-			shift
-			;;
-		*)
-			break;
-	esac
 done
+
+# echo "uwt command: $command"
+
+# Thanks to
+# http://ask.metafilter.com/80862/how-split-a-string-in-bash
+set -- $command
 
 exe="`which $1`"
 if [ "$exe" = "" ]; then
@@ -100,14 +128,14 @@ elif [ -g `which "$1"` ]; then
 fi
 
 if [ -x "$TORSOCKS" ]; then
-	PROG=torsocks
+	PROG="torsocks"
 else
 	echo "$0: Unable to find torsocks in PATH." >&2
 	echo "    Perhaps you have not installed it?" >&2
 	exit 1
 fi
 
-if [ "$VERBOSE" ]; then
+if [ "$UWT_VERBOSE" = "1" ]; then
 	echo "We are armed with the following torsocks: $TORSOCKS"
 	echo "We are attempting to use $PROG for all tor action."
 fi
@@ -127,24 +155,13 @@ if [ "$PROG" = "torsocks" ]; then
 		local = 172.16.0.0/255.240.0.0
 		local = 192.168.0.0/255.255.0.0
 		server = $ip
-		server_type = 5
+		server_type = $server_type
 		server_port = $port
 	" > $TORSOCKS_CONF_FILE
 
 	# Check that we have got a torsocks config file
 	if [ -r "$TORSOCKS_CONF_FILE" ]; then
-		# echo "1 UWT_VERBOSE: $UWT_VERBOSE"
-
-		if [ -z $UWT_VERBOSE ]; then
-			# echo "UWT_VERBOSE: did not exist."
-			UWT_VERBOSE=0
-		else
-			if [ $UWT_VERBOSE -eq "1" ]; then
-				VERBOSE=YesPlease
-			fi
-		fi
-		# echo "2 UWT_VERBOSE: $UWT_VERBOSE"
-		if [ $VERBOSE ]; then
+		if [ "$UWT_VERBOSE" = "1" ]; then
 			echo "uwt"
 			echo "ip: $ip port: $port"
 		fi
@@ -160,18 +177,18 @@ if [ "$PROG" = "torsocks" ]; then
                    ;;
                    *)
                       # do nothing
-                      sleep 0
+                      true
                    ;;
                 esac
 
                 if [ "$UWT_LOCALHOST" = "1" ]; then
-                   if [ $VERBOSE ]; then
+                   if [ "$UWT_VERBOSE" = "1" ]; then
                       echo "UWT_LOCALHOST: $UWT_LOCALHOST NOT using torsocks."
   		      echo "exec torsocks \"$@\""
                    fi
                    exec "$@"
                 else
-                   if [ $VERBOSE ]; then
+                   if [ "$UWT_VERBOSE" = "1" ]; then
                       echo "UWT_LOCALHOST: $UWT_LOCALHOST USING torsocks."
   		      echo "exec torsocks \"$@\""
                    fi
