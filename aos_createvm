@@ -127,7 +127,7 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
 # - https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Dev#SwitchingOperatingSystemSHELLSCRIPTSENHANCEMENTWAITForWheezy
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --pae on
 
-# Hide your host CPU info [Virtualbox only]. This does not have a GUI option so on the command line run:
+# Hide hosts CPU info. This does not have a GUI option.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --synthcpu on
 
 # ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
@@ -136,7 +136,10 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --acpi on
 # ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ioapic on
 
-# Set system clock to UTC.
+# Set system clock of VM to UTC.
+# When Virtual Box starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
+# and sets the VM clock to that date and time. The following option translates the date
+# and time to UTC, thus hiding the hosts timezone from the guest.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --rtcuseutc on
 }
 
@@ -157,17 +160,17 @@ install_os_inside_vm() {
    # VBoxSDL is does not run in background, waits until finished.
    # No questions by VBox (such as grab mouse etc.).
    # The preseed.iso is configured to eject the iso.
-   # The preseed.iso is configured to poweroff when its done.
+   # The preseed.iso is configured to power off when its done.
    : echo "aos_createvm: Operating system should now be installed unattended (preseed)..."
    : echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
    : echo "aos_createvm: Check if its not frozen but be patient."
-   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
    : echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
    : echo "aos_createvm: Virtual Box terminated without error messages."
-   : echo "aos_createvm: This is no gurantee everything went well inside the VM."
+   : echo "aos_createvm: This is no guarantee everything went well inside the VM."
 
    # Ensure preseed.iso gets removed.
    : echo "aos_createvm: Removing operating system installation CD..."
@@ -232,7 +235,7 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 080027070B08
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 
 # Host audio driver can be oss, alsa or pulse.
-# Unfortunately, no auto detection avaliable.
+# Unfortunately, no auto detection available.
 # Depends on host driver.
 # Ubuntu host uses pulse audio.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
@@ -243,18 +246,18 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
 install_script_inside_vm() {
    trap "error_handler" ERR INT TERM
 
-   : echo "aos_createvm: $VMNAME script should now be applied unattened..."
+   : echo "aos_createvm: $VMNAME script should now be applied unattended..."
    : echo "aos_createvm: Should not require any user interaction. If so, please report a bug."
    : echo "aos_createvm: Check if its not frozen but be patient."
    : echo "aos_createvm: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
    : echo "aos_createvm: If that happens you can press ESC to see the echos."
-   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activty or even attach a debugger."
+   : echo "aos_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
    : echo "aos_createvm: Please wait until it has finished."
 
    sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
 
    : echo "aos_createvm: Virtual Box terminated without error messages."
-   : echo "aos_createvm: This is no gurantee everything went well inside the VM."
+   : echo "aos_createvm: This is no guarantee everything went well inside the VM."
 }
 
 
@@ -301,7 +304,7 @@ rm "$HOME/aos_binary/$VMNAME".ova || true
 # no option chosen                                             #
 ################################################################ 
 if [[ $# == 0 ]]; then
-   : echo "No option choosen. Use -help for help."
+   : echo "No option chosen. Use -help for help."
    touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED || true
    exit 1
 fi
@@ -431,7 +434,7 @@ if [[ "$1" = "-tw-createvm" ]]; then
    VMRAM="256"
    general_setup
    workstation_specific
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-install-os"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tw-install-os"
    exit 0
 fi
 
@@ -442,7 +445,7 @@ if [[ "$1" = "-tw-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    install_os_inside_vm
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-post-install-os"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tw-post-install-os"
    exit 0
 fi
 
@@ -453,7 +456,7 @@ if [[ "$1" = "-tw-post-install-os" ]]; then
    root_check
    VMNAME="aos-Workstation"
    workstation_post_install_os
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_image -tw-copyinto-pre"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_image -tw-copyinto-pre"
    exit 0
 fi
 
@@ -468,7 +471,7 @@ if [[ "$1" = "-tw-copyinto-pre" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_pre
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   : echo "BUILD INFO: Done, if success, next step should be sudo ./aos_createvm -tg-install-script"
    exit 0
 fi
 
@@ -479,7 +482,7 @@ if [[ "$1" = "-tw-install-script" ]]; then
    root_check
    VMNAME="aos-Workstation"
    install_script_inside_vm
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tw-copyinto-post"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tw-copyinto-post"
    exit 0
 fi
 
@@ -494,7 +497,7 @@ if [[ "$1" = "-tw-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_post
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tw-export"
+   : echo "BUILD INFO: Done, if success, next step should be sudo ./aos_createvm -tw-export"
    exit 0
 fi
 
@@ -538,7 +541,7 @@ if [[ "$1" = "-tg-mount" ]]; then
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
    : echo "- Leave the folder after you are done!!! cd ~"
    : echo "- Do not forget to run: sudo ./aos_createvm -tg-unmount"
-   : echo "- Otherwise strange bugs may occour."
+   : echo "- Otherwise strange bugs may occur."
    exit 0
 fi
 
@@ -566,7 +569,7 @@ if [[ "$1" = "-tw-mount" ]]; then
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
    : echo "- Leave the folder after you are done!!! cd ~"
    : echo "- Do not forget to run: sudo ./aos_createvm -tw-unmount"
-   : echo "- Otherwise strange bugs may occour."
+   : echo "- Otherwise strange bugs may occur."
    exit 0
 fi
 
