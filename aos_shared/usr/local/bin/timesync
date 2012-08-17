@@ -1,0 +1,316 @@
+#!/bin/bash
+# Will be copied into aos_g/w: /usr/local/bin/timesync
+
+# See LICENSE in root of aos source for copyright, license and authors.
+
+#set -o errtrace
+#set -o nounset
+#set -o errexit
+
+error_handler() {
+   BUG="1"
+   show_output
+   
+   ZENITY_MESSAGE=""
+   
+   local MSG="timesync script bug
+Run: timesync -v
+for verbose output. Clean the output and
+please report this bug!
+bash_commend: $BASH_COMMAND"
+   echo "$MSG"
+   output "--error" "ERROR" "$MSG"
+   show_output
+   
+   exit 1
+}
+
+
+
+timesync_help() {
+   trap "error_handler" ERR INT TERM
+
+   echo "timesync by aos
+$AOS_HOMEPAGE 
+
+Available arguments,
+-v for verbose output.
+"
+}
+
+
+
+phrase_cmd_options() {
+   trap "error_handler" ERR INT TERM
+
+   # If timesync is run without command line arguments,
+   # $1 will not exist.
+   if [[ "$#" == "0" ]]; then
+      TIMESYNC_VERBOSE="--output-file /dev/null"
+   else
+      if [[ "$1" = "-v" ]]; then
+         set -x
+         TIMESYNC_VERBOSE=""
+         echo "Verbose output..."
+         echo "Script running as $(whoami)"
+      fi
+      if [[ "$1" = "-help" ]]; then
+         timesync_help
+         exit 0
+      fi
+   fi
+}
+
+
+
+preparation() {
+   trap "error_handler" ERR INT TERM
+
+   # Initialize the variables.
+   USERNAME="user"
+   AOS_HOMEPAGE="http://aos.sf.net"
+   BUG="0"
+
+   # Initialize more variables.
+   COUNTER="0"
+   PROGRESS="0"
+   ZENITY_TYPE=""
+   ZENITY_TITLE=""
+   ZENITY_MESSAGE=""
+   
+   if [ -f "/usr/share/aos/aos_gateway" ]; then
+      VM="aos-Gateway"
+      GATEWAY_IP="127.0.0.1"
+   elif [ -f "/usr/share/aos/aos_workstation" ]; then
+      VM="aos-Workstation"
+      GATEWAY_IP="192.168.0.10"
+   else
+      VM="timesync script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
+      GATEWAY_IP="192.168.0.10"
+   fi
+
+   # Check if zenity is installed.
+   # - This is not the case for cli users.
+   # - This is also not the case on aos-Gateway.
+   if [ "`which zenity`" = "" ]; then
+      # zenity is not installed.
+      zenity() {
+         #dummy
+         true
+      }
+      zenity_progress() {
+         #dummy
+         true
+      }
+   else
+      # zenity is installed.
+      zenity_progress() {
+         echo "$1" >&3
+      }
+   fi
+   
+   ## this is not the most stable daemon...
+   ## Not used as we switched from notify-send to zenity
+   #if [ "$(pgrep -f notification-daemon)" = "" ]; then
+   #   /usr/lib/notification-daemon/notification-daemon &
+   #fi
+
+   # check if notify-send is installed
+   # that is not the case for cli users
+   # this is also not the case on aos-Gateway
+   #if [ `which notify-send` = "" ]; then
+   #   notify-send() {
+   #      #dummy
+   #      true
+   #   }
+   #fi
+}
+
+
+
+kill_old_instances() {
+  trap "error_handler" ERR INT TERM
+
+  local PID="`pgrep -f "timesync"`" || true
+  if [ "$PID" != "" ]; then
+    kill -9 "$PID" || true
+  fi
+  
+  local PID="`pgrep -f "timesync"`" || true
+  if [ "$PID" != "" ]; then
+    kill -9 "$PID" || true
+  fi
+}
+
+
+
+output() {
+   # (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
+   #echo "output: $1 ||| $2 ||| $3 |||"
+   
+   trap "error_handler" ERR INT TERM
+
+   if [ "$ZENITY_TYPE" = "--error" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TYPE="$1"
+   fi
+
+   if [ "$ZENITY_TITLE" = "ERROR" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   elif [ "$ZENITY_TITLE" = "WARNING" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TITLE="$2"
+   fi
+
+   ZENITY_MESSAGE="$ZENITY_MESSAGE
+
+$3"
+}
+
+
+
+show_output() {
+   if [ "$BUG" = "0" ]; then
+      if [ "$ZENITY_TYPE" = "--info" ]; then
+         local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+         local MSG="Please support the aos's hosting and development, donate Bitcoin to:
+$BITCOIN_ADDRESS"
+         echo "$MSG"
+         output "--info" "Info" "$MSG"  
+      fi
+   fi
+   
+   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
+   --title="$VM $INSTALLED_AOS_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+}
+
+
+
+welcome() {
+   trap "error_handler" ERR INT TERM
+
+   echo "timesync by aos
+$AOS_HOMEPAGE
+-help for help.
+Running checks..."
+
+   # Non-intrusive notification, that the checks are running in background.
+   # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+   #notify-send --urgency low --expire-time 0 --app-name "aos" "$NOTIFY_MSG"
+   local NOTIFY_MSG="Running secure Network Time Synchronization...
+This will happen in background and will take approximately 60 seconds."
+
+   # The progress window will close automatically after 100% progress.
+   exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
+   --title="$VM $INSTALLED_AOS_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+}
+
+
+
+disclaimer() {
+   trap "error_handler" ERR INT TERM
+
+   local MSG="aos is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+aos is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+$AOS_HOMEPAGE"
+
+   echo "$MSG"
+   output "--info" "Info" "$MSG"   
+}
+
+
+
+run_htpdate() {
+  trap "error_handler" ERR INT TERM
+
+  let "PROGRESS=$PROGRESS+5"
+  # The 5% indicate, that the check has begun.
+  zenity_progress $PROGRESS
+
+  sudo /etc/init.d/htpdate restart
+
+  let "PROGRESS=$PROGRESS+5"
+  zenity_progress $PROGRESS
+
+  check_htpdate
+}
+
+check_htpdate() {
+
+  let "COUNTER=$COUNTER+1"
+  let "PROGRESS=$PROGRESS+10"
+  zenity_progress $PROGRESS
+
+  local done_file="/var/run/htpdate/done"
+  local success_file="/var/run/htpdate/success"
+  
+  if [ ! -f "$done_file" ]; then
+     if [ "$COUNTER" -lt 9 ]; then
+        sleep 5
+        check_htpdate
+     fi
+
+    local MSG='Network Time Synchronization not done!!! Please report this bug!
+See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--error" "ERROR" "$MSG"
+
+    zenity_progress 100
+    show_output
+    exit 0
+  fi
+  
+  if [ ! -f "$success_file" ]; then
+    local MSG='Network Time Synchronization failed!!!
+See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--error" "ERROR" "$MSG"
+
+    zenity_progress 100
+    show_output
+    exit 0
+  fi
+  
+  local MSG="Network Time Synchronization successful."
+  echo "$MSG"
+  echo "System clock is set to: `date`"
+  output "--info" "Info" "$MSG"
+  zenity_progress 100
+  show_output
+  exit 0
+}
+
+
+
+timesync_main() {
+  trap "error_handler" ERR INT TERM
+  
+  phrase_cmd_options $1
+  preparation
+  kill_old_instances
+  welcome
+  disclaimer
+
+  run_htpdate
+}
+
+timesync_main $1
+
+# End of timesync script.
