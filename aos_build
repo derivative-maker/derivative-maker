@@ -4,11 +4,11 @@
 # See LICENSE in root of aos source for copyright, license and authors.
 
 script_help() {
-echo \
-"
+: "
 # creates separate build folder
 # FLAGS:
-# -all (NOT YET IMPLEMENTED)
+# -all
+# (untested)
 # build both Virtual machines
 #
 # -tg
@@ -28,6 +28,15 @@ echo \
 
 
 set -x
+
+
+
+build_error_handler() {
+   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
+   exit 1
+}
+
+
 
 USERNAME="user"
 AOS_SOURCE_FOLDER="/home/$USERNAME/aos"
@@ -54,111 +63,179 @@ rm /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
 
 
 
+aos_build_gateway() {
+      root_check
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_getiso -download
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_modifyiso -create
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-createvm
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-os
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-post-install-os
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-pre
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-script
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-post
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-export
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      echo "INFO: No errors."
+}
+
+
+
+aos_build_workstation() {
+      root_check
+
+      trap "build_error_handler" ERR
+      : Assumes aos-Gateway has already been created, i.e.
+      : operating system iso already downloaded and preseed added.
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-createvm
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-os
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-post-install-os
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-pre
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      : Assumes aos-Gateway is running, because downloads already go through aos-Gateway.
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-script
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-post
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-export
+      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+
+      trap "build_error_handler" ERR
+      echo "INFO: No errors."
+}
+
+
+
+aos_build_all() {
+	root_check
+
+	trap "build_error_handler" ERR
+	echo "aos_Build: Not tested."
+
+	trap "build_error_handler" ERR
+	aos_build_gateway
+
+	trap "build_error_handler" ERR
+	sudo -u $USERNAME VBoxSDL --startvm "aos-Gateway" &
+
+	trap "build_error_handler" ERR
+	aos_build_workstation
+
+	trap "build_error_handler" ERR
+	sudo -u $USERNAME VBoxManage controlvm "aos-Gateway" poweroff
+
+	trap "build_error_handler" ERR
+	echo "INFO: No errors."
+}
+
+
+
+aos_build_clean() {
+	root_check
+
+	echo "aos_Build: Not tested."
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_getiso -delete
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_modifyiso -delete
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_createvm -tg-unmount
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_createvm -tw-unmount
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_createvm -tg-delete
+
+	trap "build_error_handler" ERR
+	"$AOS_SOURCE_FOLDER"/aos_createvm -tw-delete
+
+	trap "build_error_handler" ERR
+	echo "aos_Build: Done."
+}
+
+
+
 ################################################################ 
 # tg                                                           #
 ################################################################ 
 if [ "$1" = "-tg" ]; then
-      root_check
-
-      "$AOS_SOURCE_FOLDER"/aos_getiso -download
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_modifyiso -create
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-createvm
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-os
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-post-install-os
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-pre
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-install-script
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_image -tg-copyinto-post
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tg-export
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      echo "INFO: No errors."
-      exit 0
+	aos_build_gateway
+	exit 0
 fi
-
-
 
 ################################################################ 
 # tw                                                           #
 ################################################################ 
 if [[ "$1" = "-tw" ]]; then
-      root_check
-
-      : Assumes aos-Gateway has already been created, i.e.
-      : operating system iso already downloaded and preseed added.
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-createvm
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-os
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-post-install-os
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-pre
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      : Assumes aos-Gateway is running, because downloads already go through aos-Gateway.
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-install-script
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_image -tw-copyinto-post
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      "$AOS_SOURCE_FOLDER"/aos_createvm -tw-export
-      if [ -f /home/$USERNAME/aos_binary/AOS_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      exit 0
+	aos_build_workstation
+	exit 0
 fi
 
 ################################################################ 
 # -all                                                         #
 ################################################################ 
 if [[ "$1" = "-all" ]]; then
-root_check
-
-
-
-exit 0
+	aos_build_all
+	exit 0
 fi
-
-
 
 ################################################################ 
 # -clean                                                       #
 ################################################################ 
 if [[ "$1" = "-all" ]]; then
-root_check
-
-"$AOS_SOURCE_FOLDER"/aos_getiso -delete
-"$AOS_SOURCE_FOLDER"/aos_modifyiso -delete
-"$AOS_SOURCE_FOLDER"/aos_createvm -tg-unmount
-"$AOS_SOURCE_FOLDER"/aos_createvm -tw-unmount
-"$AOS_SOURCE_FOLDER"/aos_createvm -tg-delete
-"$AOS_SOURCE_FOLDER"/aos_createvm -tw-delete
-
-echo "aos_Build: Done."
-exit 0
+	aos_build_clean
+	exit 0
 fi
-
-
 
 ################################################################ 
 # -help                                                        #
@@ -167,8 +244,6 @@ if [[ "$1" = "-help" ]]; then
 script_help
 exit 0
 fi
-
-
 
 ################################################################ 
 # no option chosen                                             # 
