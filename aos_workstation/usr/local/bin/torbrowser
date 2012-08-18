@@ -1,4 +1,5 @@
 #!/bin/bash
+# /usr/local/bin/torbrowser
 
 AOS_README="https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Readme"
 
@@ -61,9 +62,15 @@ echo "
 
 
 tb_error_handler() {
-   echo "######################################################"
-   echo "# torbrowser aos script bug. Please report this bug. #"
-   echo "######################################################"
+   echo "
+#########################################################"
+# aos script bug.
+# BASH_COMMAND: $BASH_COMMAND
+# Please report this bug.
+# You can enable debugging in /usr/local/bin/torbrowser
+# Uncomment set -x.
+#########################################################
+"
    exit 1
 }
 
@@ -99,8 +106,8 @@ echo "
 #################################
 "
 
-sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
---output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" -c "/usr/bin/wget \
+--output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions"
 
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
 
@@ -193,8 +200,6 @@ echo "ERROR: GPG download signature could NOT be verified."
 
 echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
 cd "/home/"$USERNAME""
-#echo "Deleting tbbdownload..."
-#sudo -u "$USERNAME" rm -r "tbbdownload" || true
 # Tell about failure.
 touch TorBrowser_installation_FAILED
 echo "Update Failed." >&2
@@ -242,13 +247,13 @@ echo "INFO: Getting the GPG keys... Verify the fingerprints."
 
 # !!!VERIFY!!!
 echo "INFO: Getting Erinn Clark's GPG key..."
-sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
---homedir "gpgtmpdir" --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" -c "/usr/bin/gpg \
+--homedir gpgtmpdir --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659"
 
 # !!!VERIFY!!!
 echo "INFO: Getting Sebastian Hahn's GPG key..."
-sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_GPG" uwt /usr/bin/gpg \
---homedir "gpgtmpdir" --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" -c "/usr/bin/gpg \
+--homedir gpgtmpdir --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
 
 # !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
@@ -265,16 +270,19 @@ echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 trap "tb_error_handler" ERR
 
 # Find out latest version.
-sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
---output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" -c "/usr/bin/wget \
+--output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions"
 
 # Phrasing the last version information.
 TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`"
 
 # Download the latest Tor Browser Bundle and its gpg signature.
 # http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
-sudo -u "$USERNAME" ip="$AOS_GATEWAY_IP" port="$SOCKS_PORT_TBB_DOWNLOAD" uwt /usr/bin/wget \
-https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" -c "/usr/bin/wget \
+https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz"
+
+sudo -u "$USERNAME" /usr/local/bin/uwt -t 5 -i "$AOS_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" -c "/usr/bin/wget \
+https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc"
 
 # Verify GPG signature.
 # Not using the users GPG keyring also ensures, that the key can be only
@@ -298,17 +306,21 @@ fi
 # Fix the start script.
 sudo -u $USERNAME ed -s tor-browser_en-US/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
 
-# Remove stuff we do not need.
-sudo -u "$USERNAME" rm "./tor-browser_en-US/App/{tor,vidalia}"
-sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Data/{Tor,Vidalia}"
-sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}"
-sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Lib/*"
+# Remove stuff we do not need. Overwrite with true in case filenames change.
+# In past minor things changed, like Tor was renamed to tor.
+sudo -u "$USERNAME" rm "./tor-browser_en-US/App/tor" || true
+sudo -u "$USERNAME" rm "./tor-browser_en-US/App/vidalia" || true
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Data/tor" || true
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Data/vidalia" || true
+# We should not delete it, contains licenses.
+#sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}" || true
+sudo -u "$USERNAME" rm -r "./tor-browser_en-US/Lib" || true
 
 # Call the function tb_create_user_js().
 tb_create_user_js
 
 echo "INFO: Moving old folder tor-browser_en-US..."
-sudo -u "$USERNAME" mv /home/$USERNAME/tor-browser_en-US tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
+sudo -u "$USERNAME" mv /home/"$USERNAME"/tor-browser_en-US /home/"$USERNAME"/tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
 echo "INFO: Moving temporary folder tbbdownload/tor-browser_en-US to /home/$USERNAME/tor-browser_en-US"
 mv "/home/"$USERNAME"/tbbdownload/tor-browser_en-US" "/home/"$USERNAME"/tor-browser_en-US"
 echo "INFO: Deleting temporary folder tbbdownload..."
