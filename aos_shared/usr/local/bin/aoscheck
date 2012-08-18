@@ -1,5 +1,5 @@
 #!/bin/bash
-# Will be copied into aos_g/w: /usr/local/bin/torcheck
+# Will be copied into aos_g/w: /usr/local/bin/aoscheck
 
 # See LICENSE in root of aos source for copyright, license and authors.
 
@@ -41,8 +41,8 @@ error_handler() {
    
    ZENITY_MESSAGE=""
    
-   local MSG="torcheck script bug
-Run: torcheck -v
+   local MSG="aoscheck script bug
+Run: aoscheck -v
 for verbose output. Clean the output and
 please report this bug!
 bash_commend: $BASH_COMMAND"
@@ -55,10 +55,10 @@ bash_commend: $BASH_COMMAND"
 
 
 
-torcheck_help() {
+aoscheck_help() {
    trap "error_handler" ERR INT TERM
 
-   echo "torcheck by aos
+   echo "aoscheck by aos
 $AOS_HOMEPAGE
    
 Checks if,
@@ -92,19 +92,19 @@ Available arguments,
 phrase_cmd_options() {
    trap "error_handler" ERR INT TERM
 
-   # If torcheck is run without command line arguments,
+   # If aoscheck is run without command line arguments,
    # $1 will not exist.
    if [[ "$#" == "0" ]]; then
-      TORCHECK_VERBOSE="--output-file /dev/null"
+      AOSCHECK_VERBOSE="--output-file /dev/null"
    else
       if [[ "$1" = "-v" ]]; then
          set -x
-         TORCHECK_VERBOSE=""
+         AOSCHECK_VERBOSE=""
          echo "Verbose output..."
          echo "Script running as $(whoami)"
       fi
       if [[ "$1" = "-help" ]]; then
-         torcheck_help
+         aoscheck_help
          exit 0
       fi
    fi
@@ -117,7 +117,7 @@ preparation() {
 
    # Initialize the variables.
    USERNAME="user"
-   VERIFY_TEMPDIR="/home/$USERNAME/.torcheck_temp"
+   VERIFY_TEMPDIR="/home/$USERNAME/.aoscheck_temp"
    INSTALLED_AOS_VERSION="`cat /usr/share/aos/version`"
    AOS_HOMEPAGE="http://aos.sf.net"
    BUG="0"
@@ -137,12 +137,12 @@ preparation() {
    chmod 700 "$VERIFY_TEMPDIR"
    cd "$VERIFY_TEMPDIR"
    
-   # SOCKS_PORT_TORCHECK="9110"
-   SOCKS_PORT_TORCHECK="9110"
+   # SOCKS_PORT_AOSCHECK="9110"
+   SOCKS_PORT_AOSCHECK="9110"
    SOCKS_PORT_APT_GET="9104"
    
-   # SOCKS_PORT_TORCHECK="9110"
-   SOCKS_PORT_TORCHECK="9110"
+   # SOCKS_PORT_AOSCHECK="9110"
+   SOCKS_PORT_AOSCHECK="9110"
    SOCKS_PORT_APT_GET="9104"
    
    if [ -f "/usr/share/aos/aos_gateway" ]; then
@@ -152,7 +152,7 @@ preparation() {
       VM="aos-Workstation"
       GATEWAY_IP="192.168.0.10"
    else
-      VM="torcheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
+      VM="aoscheck script could not determine if this is aos_Gateway or aos_Workstation. Please report this bug."
       GATEWAY_IP="192.168.0.10"
    fi
 
@@ -242,7 +242,7 @@ $3"
 
 
 show_output() {
-   # Show result of torcheck and TorBrowser Update check
+   # Show result of aoscheck and TorBrowser Update check
    
    if [ "$BUG" = "0" ]; then
       if [ "$ZENITY_TYPE" = "--info" ]; then
@@ -263,7 +263,7 @@ $BITCOIN_ADDRESS"
 welcome() {
    trap "error_handler" ERR INT TERM
 
-   echo "torcheck by aos
+   echo "aoscheck by aos
 $AOS_HOMEPAGE
 -help for help.
 Running checks..."
@@ -341,9 +341,9 @@ check_network() {
 
    echo "Checking network connection..."
 
-   # Ensuring normal wget activity can not be linked to torcheck,
-   # by using a SocksPort, which is solely used by torcheck.
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document index.html https://check.torproject.org" || NETWORK_DOWN="1"
+   # Ensuring normal wget activity can not be linked to aoscheck,
+   # by using a SocksPort, which is solely used by aoscheck.
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_AOSCHECK" -c "/usr/bin/wget $AOSCHECK_VERBOSE --output-document index.html https://check.torproject.org" || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
       local MSG="Your Internet connection appears to be down."
@@ -367,8 +367,8 @@ check_torbrowser() {
    echo "Checking Tor Browser version..."
 
    # Getting latest version number
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
-   -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_AOSCHECK" \
+   -c "/usr/bin/wget $AOSCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed."
@@ -428,7 +428,7 @@ check_tor() {
    elif [ "$1" = "TransPort" ]; then
       # Using wget binary to ensure the wget uwt wrapper /usr/local/bin/wget does not get used.
       echo "Testing Tor's TransPort..."
-      /usr/bin/wget $TORCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
+      /usr/bin/wget $AOSCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
       # Check if wget failed.
       if [ "$NETWORK_DOWN" = "1" ]; then
          local MSG="SocksPort Test failed! Can not test stream isolation!"
@@ -443,15 +443,15 @@ check_tor() {
      return
    fi
 
-   TORCHECK="1"
+   AOSCHECK="1"
 
    # If the word "Congratulations" is not found in index.html,
    # grep will return "".
-   # old with bug: TORCHECK="`grep "Congratulations" index.html`"
+   # old with bug: AOSCHECK="`grep "Congratulations" index.html`"
 
    # Thanks to
    # http://stackoverflow.com/questions/7560587/supress-grep-output-but-capture-it-in-a-variable
-   local WERRORS=`echo $TORCHECK | grep "Congratulations" "index.html" 2>&1`
+   local WERRORS=`echo $AOSCHECK | grep "Congratulations" "index.html" 2>&1`
 
    # TODO: ...
    IP="`grep "IP" index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`" || true   
@@ -465,7 +465,7 @@ check_tor() {
 
    # Check if connected to Tor or not,
    # and choose which message to show.
-   if [ "$TORCHECK" = "" ]; then
+   if [ "$AOSCHECK" = "" ]; then
       NOT_USING_TOR="1"
       local MSG="Tor's $1: Looks like you are not connected through Tor! There could be something wrong or it's a false positive. (https://check.torproject.org fails in some cases to detect exit nodes.)
 $IP"
@@ -551,13 +551,13 @@ download_aos_news() {
    echo "Checking for aos news and updates..."
 
    # Tested...
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
-   -c "/usr/bin/wget $TORCHECK_VERBOSE --output-document \
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_AOSCHECK" \
+   -c "/usr/bin/wget $AOSCHECK_VERBOSE --output-document \
    aos_news.asc $AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
    # Uncomment the following three lines to test what happens
-   #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TORCHECK" \
-   #-c "/usr/bin/wget $TORCHECK_VERBOSE --output-document \
+   #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_AOSCHECK" \
+   #-c "/usr/bin/wget $AOSCHECK_VERBOSE --output-document \
    #aos_news.asc $AOS_HOMEPAGE/aos_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
@@ -684,7 +684,7 @@ cleanup() {
 
 
 
-torcheck_main() {
+aoscheck_main() {
   trap "error_handler" ERR INT TERM
   
   phrase_cmd_options $1
@@ -739,6 +739,6 @@ torcheck_main() {
   exit 0
 }
 
-torcheck_main $1
+aoscheck_main $1
 
-# End of torcheck script.
+# End of aoscheck script.

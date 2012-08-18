@@ -5,7 +5,7 @@
 # There is a backup of .xinitrc under .xinitrc.backup.
 
 tint2 &
-torcheck &
+aoscheck &
 exec openbox-session 
 
 # end of aos changes to .xinitrc
