@@ -28,6 +28,27 @@ USERNAME="user"
 # change to home dir so relative paths work correctly
 cd /home/$USERNAME
 
+aos_getiso_general_error() {
+   echo "
+############################################
+# aos_getiso ERROR !!!                     #
+# BASH_COMMAND: $BASH_COMMAND
+############################################
+"
+   exit 1
+}
+
+aos_getiso_gpg_error() {
+   echo "
+############################################
+# aos_getiso gpg verification failed !!!   #
+############################################
+"
+   DOWNLOADFAILED="1"
+   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
+   exit 1
+}
+
 root_check() {
 ######################################################
 # Checking script environment
@@ -42,6 +63,8 @@ root_check() {
 }
 
 download_verify_iso() {
+trap "aos_getiso_general_error" ERR
+
 sudo -u $USERNAME mkdir -p /home/$USERNAME/aos_binary
 
 sudo -u $USERNAME wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/$USERNAME/aos_binary/ubuntu-12.04-server-i386.iso
@@ -57,28 +80,22 @@ sudo -u $USERNAME rm -r /home/$USERNAME/aos_binary/gpgtmpdir
 sudo -u $USERNAME mkdir -p /home/$USERNAME/aos_binary/gpgtmpdir
 sudo -u $USERNAME chmod 700 /home/$USERNAME/aos_binary/gpgtmpdir
 
+# Import GPG key on Ubuntu.
 sudo -u $USERNAME gpg --homedir /home/$USERNAME/aos_binary/gpgtmpdir --import /etc/apt/trusted.gpg
 
-# If you don't use Ubuntu:
+# If you do not use Ubuntu:
 # Source of that fingerprint is above trusted.gpg file, I couldn't find a TLS encrypted source of it anywhere.
 # gpg --homedir gpgtmpdir --keyserver subkeys.pgp.net --recv-keys C5986B4F1257FFA86632CBA746181433FBB75451
+
+trap "aos_getiso_gpg_error" ERR
 
 # Verify that SHA256SUMS file is signed by Ubuntu.
 sudo -u $USERNAME gpg --homedir /home/$USERNAME/aos_binary/gpgtmpdir --verify /home/$USERNAME/aos_binary/SHA256SUMS.gpg /home/$USERNAME/aos_binary/SHA256SUMS
 
-# Check if gpg verification was successful.
-if [ "$?" = "0" ];
-then
-   echo "INFO: Successfully gpg verified SHA256SUMS."
-   DOWNLOADFAILED="0"
-   # FYI: Script will continue outside the if.
-else
-   echo "FATAL ERROR: gpg verification failed."
-   DOWNLOADFAILED="1"
-   touch /home/$USERNAME/aos_binary/AOS_BUILD_FAILED
-   # Script failed. End.
-   exit 1
-fi
+trap "aos_getiso_general_error" ERR
+
+echo "INFO: Successfully gpg verified SHA256SUMS."
+DOWNLOADFAILED="0"
 
 cd /home/$USERNAME/aos_binary/
 
