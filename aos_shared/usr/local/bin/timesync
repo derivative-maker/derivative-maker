@@ -99,12 +99,13 @@ preparation() {
          true
       }
       zenity_progress() {
-         #dummy
+         echo "progress: $PROGRESS"
          true
       }
    else
       # zenity is installed.
       zenity_progress() {
+         echo "progress: $PROGRESS"
          echo "$1" >&3
       }
    fi
@@ -234,7 +235,7 @@ run_htpdate() {
 
   sudo /etc/init.d/htpdate restart
 
-  let "PROGRESS=$PROGRESS+5"
+  let "PROGRESS=$PROGRESS+1"
   zenity_progress $PROGRESS
 
   check_htpdate
@@ -243,14 +244,14 @@ run_htpdate() {
 check_htpdate() {
 
   let "COUNTER=$COUNTER+1"
-  let "PROGRESS=$PROGRESS+10"
+  let "PROGRESS=$PROGRESS+1"
   zenity_progress $PROGRESS
 
   local done_file="/var/run/htpdate/done"
   local success_file="/var/run/htpdate/success"
   
   if [ ! -f "$done_file" ]; then
-     if [ "$COUNTER" -lt 9 ]; then
+     if [ "$COUNTER" -lt 19 ]; then
         sleep 5
         check_htpdate
      fi
