@@ -5,15 +5,19 @@
 set -x
 
 aos_create_swap_file() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 # create_swap_file
 ######################################################
 "
+
 # Source: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
 
 echo "Checking if something accessing /swapfile1."
-echo "`lsof | grep /swapfile1`"
+local result="`lsof | grep /swapfile1`" || true
+echo "$result" || true
 
 echo "Delete /swapfile1 if it already exists. Only in case re-running the script."
 rm /swapfile1 || true
