@@ -68,21 +68,29 @@ echo "
 exit 1
 }
 
-trap "error_handler" ERR INT TERM
-
 
 
 root_check() {
-######################################################
-# Checking script environment
-######################################################
-# Check if we are root
   if [ "$(id -u)" != "0" ]; then
        echo "ERROR: This must be run as root (sudo)!"
        exit 1
   else
        echo "INFO: Script running as root."
   fi
+}
+
+
+
+workstation_source() {
+trap "error_handler" ERR INT TERM
+
+source /usr/share/aos/aos_internal_checks
+source /usr/share/aos/aos_create_swap_file
+source /usr/share/aos/aos_config_uuids
+source /usr/share/aos/aos_slim_down
+source /usr/share/aos/patch_torsocks
+source /usr/share/aos/import_tpo_archive_key
+source /usr/local/bin/torbrowser
 }
 
 
@@ -153,9 +161,10 @@ echo "
 ######################################################
 "
 
-usermod -a -G audio $USERNAME
-amixer set Master 70 unmute
-amixer set PCM 70 unmute
+usermod -a -G audio "$USERNAME"
+sudo -u "$USERNAME" amixer
+sudo -u "$USERNAME" amixer set Master 70 unmute
+sudo -u "$USERNAME" amixer set PCM 70 unmute
 }
 
 
@@ -189,6 +198,8 @@ sudo -u "$USERNAME" gpg --fingerprint
 
 
 config_htp() {
+   trap "error_handler" ERR INT TERM
+
    echo "Creating the htp user..."
    adduser --system --quiet --group --no-create-home htp || :
    echo "Adding htpdate init script..."
@@ -288,15 +299,7 @@ history -c
 if [[ "$1" = "-install" ]]; then
 root_check                # Depends on nothing.
 
-source /usr/share/aos/aos_internal_checks
-source /usr/share/aos/aos_create_swap_file
-source /usr/share/aos/aos_config_uuids
-source /usr/share/aos/aos_slim_down
-source /usr/share/aos/patch_torsocks
-source /usr/share/aos/import_tpo_archive_key
-
-source /usr/local/bin/torbrowser
-
+workstation_source        # Depends on nothing.
 aos_internal_checks       # Depends on nothing.
 aos_create_swap_file      # Depends on root_check, not being run again when in use.
 aos_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
