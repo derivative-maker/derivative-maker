@@ -15,6 +15,11 @@ script_help() {
 : "help: -tg-copyinto-post"
 : "help: -tg-export"
 : "help: (perhaps) -tg-delete"
+:
+: "help: Only for aos-Gateway on Bare Metal (Physical Isolation). UNTESTED!"
+: "help: -tg-bare-metal-pre"
+: "help: -tg-bare-metal-post"
+:
 : "help:"
 : "help: -tw-createvm"
 : "help: -tw-install-os"
@@ -338,7 +343,7 @@ if [[ "$1" = "-tg-createvm" ]]; then
    VMRAM="256"
    general_setup
    gateway_specific
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-install-os"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-install-os"
    exit 0
 fi
 
@@ -349,7 +354,7 @@ if [[ "$1" = "-tg-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    install_os_inside_vm
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-post-install-os"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-post-install-os"
    exit 0
 fi
 
@@ -360,7 +365,7 @@ if [[ "$1" = "-tg-post-install-os" ]]; then
    root_check
    VMNAME="aos-Gateway"
    gateway_post_install_os
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-copyinto-pre"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-copyinto-pre"
    exit 0
 fi
 
@@ -375,7 +380,7 @@ if [[ "$1" = "-tg-copyinto-pre" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_gateway_pre
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-install-script"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-install-script"
    exit 0
 fi
 
@@ -386,7 +391,7 @@ if [[ "$1" = "-tg-install-script" ]]; then
    root_check
    VMNAME="aos-Gateway"
    install_script_inside_vm
-   : echo "BUILD INFO: Done, if success, next stept should be: sudo ./aos_createvm -tg-copyinto-post"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-copyinto-post"
    exit 0
 fi
 
@@ -401,7 +406,7 @@ if [[ "$1" = "-tg-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_gateway_post
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next stept should be sudo ./aos_createvm -tg-export"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tg-export"
    exit 0
 fi
 
@@ -428,6 +433,34 @@ if [[ "$1" = "-tg-delete" ]]; then
    root_check
    VMNAME="aos-Gateway"
    delete_vm
+   exit 0
+fi
+
+################################################################ 
+# -tg-bare-metal-pre                                           #
+################################################################ 
+if [[ "$1" = "-tg-bare-metal-pre" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   VMSCRIPT="aos_gateway"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_aos_gateway_pre
+   : echo "BUILD INFO: Done, if success, REBOOT!"
+   : echo "   /usr/local/bin/aos_internal_install_script -install will get autostarted once by /etc/rc.local."
+   : echo "   Next step AFTER REBOOT and AFTER install should be: sudo ./aos_createvm -tg-bare-metal-post"
+   exit 0
+fi
+
+################################################################ 
+# -tg-bare-metal-post                                          #
+################################################################ 
+if [[ "$1" = "-tg-bare-metal-post" ]]; then
+   root_check
+   VMNAME="aos-Gateway"
+   VMSCRIPT="aos_gateway"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_aos_gateway_post
+   : echo "BUILD INFO: Done, if success, REBOOT! And done."
    exit 0
 fi
 
@@ -480,7 +513,7 @@ if [[ "$1" = "-tw-copyinto-pre" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_pre
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next step should be sudo ./aos_createvm -tw-install-script"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tw-install-script"
    exit 0
 fi
 
@@ -506,7 +539,7 @@ if [[ "$1" = "-tw-copyinto-post" ]]; then
    mount_vm_image
    copy_into_vm_image_aos_workstation_post
    unmount_vm_image
-   : echo "BUILD INFO: Done, if success, next step should be sudo ./aos_createvm -tw-export"
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./aos_createvm -tw-export"
    exit 0
 fi
 
@@ -525,8 +558,6 @@ if [[ "$1" = "-tw-export" ]]; then
    : echo "BUILD INFO: Done."
    exit 0
 fi
-
-
 
 ################################################################ 
 # -tw-delete                                                   #
