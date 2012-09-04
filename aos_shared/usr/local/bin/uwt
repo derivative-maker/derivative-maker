@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Update 13
+# Update 14
 
 # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
 
@@ -149,7 +149,8 @@ elif [ -g `which "$1"` ]; then
 fi
 
 if [ -x "$TORSOCKS" ]; then
-	PROG="torsocks"
+	# torsocks is installed.
+	true
 else
 	echo "$0: Unable to find torsocks in PATH." >&2
 	echo "    Perhaps you have not installed it?" >&2
@@ -158,85 +159,88 @@ fi
 
 if [ "$UWT_VERBOSE" = "1" ]; then
 	echo "We are armed with the following torsocks: $TORSOCKS"
-	echo "We are attempting to use $PROG for all tor action."
 fi
 
-if [ "$PROG" = "torsocks" ]; then
-	# Define our torsocks config file.
-	mkdir -p ""$HOME"/.torsocks_temp"
+# Define our torsocks config file.
+mkdir -p ""$HOME"/.torsocks_temp"
 
-	random="$(( (`od -An -N3 -i /dev/random` ) ))"
-	TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
+random="$(( (`od -An -N3 -i /dev/random` ) ))"
+TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
 
-	while [ -f "$TORSOCKS_CONF_FILE" ]; do
-		echo "Random number already exist."
-		random="$(( (`od -An -N3 -i /dev/random` ) ))"
-		TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
-	done
+while [ -f "$TORSOCKS_CONF_FILE" ]; do
+  echo "Random number already exist."
+  random="$(( (`od -An -N3 -i /dev/random` ) ))"
+  TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
+done
 
-	export TORSOCKS_CONF_FILE
-	#echo "TORSOCKS_CONF_FILE: $TORSOCKS_CONF_FILE"
+export TORSOCKS_CONF_FILE
+#echo "TORSOCKS_CONF_FILE: $TORSOCKS_CONF_FILE"
 
-	echo "
-		# Temporary torsocks configuration file created by uwt.
-		# Safe to delete.
-		local = 127.0.0.0/255.128.0.0
-		local = 127.128.0.0/255.192.0.0
-		local = 169.254.0.0/255.255.0.0
-		local = 172.16.0.0/255.240.0.0
-		local = 192.168.0.0/255.255.0.0
-		server = $ip
-		server_type = $server_type
-		server_port = $port
-	" > $TORSOCKS_CONF_FILE
+echo "
+	# Temporary torsocks configuration file created by uwt.
+	# Safe to delete.
+	local = 127.0.0.0/255.128.0.0
+	local = 127.128.0.0/255.192.0.0
+	local = 169.254.0.0/255.255.0.0
+	local = 172.16.0.0/255.240.0.0
+	local = 192.168.0.0/255.255.0.0
+	server = $ip
+	server_type = $server_type
+	server_port = $port
+" > $TORSOCKS_CONF_FILE
 
-	# Check that we have got a torsocks config file
-	if [ -r "$TORSOCKS_CONF_FILE" ]; then
-		if [ "$UWT_VERBOSE" = "1" ]; then
-			echo "uwt"
-			echo "ip: $ip port: $port"
-		fi
-
-                UWT_LOCALHOST="0"
-
-		#echo "uwt: $ *: $*"
-                case "$*" in
-                   *127.0.0.1*)
-                      UWT_LOCALHOST="1"
-                   ;;
-                   *localhost*)
-                      UWT_LOCALHOST="1"
-                   ;;
-                   *)
-                      # do nothing
-                      true
-                   ;;
-                esac
-
-                if [ "$UWT_LOCALHOST" = "1" ]; then
-                   if [ "$UWT_VERBOSE" = "1" ]; then
-                     echo "uwt: localhost detected. Not using torsocks."
-  		     echo "exec torsocks \"$@\""
-                   fi
-                   exec "$@"
-                else
-                   if [ "$UWT_VERBOSE" = "1" ]; then
-		     echo "uwt: localhost not detected. Using torsocks."
-		     echo "exec torsocks \"$@\""
-		     #echo "exec torsocks $command"
-                   fi
-
-                   exec torsocks "$@"
-                fi
-	else
-		# Since identity corelation through circuit sharing is at risk,
-		# we should no longer let torsocks default to 9050.
-		echo "$0: Missing torsocks configuration file \"$TORSOCKS_CONF_FILE\."
-		exit 1
-	fi
+# Check that we have got a torsocks config file
+if [ -r "$TORSOCKS_CONF_FILE" ]; then
+  # ok
+  # echo "TORSOCKS_CONF_FILE found."
+  true
+else
+  # Since identity corelation through circuit sharing is at risk,
+  # we should no longer let torsocks default to 9050.
+  echo "$0: Missing torsocks configuration file \"$TORSOCKS_CONF_FILE\."
+  exit 1
 fi
 
-# We should have hit an exec. If we get here, we did not exec
-echo "$0: failed to exec $PROG $@" >&2
-exit 1
+if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt"
+    echo "ip: $ip port: $port"
+fi
+
+UWT_LOCALHOST="0"
+
+#echo "uwt: $ *: $*"
+case "$*" in
+  *127.0.0.1*)
+    UWT_LOCALHOST="1"
+  ;;
+  *localhost*)
+    UWT_LOCALHOST="1"
+  ;;
+  *)
+    # do nothing
+    true
+  ;;
+esac
+
+if [ "$UWT_LOCALHOST" = "1" ]; then
+
+  if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt: localhost detected. Not using torsocks."
+    echo "exec torsocks \"$@\""
+  fi
+  
+  exec "$@"
+  
+else
+
+  if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt: localhost not detected. Using torsocks."
+    echo "exec torsocks \"$@\""
+    #echo "exec torsocks $command"
+  fi
+
+  exec torsocks "$@"
+  
+fi
+
 # End of uwt script.
