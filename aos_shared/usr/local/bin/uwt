@@ -106,8 +106,27 @@ do
   if [ "$FLAG" = "t" ]; then
       server_type="$OPTARG"
   fi
-
 done
+
+if [ -z "$ip" ]; then
+	echo "ERROR: ip (-i) missing." >&2
+	exit 1
+fi
+
+if [ -z "$port" ]; then
+	echo "ERROR: port (-p) missing." >&2
+	exit 1
+fi
+
+if [ -z "$server_type" ]; then
+	echo "ERROR: server type (-t) missing." >&2
+	exit 1
+fi
+
+if [ -z "$command" ]; then
+	echo "ERROR: command (-c) missing." >&2
+	exit 1
+fi
 
 # echo "uwt command: $command"
 
@@ -142,9 +161,19 @@ fi
 
 if [ "$PROG" = "torsocks" ]; then
 	# Define our torsocks config file.
-        TORSOCKS_CONF_FILE="/tmp/$(whoami)_torsocks_temp"
+	mkdir -p ""$HOME"/.torsocks_temp"
+
+	random="$(( (`od -An -N3 -i /dev/random` ) ))"
+	TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
+
+	while [ -f "$TORSOCKS_CONF_FILE" ]; do
+		echo "Random number already exist."
+		random="$(( (`od -An -N3 -i /dev/random` ) ))"
+		TORSOCKS_CONF_FILE=""$HOME"/.torsocks_temp/"$random".conf"
+	done
+
 	export TORSOCKS_CONF_FILE
-	#echo "TORSOCKS_CONF_FILE: $TORSOCKS_CONF_FILE"
+	echo "TORSOCKS_CONF_FILE: $TORSOCKS_CONF_FILE"
 
 	echo "
 		# Temporary torsocks configuration file created by uwt.
@@ -168,6 +197,7 @@ if [ "$PROG" = "torsocks" ]; then
 
                 UWT_LOCALHOST="0"
 
+		#echo "uwt: $ *: $*"
                 case "$*" in
                    *127.0.0.1*)
                       UWT_LOCALHOST="1"
