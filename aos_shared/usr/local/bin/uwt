@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Update 14
+# Update 15
 
 # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
 
@@ -225,11 +225,21 @@ esac
 if [ "$UWT_LOCALHOST" = "1" ]; then
 
   if [ "$UWT_VERBOSE" = "1" ]; then
-    echo "uwt: localhost detected. Not using torsocks."
+    echo "uwt: localhost detected."
     echo "exec torsocks \"$@\""
   fi
   
-  exec "$@"
+  if [ -f "/usr/share/aos/aos_workstation" ]; then
+    true
+  elif [ -f "/usr/share/aos/aos_gateway" ]; then
+    true
+  else
+    echo "uwt will not work for localhost connections." >&2
+    exit 1
+  fi
+  
+  # Safe in aos.
+  exec "$@"  
   
 else
 
