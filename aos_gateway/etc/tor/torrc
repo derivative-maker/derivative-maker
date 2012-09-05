@@ -70,16 +70,34 @@ AutomapHostsOnResolve 1
 ##################################
 
 # (comment mirrored from /usr/local/share/aos_firewall)
-# Transparent Proxy Ports for aos-Workstation
+# Transparent Proxy Port for aos-Workstation
 # TRANS_PORT_AOSW="9040"
 #+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
+#
+# TransPort is not used for anything preinstalled by default.
+# Only as a catch all for user installed applications,
+# which is documented.
+#
+# IsolateDestAddr should not be activated by default,
+# if people install filesharing software it would be a nightmare if all connections to the massive amount
+# of destination IP's would go through it's own circuit.
+#
+# For the same reason IsolateDestPort should not be activated by default, since BitTorrent (in some cases)
+# uses random ports.
 TransPort 192.168.0.10:9040
 
 # (comment mirrored from /usr/local/share/aos_firewall)
 # DnsPort_AOSW
 # DNS_PORT_AOSW="53"
 #+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
-DnsPort 192.168.0.10:53
+#
+# DnsPort is not used for anything preinstalled by default.
+# Only as a catch all for user installed applications,
+# which is documented.
+#
+# Not sure about IsolateDestAddr.
+# IsolateDestPort has probable very little effect, since most DNS servers listen on port 53.
+DnsPort 192.168.0.10:53 IsolateDestPort
 
 ##############################
 # aos-Workstation SocksPorts #
@@ -105,23 +123,110 @@ DnsPort 192.168.0.10:53
 # SOCKS_PORT_TBB_DOWNLOAD="9115"
 # SOCKS_PORT_TBB_GPG="9116"
 
+# Web: Tor Browser
+# Not using IsolateDestAddr IsolateDestPort, because too much
+# performance loss, too much load on Tor network and not secure.
+# Ticket https://trac.torproject.org/projects/tor/ticket/3455
+# is the right way to solve this issue. Waiting for upstream.
 SocksPort 192.168.0.10:9100
-SocksPort 192.168.0.10:9101
-SocksPort 192.168.0.10:9102
-SocksPort 192.168.0.10:9103
+
+# IRC: XChat
+# People are normally not connected to too many IRC servers,
+# so they can use one circuit per server.
+SocksPort 192.168.0.10:9101 IsolateDestAddr IsolateDestPort
+
+# Mail: Thunderbird with TorBirdy
+# Not preinstalled.
+# Not used by too many people. Most users do not connect to
+# too many servers.
+SocksPort 192.168.0.10:9102 IsolateDestAddr IsolateDestPort
+
+# Instant Messenger
+# People are normally not connected to too many IM servers,
+# so they can use one circuit per server.
+SocksPort 192.168.0.10:9103 IsolateDestAddr IsolateDestPort
+
+# Operating system updates: apt-get
+# Not using IsolateDestAddr IsolateDestPort, because too much
+# performance loss, too much load on Tor network and no gain
+# in security.
 SocksPort 192.168.0.10:9104
-SocksPort 192.168.0.10:9105
-SocksPort 192.168.0.10:9106
-SocksPort 192.168.0.10:9107
-SocksPort 192.168.0.10:9108
-SocksPort 192.168.0.10:9109
-SocksPort 192.168.0.10:9110
+
+# gpg
+# Not used by too many people. Most users do not connect to
+# too many servers.
+SocksPort 192.168.0.10:9105 IsolateDestAddr IsolateDestPort
+
+# ssh
+# Not used by too many people. Most users do not connect to
+# too many servers.
+SocksPort 192.168.0.10:9106 IsolateDestAddr IsolateDestPort
+
+# git
+# Not preinstalled.
+# Not used by too many people. Most users do not connect to
+# too many servers.
+SocksPort 192.168.0.10:9107 IsolateDestAddr IsolateDestPort
+
+# Network Time Synchronization: htpdate
+# There are only three different connections.
+SocksPort 192.168.0.10:9108 IsolateDestAddr IsolateDestPort
+
+# command line downloader: wget
+# Only manually and by very few applications used. Should not
+# hurt performance or Tor network. Very few many connections
+# expected.
+SocksPort 192.168.0.10:9109 IsolateDestAddr IsolateDestPort
+
+# aoscheck
+# Only connects to https://check.torproject.org and checks IP
+# and Tor Browser version.
+# Only one server and only one port.
+# Would be fine without IsolateDestAddr IsolateDestPort,
+# but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9110 IsolateDestAddr IsolateDestPort
+
+# BitCoin
+# Not using IsolateDestAddr IsolateDestPort.
+# Makes too many connections to different servers. Should not
+# hurt if they get through the same circuit.
 SocksPort 192.168.0.10:9111
+
+# http to socks converter: privoxy
+# Not use for anything preinstalled.
+# Not using IsolateDestAddr IsolateDestPort for the same reasons
+# as mentioned under Web: Tor Browser.
+# Only used for Thunderbird with TorBirdy, which is not
+# preinstalled.
 SocksPort 192.168.0.10:9112
+
+# http to socks converter: polipo
+# Not in use for anything preinstalled.
+# Not using IsolateDestAddr IsolateDestPort for the same reasons
+# as mentioned under Web: Tor Browser.
 SocksPort 192.168.0.10:9113
-SocksPort 192.168.0.10:9114
-SocksPort 192.168.0.10:9115
-SocksPort 192.168.0.10:9116
+
+# aos news download
+# Only connects to the aos homepage and downloads a small file with
+# latest important aos news.
+# Only one server and only one port.
+# Would be fine without IsolateDestAddr IsolateDestPort,
+# but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9114 IsolateDestAddr IsolateDestPort
+
+# Tor Browser bundle download
+# Rarely used.
+# Only one server and only one port.
+# Would be fine without IsolateDestAddr IsolateDestPort,
+# but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9115 IsolateDestAddr IsolateDestPort
+
+# Tor Browser gpg public key download
+# Rarely used.
+# Only one server and only one port.
+# Would be fine without IsolateDestAddr IsolateDestPort,
+# but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9116 IsolateDestAddr IsolateDestPort
 
 # (comment mirrored from /usr/local/share/aos_firewall)
 # SOCKS_PORT_ETC="9198"
@@ -154,28 +259,32 @@ SocksPort 192.168.0.10:9116
 ##########################
 
 # Developer comment:
+#
 # We actually do not need all them,
 # but they do not hurt anyway and
 # it keeps the setup more generic,
 # with less exceptions.
+#
+# Comments why we (not) use IsolateDestAddr and/or IsolateDestPort
+# are the same as in section aos-Workstation SocksPorts.
 
 SocksPort 127.0.0.1:9100
-SocksPort 127.0.0.1:9101
-SocksPort 127.0.0.1:9102
-SocksPort 127.0.0.1:9103
+SocksPort 127.0.0.1:9101 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9102 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9103 IsolateDestAddr IsolateDestPort
 SocksPort 127.0.0.1:9104
-SocksPort 127.0.0.1:9105
-SocksPort 127.0.0.1:9106
-SocksPort 127.0.0.1:9107
-SocksPort 127.0.0.1:9108
-SocksPort 127.0.0.1:9109
-SocksPort 127.0.0.1:9110
+SocksPort 127.0.0.1:9105 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9106 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9107 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9108 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9109 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9110 IsolateDestAddr IsolateDestPort
 SocksPort 127.0.0.1:9111
 SocksPort 127.0.0.1:9112
 SocksPort 127.0.0.1:9113
-SocksPort 127.0.0.1:9114
-SocksPort 127.0.0.1:9115
-SocksPort 127.0.0.1:9116
+SocksPort 127.0.0.1:9114 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9115 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9116 IsolateDestAddr IsolateDestPort
 
 #########################################
 # Hidden Services                       #
