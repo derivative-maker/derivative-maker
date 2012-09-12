@@ -1,0 +1,394 @@
+#########################################
+## Whonix torrc                            #
+#########################################
+## You can find a backup of the original torrc under /etc/tor/torrc.backup.
+
+## https://www.torproject.org/docs/tor-manual.html.en Tor stable manual.
+## https://www.torproject.org/docs/tor-manual-dev.html.en Tor alpha manual.
+
+## The "stable" repository now contains Tor 0.2.3, refer to the
+## "alpha" manual until they completed transition.
+
+#########################################
+## Leak Tests                           #
+#########################################
+
+##+# #OptionalFeatureNr.6# Leak Testing.
+##+#
+##+# Manual Leak Testing:
+##+# See Whonix/LeakTests. Activate this while testing for leaks. (Step 0)
+##+# Deactivate after you are done! (Important!) (Step 9)
+##+#
+##+# Scripted Leak Testing:
+##+# If you change the following two lines, beside removing the hash (#),
+##+# beside commenting them in, you break the integrated leaktest script.
+##+# See leaktest_whonix_gateway() ed.
+##+# See /Whonix/LeakTests
+##+# on information, how to use the integrated leaktest script.
+##+#
+#ReachableDirAddresses *:80
+#ReachableORAddresses *:443
+
+#########################################
+## General Settings                     #
+#########################################
+
+## ControlPort is necessary for tor-arm and Vidalia.
+## - Vidalia has to set /var/run/tor/control (default) as
+##   Control Cookie.
+## - Arm autodetects the Control Cookie.
+## - Not using HashedControlPassword or CookieAuthentication.
+##   Whonix-Gateway is no multi purpose machine. It is solely a
+##   Tor Gateway. As soon as an adversary has physical access
+##   or compromised Whonix-Gateway, its Game Over anyway.
+ControlPort 9051
+ControlListenAddress 127.0.0.1
+
+Log notice syslog
+#Log notice file /var/log/tor/log
+
+User debian-tor
+
+## Not required:
+#DataDirectory /...
+#PidFile /...
+#ControlSocket /...
+#ControlSocketsGroupWritable 1
+#CookieAuthentication 1
+#CookieAuthFileGroupReadable 1
+#CookieAuthFile /...
+
+#########################################
+## Proxy Settings                       #
+#########################################
+
+VirtualAddrNetwork 10.192.0.0/10
+AutomapHostsOnResolve 1
+
+##################################
+## Whonix-Workstation Trans/Dns-Port#
+##################################
+
+## (comment mirrored from /usr/local/share/whonix_firewall)
+## Transparent Proxy Port for Whonix-Workstation
+## TRANS_PORT_WHONIXW="9040"
+##+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
+##
+## TransPort is not used for anything preinstalled by default.
+## Only as a catch all for user installed applications,
+## which is documented.
+##
+## IsolateDestAddr should not be activated by default,
+## if people install filesharing software it would be a nightmare if all connections to the massive amount
+## of destination IP's would go through it's own circuit.
+##
+## For the same reason IsolateDestPort should not be activated by default, since BitTorrent (in some cases)
+## uses random ports.
+TransPort 192.168.0.10:9040
+
+## (comment mirrored from /usr/local/share/whonix_firewall)
+## DnsPort_WHONIXW
+## DNS_PORT_WHONIXW="53"
+##+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
+##
+## DnsPort is not used for anything preinstalled by default.
+## Only as a catch all for user installed applications,
+## which is documented.
+##
+## Not sure about IsolateDestAddr.
+## IsolateDestPort has probable very little effect, since most DNS servers listen on port 53.
+DnsPort 192.168.0.10:53 IsolateDestPort
+
+##############################
+## Whonix-Workstation SocksPorts#
+##############################
+
+## (comment mirrored from /usr/local/share/whonix_firewall)
+## Socks Ports for per application circuits.
+## SOCKS_PORT_TB="9100"
+## SOCKS_PORT_IRC="9101"
+## SOCKS_PORT_TORBIRDY="9102"
+## SOCKS_PORT_IM="9103"
+## SOCKS_PORT_APT_GET="9104"
+## SOCKS_PORT_GPG="9105"
+## SOCKS_PORT_SSH="9106"
+## SOCKS_PORT_GIT="9107"
+## SOCKS_PORT_HTPDATE="9108"
+## SOCKS_PORT_WGET="9109"
+## SOCKS_PORT_WHONIXCHECK="9110"
+## SOCKS_PORT_BITCOIN="9111"
+## SOCKS_PORT_PRIVOXY="9112"
+## SOCKS_PORT_POLIPO="9113"
+## SOCKS_PORT_WHONIX_NEWS="9114"
+## SOCKS_PORT_TBB_DOWNLOAD="9115"
+## SOCKS_PORT_TBB_GPG="9116"
+
+## Web: Tor Browser
+## Not using IsolateDestAddr IsolateDestPort, because too much
+## performance loss, too much load on Tor network and not secure.
+## Ticket https://trac.torproject.org/projects/tor/ticket/3455
+## is the right way to solve this issue. Waiting for upstream.
+SocksPort 192.168.0.10:9100
+
+## IRC: XChat
+## People are normally not connected to too many IRC servers,
+## so they can use one circuit per server.
+SocksPort 192.168.0.10:9101 IsolateDestAddr IsolateDestPort
+
+## Mail: Thunderbird with TorBirdy
+## Not preinstalled.
+## Not used by too many people. Most users do not connect to
+## too many servers.
+SocksPort 192.168.0.10:9102 IsolateDestAddr IsolateDestPort
+
+## Instant Messenger
+## People are normally not connected to too many IM servers,
+## so they can use one circuit per server.
+SocksPort 192.168.0.10:9103 IsolateDestAddr IsolateDestPort
+
+## Operating system updates: apt-get
+## Not using IsolateDestAddr IsolateDestPort, because too much
+## performance loss, too much load on Tor network and no gain
+## in security.
+SocksPort 192.168.0.10:9104
+
+## gpg
+## Not used by too many people. Most users do not connect to
+## too many servers.
+SocksPort 192.168.0.10:9105 IsolateDestAddr IsolateDestPort
+
+## ssh
+## Not used by too many people. Most users do not connect to
+## too many servers.
+SocksPort 192.168.0.10:9106 IsolateDestAddr IsolateDestPort
+
+## git
+## Not preinstalled.
+## Not used by too many people. Most users do not connect to
+## too many servers.
+SocksPort 192.168.0.10:9107 IsolateDestAddr IsolateDestPort
+
+## Network Time Synchronization: htpdate
+## There are only three different connections.
+SocksPort 192.168.0.10:9108 IsolateDestAddr IsolateDestPort
+
+## command line downloader: wget
+## Only manually and by very few applications used. Should not
+## hurt performance or Tor network. Very few many connections
+## expected.
+SocksPort 192.168.0.10:9109 IsolateDestAddr IsolateDestPort
+
+## whonixcheck
+## Only connects to https://check.torproject.org and checks IP
+## and Tor Browser version.
+## Only one server and only one port.
+## Would be fine without IsolateDestAddr IsolateDestPort,
+## but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9110 IsolateDestAddr IsolateDestPort
+
+## BitCoin
+## Not using IsolateDestAddr IsolateDestPort.
+## Makes too many connections to different servers. Should not
+## hurt if they get through the same circuit.
+SocksPort 192.168.0.10:9111
+
+## http to socks converter: privoxy
+## Not use for anything preinstalled.
+## Not using IsolateDestAddr IsolateDestPort for the same reasons
+## as mentioned under Web: Tor Browser.
+## Only used for Thunderbird with TorBirdy, which is not
+## preinstalled.
+SocksPort 192.168.0.10:9112
+
+## http to socks converter: polipo
+## Not in use for anything preinstalled.
+## Not using IsolateDestAddr IsolateDestPort for the same reasons
+## as mentioned under Web: Tor Browser.
+SocksPort 192.168.0.10:9113
+
+## Whonix news download
+## Only connects to the Whonix homepage and downloads a small file with
+## latest important Whonix news.
+## Only one server and only one port.
+## Would be fine without IsolateDestAddr IsolateDestPort,
+## but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9114 IsolateDestAddr IsolateDestPort
+
+## Tor Browser bundle download
+## Rarely used.
+## Only one server and only one port.
+## Would be fine without IsolateDestAddr IsolateDestPort,
+## but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9115 IsolateDestAddr IsolateDestPort
+
+## Tor Browser gpg public key download
+## Rarely used.
+## Only one server and only one port.
+## Would be fine without IsolateDestAddr IsolateDestPort,
+## but add it anyway to have less exceptions.
+SocksPort 192.168.0.10:9116 IsolateDestAddr IsolateDestPort
+
+##+# #OptionalFeatureNr.4# More Socks Ports.
+## Custom Ports #1:
+## without IsolateDestAddr
+## without IsolateDestPort
+SocksPort 192.168.0.10:9150
+SocksPort 192.168.0.10:9151
+SocksPort 192.168.0.10:9152
+SocksPort 192.168.0.10:9153
+SocksPort 192.168.0.10:9154
+SocksPort 192.168.0.10:9155
+SocksPort 192.168.0.10:9156
+SocksPort 192.168.0.10:9157
+SocksPort 192.168.0.10:9158
+SocksPort 192.168.0.10:9159
+
+##+# #OptionalFeatureNr.4# More Socks Ports.
+## Custom Ports #2:
+## with IsolateDestAddr
+## without IsolateDestPort
+SocksPort 192.168.0.10:9160 IsolateDestAddr
+SocksPort 192.168.0.10:9161 IsolateDestAddr
+SocksPort 192.168.0.10:9162 IsolateDestAddr
+SocksPort 192.168.0.10:9163 IsolateDestAddr
+SocksPort 192.168.0.10:9164 IsolateDestAddr
+SocksPort 192.168.0.10:9165 IsolateDestAddr
+SocksPort 192.168.0.10:9166 IsolateDestAddr
+SocksPort 192.168.0.10:9167 IsolateDestAddr
+SocksPort 192.168.0.10:9168 IsolateDestAddr
+SocksPort 192.168.0.10:9169 IsolateDestAddr
+
+##+# #OptionalFeatureNr.4# More Socks Ports.
+## Custom Ports #3:
+## without IsolateDestAddr
+## with IsolateDestPort
+SocksPort 192.168.0.10:9170 IsolateDestPort
+SocksPort 192.168.0.10:9171 IsolateDestPort
+SocksPort 192.168.0.10:9172 IsolateDestPort
+SocksPort 192.168.0.10:9173 IsolateDestPort
+SocksPort 192.168.0.10:9174 IsolateDestPort
+SocksPort 192.168.0.10:9175 IsolateDestPort
+SocksPort 192.168.0.10:9176 IsolateDestPort
+SocksPort 192.168.0.10:9177 IsolateDestPort
+SocksPort 192.168.0.10:9178 IsolateDestPort
+SocksPort 192.168.0.10:9179 IsolateDestPort
+
+##+# #OptionalFeatureNr.4# More Socks Ports.
+## Custom Ports #4:
+## with IsolateDestAddr
+## with IsolateDestPort
+SocksPort 192.168.0.10:9180 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9181 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9182 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9183 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9184 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9185 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9186 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9187 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9188 IsolateDestAddr IsolateDestPort
+SocksPort 192.168.0.10:9189 IsolateDestAddr IsolateDestPort
+
+##############################
+## Whonix-Gateway Trans/Dns-Port#
+##############################
+
+## TransPort and DnsPort are no longer used on Whonix-Gateway by default.
+##
+## (comment mirrored from /usr/local/share/whonix_firewall)
+## Transparent Proxy Ports for Whonix-Gateway
+## TRANS_PORT_WHONIXG="9041"
+## DNS_PORT_WHONIXG="54"
+##TransPort 127.0.0.1:9041
+##DnsPort 127.0.0.1:54
+
+##########################
+## Whonix-Gateway SocksPorts#
+##########################
+
+## Developer comment:
+##
+## We actually do not need all them,
+## but they do not hurt anyway and
+## it keeps the setup more generic,
+## with less exceptions.
+##
+## Comments why we (not) use IsolateDestAddr and/or IsolateDestPort
+## are the same as in section Whonix-Workstation SocksPorts.
+
+SocksPort 127.0.0.1:9100
+SocksPort 127.0.0.1:9101 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9102 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9103 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9104
+SocksPort 127.0.0.1:9105 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9106 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9107 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9108 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9109 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9110 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9111
+SocksPort 127.0.0.1:9112
+SocksPort 127.0.0.1:9113
+SocksPort 127.0.0.1:9114 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9115 IsolateDestAddr IsolateDestPort
+SocksPort 127.0.0.1:9116 IsolateDestAddr IsolateDestPort
+
+#########################################
+## Hidden Services                      #
+#########################################
+
+##+# #OptionalFeatureNr.2# Hidden Services.
+##+# Uncomment if you install a hidden service on the Whonix-Workstation.
+##+# Check /var/lib/tor/hidden_service/hostname for your .onion address.
+##+# Backup the keys from /var/lib/tor/hidden_service/!
+#HiddenServiceDir /var/lib/tor/hidden_service/
+#HiddenServicePort 80 192.168.0.11:12345
+
+#########################################
+## Using normal (non-obfuscated) bridges#
+#########################################
+## Also read all information about bridges on https://www.torproject.org!
+## https://gitweb.torproject.org/torspec.git?a=blob_plain;hb=HEAD;f=proposals/125-bridges.txt
+## describes under "3. Bridge users." how to use bridges.
+
+## You have to find bridges yourself!
+## - source #1: https://www.torproject.org/docs/bridges#FindingMore
+## - source #2: https://bridges.torproject.org/
+## - source #3: Ask a friend.
+
+## If you want to use normal (non-obfuscated) bridges, uncomment the line below.
+#UseBridges 1 
+
+## This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own bridges!
+#bridge 60.16.182.53:9001
+#bridge 87.237.118.139:444
+#bridge 60.63.97.221:443
+
+#########################################
+## Using obfuscated bridges             #
+#########################################
+## Also read all information about obfuscated bridges and obfsproxy on https://www.torproject.org!
+## https://www.torproject.org/projects/obfsproxy-instructions.html.en
+##
+## You can either use semi-public or private bridges.
+##
+## Semi-public obfuscated bridges can be found within the Obfsproxy Tor Browser Bundle in ./Data/Tor/torrc.
+## https://www.torproject.org/projects/obfsproxy.html.en
+## Note, that those bridges might get blocked soon. And it is also not hard for the censurer,
+## to find out that you are using those semi-public bridges.
+##
+## Only friends can setup private obfuscated bridges for you.
+## (Or you have to anonymously get a server in a non-censored country yourself.)
+## official help: https://www.torproject.org/projects/obfsproxy-instructions.html.en
+## unofficial help: https://trac.torproject.org/projects/tor/wiki/TorObfsBridgeSetupForBeginners
+
+## If you want to use obfuscated bridges, uncomment the next two lines below.
+#UseBridges 1
+#ClientTransportPlugin obfs2 exec /usr/local/bin/obfsproxy --managed
+
+## This is only an example, to demonstrate the syntax! Do not use it! You still have to find your own obfuscated bridges!
+#Bridge obfs2 128.31.0.34:1051
+
+#########################################
+## end of Whonix torrc                     #
+#########################################

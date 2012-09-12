@@ -1,5 +1,5 @@
 #!/bin/bash
-# internally used by aos_createvm
+# internally used by whonix_createvm
 
 set -x
 
@@ -57,64 +57,64 @@ copy_shared_pre() {
 
    # Delete old log, otherwise the VM script would not get executed.
    # See rc.local above.
-   rm "$CHROOT_FOLDER"/home/user/aosinstalllog || true
+   rm "$CHROOT_FOLDER"/home/user/whonix_installlog || true
 
    # Automatically start VM script after booting.
    # Will be undone by copy_shared_post.
-   cp "$AOS_SOURCE_FOLDER"/rc.local "$CHROOT_FOLDER"/etc/rc.local
+   cp "$WHONIX_SOURCE_FOLDER"/rc.local "$CHROOT_FOLDER"/etc/rc.local
    chmod +x "$CHROOT_FOLDER"/etc/rc.local
 
    # Delete old swapfile, only in case the script has run before. (Debugging only.)
    rm "$CHROOT_FOLDER"/swapfile1 || true
 
    # policy-rc.d prevent daemons from starting while using apt-get.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
    chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
 
    # Ensure timezone is UTC. Just to be safe, already done with preseed install.
    cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
 
    # Fixes the long dhcp timeout bug.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf
 
    # This is required because preseed without network connection will mess up /etc/apt/sources.list.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
 
-   # dbus machine-id is shared among all aos users.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
+   # dbus machine-id is shared among all Whonix users.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
 
    # copy tails_htpdate binary
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/bin/htpdate "$CHROOT_FOLDER"/usr/bin/htpdate
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/bin/htpdate "$CHROOT_FOLDER"/usr/bin/htpdate
    chmod +x "$CHROOT_FOLDER"/usr/bin/htpdate
 
    # copy hptdate init script
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/init.d/htpdate "$CHROOT_FOLDER"/etc/init.d/htpdate
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/init.d/htpdate "$CHROOT_FOLDER"/etc/init.d/htpdate
    chmod +x "$CHROOT_FOLDER"/etc/init.d/htpdate
 
    # tails_htp configuration file
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/default/htpdate "$CHROOT_FOLDER"/etc/default/htpdate
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/default/htpdate "$CHROOT_FOLDER"/etc/default/htpdate
    chmod +x "$CHROOT_FOLDER"/etc/default/htpdate
 
    # readme where to find tails_htp uwt wrapper
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/readme "$CHROOT_FOLDER"/usr/local/bin/readme
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/readme "$CHROOT_FOLDER"/usr/local/bin/readme
 
    # htp anachron script to run it hourly
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/cron.hourly/htpdate "$CHROOT_FOLDER"/etc/cron.hourly/htpdate
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/cron.hourly/htpdate "$CHROOT_FOLDER"/etc/cron.hourly/htpdate
    chmod +x "$CHROOT_FOLDER"/etc/cron.hourly/htpdate
 
    # htp anachorn helper script to add an delay before restarting tails_htp
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/htpdate_hourly "$CHROOT_FOLDER"/usr/local/bin/htpdate_hourly
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/htpdate_hourly "$CHROOT_FOLDER"/usr/local/bin/htpdate_hourly
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/htpdate_hourly
 
    # Create folder.
-   mkdir -p "$CHROOT_FOLDER"/usr/share/aos/
+   mkdir -p "$CHROOT_FOLDER"/usr/share/Whonix/
    
    # torsocks_patch
    # Source: https://bugs.gentoo.org/show_bug.cgi?id=395953#c7
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/torsocks_patch "$CHROOT_FOLDER"/usr/share/aos/torsocks_patch
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/torsocks_patch "$CHROOT_FOLDER"/usr/share/Whonix/torsocks_patch
 
    # patch_torsocks
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/patch_torsocks "$CHROOT_FOLDER"/usr/share/aos/patch_torsocks
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/patch_torsocks "$CHROOT_FOLDER"/usr/share/Whonix/patch_torsocks
 
    # uwt
    # Using this until the feature to add ip/port through command line
@@ -122,36 +122,36 @@ copy_shared_pre() {
    # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
    # If you make changes to uwt, please also add them "upstream"
    # (link above).
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/uwt "$CHROOT_FOLDER"/usr/local/bin/uwt
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/uwt "$CHROOT_FOLDER"/usr/local/bin/uwt
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/uwt
 
-   # Copy aoscheck script into VM image and make it executable.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/aoscheck "$CHROOT_FOLDER"/usr/local/bin/aoscheck
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/aoscheck
+   # Copy whonixcheck script into VM image and make it executable.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/whonixcheck "$CHROOT_FOLDER"/usr/local/bin/whonixcheck
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/whonixcheck
    
    # Copy timesync gui script into VM image and make it executable.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/timesync "$CHROOT_FOLDER"/usr/local/bin/timesync
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/timesync "$CHROOT_FOLDER"/usr/local/bin/timesync
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/timesync
 
-   # Copy apt-get-update wrapper, required for aoscheck.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/apt-get-update "$CHROOT_FOLDER"/usr/local/bin/apt-get-update
+   # Copy apt-get-update wrapper, required for whonixcheck.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/apt-get-update "$CHROOT_FOLDER"/usr/local/bin/apt-get-update
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/apt-get-update
 
    # fstab
    # Yes, system also boots up if fstab uuids are wrong.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
 
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_internal_checks "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_create_swap_file "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_config_uuids "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/aos_slim_down "$CHROOT_FOLDER"/usr/share/aos/
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/import_tpo_archive_key "$CHROOT_FOLDER"/usr/share/aos/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/whonix_internal_checks "$CHROOT_FOLDER"/usr/share/Whonix/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/whonix_create_swap_file "$CHROOT_FOLDER"/usr/share/Whonix/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/whonix_config_uuids "$CHROOT_FOLDER"/usr/share/Whonix/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/whonix_slim_down "$CHROOT_FOLDER"/usr/share/Whonix/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/import_tpo_archive_key "$CHROOT_FOLDER"/usr/share/Whonix/
 
-   # adrelanos (aos developer) GPG public key
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/adrelanos.asc "$CHROOT_FOLDER"/usr/share/aos/adrelanos.asc
+   # adrelanos (Whonix developer) GPG public key
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/adrelanos.asc "$CHROOT_FOLDER"/usr/share/Whonix/adrelanos.asc
 
-   # copy aos release version information file
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/share/aos/version "$CHROOT_FOLDER"/usr/share/aos/version
+   # copy Whonix release version information file
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/Whonix/version "$CHROOT_FOLDER"/usr/share/Whonix/version
 }
 
 
@@ -164,12 +164,12 @@ append_shared_pre() {
    # /etc/default/grub
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/default/grub
-   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/default/appendto_grub
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/default/appendto_grub
 
    # /etc/sudoers
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
-   done < "$AOS_SOURCE_FOLDER"/aos_shared/etc/appendto_sudoers
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_sudoers
 
    # Ensure correct permissions on sudoers.
    chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
@@ -179,24 +179,24 @@ append_shared_pre() {
 
 copy_shared_post() {
    ##########################
-   # aos-Shared Delete Post #
+   # Whonix-Shared Delete Post #
    ##########################
 
    # Make daemons start again.
    rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
 
-   # Delete aosinstalllog.
-   rm "$CHROOT_FOLDER"/home/user/aosinstalllog || true
+   # Delete whonix_installlog.
+   rm "$CHROOT_FOLDER"/home/user/whonix_installlog || true
 
    ########################
-   # aos-Shared Copy Post #
+   # Whonix-Shared Copy Post #
    ########################
 
    # /etc/rc.local was (ab)used to
-   # run aos_internal_install_script(s) only once. Thus, the
+   # run whonix_internal_install_script(s) only once. Thus, the
    # scripts gets executed inside the VM. We restore
    # /etc/rc.local here.
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
    chmod +x "$CHROOT_FOLDER"/etc/rc.local
 
       #######
@@ -222,35 +222,35 @@ copy_shared_post() {
 
    # apt-get wrapper
    # SOCKS_PORT_APT_GET="9104"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/apt-get "$CHROOT_FOLDER"/usr/local/bin/apt-get
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/apt-get "$CHROOT_FOLDER"/usr/local/bin/apt-get
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/apt-get
 
    # gpg wrapper
    # SOCKS_PORT_GPG="9105"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/gpg "$CHROOT_FOLDER"/usr/local/bin/gpg
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/gpg "$CHROOT_FOLDER"/usr/local/bin/gpg
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/gpg
 
    # ssh wrapper
    # SOCKS_PORT_SSH="9106"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/ssh "$CHROOT_FOLDER"/usr/local/bin/ssh
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/ssh "$CHROOT_FOLDER"/usr/local/bin/ssh
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/ssh
 
    # git wrapper
    # SOCKS_PORT_GIT="9107"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/git "$CHROOT_FOLDER"/usr/local/bin/git
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/git "$CHROOT_FOLDER"/usr/local/bin/git
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/git
 
    # htpdate wrapper
    # SOCKS_PORT_HTPDATE="9108"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/sbin/htpdate "$CHROOT_FOLDER"/usr/local/sbin/htpdate
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/sbin/htpdate "$CHROOT_FOLDER"/usr/local/sbin/htpdate
    chmod +x "$CHROOT_FOLDER"/usr/local/sbin/htpdate
 
    # wget wrapper
    # SOCKS_PORT_WGET="9109"
-   cp "$AOS_SOURCE_FOLDER"/aos_shared/usr/local/bin/wget "$CHROOT_FOLDER"/usr/local/bin/wget
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/wget "$CHROOT_FOLDER"/usr/local/bin/wget
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/wget
 
-   # SOCKS_PORT_AOSCHECK="9110"
+   # SOCKS_PORT_WHONIXCHECK="9110"
    # - pointing uwt directly to this port
    # - no wrapper required
 

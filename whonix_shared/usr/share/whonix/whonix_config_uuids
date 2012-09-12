@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Internally used by whonix_gateway and whonix_workstation scripts.
+
+set -x
+
+whonix_config_uuids_fstab() {
+echo "
+######################################################
+# Configuring disk uuids and /etc/fstab
+######################################################
+"
+# Change uuid of hdd created by operating system installer.
+# WARNING: This assumes you used "Guided - use entire disk" partitioning (NOT LVM!)
+tune2fs /dev/sda1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+
+# Deactivate swap partition. Will not be created when using preseed.
+# Deactivating anyway just in case anyone manually installs the operating system.
+swapoff /dev/sda5 || true
+
+# Share the same uuid among all Whonix users.
+# Setting anyway just in case anyone manually installs the operating system
+# and then applies the script.
+mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
+
+# /etc/fstab gets copied into VM by whonix_image copyinto.
+
+update-grub2
+grub-install /dev/sda
+} 

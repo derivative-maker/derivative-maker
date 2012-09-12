@@ -1,0 +1,754 @@
+#!/bin/bash
+# Will be copied into whonix_g/w: /usr/local/bin/whonixcheck
+
+# See LICENSE in root of Whonix source for copyright, license and authors.
+
+# zenity --timeout in seconds.
+# A day has 86400 seconds. Removes old messages before posting
+# new ones in case the user was away for more than one day.
+#
+# The & at the end of a zenity line ensures, that the
+# script will not wait until zenity will be closed.
+# It also prevents zenity throwing an error, if zenity is installed,
+# but no x server is started. (That is the case on Whonix-Workstation in text mode.)
+#
+# zenity --display=:0.0 is required to make it compatible with cron
+# see http://promberger.info/linux/2009/01/02/running-x-apps-like-zenity-from-crontab-solving-cannot-open-display-problem/
+# --no-markup to allow showing "&" see https://bugzilla.gnome.org/show_bug.cgi?id=621907
+#
+# We would prefer a popup free solution. As soon as the timeout bug in
+# notify-send is fixed, we swtich to notify-send.
+# If we change to notification daemon later, when the timeout bug is fixed,
+# we have to ensure zenity output is compatible with being started by cron.
+#
+# This script uses /usr/bin/wget directly. Otherwise the uwt wrapper /usr/local/bin/wget
+# would be used. Using the uwt wrapper is not desired, since that is redirect through
+# wget's SocksPort.
+#
+# If anyone adds a VPN or something similar to Whonix-Workstation
+# (i.e. connection scheme: Whonix-Workstation -> Tor -> VPN), he would wonder
+# why it is not detected.
+#
+# Using /usr/bin/wget directly will result in Tor's TransPort being used.
+
+#set -o errtrace
+#set -o nounset
+#set -o errexit
+
+error_handler() {
+   BUG="1"
+   show_output
+   
+   ZENITY_MESSAGE=""
+   
+   local MSG="whonixcheck script bug
+Run: whonixcheck -v
+for verbose output. Clean the output and
+please report this bug!
+bash_commend: $BASH_COMMAND"
+   echo "$MSG"
+   output "--error" "ERROR" "$MSG"
+   show_output
+   
+   exit 1
+}
+
+
+
+whonixcheck_help() {
+   trap "error_handler" ERR INT TERM
+
+   echo "whonixcheck by Whonix
+$WHONIX_HOMEPAGE
+   
+Checks if,
+-Your network connection is functional.
+-You are connected to Tor.
+
+Shows,
+-Your external IP address(es).
+-Installed Tor Browser version.
+-Latest Tor Browser version.
+-Available operating system updates.
+-Installed Whonix version.
+-Latest Whonix version.
+-Whonix News.
+
+This script,
+-Will break, if https://check.torproject.org
+ is down or content of that page is changed.
+-Will break, if http://Whonix.sf.net/whonix_news.asc
+ is down.
+-Works in command line interface and under
+ X Window System.
+
+Available arguments,
+-v for verbose output.
+"
+}
+
+
+
+phrase_cmd_options() {
+   trap "error_handler" ERR INT TERM
+
+   # If whonixcheck is run without command line arguments,
+   # $1 will not exist.
+   if [[ "$#" == "0" ]]; then
+      WHONIXCHECK_VERBOSE="--output-file /dev/null"
+   else
+      if [[ "$1" = "-v" ]]; then
+         set -x
+         WHONIXCHECK_VERBOSE=""
+         echo "Verbose output..."
+         echo "Script running as $(whoami)"
+      fi
+      if [[ "$1" = "-help" ]]; then
+         whonixcheck_help
+         exit 0
+      fi
+   fi
+}
+
+
+
+preparation() {
+   trap "error_handler" ERR INT TERM
+
+   # Initialize the variables.
+   USERNAME="user"
+   WHONIX_HOMEPAGE="http://Whonix.sf.net"
+   BUG="0"
+   VERIFY_TEMPDIR="/home/$USERNAME/.whonixcheck_temp"
+   # Find out installed Whonix version.
+   # Read only FIRST line.
+   read -r INSTALLED_WHONIX_VERSION < /usr/share/Whonix/version
+   # Remove ALL spaces.
+   # Thanks to
+   # http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
+   INSTALLED_WHONIX_VERSION="${INSTALLED_WHONIX_VERSION//[[:space:]]}"
+
+   # Initialize more variables.
+   NETWORK_DOWN="0"
+   NOT_USING_TOR="0"
+   DOWNLOAD_NEWS_SUCCESS="0"
+   WHONIX_NEWS_VERIFY_ERROR="0"
+   ZENITY_TYPE=""
+   ZENITY_TITLE=""
+   ZENITY_MESSAGE=""
+
+   # Prepare temporary directory.
+   #rm -r "$VERIFY_TEMPDIR" 2>/dev/null || true
+   mkdir -p "$VERIFY_TEMPDIR"
+   chmod 700 "$VERIFY_TEMPDIR"
+   cd "$VERIFY_TEMPDIR"
+   
+   # SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
+   
+   # SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
+   
+   if [ -f "/usr/share/Whonix/whonix_gateway" ]; then
+      VM="Whonix-Gateway"
+      GATEWAY_IP="127.0.0.1"
+   elif [ -f "/usr/share/Whonix/whonix_workstation" ]; then
+      VM="Whonix-Workstation"
+      GATEWAY_IP="192.168.0.10"
+   else
+      VM="whonixcheck script could not determine if this is whonix_Gateway or whonix_Workstation. Please report this bug."
+      GATEWAY_IP="192.168.0.10"
+   fi
+
+   # Check if zenity is installed.
+   # - This is not the case for cli users.
+   # - This is also not the case on Whonix-Gateway.
+   if [ "`which zenity`" = "" ]; then
+      # zenity is not installed.
+      zenity() {
+         #dummy
+         true
+      }
+      zenity_progress() {
+         #dummy
+         true
+      }
+   else
+      # zenity is installed.
+      zenity_progress() {
+         echo "$1" >&3
+      }
+   fi
+   
+   ## this is not the most stable daemon...
+   ## Not used as we switched from notify-send to zenity
+   #if [ "$(pgrep -f notification-daemon)" = "" ]; then
+   #   /usr/lib/notification-daemon/notification-daemon &
+   #fi
+
+   # check if notify-send is installed
+   # that is not the case for cli users
+   # this is also not the case on Whonix-Gateway
+   #if [ `which notify-send` = "" ]; then
+   #   notify-send() {
+   #      #dummy
+   #      true
+   #   }
+   #fi
+}
+
+
+
+kill_old_instances() {
+  trap "error_handler" ERR INT TERM
+
+  local PID="`pgrep -f "Whonix is produced independently from the Tor"`" || true
+  if [ "$PID" != "" ]; then
+    kill -9 "$PID" || true
+  fi
+  
+  local PID="`pgrep -f "Whonix is produced independently from the Tor"`" || true
+  if [ "$PID" != "" ]; then
+    kill -9 "$PID" || true
+  fi
+}
+
+
+
+output() {
+   # (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
+   #echo "output: $1 ||| $2 ||| $3 |||"
+   
+   trap "error_handler" ERR INT TERM
+
+   if [ "$ZENITY_TYPE" = "--error" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TYPE="$1"
+   fi
+
+   if [ "$ZENITY_TITLE" = "ERROR" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   elif [ "$ZENITY_TITLE" = "WARNING" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TITLE="$2"
+   fi
+
+   ZENITY_MESSAGE="$ZENITY_MESSAGE
+
+$3"
+}
+
+
+
+show_output() {
+   # Show result of whonixcheck and TorBrowser Update check
+   
+   if [ "$BUG" = "0" ]; then
+      if [ "$ZENITY_TYPE" = "--info" ]; then
+         local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+         local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
+$BITCOIN_ADDRESS"
+         echo "$MSG"
+         output "--info" "Info" "$MSG"  
+      fi
+   fi
+   
+   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
+   --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+}
+
+
+
+welcome() {
+   trap "error_handler" ERR INT TERM
+
+   echo "whonixcheck by Whonix
+$WHONIX_HOMEPAGE
+-help for help.
+Running checks..."
+
+   # Non-intrusive notification, that the checks are running in background.
+   # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+   #notify-send --urgency low --expire-time 0 --app-name "Whonix" "$NOTIFY_MSG"
+   local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, Whonix version, Whonix news...
+This will happen in background and will take approximately 60 seconds."
+
+   # The progress window will close automatically after 100% progress.
+   exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
+   --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+}
+
+
+
+disclaimer() {
+   trap "error_handler" ERR INT TERM
+
+   local MSG="Whonix is produced independently from the Tor® anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+Whonix is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+$WHONIX_HOMEPAGE"
+
+   echo "$MSG"
+   output "--info" "Info" "$MSG"   
+}
+
+
+
+check_htpdate() {
+  trap "error_handler" ERR INT TERM
+
+  local done_file="/var/run/htpdate/done"
+  local success_file="/var/run/htpdate/success"
+  
+  if [ ! -f "$done_file" ]; then
+    local MSG='Network Time Synchronization not done!!! Please report this bug!
+See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: Right click on desktop -> Whonix -> Secure Network Time Synchronization
+           or: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--error" "ERROR" "$MSG"
+    return
+  fi
+  
+  if [ ! -f "$success_file" ]; then
+    local MSG='Network Time Synchronization failed!!!
+See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: Right click on desktop -> Whonix -> Secure Network Time Synchronization
+           or: sudo /etc/init.d/htpdate restart
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--error" "ERROR" "$MSG"
+    return
+  fi
+  
+  local MSG="Network Time Synchronization successful."
+  echo "$MSG"
+  echo "System clock is set to: `date`"
+  output "--info" "Info" "$MSG"
+}
+
+
+
+check_network() {
+   trap "error_handler" ERR INT TERM
+
+   echo "Checking network connection..."
+
+   # Ensuring normal wget activity can not be linked to whonixcheck,
+   # by using a SocksPort, which is solely used by whonixcheck.
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org" || NETWORK_DOWN="1"
+
+   if [ "$NETWORK_DOWN" = "1" ]; then
+      local MSG="Your Internet connection appears to be down."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      show_output
+      zenity_progress 100
+      cleanup
+      exit 1
+   fi
+   
+   return
+}
+
+
+
+check_torbrowser() {
+   trap "error_handler" ERR INT TERM
+
+   GET_VERSION="1"
+   echo "Checking Tor Browser version..."
+
+   # Getting latest version number
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" \
+   -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+
+   if [ "$GET_VERSION" = "0" ]; then
+      local MSG="Tor Browser Update check failed."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`" 
+
+   # Getting currently installed version number
+   # Will fail if the file does not exist.
+   TBBINSTALLEDVERSION="`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
+
+   if [ "$TBBINSTALLEDVERSION" != "" ]; then
+      # echo "Successfully detected TorBrowser version."
+      true
+   else
+      TBBINSTALLEDVERSION="UNKNOWN"
+      local MSG="Could not determine currently installed Tor Browser version. This could be either because none is installed or because the version format changed. Try: torbrowser -update"
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   # Append to MSG if Tor Browser is current or not.
+   if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+      # It is up to date...
+      local MSG="Installed Tor Browser version $TBBINSTALLEDVERSION is up to date."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+   else
+      # Outdated...
+      local MSG="Installed Tor Browser version $TBBINSTALLEDVERSION. Latest Tor Browser version $TBBVERSION. Please run: torbrowser -update"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+   fi
+}
+
+
+
+check_tor() {
+   trap "error_handler" ERR INT TERM
+
+   # Do not test for stream isolation if Tor detection failed.
+   # This variable may be set to 1, during the first run of this script.
+   if [ "$NOT_USING_TOR" = "1" ]; then
+      local MSG="SocksPort test could not detect Tor. Not testing Tor's TransPort."
+      echo "$MSG"
+      # no zenity output
+      return
+   fi
+
+   if [ "$1" = "SocksPort" ]; then
+      # Do not download again. Done that already in check_network.
+      echo "Testing Tor's SocksPort..."
+   elif [ "$1" = "TransPort" ]; then
+      # Using wget binary to ensure the wget uwt wrapper /usr/local/bin/wget does not get used.
+      echo "Testing Tor's TransPort..."
+      /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
+      # Check if wget failed.
+      if [ "$NETWORK_DOWN" = "1" ]; then
+         local MSG="SocksPort Test failed! Can not test stream isolation!"
+         echo "$MSG"
+         output "--error" "ERROR" "$MSG"
+         return
+      fi
+   else
+     local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
+     echo "$MSG"
+     output "--error" "ERROR" "$MSG"
+     return
+   fi
+
+   WHONIXCHECK="1"
+
+   # If the word "Congratulations" is not found in index.html,
+   # grep will return "".
+   # old with bug: WHONIXCHECK="`grep "Congratulations" index.html`"
+
+   # Thanks to
+   # http://stackoverflow.com/questions/7560587/supress-grep-output-but-capture-it-in-a-variable
+   local WERRORS=`echo $WHONIXCHECK | grep "Congratulations" "index.html" 2>&1`
+
+   # TODO: ...
+   IP="`grep "IP" index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`" || true   
+
+   # Store IP for later use in memory.
+   if [ "$1" = "TransPort" ]; then
+      IP_TRANS_PORT="$IP"
+   elif [ "$1" = "SocksPort" ]; then
+      IP_SOCKS_PORT="$IP"
+   fi
+
+   # Check if connected to Tor or not,
+   # and choose which message to show.
+   if [ "$WHONIXCHECK" = "" ]; then
+      NOT_USING_TOR="1"
+      local MSG="Tor's $1: Looks like you are not connected through Tor! There could be something wrong or it's a false positive. (https://check.torproject.org fails in some cases to detect exit nodes.)
+$IP"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+   else
+      local MSG="Tor's $1: You are successfully using Tor. $IP"
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+   fi
+
+   # Function runs for the second time.
+   if [ "$1" = "TransPort" ]; then
+      # Test stream isolation.
+      # Lets compare TransPort with SocksPort.
+      if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+      else
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+      fi
+   fi
+}
+
+
+
+error_handler_check_operating_system() {
+      local MSG="Could not check for operating system updates.
+Please check by manually running:
+sudo apt-get update
+sudo apt-get dist-upgrade"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+}
+
+
+
+check_operating_system() {
+   trap "error_handler_check_operating_system" ERR INT TERM
+   
+   # Runing apt-get update as user (non-root).
+   # Depends on exception set in /etc/sudoers.   
+   # Minmal custom script.
+   echo "Checking for operating system updates..."
+   sudo /usr/local/bin/apt-get-update >/dev/null
+   
+   trap "error_handler" ERR INT TERM
+
+   # /etc/update-motd.d/90-updates-available
+   # /usr/lib/update-notifier/update-motd-updates-available
+   # /usr/lib/update-notifier/apt-check
+   NEED_UPDATE_CHECK=yes
+   /usr/lib/update-notifier/apt-check --human-readable > update_check
+   read -r CHECK_OS_RESULT < update_check
+
+   local FIRST_CHAR="${CHECK_OS_RESULT:0:1}"
+      
+   if [ "$FIRST_CHAR" != "0" ]; then
+      local MSG="$CHECK_OS_RESULT
+Please update Whonix-Gateway and Whonix-Workstation:
+sudo apt-get update && sudo apt-get dist-upgrade"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+      return
+   fi
+   
+   local MSG="Ubuntu is up to date.
+$CHECK_OS_RESULT"
+   echo "$MSG"
+   output "--info" "Info" "$MSG"
+}
+
+
+
+download_whonix_news() {
+   trap "error_handler" ERR INT TERM
+
+   ip="$GATEWAY_IP"
+   SOCKS_PORT_WHONIX_NEWS="9114"
+
+   DOWNLOAD_NEWS_SUCCESS="1"
+   echo "Checking for Whonix news and updates..."
+
+   # Tested...
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
+   -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
+   whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
+
+   # Uncomment the following three lines to test what happens
+   #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
+   #-c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
+   #whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
+
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      local MSG="Could not download Whonix News."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+   fi
+}
+
+
+
+whonix_new_verification_error() {
+   WHONIX_NEWS_VERIFY_ERROR="1"
+   local MSG="Could not gpg verify authenticity of Whonix News!!! This is either an Whonix Bug or attack on Whonix!!!"
+   echo "$MSG"
+   output "--error" "ERROR" "$MSG"
+}
+
+
+
+verify_whonix_news() {
+   trap "whonix_new_verification_error" ERR INT TERM
+   
+   # If news could not be downloaded, do not try to verify it.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   WHONIX_NEWS_VERIFY_ERROR="0"
+
+   gpg --homedir "$VERIFY_TEMPDIR" --fingerprint 2>/dev/null
+   gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/Whonix/adrelanos.asc 2>/dev/null
+   gpg --homedir "$VERIFY_TEMPDIR" --decrypt whonix_news.asc > whonix_news
+   
+   # If verification fails, trap will run whonix_new_verification_error.
+
+   local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
+   echo "$MSG"
+   # output "--info" "Info" "$MSG"   
+}
+
+
+
+check_whonix_version() {
+   trap "error_handler" ERR INT TERM
+   
+   # If news could not be downloaded, do not check Whonix version.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   # If news verification failed, do not check Whonix version.
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = 1 ]; then
+      return
+   fi
+
+   local i="0"
+   while read LINE; do
+      let i "i=i+1"
+      #echo "$i: $LINE"
+      if [ "$i" = "1" ]; then
+         LATEST_WHONIX_VERSION="$LINE"
+      fi
+   done < "$VERIFY_TEMPDIR/whonix_news"
+
+   if [ "$INSTALLED_WHONIX_VERSION" = "$LATEST_WHONIX_VERSION" ]; then
+      # Up to date...
+      local MSG="Installed Whonix Version $INSTALLED_WHONIX_VERSION is up to date."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+      return
+   fi
+
+   # Outdated...
+   local MSG="Installed Whonix version $INSTALLED_WHONIX_VERSION. Latest Whonix version $LATEST_WHONIX_VERSION. Please update Whonix!!!"
+   echo "$MSG"
+   output "--error" "WARNING" "$MSG"
+}
+
+
+
+check_whonix_news() {
+   trap "error_handler" ERR INT TERM
+   
+   # If news could not be downloaded, do not check Whonix news.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   # If news verification failed, do not check Whonix news.
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = 1 ]; then
+      return
+   fi
+
+   local MSG=""
+   local i="0"
+   while read LINE; do
+      let i "i=i+1"
+      #echo "pre i: $i"
+      [ "$i" -lt "3" ] && continue
+      #echo "post i: $i"
+      #echo "LINE: $LINE"
+
+      if [ "$i" = "3" ]; then
+         local MSG="$LINE"
+      else
+         local MSG="$MSG
+$LINE"
+      fi
+   done < "$VERIFY_TEMPDIR/whonix_news"
+
+   echo "$MSG"
+   output "--info" "Info" "$MSG"
+}
+
+
+
+cleanup() {
+   trap "error_handler" ERR INT TERM
+
+   cd ..
+   rm -r "$VERIFY_TEMPDIR"
+}
+
+
+
+whonixcheck_main() {
+  trap "error_handler" ERR INT TERM
+  
+  phrase_cmd_options $1
+  preparation
+  kill_old_instances
+  welcome
+  disclaimer
+  check_htpdate
+
+  # The 5% indicate, that the check has begun.
+  zenity_progress 5
+
+  # connection 1
+  # (Download through wget's SocksPort.)
+  check_network
+  zenity_progress 20
+
+  if [ -f "/usr/share/Whonix/whonix_workstation" ]; then
+    # for Whonix-Workstation
+  
+    # connection 2
+    check_torbrowser
+    zenity_progress 40
+
+    # no connection
+    check_tor "SocksPort"
+    # No need to show progress, already fetched before.
+
+    # connection 3
+    check_tor "TransPort"
+    zenity_progress 60
+
+    # connection 4
+    check_operating_system
+    zenity_progress 80
+
+    # connection 5
+    download_whonix_news
+    verify_whonix_news
+    check_whonix_version
+    check_whonix_news
+    zenity_progress 95
+  else
+    # for Whonix-Gateway
+    check_tor "SocksPort"
+  fi
+
+  zenity_progress 100
+  show_output
+  cleanup
+
+  exit 0
+}
+
+whonixcheck_main $1
+
+# End of whonixcheck script.

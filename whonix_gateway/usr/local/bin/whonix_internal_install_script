@@ -1,0 +1,395 @@
+#!/bin/bash
+# Needs to be bash because we use "trap ERR".
+# Will be copied into whonix_gateway: /usr/local/bin/whonix_gateway
+# by whonix_image copyinto. Will be run inside VM.
+
+# Version: Whonix 0.3.0-developers-only
+
+# See LICENSE in root of Whonix source for copyright, license and authors.
+
+script_help() {
+echo "
+############################################################################
+#       INFO                                                               #
+# Read DISCLAIMER!                                                         #
+#                                                                          #
+# -install                                                                 #
+# In addition to performing a full installation this                       #
+# will enable auto-login, passwordless poweroff and                        #
+# slim down the image size.                                                #
+# Make a snapshot first so you do not have to reinstall if things break!   #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+# Only suited for VMs!                                                     #
+# In case you really want to run on bare metal:                            #
+# TODO
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+#
+############################################################################
+
+#+# OPTIONAL FEATURES
+# Normal comments. Optional feature comments look like this:
+#+# Optional feature comment, skip them you are not interested.
+
+#+# For convenient navigation through the optional feature in the script,
+#+# it is recommend to use your browsers search function. (
+#+# e.g.: Firefox: CTRL + F, in nano: CTRL + W
+#+# find #OptionalFeatureNr.X#, Highlight all, F3 to jump to the next one.)
+#+# You need to uncomment all occurrences in the script to to enable a Feature.
+
+#+# #OptionalFeatureNr.1# Isolate Dest Port / Isolate Dest Addr ^1^ (UNTESTED!)
+#+# #OptionalFeatureNr.2# Hidden Services. ^6^
+#+# #OptionalFeatureNr.3# Even more restrictive firewall rules. ^7^
+#+# #OptionalFeatureNr.4# More Socks Ports. ^4^
+#+# #OptionalFeatureNr.5# Best possible protection against Identity correlation through circuit sharing. ^5^
+#+# #OptionalFeatureNr.6# Leak Testing. ^8^
+
+#+# ^1^ Read: Whonix / Optional Configurations / isolate streams by destination port and/or destination address
+#+# for explanation.
+
+#+# ^4^ Read: Whonix / Application Warnings And Notes / Identity correlation through circuit sharing,
+#+# for explanation.
+
+#+# ^6^ Read: Whonix / Optional Configurations / Hosting hidden services
+#+# for explanation.
+
+#+# ^7^ Read: Whonix / Application Warnings And Notes / Whonix-Workstation is firewalled
+#+# for explanation.
+
+#+# ^8^ Read: Whonix / Leak Tests
+#+# for explanation.
+
+############################################################################
+# NOTE FOR DEBUGGING
+# If you start the script without command line options, it will do nothing
+# important. You can also check for some syntax errors,
+# such as unbalanced apostrophes etc. And if you want for testing purposes,
+# simply to run only one module and not the whole script, that is also
+# possible. Scroll down the the bottom of the script, one one the last things
+# will be "INFO: No option chosen.". Make space there and add the name of the
+# function, you want to test, for example create_swap_file. Leave the "exit 0"
+# and fi below intact.
+#
+# For extensive debugging use:
+# sudo bash -x 2>/tmp/log whonix_gateway
+# This will set -x and redirect everything bash does to /tmp/log.
+# nano /tmp/log
+
+############################################################################
+# NOTE FOR CONTRIBUTORS
+# Follow our style unless there is a good reason not to (let us know on Whonix/Dev).
+# functions() need to have a unique name
+# Be careful using echos with single/double quotes/apostrophes in comments!
+# Only use || true with care to override the trap function.
+# Search the script for TODO and help us fix them.
+"
+}
+
+############################################################################
+# SCRIPT STARTS HERE
+############################################################################
+
+# Enable debugging.
+set -x
+
+#
+set -E
+
+######################################################
+# Variables
+######################################################
+# Set the linux username.
+# "export USERNAME=$(whoami)" will not work, since the
+# script gets, in most cases, started as root.
+USERNAME="user"
+
+# Unattended (un)installation of packages.
+# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+export DEBIAN_FRONTEND=noninteractive
+
+######################################################
+# Checking script environment
+######################################################
+# Exit if there is an error
+set -e
+
+cd /home/$USERNAME
+
+root_check() {
+   if [ "$(id -u)" != "0" ]; then
+      echo "ERROR: This must be run as root (sudo)"
+      exit 1
+   else
+      echo "INFO: Script running as root."
+   fi
+}
+
+######################################################
+# error_handler
+######################################################
+
+error_handler() {
+echo "
+#####################
+ERROR: Script failed!
+#####################
+"
+echo "ERROR: Script failed!" >&2
+sleep 5
+exit 1
+}
+
+
+
+apt_get() {
+trap "error_handler" ERR INT TERM
+echo "
+######################################################
+Remove problematic software, install Tor and other software.
+######################################################
+"
+
+# Some apt_get() code is shared between Whonix-Workstation and Whonix-Gateway.
+
+echo "Refresh apt-get to include the newly added torproject.org repository."
+apt-get --config-file /usr/share/Whonix/apt.conf update
+
+echo "Running apt-get dist-upgrade..."
+apt-get --config-file /usr/share/Whonix/apt.conf --yes dist-upgrade
+
+echo "Removing problematic software..."
+apt-get --config-file /usr/share/Whonix/apt.conf --yes remove --purge \
+popularity-contest ntpdate resolvconf ufw network-manager network-manager-gnome || true
+
+echo "Make sure required software is installed and install tor..."
+# required to patch_torsocks:
+#     build-essential
+# required for tails_htp:
+#     libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
+# required for whonixcheck, provides /usr/lib/update-notifier/apt-check:
+#      update-notifier-common
+apt-get --config-file /usr/share/Whonix/apt.conf --yes install \
+bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping \
+isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor \
+tor-arm torsocks wget build-essential \
+libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl \
+update-notifier-common
+
+# Additionally install obfsproxy. Disabled by default, because
+# it requires Tor Alpha and is only available in the experimental branch.
+# obfsproxy is already available as a deb package in the Tor repository.
+# https://trac.torproject.org/projects/tor/ticket/6046
+#apt-get --config-file /usr/share/Whonix/apt.conf --yes install obfsproxy
+}
+
+
+
+base_desktop() {
+echo "
+######################################################
+# Installing base desktop
+######################################################
+"
+
+apt-get --config-file /usr/share/Whonix/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox
+}
+
+
+
+config_vidalia() {
+# Not in use yet.
+# Waiting for Vialia 0.3.
+
+echo "
+######################################################
+config_vidalia
+######################################################
+"
+
+apt-get --config-file /usr/share/Whonix/apt.conf --yes install --no-install-recommends vidalia
+
+# Vidalia config file gets copied by copyinto.
+
+# Lift permissions to edit torrc to allow Vidalia editing torrc.
+# There should be no security implications, since Whonix-Gateway is
+# not a multi user environment, its solely used to host Tor. On the
+# other hand, for the Tor Browser Bundle, Tor, Vidalia and Tor Browser
+# run under the very same user account.
+chmod g+rw /etc/tor/torrc
+chmod o+rw /etc/tor/torrc
+}
+
+
+
+config_htp() {
+   echo "Creating the htp user..."
+   adduser --system --quiet --group --no-create-home htp || :
+   echo "Adding htpdate init script..."
+   update-rc.d htpdate defaults
+}
+
+
+
+config_unsafe_user() {
+   echo "Creating unsafe user..."
+   # setting password of user unsafe to changeme
+   #
+   # How this password was created:
+   # sudo apt-get install whois
+   # mkpasswd
+   # changeme
+   # Resulted to aTayYxVyw5kDo.
+   #
+   # True in case script gets run again. (Debugging.)
+   useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash unsafe || true
+   chown unsafe /home/unsafe
+}
+
+
+
+whonix_slim_down() {
+echo "
+######################################################
+Slim down the system.
+######################################################
+"
+# Remove unnecessary packages to slim down the system.
+# This list contains only packages, which waste space and are not required.
+# Unsafe or problematic packages are being removed with apt_get().
+apt-get --config-file /usr/share/Whonix/apt.conf --yes remove --purge \
+vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
+pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
+dosfstools command-not-found* logrotate aptitude || true
+
+# No longer removing friendly-recovery. Quite useful in case disk got filled up
+# and also errors on virtual disks happen sometimes.
+
+echo "INFO: Cleaning up..."
+# Tell bash-completion about missing man package because apt-get is not doing its job...
+rm -r /etc/bash_completion.d/man/* || true
+
+# This assumes you rebooted after the last kernel update.
+# Can not be used together with debootstrap!
+apt-get --config-file /usr/share/Whonix/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`) || true
+
+# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
+killall dhclient3 || true
+# There are .leases.
+rm /var/lib/dhcp/*.leases || true
+# And there are .lease.
+rm /var/lib/dhcp/*.lease || true
+# We are best of deleting the whole folder.
+rm -r /var/lib/dhcp/* || true
+
+# Cleanup.
+apt-get --config-file /usr/share/Whonix/apt.conf --yes autoremove --purge || true
+apt-get --config-file /usr/share/Whonix/apt.conf --yes clean || true
+
+# No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
+# Therefore /var/lib/tor should be empty.
+# Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
+# rm -r /var/lib/tor/* || true
+
+# Killing rsyslog so we can remove logs.
+stop rsyslog || true
+
+# Delete logs and other stuff.
+rm -r /tmp/* || true
+rm /var/log/installer/* || true
+rm -r /var/cache/apt/* || true
+rm -r /var/lib/apt/lists/* || true
+rm -r /var/log/installer || true
+rm /var/lib/dpkg/*-old || true
+rm /var/cache/debconf/*-old || true
+# Erase rotated logs (usually wont appear unless you left your VM running for several days).
+rm /var/log/*.[0-9] || true
+rm /var/log/*.[0-9].gz || true
+
+# Truncate all log files, keeping user group and perms.
+find /var/log -type f -exec cp /dev/null {} \;
+
+# Take care of development leaks and make resulting ova image smaller.
+# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
+# This also ensure that possible leaks we deleted before are really deleted.
+echo "INFO: Wiping free space. This can take a while."
+dd if=/dev/zero of=./zerofile bs=1024 || true
+
+# Flush the zero-file to disk before removing it.
+sync
+
+# Delete the zero-file.
+rm ./zerofile || true
+
+# Flush again after rm.
+sync
+
+# Delete bash history.
+rm /home/$USERNAME/.bash_history
+history -c
+}
+
+
+
+################################################################
+# -install
+################################################################
+if [[ "$1" = "-install" ]]; then
+root_check                # Depends on nothing.
+
+. /usr/share/Whonix/whonix_internal_checks
+. /usr/share/Whonix/whonix_create_swap_file
+. /usr/share/Whonix/whonix_config_uuids
+. /usr/share/Whonix/whonix_slim_down
+. /usr/share/Whonix/patch_torsocks
+. /usr/share/Whonix/import_tpo_archive_key
+
+whonix_internal_checks       # Depends on nothing.
+whonix_create_swap_file      # Depends on root_check, not being run again when in use.
+whonix_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
+import_tpo_archive_key    # Depends on working internet connection.
+apt_get                   # Depends on root_check, import_tpo_archive_key, working internet connection.
+update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
+patch_torsocks            # Depends on root_check, working internet connection.
+
+                          # The following two provide a graphical gateway interface (Vidalia)
+                          # and can be commented out to increase security.
+                          # Currently disabled by default because its not finished yet.
+#base_desktop             # Depends on root_check, working internet connection.
+#config_vidalia           # Depends on root_check.
+
+config_htp                # Depends on root_check.
+config_unsafe_user        # Depends on root_check.
+whonix_slim_down             # Must be run last.
+sync                      # Ensure changes get written to disk.
+
+# Inform about end.
+echo 'INFO: Script completed.' >&2
+
+# Sleep few seconds before going back to old rc.local.
+sleep 5
+
+exit 0
+fi
+
+
+
+################################################################
+# Help                                                         #
+################################################################
+if [[ "$1" = "-help" ]]; then
+script_help
+exit 0
+fi
+
+
+
+################################################################
+# No option chosen.                                            #
+################################################################
+if [[ "$1" = "" ]]; then
+echo "
+INFO: No option chosen.
+
+Please run Whonix-Gateway -help to find out more.
+"
+exit 0
+fi

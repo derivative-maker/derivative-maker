@@ -1,0 +1,246 @@
+#!/bin/bash
+
+# Update 15
+
+# https://trac.torproject.org/projects/tor/wiki/doc/torsocks
+
+# ***************************************************************************
+# *                                                                         *
+# *   Copyright (C) 2008-2011 Robert Hogan <robert@roberthogan.net>         *
+# *                                                                         *
+# *   This program is free software; you can redistribute it and/or modify  *
+# *   it under the terms of the GNU General Public License as published by  *
+# *   the Free Software Foundation; either version 2 of the License, or     *
+# *   (at your option) any later version.                                   *
+# *                                                                         *
+# *   This program is distributed in the hope that it will be useful,       *
+# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+# *   GNU General Public License for more details.                          *
+# *                                                                         *
+# *   You should have received a copy of the GNU General Public License     *
+# *   along with this program; if not, write to the                         *
+# *   Free Software Foundation, Inc.,                                       *
+#*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+# ***************************************************************************
+# *                                                                         *
+# *   This is a modified version of a source file from the Tor project.     *
+# *   Original copyright notice from tsocks source file follows:            *
+# ***************************************************************************
+
+# Wrapper script for use of the tsocks(8) transparent socksification library
+# See the tsocks(1) and torify(1) manpages.
+
+# Copyright (c) 2004, 2006 Peter Palfrader
+# Modified by Jacob Appelbaum <jacob@appelbaum.net> April 16th 2006
+# Modified by Marcus Griep <marcus@griep.us> June 16 2009
+# May be distributed under the same terms as Tor itself
+# Modified by adrelanos (aka proper)
+#     Modifications copyright (c) 2012
+#     Whonix license: See LICENSE in root of Whonix source for copyright, license and authors.
+
+# Note:
+# -v (verbose) and the UWT_VERBOSE environment variable set to 1
+# will break many graphical applications, which use applications,
+# which will call applications, which we wrapped to use uwt.
+
+# You can also type in shell:
+# 	export UWT_VERBOSE="1"
+# to enable verbose output.
+# Note: When running applications as root, you also have to set and
+#       export that variable as root.
+
+# Define and ensure we have tsocks
+# XXX: what if we do not have which?
+TORSOCKS="`which torsocks`"
+
+if [ -z "$UWT_VERBOSE" ]; then
+	# echo "UWT_VERBOSE: did not exist."
+	UWT_VERBOSE="0"
+else
+	if [ "$UWT_VERBOSE" = "1" ]; then
+		set -x
+	fi
+fi
+#echo "UWT_VERBOSE: $UWT_VERBOSE"
+
+usage () {
+	echo "Usage: $0 [-h] [-v] [-t server_type] [-i ip] [-p port] [-c \"<command> [<options>...\"]"
+	echo "Example: $0 [-t 5] [-i 127.0.0.1] [-p 9050] [-c \"wget https://check.torproject.org\"]"
+        echo "sudo uwt -t 5 -i 192.168.1.10 -p 9104 -c \"/usr/bin/apt-get --yes dist-upgrade\""
+	exit 0
+}
+
+set_id () {
+	echo "ERROR: $1 is set${2}id. usewithtor will not work on a set${2}id executable." >&2
+	exit 1
+}
+
+# Check for any argument list
+if [ "$#" = 0 ]; then
+	usage >&2
+	exit 1
+fi
+
+# Thanks to
+# http://aplawrence.com/Unix/getopts.html
+while getopts  "hvi:p:c:t:" FLAG
+do
+  #echo "FLAG: $FLAG | OPTARG: $OPTARG"
+  if [ "$FLAG" = "h" ]; then
+      usage
+  fi
+  if [ "$FLAG" = "v" ]; then
+      set -x
+      UWT_VERBOSE="1"
+  fi
+  if [ "$FLAG" = "i" ]; then
+      ip="$OPTARG"
+  fi
+  if [ "$FLAG" = "p" ]; then
+      port="$OPTARG"
+  fi
+  if [ "$FLAG" = "c" ]; then
+      command="$OPTARG"
+  fi
+  if [ "$FLAG" = "t" ]; then
+      server_type="$OPTARG"
+  fi
+done
+
+if [ -z "$ip" ]; then
+	echo "ERROR: ip (-i) missing." >&2
+	exit 1
+fi
+
+if [ -z "$port" ]; then
+	echo "ERROR: port (-p) missing." >&2
+	exit 1
+fi
+
+if [ -z "$server_type" ]; then
+	echo "ERROR: server type (-t) missing." >&2
+	exit 1
+fi
+
+if [ -z "$command" ]; then
+	echo "ERROR: command (-c) missing." >&2
+	exit 1
+fi
+
+if [ "$UWT_VERBOSE" = "1" ]; then
+  echo "uwt command: \"$command\""
+fi
+
+# Thanks to
+# http://ask.metafilter.com/80862/how-split-a-string-in-bash
+set -- $command
+
+exe="`which $1`"
+if [ "$exe" = "" ]; then
+	echo "UWT ERROR: $1 does not exist!" >&2
+	exit 1
+fi
+
+if [ -u `which "$1"` ]; then
+	set_id $1 u
+elif [ -g `which "$1"` ]; then
+	set_id $1 g
+fi
+
+if [ -x "$TORSOCKS" ]; then
+	# torsocks is installed.
+	true
+else
+	echo "$0: Unable to find torsocks in PATH." >&2
+	echo "    Perhaps you have not installed it?" >&2
+	exit 1
+fi
+
+if [ "$UWT_VERBOSE" = "1" ]; then
+	echo "We are armed with the following torsocks: $TORSOCKS"
+fi
+
+# Define our torsocks config file.
+TORSOCKS_CONF_FILE="`mktemp`"
+export TORSOCKS_CONF_FILE
+#echo "TORSOCKS_CONF_FILE: $TORSOCKS_CONF_FILE"
+
+echo "
+	# Temporary torsocks configuration file created by uwt.
+	# Safe to delete.
+	local = 127.0.0.0/255.128.0.0
+	local = 127.128.0.0/255.192.0.0
+	local = 169.254.0.0/255.255.0.0
+	local = 172.16.0.0/255.240.0.0
+	local = 192.168.0.0/255.255.0.0
+	server = $ip
+	server_type = $server_type
+	server_port = $port
+" > "$TORSOCKS_CONF_FILE"
+
+# Check that we have got a torsocks config file
+if [ -r "$TORSOCKS_CONF_FILE" ]; then
+  # ok
+  # echo "TORSOCKS_CONF_FILE found."
+  true
+else
+  # Since identity corelation through circuit sharing is at risk,
+  # we should no longer let torsocks default to 9050.
+  echo "$0: Missing torsocks configuration file \"$TORSOCKS_CONF_FILE\."
+  exit 1
+fi
+
+if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt"
+    echo "ip: $ip port: $port"
+fi
+
+UWT_LOCALHOST="0"
+
+#echo "uwt: $ *: $*"
+case "$*" in
+  *127.0.0.1*)
+    UWT_LOCALHOST="1"
+  ;;
+  *localhost*)
+    UWT_LOCALHOST="1"
+  ;;
+  *)
+    # do nothing
+    true
+  ;;
+esac
+
+if [ "$UWT_LOCALHOST" = "1" ]; then
+
+  if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt: localhost detected."
+    echo "exec torsocks \"$@\""
+  fi
+  
+  if [ -f "/usr/share/Whonix/whonix_workstation" ]; then
+    true
+  elif [ -f "/usr/share/Whonix/whonix_gateway" ]; then
+    true
+  else
+    echo "uwt will not work for localhost connections." >&2
+    exit 1
+  fi
+  
+  # Safe in Whonix.
+  exec "$@"  
+  
+else
+
+  if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt: localhost not detected. Using torsocks."
+    echo "exec torsocks \"$@\""
+    #echo "exec torsocks $command"
+  fi
+
+  exec torsocks "$@"
+  
+fi
+
+# End of uwt script.

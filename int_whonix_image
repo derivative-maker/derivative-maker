@@ -1,0 +1,169 @@
+#!/bin/bash
+# internally used by whonix_createvm
+
+# See LICENSE in root of Whonix source for copyright, license and authors.
+
+# Enable debugging.
+set -x
+
+##############################################################################################
+# error_handler
+##############################################################################################
+error_handler_int_whonix_image() {
+echo "
+#!!! ERROR in int_whonix_image !!!#
+#!!! ERROR in int_whonix_image !!!#
+#!!! ERROR in int_whonix_image !!!#
+"
+
+echo "whonix_image: unmount_vm_image..."
+unmount_vm_image_force
+echo "whonix_image: Done."
+
+touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
+exit 1
+}
+
+
+
+mount_vm_image() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   sync
+   # Ensure powered is off. Otherwise disk corruption is at high risk.
+   sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+   
+   # Create loopback dev for the image.
+   # old, was working: qemu-nbd -c /dev/nbd0 "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+
+#   local SNAPSHOT_FOLDER="/home/"$USERNAME"/VirtualBox VMs/"$VMNAME"/Snapshots"
+#   local VBOX_FOLDER="/home/"$USERNAME"/VirtualBox VMs/"$VMNAME""
+
+#   if [ -d "$SNAPSHOT_FOLDER" ]; then
+#      : echo "Prefering SNAPSHOT_FOLDER: $SNAPSHOT_FOLDER."
+#      local VDI="`find  "$SNAPSHOT_FOLDER"/*.vdi`"
+#   elif [ -d "$VBOX_FOLDER" ]; then
+#      : echo "Prefering VBOX_FOLDER: $VBOX_FOLDER."
+#      local VDI="`find  "$VBOX_FOLDER"/*.vdi`"
+#   else
+#      error "mount_vm_image: can not find VM folder."
+#   fi
+
+   # Find name of .vdi file. New:
+   local VDI="`find  "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/*.vdi`"
+   # example result: /home/user/VirtualBox VMs/Whonix-Gateway/Whonix-Gateway-disk1.vdi
+   # For debugging its useful to clone a VM, where only the operating system has been installed,
+   # before running the script or before copying into it.
+   # When restoring the VMClone to VM, the VDI may have another name.
+
+   # Make sure required module to mount vdi images is installed.
+   modprobe nbd
+
+   # Create loopback dev for the image. New:
+   qemu-nbd -c /dev/nbd0 "$VDI"
+
+   # Folder has to exist to mount the image.
+   mkdir -p $CHROOT_FOLDER
+
+   sync
+   # Mount the partitions, that are exposed as /dev/nbd0pXXX.
+   mount -o noatime /dev/nbd0p1 $CHROOT_FOLDER
+   sync
+}
+
+
+
+copy_into_vm_image_whonix_gateway_pre() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_gateway_pre
+   append_gateway_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_whonix_gateway_post() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   copy_shared_post
+   copy_gateway_post
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_whonix_workstation_pre() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   backup_shared_pre
+   copy_shared_pre
+   append_shared_pre
+   copy_workstation_pre
+   append_workstation_pre
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_whonix_workstation_post() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   copy_shared_post
+   copy_workstation_post
+   append_workstation_post
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+
+
+unmount_vm_image_force() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+# Will be called if there is an error.
+# || true to avoid more errors and to ensure
+# clean unmount.
+
+# Ensure changes get written.
+sync || true
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0 || true
+
+# In the end unmount.
+umount $CHROOT_FOLDER || true
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER || true
+
+# Ensure changes get written.
+sync || true
+}
+
+
+
+unmount_vm_image() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+# Called after copying into vm.
+# Should not trow any errors.
+
+# Ensure changes get written.
+sync
+
+# Shutdown the ndb.
+qemu-nbd -d /dev/nbd0
+
+# In the end unmount.
+umount $CHROOT_FOLDER
+
+# Delete temporary folder.
+# It did not contain anything. It was only a mount point.
+rm -r $CHROOT_FOLDER
+
+# Ensure changes get written.
+sync
+}

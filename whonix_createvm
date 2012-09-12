@@ -1,0 +1,620 @@
+#!/bin/bash
+# build script: /home/user/Whonix/whonix_createvm
+#########################################
+
+: "See LICENSE in root of Whonix source for copyright, license and authors."
+
+script_help() {
+: "help: FLAGS / WORKFLOW:"
+: "help:"
+: "help: -tg-createvm"
+: "help: -tg-install-os"
+: "help: -tg-post-install-os"
+: "help: -tg-copyinto-pre"
+: "help: -tg-install-script"
+: "help: -tg-copyinto-post"
+: "help: -tg-export"
+: "help: (perhaps) -tg-delete"
+:
+: "help: Only for Whonix-Gateway on Bare Metal (Physical Isolation). UNTESTED!"
+: "help: -tg-bare-metal-pre"
+: "help: -tg-bare-metal-post"
+:
+: "help:"
+: "help: -tw-createvm"
+: "help: -tw-install-os"
+: "help: -tw-post-install-os"
+: "help: -tw-copyinto-pre"
+: "help: -tw-install-script"
+: "help: -tw-copyinto-post"
+: "help: -tw-export"
+: "help: (perhaps) -tw-delete"
+: "help:"
+}
+
+# Variables are set in -tw/g parameters at the bottom
+# of this script.
+# - VMNAME
+# - VMRAM
+
+
+
+##############################################################################################
+# error_handler
+##############################################################################################
+set -o xtrace
+set -o errtrace
+set -o nounset
+set -o errexit
+
+error_handler() {
+: echo "
+#!!! ERROR in whonix_createvm !!!#
+#!!! ERROR in whonix_createvm !!!#
+#!!! ERROR in whonix_createvm !!!#
+"
+: echo "whonix_createvm: Does the VM already exist?"
+: echo "whonix_createvm: X is a variable, use g or t."
+: echo "whonix_createvm: If you want to delete an old VM use sudo ./whonix_createvm -tX-delete"
+
+touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
+exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+
+
+##############################################################################################
+# variables
+##############################################################################################
+
+USERNAME="user"
+WHONIX_SOURCE_FOLDER="/home/$USERNAME/Whonix"
+
+SNAPSHOT_DESCRIPTION="
+   Reverts your Virtual Machine back to a clean state.
+   All changes, all installed packages, all data you created will be lost!
+"
+
+##############################################################################################
+# source
+##############################################################################################
+
+source "$WHONIX_SOURCE_FOLDER"/int_whonix_image
+source "$WHONIX_SOURCE_FOLDER"/int_copy_shared
+source "$WHONIX_SOURCE_FOLDER"/int_copy_gateway
+source "$WHONIX_SOURCE_FOLDER"/int_copy_workstation
+
+##############################################################################################
+# root_check
+##############################################################################################
+
+root_check() {
+  if [ "$(id -u)" != "0" ]; then
+       : echo "ERROR: This must be run as root (sudo)!"
+       exit 1
+  else
+       : echo "INFO: Script running as root."
+  fi
+}
+
+
+
+general_setup() {
+trap "error_handler" ERR INT TERM
+
+# Create a new VM. Name: $VMNAME
+sudo -u $USERNAME VBoxManage createvm --name "$VMNAME" --register
+
+# Ubuntu
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ostype Ubuntu
+
+# Add SATA Controller.
+sudo -u $USERNAME VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
+
+# Create the HDD.
+sudo -u $USERNAME VBoxManage createhd --filename "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" --size $VMHDDSIZE
+
+# Attach the HDD.
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+# Add CD-ROM
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+
+# RAM
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+
+# Enable PAE.
+# Note:
+# - This is required for Ubuntu Precise.
+# - This breaks compatibility with older hardware.
+# - https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Dev#SwitchingOperatingSystemSHELLSCRIPTSENHANCEMENTWAITForWheezy
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --pae on
+
+# Hide hosts CPU info. This does not have a GUI option.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --synthcpu on
+
+# ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --acpi on
+
+# ACPI boots up the VM boot process. It has not been reviewed if this is bad for security.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ioapic on
+
+# Set system clock of VM to UTC.
+# When Virtual Box starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
+# and sets the VM clock to that date and time. The following option translates the date
+# and time to UTC, thus hiding the hosts timezone from the guest.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+
+# Deactivate time synchronization between host and VMs.
+# This is documented on Whonix homepage under Security and Hardening.
+# Thanks to
+# http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+}
+
+
+
+install_os_inside_vm() {
+   trap "error_handler" ERR INT TERM
+
+   # We pull the cable of the NAT adapter. While installing with preseed,
+   # we do not want to have a network connection, because its much faster.
+   # Its required to have a network card, due to limitations in upstream
+   # netcfg preseed.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
+
+   # Insert the preseed iso image.
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/whonix_binary/preseed.iso"
+ 
+   # VBoxSDL is does not run in background, waits until finished.
+   # No questions by VBox (such as grab mouse etc.).
+   # The preseed.iso is configured to eject the iso.
+   # The preseed.iso is configured to power off when its done.
+   : echo "whonix_createvm: Operating system should now be installed unattended (preseed)..."
+   : echo "whonix_createvm: Should not require any user interaction. If so, please report a bug."
+   : echo "whonix_createvm: Check if its not frozen but be patient."
+   : echo "whonix_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
+   : echo "whonix_createvm: Please wait until it has finished."
+
+   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
+
+   : echo "whonix_createvm: Virtual Box terminated without error messages."
+   : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
+
+   # Ensure preseed.iso gets removed.
+   : echo "whonix_createvm: Removing operating system installation CD..."
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+   : echo "whonix_createvm: Removed operating system installation CD."
+
+   # Plug the cable back in.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+}
+
+
+
+gateway_specific() {
+trap "error_handler" ERR INT TERM
+
+# Leave Adapter 1 as NAT.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 nat
+
+# Review: NAT adapter also gets fixed MAC shared among all Whonix users.
+# Use case: not much yet. In case the Gateway gets broken, this one can not
+# be used as identifier. Gets interesting in future with multiple gateways.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 0800273A77FC
+
+# Prevents leaking DNS info from the host into the guest.
+# Also useful in other cases.
+# https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+
+# Prevents leaking DNS info from the host into the guest.
+# Also useful in other cases.
+# https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+
+# Do not pass the domain name for network name resolution to the VM.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+}
+
+
+
+workstation_specific() {
+trap "error_handler" ERR INT TERM
+
+# 128 MB Video RAM.
+# Settings->Display->Video Memory->128 MB.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --vram 128
+
+# Add Adapter 1 (will be eth0), an internal network, IMPORTANT!
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic1 intnet
+
+# Remove the virtual network cable. Same reason like gateway_specific.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
+
+# Change the internal network to "Whonix", IMPORTANT!
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+
+# Enter following MAC address: 080027070B08
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress1 080027070B08
+
+# Enable audio controller ac97.
+# sb16 should be obsolete.
+# ac97 is hopefully better supported than intel hda.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+
+# Host audio driver can be oss, alsa or pulse.
+# Unfortunately, no auto detection available.
+# Depends on host driver.
+# Ubuntu host uses pulse audio.
+sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
+}
+
+
+
+install_script_inside_vm() {
+   trap "error_handler" ERR INT TERM
+
+   : echo "whonix_createvm: $VMNAME script should now be applied unattended..."
+   : echo "whonix_createvm: Should not require any user interaction. If so, please report a bug."
+   : echo "whonix_createvm: Check if its not frozen but be patient."
+   : echo "whonix_createvm: It might happen your screen goes black. That is the splash screen, which is black in Virtual Box."
+   : echo "whonix_createvm: If that happens you can press ENTER to see the echos."
+   : echo "whonix_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
+   : echo "whonix_createvm: Please wait until it has finished."
+
+   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
+
+   : echo "whonix_createvm: Virtual Box terminated without error messages."
+   : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
+}
+
+
+
+gateway_post_install_os() {
+   trap "error_handler" ERR INT TERM
+
+   # Enable Adapter 2, set to "Internal Network".
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --nic2 intnet
+
+   # Change the internal network to "Whonix", IMPORTANT!
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+
+   # Enter following MAC address: 0800272FCF44
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --macaddress2 0800272FCF44
+}
+
+
+
+workstation_post_install_os() {
+   trap "error_handler" ERR INT TERM
+   # Since there is also -tg-post...
+   : echo "Does nothing. For the sake of completeness."
+}
+
+
+
+delete_vm() {
+trap "error_handler" ERR INT TERM
+
+# Turning off the VM without saving.
+sudo -u $USERNAME VBoxManage controlvm "$VMNAME" poweroff || true
+sync
+
+# Delete old Whonix-Gateway.
+sudo -u $USERNAME VBoxManage unregistervm "$VMNAME" --delete || true
+sync
+
+# Delete old ova.
+rm "$HOME/whonix_binary/$VMNAME".ova || true
+sync
+}
+
+
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+if [[ $# == 0 ]]; then
+   : echo "No option chosen. Use -help for help."
+   touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED || true
+   exit 1
+fi
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
+
+################################################################ 
+# -tg-createvm                                                 #
+################################################################ 
+if [[ "$1" = "-tg-createvm" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   VMHDDSIZE="2048"
+   # Needed to increase from 128 to 256, otherwise while installing
+   # using preseed I sometimes run out of RAM. Might be reduced at the end.
+   VMRAM="256"
+   general_setup
+   gateway_specific
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-install-os"
+   exit 0
+fi
+
+################################################################ 
+# -tg-install-os                                               #
+################################################################ 
+if [[ "$1" = "-tg-install-os" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   install_os_inside_vm
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-post-install-os"
+   exit 0
+fi
+
+################################################################ 
+# -tg-post-install-os                                          #
+################################################################ 
+if [[ "$1" = "-tg-post-install-os" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   gateway_post_install_os
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-copyinto-pre"
+   exit 0
+fi
+
+################################################################ 
+# -tg-copyinto-pre                                             #
+################################################################ 
+if [[ "$1" = "-tg-copyinto-pre" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_whonix_gateway_pre
+   unmount_vm_image
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-install-script"
+   exit 0
+fi
+
+################################################################ 
+# -tg-install-script                                           #
+################################################################ 
+if [[ "$1" = "-tg-install-script" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   install_script_inside_vm
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-copyinto-post"
+   exit 0
+fi
+
+################################################################ 
+# -tg-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tg-copyinto-post" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_whonix_gateway_post
+   unmount_vm_image
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-export"
+   exit 0
+fi
+
+################################################################ 
+# -tg-export                                                   #
+################################################################ 
+if [[ "$1" = "-tg-export" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   VMRAM="128"
+   : echo "whonix_createvm: Creating snapshot..."
+   sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   : echo "whonix_createvm: Decreasing RAM from 256 to 128..."
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/whonix_binary/$VMNAME".ova
+   : echo "BUILD INFO: Done."
+   exit 0
+fi
+
+################################################################ 
+# -tg-delete                                                   #
+################################################################ 
+if [[ "$1" = "-tg-delete" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   delete_vm
+   exit 0
+fi
+
+################################################################ 
+# -tg-bare-metal-pre                                           #
+################################################################ 
+if [[ "$1" = "-tg-bare-metal-pre" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_whonix_gateway_pre
+   : echo "BUILD INFO: Done, if success, REBOOT!"
+   : echo "   /usr/local/bin/whonix_internal_install_script -install will get autostarted once by /etc/rc.local."
+   : echo "   Next step AFTER REBOOT and AFTER install should be: sudo ./whonix_createvm -tg-bare-metal-post"
+   exit 0
+fi
+
+################################################################ 
+# -tg-bare-metal-post                                          #
+################################################################ 
+if [[ "$1" = "-tg-bare-metal-post" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_whonix_gateway_post
+   : echo "BUILD INFO: Done, if success, REBOOT! And done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-createvm                                                 #
+################################################################ 
+if [[ "$1" = "-tw-createvm" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   VMHDDSIZE="8192"
+   # Reduced from 512 to 196 while installing to safe some RAM
+   # while building the VMs inside Virtual Box.
+   VMRAM="256"
+   general_setup
+   workstation_specific
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-install-os"
+   exit 0
+fi
+
+################################################################ 
+# -tw-install-os                                               #
+################################################################ 
+if [[ "$1" = "-tw-install-os" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   install_os_inside_vm
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-post-install-os"
+   exit 0
+fi
+
+################################################################ 
+# -tw-post-install-os                                          #
+################################################################ 
+if [[ "$1" = "-tw-post-install-os" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   workstation_post_install_os
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_image -tw-copyinto-pre"
+   exit 0
+fi
+
+################################################################ 
+# -tw-copyinto-pre                                             #
+################################################################ 
+if [[ "$1" = "-tw-copyinto-pre" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_whonix_workstation_pre
+   unmount_vm_image
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-install-script"
+   exit 0
+fi
+
+################################################################ 
+# -tw-install-script                                           #
+################################################################ 
+if [[ "$1" = "-tw-install-script" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   install_script_inside_vm
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-copyinto-post"
+   exit 0
+fi
+
+################################################################ 
+# -tw-copyinto-post                                            #
+################################################################ 
+if [[ "$1" = "-tw-copyinto-post" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   copy_into_vm_image_whonix_workstation_post
+   unmount_vm_image
+   : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-export"
+   exit 0
+fi
+
+################################################################ 
+# -tw-export                                                   #
+################################################################ 
+if [[ "$1" = "-tw-export" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   VMRAM="512"
+   : echo "whonix_createvm: Creating snapshot..."
+   sudo -u $USERNAME VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   : echo "whonix_createvm: Increasing RAM from 196 to 512..."
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+   sudo -u $USERNAME VBoxManage export "$VMNAME" --output "$HOME/whonix_binary/$VMNAME".ova
+   : echo "BUILD INFO: Done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-delete                                                   #
+################################################################ 
+if [[ "$1" = "-tw-delete" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   delete_vm
+   exit 0
+fi
+
+################################################################ 
+# -tg-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tg-mount" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmount"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tw-unmount" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_vm_image
+   echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mount                                                    #
+################################################################ 
+if [[ "$1" = "-tw-mount" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vm_image
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmount"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tg-unmount                                                  #
+################################################################ 
+if [[ "$1" = "-tg-unmount" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_vm_image
+   : echo "INFO: unmount done."
+   exit 0
+fi

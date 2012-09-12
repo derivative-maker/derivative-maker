@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Internally used by whonix_gateway and whonix_workstation.
+
+set -x
+
+import_tpo_archive_key() {
+   trap "error_handler" ERR INT TERM
+
+   echo "
+   ######################################################
+   # import_tpo_archive_key
+   ######################################################
+   "
+
+   # !!!VERIFY!!!
+   #
+   # https://www.torproject.org/docs/signing-keys.html.en
+   # http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+   #
+   # https://www.torproject.org/docs/debian.html.en#ubuntu
+   # http://idnxcnkne4qt76tg.onion/docs/debian.html.en#ubuntu
+
+   echo "INFO: Importing torproject.org signing key..."
+   rm -r gpgtmpdir/ || true
+   sudo -u $USERNAME mkdir gpgtmpdir
+   chmod 700 gpgtmpdir/
+   sudo -u $USERNAME gpg --homedir gpgtmpdir --fingerprint
+   sudo -u $USERNAME gpg --homedir gpgtmpdir --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
+   sudo -u $USERNAME gpg --homedir gpgtmpdir --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
+   rm -r gpgtmpdir/
+   echo "INFO: Imported torproject.org signing key."
+}
