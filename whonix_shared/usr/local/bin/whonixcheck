@@ -77,7 +77,7 @@ Shows,
 This script,
 -Will break, if https://check.torproject.org
  is down or content of that page is changed.
--Will break, if http://Whonix.sf.net/whonix_news.asc
+-Will break, if http://whonix.sf.net/whonix_news.asc
  is down.
 -Works in command line interface and under
  X Window System.
@@ -117,12 +117,12 @@ preparation() {
 
    # Initialize the variables.
    USERNAME="user"
-   WHONIX_HOMEPAGE="http://Whonix.sf.net"
+   WHONIX_HOMEPAGE="http://whonix.sf.net"
    BUG="0"
    VERIFY_TEMPDIR="/home/$USERNAME/.whonixcheck_temp"
    # Find out installed Whonix version.
    # Read only FIRST line.
-   read -r INSTALLED_WHONIX_VERSION < /usr/share/Whonix/version
+   read -r INSTALLED_WHONIX_VERSION < /usr/share/whonix/version
    # Remove ALL spaces.
    # Thanks to
    # http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
@@ -151,10 +151,10 @@ preparation() {
    SOCKS_PORT_WHONIXCHECK="9110"
    SOCKS_PORT_APT_GET="9104"
    
-   if [ -f "/usr/share/Whonix/whonix_gateway" ]; then
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then
       VM="Whonix-Gateway"
       GATEWAY_IP="127.0.0.1"
-   elif [ -f "/usr/share/Whonix/whonix_workstation" ]; then
+   elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
       VM="Whonix-Workstation"
       GATEWAY_IP="192.168.0.10"
    else
@@ -351,7 +351,7 @@ check_network() {
 
    # Ensuring normal wget activity can not be linked to whonixcheck,
    # by using a SocksPort, which is solely used by whonixcheck.
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org" || NETWORK_DOWN="1"
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
       local MSG="Your Internet connection appears to be down."
@@ -376,7 +376,7 @@ check_torbrowser() {
 
    # Getting latest version number
    uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" \
-   -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions" || GET_VERSION="0"
+   /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed."
@@ -562,13 +562,13 @@ download_whonix_news() {
 
    # Tested...
    uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
-   -c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
-   whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
+   /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
+   whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc || DOWNLOAD_NEWS_SUCCESS="0"
 
    # Uncomment the following three lines to test what happens
    #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
-   #-c "/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
-   #whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc" || DOWNLOAD_NEWS_SUCCESS="0"
+   #/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
+   #whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc || DOWNLOAD_NEWS_SUCCESS="0"
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
       local MSG="Could not download Whonix News."
@@ -599,7 +599,7 @@ verify_whonix_news() {
    WHONIX_NEWS_VERIFY_ERROR="0"
 
    gpg --homedir "$VERIFY_TEMPDIR" --fingerprint 2>/dev/null
-   gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/Whonix/adrelanos.asc 2>/dev/null
+   gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/whonix/adrelanos.asc 2>/dev/null
    gpg --homedir "$VERIFY_TEMPDIR" --decrypt whonix_news.asc > whonix_news
    
    # If verification fails, trap will run whonix_new_verification_error.
@@ -712,7 +712,7 @@ whonixcheck_main() {
   check_network
   zenity_progress 20
 
-  if [ -f "/usr/share/Whonix/whonix_workstation" ]; then
+  if [ -f "/usr/share/whonix/whonix_workstation" ]; then
     # for Whonix-Workstation
   
     # connection 2
