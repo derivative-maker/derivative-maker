@@ -18,7 +18,7 @@ Whonix is based on Tor.
 Whonix is experimental software by means of concept and design.
 Do not rely on it for strong anonymity.
 
-Type: \"Whonix\" <enter> for help.
+Type: \"whonix\" <enter> for help.
      "
 
 # End of Whonix /home/user/.bashrc changes.

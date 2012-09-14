@@ -23,8 +23,8 @@ echo "
 # Enable debugging.
 set -x
 
-# Exit if there is an error
-set -e
+# !HARDCODED!
+ISO_FILE_NAME="ubuntu-12.04.1-server-i386.iso"
 
 USERNAME="user"
 
@@ -47,7 +47,7 @@ echo "whonix_modifyiso: unmounting iso..."
 unmount_iso
 echo "whonix_modifyiso: Done."
 
-touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
+touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED
 exit 1
 }
 
@@ -75,13 +75,13 @@ root_check() {
 mount_and_copy_iso() {
    trap "error_handler" ERR INT TERM
 
-   mkdir -p /home/$USERNAME/whonix_binary/original_iso
+   mkdir -p /home/"$USERNAME"/whonix_binary/original_iso
    # Ubuntu:
-   mount -o loop /home/$USERNAME/whonix_binary/ubuntu-12.04-server-i386.iso /home/$USERNAME/whonix_binary/original_iso
+   mount -o loop /home/"$USERNAME"/whonix_binary/"$ISO_FILE_NAME" /home/"$USERNAME"/whonix_binary/original_iso
    # Debian:
-   #mount -o loop /home/$USERNAME/whonix_binary/debian-6.0.5-i386-CD-1.iso /home/$USERNAME/whonix_binary/original_iso
-   mkdir -p /home/$USERNAME/whonix_binary/modified_iso
-   cp -rT /home/$USERNAME/whonix_binary/original_iso /home/$USERNAME/whonix_binary/modified_iso
+   #mount -o loop /home/"$USERNAME"/whonix_binary/debian-6.0.5-i386-CD-1.iso /home/"$USERNAME"/whonix_binary/original_iso
+   mkdir -p /home/"$USERNAME"/whonix_binary/modified_iso
+   cp -rT /home/"$USERNAME"/whonix_binary/original_iso /home/"$USERNAME"/whonix_binary/modified_iso
 }
 
 
@@ -110,20 +110,20 @@ trap "error_handler" ERR INT TERM
 # If you make changes, please test if they are working!
 
 # lang
-echo en > /home/$USERNAME/whonix_binary/modified_iso/isolinux/lang
+echo en > /home/"$USERNAME"/whonix_binary/modified_iso/isolinux/lang
 
 # isolinux.cfg
-cp /home/$USERNAME/whonix/isolinux.cfg /home/$USERNAME/whonix_binary/modified_iso/isolinux/isolinux.cfg
+cp /home/"$USERNAME"/whonix/isolinux.cfg /home/"$USERNAME"/whonix_binary/modified_iso/isolinux/isolinux.cfg
 
 # ks.cfg
 #
 # Create kickstart configuration file.
 # Due to bugs in Ubuntu preseed we have to combine kickstart with preseed.
 # Bugs such as choosing the language does not work with preseed alone.
-cp /home/$USERNAME/whonix/ks.cfg /home/$USERNAME/whonix_binary/modified_iso/ks.cfg
+cp /home/"$USERNAME"/whonix/ks.cfg /home/"$USERNAME"/whonix_binary/modified_iso/ks.cfg
 
 # preseed.cfg
-cp /home/$USERNAME/whonix/preseed.cfg /home/$USERNAME/whonix_binary/modified_iso/preseed.cfg
+cp /home/"$USERNAME"/whonix/preseed.cfg /home/"$USERNAME"/whonix_binary/modified_iso/preseed.cfg
 }
 
 
@@ -135,7 +135,7 @@ cp /home/$USERNAME/whonix/preseed.cfg /home/$USERNAME/whonix_binary/modified_iso
 rebuild_iso() {
 trap "error_handler" ERR INT TERM
 
-mkisofs -D -r -V "ATTENDLESS_UBUNTU" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o /home/$USERNAME/whonix_binary/$ISO_NAME /home/$USERNAME/whonix_binary/modified_iso/
+mkisofs -D -r -V "ATTENDLESS_UBUNTU" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o /home/"$USERNAME"/whonix_binary/$ISO_NAME /home/"$USERNAME"/whonix_binary/modified_iso/
 }
 
 
@@ -162,8 +162,8 @@ fi
 if [[ "$1" = "-delete" ]]; then
    root_check
    unmount_iso
-   rm -r /home/$USERNAME/whonix_binary/modified_iso
-   rm /home/$USERNAME/whonix_binary/preseed.iso
+   rm -r /home/"$USERNAME"/whonix_binary/modified_iso
+   rm /home/"$USERNAME"/whonix_binary/preseed.iso
    echo "Done."
    exit 0
 fi
@@ -184,5 +184,5 @@ fi
 # no option chosen                                             #
 ################################################################ 
 echo "No option choosen. Use -help for help."
-touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED || true
+touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED || true
 exit 1

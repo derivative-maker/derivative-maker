@@ -24,18 +24,22 @@ set -x
 ######################################################
 # Variables
 ######################################################
+
+# !HARDCODED!
+ISO_FILE_NAME="ubuntu-12.04.1-server-i386.iso"
+
 # Set the linux username.
 # "export USERNAME=$(whoami)" will not work, since the
 # script gets, in most cases, started as root.
 USERNAME="user"
 
 # change to home dir so relative paths work correctly
-cd /home/$USERNAME
+cd /home/"$USERNAME"
 
 whonix_getiso_general_error() {
    echo "
 ############################################
-# whonix_getiso ERROR !!!                     #
+# whonix_getiso ERROR !!!                  #
 # BASH_COMMAND: $BASH_COMMAND
 ############################################
 "
@@ -45,11 +49,11 @@ whonix_getiso_general_error() {
 whonix_getiso_gpg_error() {
    echo "
 ############################################
-# whonix_getiso gpg verification failed !!!   #
+# whonix_getiso gpg verification failed !!!#
 ############################################
 "
    DOWNLOADFAILED="1"
-   touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
+   touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED
    exit 1
 }
 
@@ -69,24 +73,24 @@ root_check() {
 download_verify_iso() {
 trap "whonix_getiso_general_error" ERR
 
-sudo -u $USERNAME mkdir -p /home/$USERNAME/whonix_binary
+sudo -u "$USERNAME" mkdir -p /home/"$USERNAME"/whonix_binary
 
 # !HARDCODED!
-sudo -u $USERNAME wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/$USERNAME/whonix_binary/ubuntu-12.04.1-server-i386.iso
+sudo -u "$USERNAME" wget -c "http://www.ubuntu.com/start-download?distro=server&bits=32&release=lts" --output-document /home/"$USERNAME"/whonix_binary/"$ISO_FILE_NAME"
 
 #For Debian Squeeze
-#sudo -u $USERNAME wget -c "http://ftp.funet.fi/pub/linux/mirrors/debian-cdimage/6.0.5/i386/iso-cd/debian-6.0.5-i386-CD-1.iso" --output-document ...!!!...
+#sudo -u "$USERNAME" wget -c "http://ftp.funet.fi/pub/linux/mirrors/debian-cdimage/6.0.5/i386/iso-cd/debian-6.0.5-i386-CD-1.iso" --output-document ...!!!...
 
-sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS --output-document /home/$USERNAME/whonix_binary/SHA256SUMS
+sudo -u "$USERNAME" wget -c http://releases.ubuntu.com/12.04/SHA256SUMS --output-document /home/"$USERNAME"/whonix_binary/SHA256SUMS
 
-sudo -u $USERNAME wget -c http://releases.ubuntu.com/12.04/SHA256SUMS.gpg --output-document /home/$USERNAME/whonix_binary/SHA256SUMS.gpg
+sudo -u "$USERNAME" wget -c http://releases.ubuntu.com/12.04/SHA256SUMS.gpg --output-document /home/"$USERNAME"/whonix_binary/SHA256SUMS.gpg
 
-sudo -u $USERNAME rm -r /home/$USERNAME/whonix_binary/gpgtmpdir || true
-sudo -u $USERNAME mkdir -p /home/$USERNAME/whonix_binary/gpgtmpdir
-sudo -u $USERNAME chmod 700 /home/$USERNAME/whonix_binary/gpgtmpdir
+sudo -u "$USERNAME" rm -r /home/"$USERNAME"/whonix_binary/gpgtmpdir || true
+sudo -u "$USERNAME" mkdir -p /home/"$USERNAME"/whonix_binary/gpgtmpdir
+sudo -u "$USERNAME" chmod 700 /home/"$USERNAME"/whonix_binary/gpgtmpdir
 
 # Import GPG key on Ubuntu.
-sudo -u $USERNAME gpg --homedir /home/$USERNAME/whonix_binary/gpgtmpdir --import /etc/apt/trusted.gpg
+sudo -u "$USERNAME" gpg --homedir /home/"$USERNAME"/whonix_binary/gpgtmpdir --import /etc/apt/trusted.gpg
 
 # If you do not use Ubuntu:
 # Source of that fingerprint is above trusted.gpg file, I couldn't find a TLS encrypted source of it anywhere.
@@ -95,22 +99,22 @@ sudo -u $USERNAME gpg --homedir /home/$USERNAME/whonix_binary/gpgtmpdir --import
 trap "whonix_getiso_gpg_error" ERR
 
 # Verify that SHA256SUMS file is signed by Ubuntu.
-sudo -u $USERNAME gpg --homedir /home/$USERNAME/whonix_binary/gpgtmpdir --verify /home/$USERNAME/whonix_binary/SHA256SUMS.gpg /home/$USERNAME/whonix_binary/SHA256SUMS
+sudo -u "$USERNAME" gpg --homedir /home/"$USERNAME"/whonix_binary/gpgtmpdir --verify /home/"$USERNAME"/whonix_binary/SHA256SUMS.gpg /home/"$USERNAME"/whonix_binary/SHA256SUMS
 
 trap "whonix_getiso_general_error" ERR
 
 echo "INFO: Successfully gpg verified SHA256SUMS."
 DOWNLOADFAILED="0"
 
-cd /home/$USERNAME/whonix_binary/
+cd /home/"$USERNAME"/whonix_binary/
 
-sudo -u $USERNAME sha256sum -c /home/$USERNAME/whonix_binary/SHA256SUMS | grep "ubuntu-12.04-server-i386.iso: OK" || DOWNLOADFAILED="1"
+sudo -u "$USERNAME" sha256sum -c /home/"$USERNAME"/whonix_binary/SHA256SUMS | grep ""$ISO_FILE_NAME": OK" || DOWNLOADFAILED="1"
 
-cd /home/$USERNAME/
+cd /home/"$USERNAME"/
 
 if [ "$DOWNLOADFAILED" = "1" ]; then
    echo "FATAL ERROR: Download Failed!"
-   touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
+   touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED
    exit 1
 fi
 
@@ -119,9 +123,9 @@ exit 0
 }
 
 delete_iso() {
-rm /home/$USERNAME/whonix_binary/SHA256SUMS || true
-rm /home/$USERNAME/whonix_binary/SHA256SUMS.gpg || true
-rm /home/$USERNAME/whonix_binary/ubuntu-12.04-server-i386.iso || true
+rm /home/"$USERNAME"/whonix_binary/SHA256SUMS || true
+rm /home/"$USERNAME"/whonix_binary/SHA256SUMS.gpg || true
+rm /home/"$USERNAME"/whonix_binary/"$ISO_FILE_NAME" || true
 echo "Done."
 }
 
@@ -160,5 +164,5 @@ fi
 # no option chosen                                             #
 ################################################################ 
 echo "No option choosen. Use -help for help."
-touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED || true
+touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED || true
 exit 1
