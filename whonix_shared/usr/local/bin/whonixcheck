@@ -579,17 +579,14 @@ download_whonix_news() {
 
 
 
-whonix_new_verification_error() {
+whonix_news_verification_error() {
    WHONIX_NEWS_VERIFY_ERROR="1"
-   local MSG="Could not gpg verify authenticity of Whonix News!!! This is either an Whonix Bug or attack on Whonix!!!"
-   echo "$MSG"
-   output "--error" "ERROR" "$MSG"
 }
 
 
 
 verify_whonix_news() {
-   trap "whonix_new_verification_error" ERR INT TERM
+   trap "whonix_news_verification_error" ERR INT TERM
    
    # If news could not be downloaded, do not try to verify it.
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
@@ -602,11 +599,19 @@ verify_whonix_news() {
    gpg --homedir "$VERIFY_TEMPDIR" --import /usr/share/whonix/adrelanos.asc 2>/dev/null
    gpg --homedir "$VERIFY_TEMPDIR" --decrypt whonix_news.asc > whonix_news
    
-   # If verification fails, trap will run whonix_new_verification_error.
+   # If verification fails, trap will run whonix_news_verification_error.
 
-   local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
-   echo "$MSG"
-   # output "--info" "Info" "$MSG"   
+   trap "error_handler" ERR INT TERM
+
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = "0" ]; then
+      local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
+      echo "$MSG"
+      # output "--info" "Info" "$MSG"   
+   else
+      local MSG="Could not gpg verify authenticity of Whonix News!!! This is either a Whonix Bug or an attack on Whonix!!!"
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+   fi
 }
 
 
