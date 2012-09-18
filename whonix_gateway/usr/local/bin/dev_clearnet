@@ -1,0 +1,121 @@
+#!/bin/bash
+
+exit 0
+
+###########################
+## debugging
+###########################
+
+#set -x
+
+###########################
+## error_handler
+###########################
+
+error_handler() {
+   echo "##################################################"
+   echo "dev_clearnet script failed!"
+   echo "##################################################"
+   exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+###########################
+## /usr/local/bin/dev_clearnet
+###########################
+
+echo "OK: dev_clearnet..."
+
+###########################
+## USERS
+###########################
+
+## Get Tor username, distro specific!
+TOR_USER="`id -u debian-tor`"
+
+## Get user uids.
+UNSAFE_USER="`id -u unsafe`"
+ROOT_USER="`id -u root`"
+
+echo "OK: TOR_USER: $TOR_USER"
+echo "OK: UNSAFE_USER: $UNSAFE_USER"
+echo "OK: ROOT_USER: $ROOT_USER"
+
+###########################
+## interfaces
+###########################
+
+## External interface
+EXT_IF="eth0"
+## Internal interface
+INT_IF="eth1"
+## Internal "tunnel" interface, usually the same as
+## the Internal interface unless using vpn tunnels
+## between workstations and gateway
+INT_TIF="eth1"
+
+###########################
+## IPv4 DEFAULTS
+###########################
+
+## Set secure defaults.
+#iptables -P INPUT DROP
+
+## FORWARD rules does not actually do anything if forwarding is disabled. Better be safe just in case.
+#iptables -P FORWARD DROP
+
+## Only the Tor process is allowed to establish outgoing connections.
+#iptables -P OUTPUT DROP
+
+###########################
+## IPv4 PREPARATIONS
+###########################
+
+## Flush old rules.
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+
+###########################
+##
+###########################
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+chattr -i /etc/resolv.conf
+rm /etc/resolv.conf
+
+iptables -t nat -A POSTROUTING -o "$EXT_IF" -j MASQUERADE
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i "$INT_IF" -o "$EXT_IF" -j ACCEPT
+
+/etc/init.d/networking restart
+
+###########################
+## IPv6
+###########################
+
+## Policy DROP for all traffic as fallback.
+#ip6tables -P INPUT DROP
+#ip6tables -P OUTPUT DROP
+#ip6tables -P FORWARD DROP
+
+## Flush old rules.
+ip6tables -F
+ip6tables -X
+ip6tables -t mangle -F
+ip6tables -t mangle -X
+
+###########################
+## End
+###########################
+
+echo "OK: The firewall should not show any messages,"
+echo "OK: besides output beginning with prefix OK:..."
+echo "OK: dev_clearnet loaded."
+
+exit 0
