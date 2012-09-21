@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Update 16
+# Update 17
 
 # https://trac.torproject.org/projects/tor/wiki/doc/torsocks
 
@@ -21,7 +21,7 @@
 # *   You should have received a copy of the GNU General Public License     *
 # *   along with this program; if not, write to the                         *
 # *   Free Software Foundation, Inc.,                                       *
-#*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+# *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 # ***************************************************************************
 # *                                                                         *
 # *   This is a modified version of a source file from the Tor project.     *
@@ -47,8 +47,19 @@
 # You can also type in shell:
 # 	export UWT_VERBOSE="1"
 # to enable verbose output.
-# Note: When running applications as root, you also have to set and
-#       export that variable as root.
+
+# UWT_DEV_PASSTHROUGH is only supported in Whonix.
+# Only supposed to be used by developers.
+# Torsocks will not be used.
+# Traffic will be send in the clear.
+# Thus, if behind a transparent proxy, traffic will go through that transparent proxy.
+# Just as uwt would not be used.
+# This is useful for development and building Whonix.
+#	export UWT_DEV_PASSTHROUGH="1"
+
+# Note:
+# When running applications as root, you also have to set and
+# export that variable as root.
 
 NAME=$(basename $0)
 
@@ -65,6 +76,11 @@ else
 	fi
 fi
 #echo "UWT_VERBOSE: $UWT_VERBOSE"
+
+if [ -z "$UWT_DEV_PASSTHROUGH" ]; then
+	# echo "UWT_DEV_PASSTHROUGH: did not exist."
+	UWT_DEV_PASSTHROUGH="0"
+fi
 
 usage () {
         echo "Usage: $NAME [-h] [-v] -t server_type -i ip -p port <command> [<options>...]"
@@ -204,6 +220,26 @@ case "$*" in
     true
   ;;
 esac
+
+if [ "$UWT_DEV_PASSTHROUGH" = "1" ]; then
+
+  if [ "$UWT_VERBOSE" = "1" ]; then
+    echo "uwt: UWT_DEV_PASSTHROUGH detected."
+    echo "exec torsocks \"$@\""
+  fi
+
+  if [ ! -f "/usr/share/whonix/whonix_workstation" ] && \
+     [ ! -f "/usr/share/whonix/whonix_gateway" ]; then
+    echo "UWT_DEV_PASSTHROUGH is only supported in Whonix." >&2
+    exit 1
+  fi
+
+  # Safe in Whonix.
+  exec "$@"
+
+  exitcode="$?"
+  exit "$exitcode"
+fi
 
 if [ "$UWT_LOCALHOST" = "1" ]; then
 
