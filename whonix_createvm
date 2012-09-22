@@ -211,44 +211,6 @@ VBoxManage getextradata "$VMNAME" enumerate
 
 
 
-install_os_inside_vm() {
-   trap "error_handler" ERR INT TERM
-
-   # We pull the cable of the NAT adapter. While installing with preseed,
-   # we do not want to have a network connection, because its much faster.
-   # Its required to have a network card, due to limitations in upstream
-   # netcfg preseed.
-   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
-
-   # Insert the preseed iso image.
-   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/whonix_binary/preseed.iso"
- 
-   # VBoxSDL is does not run in background, waits until finished.
-   # No questions by VBox (such as grab mouse etc.).
-   # The preseed.iso is configured to eject the iso.
-   # The preseed.iso is configured to power off when its done.
-   : echo "whonix_createvm: Operating system should now be installed unattended (preseed)..."
-   : echo "whonix_createvm: Should not require any user interaction. If so, please report a bug."
-   : echo "whonix_createvm: Check if its not frozen but be patient."
-   : echo "whonix_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
-   : echo "whonix_createvm: Please wait until it has finished."
-
-   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
-
-   : echo "whonix_createvm: Virtual Box terminated without error messages."
-   : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
-
-   # Ensure preseed.iso gets removed.
-   : echo "whonix_createvm: Removing operating system installation CD..."
-   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
-   : echo "whonix_createvm: Removed operating system installation CD."
-
-   # Plug the cable back in.
-   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
-}
-
-
-
 gateway_specific() {
 trap "error_handler" ERR INT TERM
 
@@ -315,6 +277,44 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 # Depends on host driver.
 # Ubuntu host uses pulse audio.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
+}
+
+
+
+install_os_inside_vm() {
+   trap "error_handler" ERR INT TERM
+
+   # We pull the cable of the NAT adapter. While installing with preseed,
+   # we do not want to have a network connection, because its much faster.
+   # Its required to have a network card, due to limitations in upstream
+   # netcfg preseed.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 off
+
+   # Insert the preseed iso image.
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium "$HOME/whonix_binary/preseed.iso"
+ 
+   # VBoxSDL is does not run in background, waits until finished.
+   # No questions by VBox (such as grab mouse etc.).
+   # The preseed.iso is configured to eject the iso.
+   # The preseed.iso is configured to power off when its done.
+   : echo "whonix_createvm: Operating system should now be installed unattended (preseed)..."
+   : echo "whonix_createvm: Should not require any user interaction. If so, please report a bug."
+   : echo "whonix_createvm: Check if its not frozen but be patient."
+   : echo "whonix_createvm: In doubt you can also start Virtual Box manually and check hdd activity or even attach a debugger."
+   : echo "whonix_createvm: Please wait until it has finished."
+
+   sudo -u $USERNAME VBoxSDL --startvm "$VMNAME"
+
+   : echo "whonix_createvm: Virtual Box terminated without error messages."
+   : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
+
+   # Ensure preseed.iso gets removed.
+   : echo "whonix_createvm: Removing operating system installation CD..."
+   sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+   : echo "whonix_createvm: Removed operating system installation CD."
+
+   # Plug the cable back in.
+   sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 }
 
 
