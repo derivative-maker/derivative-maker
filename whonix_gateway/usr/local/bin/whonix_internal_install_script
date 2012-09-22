@@ -100,8 +100,6 @@ apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
 popularity-contest ntpdate resolvconf ufw network-manager network-manager-gnome || true
 
 echo "Make sure required software is installed and install tor..."
-# required to patch_torsocks:
-#     build-essential
 # required for tails_htp:
 #     curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
 # required for whonixcheck, provides /usr/lib/update-notifier/apt-check:
@@ -109,7 +107,7 @@ echo "Make sure required software is installed and install tor..."
 apt-get --config-file /usr/share/whonix/apt.conf --yes install \
 bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping \
 isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor \
-tor-arm torsocks wget build-essential \
+tor-arm torsocks wget \
 curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl \
 update-notifier-common
 
@@ -280,7 +278,7 @@ root_check                # Depends on nothing.
 . /usr/share/whonix/whonix_create_swap_file
 . /usr/share/whonix/whonix_config_uuids
 . /usr/share/whonix/whonix_slim_down
-. /usr/share/whonix/patch_torsocks
+#. /usr/share/whonix/patch_torsocks # Not required for Debian Wheezy. Was required for Ubuntu Precise.
 . /usr/share/whonix/import_tpo_archive_key
 
 whonix_internal_checks       # Depends on nothing.
@@ -289,7 +287,10 @@ whonix_config_uuids_fstab    # Depends on root_check, not being run again after 
 import_tpo_archive_key    # Depends on working internet connection.
 apt_get                   # Depends on root_check, import_tpo_archive_key, working internet connection.
 update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
-patch_torsocks            # Depends on root_check, working internet connection.
+
+#patch_torsocks           # Depends on root_check, working internet connection.
+			  # Depends on build-essential.
+			  # Not required for Debian Wheezy. Was required for Ubuntu Precise.
 
                           # The following two provide a graphical gateway interface (Vidalia)
                           # and can be commented out to increase security.
