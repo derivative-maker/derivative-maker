@@ -113,12 +113,6 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --ostype Ubuntu
 # Add SATA Controller.
 sudo -u $USERNAME VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
 
-# Create the HDD.
-sudo -u $USERNAME VBoxManage createhd --filename "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" --size $VMHDDSIZE
-
-# Attach the HDD.
-sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
-
 # Add CD-ROM
 sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
 
@@ -152,67 +146,23 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --rtcuseutc on
 # Thanks to
 # http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
 sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
-
-# Thanks to:
-# - http://www.dedmeet.com/software-projects-mainmenu-12/asus-recovery-cd-with-virtualbox.html
-# - https://www.virtualbox.org/ticket/7325
-# Hiding BIOS information.
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
-#VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
-#
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
-
-# Configuring the hard disk vendor product data (VPD)
-# http://www.virtualbox.org/manual/ch09.html#changevpd
-
-# Port0 (hdd)
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
-
-# Port1 (cd-rom)
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
-VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
-
-# Show changes.
-VBoxManage getextradata "$VMNAME" enumerate
 }
 
 
 
 gateway_specific() {
 trap "error_handler" ERR INT TERM
+
+# Create the HDD.
+sudo -u $USERNAME VBoxManage createhd --filename "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" --size "2048"
+
+# HD UUID
+# Thanks to:
+# http://michail.flouris.net/2011/11/virtualbox-vm-disk-clone-uuid-problem/
+sudo -u $USERNAME VBoxManage internalcommands sethduuid "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "0156199f-6e83-4cd6-97b7-c9e24d9cd26d"
+
+# Attach the HDD.
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
 # VM UUID
 # Thanks to:
@@ -246,6 +196,17 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 workstation_specific() {
 trap "error_handler" ERR INT TERM
 
+# Create the HDD.
+sudo -u $USERNAME VBoxManage createhd --filename "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" --size "8192"
+
+# HD UUID
+# Thanks to:
+# http://mixeduperic.com/ubuntu/how-to-copy-a-virtualbox-virtual-machine-in-ubuntu.html
+sudo -u $USERNAME VBoxManage internalcommands sethduuid "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "77d55d86-800c-4667-9e60-678f81a50913"
+
+# Attach the HDD.
+sudo -u $USERNAME VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
 # VM UUID
 # Thanks to:
 # https://forums.virtualbox.org/viewtopic.php?f=2&t=22653&start=75
@@ -277,6 +238,68 @@ sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 # Depends on host driver.
 # Ubuntu host uses pulse audio.
 sudo -u $USERNAME VBoxManage modifyvm "$VMNAME" --audio pulse
+}
+
+
+
+hardware_modifications() {
+# Thanks to:
+# - http://www.dedmeet.com/software-projects-mainmenu-12/asus-recovery-cd-with-virtualbox.html
+# - https://www.virtualbox.org/ticket/7325
+# Hiding BIOS information.
+#
+#
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
+#sudo -u $USERNAME VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
+#
+#
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
+
+# Configuring the hard disk vendor product data (VPD)
+# http://www.virtualbox.org/manual/ch09.html#changevpd
+
+# Port0 (hdd)
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
+
+# Port1 (cd-rom)
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
+sudo -u $USERNAME VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
+
+# Show changes.
+sudo -u $USERNAME VBoxManage getextradata "$VMNAME" enumerate
 }
 
 
@@ -407,12 +430,12 @@ fi
 if [[ "$1" = "-tg-createvm" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   VMHDDSIZE="2048"
    # Needed to increase from 128 to 256, otherwise while installing
    # using preseed I sometimes run out of RAM. Might be reduced at the end.
    VMRAM="256"
    general_setup
    gateway_specific
+   hardware_modifications
    : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tg-install-os"
    exit 0
 fi
@@ -536,12 +559,12 @@ fi
 if [[ "$1" = "-tw-createvm" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   VMHDDSIZE="8192"
    # Reduced from 512 to 196 while installing to safe some RAM
    # while building the VMs inside Virtual Box.
    VMRAM="256"
    general_setup
    workstation_specific
+   hardware_modifications
    : echo "BUILD INFO: Done, if success, next step should be: sudo ./whonix_createvm -tw-install-os"
    exit 0
 fi
