@@ -79,59 +79,6 @@ exit 1
 
 
 
-apt_get() {
-trap "error_handler" ERR INT TERM
-echo "
-######################################################
-Remove problematic software, install Tor and other software.
-######################################################
-"
-
-# Some apt_get() code is shared between Whonix-Workstation and Whonix-Gateway.
-
-echo "Refresh apt-get to include the newly added torproject.org repository."
-apt-get --config-file /usr/share/whonix/apt.conf update
-
-echo "Running apt-get dist-upgrade..."
-apt-get --config-file /usr/share/whonix/apt.conf --yes dist-upgrade
-
-echo "Removing problematic software..."
-apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
-popularity-contest ntpdate resolvconf ufw network-manager network-manager-gnome || true
-
-echo "Make sure required software is installed and install tor..."
-# required for tails_htp:
-#     curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
-# required for whonixcheck, provides /usr/lib/update-notifier/apt-check:
-#      update-notifier-common
-apt-get --config-file /usr/share/whonix/apt.conf --yes install \
-bash deb.torproject.org-keyring dnsutils ed gnupg ifupdown iptables iputils-ping \
-isc-dhcp-client kbd less lsb-release nano net-tools netbase rungetty sudo tor \
-tor-arm torsocks wget \
-curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl \
-update-notifier-common
-
-# Additionally install obfsproxy. Disabled by default, because
-# it requires Tor Alpha and is only available in the experimental branch.
-# obfsproxy is already available as a deb package in the Tor repository.
-# https://trac.torproject.org/projects/tor/ticket/6046
-#apt-get --config-file /usr/share/whonix/apt.conf --yes install obfsproxy
-}
-
-
-
-base_desktop() {
-echo "
-######################################################
-# Installing base desktop
-######################################################
-"
-
-apt-get --config-file /usr/share/whonix/apt.conf --yes install --no-install-recommends xserver-xorg xinit tint2 xterm openbox
-}
-
-
-
 config_vidalia() {
 # Not in use yet.
 # Waiting for Vialia 0.3.
@@ -141,8 +88,6 @@ echo "
 config_vidalia
 ######################################################
 "
-
-apt-get --config-file /usr/share/whonix/apt.conf --yes install --no-install-recommends vidalia
 
 # Vidalia config file gets copied by copyinto.
 
@@ -191,7 +136,6 @@ Slim down the system.
 "
 # Remove unnecessary packages to slim down the system.
 # This list contains only packages, which waste space and are not required.
-# Unsafe or problematic packages are being removed with apt_get().
 apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
 vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
 pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
@@ -284,8 +228,7 @@ root_check                # Depends on nothing.
 whonix_internal_checks       # Depends on nothing.
 whonix_create_swap_file      # Depends on root_check, not being run again when in use.
 whonix_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
-import_tpo_archive_key    # Depends on working internet connection.
-apt_get                   # Depends on root_check, import_tpo_archive_key, working internet connection.
+#import_tpo_archive_key    # Depends on working internet connection. No longer required. Up to date in Debian repos.
 update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
 
 #patch_torsocks           # Depends on root_check, working internet connection.
@@ -295,7 +238,6 @@ update-grub2              # /etc/grub/default gets appended by whonix_image copy
                           # The following two provide a graphical gateway interface (Vidalia)
                           # and can be commented out to increase security.
                           # Currently disabled by default because its not finished yet.
-#base_desktop             # Depends on root_check, working internet connection.
 #config_vidalia           # Depends on root_check.
 
 config_htp                # Depends on root_check.
