@@ -79,7 +79,18 @@ exit 1
 
 
 
+adduser_user() {
+trap "error_handler" ERR INT TERM
+
+useradd -m -d /home/user -s /bin/bash user || true
+usermod -a -G adm,cdrom,audio,dip,sudo,plugdev user || true
+}
+
+
+
 config_vidalia() {
+trap "error_handler" ERR INT TERM
+
 # Not in use yet.
 # Waiting for Vialia 0.3.
 
@@ -103,6 +114,8 @@ chmod o+rw /etc/tor/torrc
 
 
 config_htp() {
+   trap "error_handler" ERR INT TERM
+
    echo "Creating the htp user..."
    adduser --system --quiet --group --no-create-home htp || :
    echo "Adding htpdate init script..."
@@ -112,6 +125,8 @@ config_htp() {
 
 
 config_unsafe_user() {
+   trap "error_handler" ERR INT TERM
+
    echo "Creating unsafe user..."
    # setting password of user unsafe to changeme
    #
@@ -129,11 +144,18 @@ config_unsafe_user() {
 
 
 whonix_slim_down() {
+trap "error_handler" ERR INT TERM
+
 echo "
 ######################################################
 Slim down the system.
 ######################################################
 "
+
+# Removing conflicting software. Should not be installed, but just in case.
+apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
+ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
+
 # Remove unnecessary packages to slim down the system.
 # This list contains only packages, which waste space and are not required.
 apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
@@ -188,11 +210,13 @@ rm /var/log/*.[0-9].gz || true
 # Truncate all log files, keeping user group and perms.
 find /var/log -type f -exec cp /dev/null {} \;
 
+# TODO CHROOT
+# This will not work in chroot.
 # Take care of development leaks and make resulting ova image smaller.
 # Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
 # This also ensure that possible leaks we deleted before are really deleted.
-echo "INFO: Wiping free space. This can take a while."
-dd if=/dev/zero of=/zerofile bs=1024 || true
+#echo "INFO: Wiping free space. This can take a while."
+#dd if=/dev/zero of=/zerofile bs=1024 || true
 
 # Flush the zero-file to disk before removing it.
 sync
@@ -223,26 +247,27 @@ root_check                # Depends on nothing.
 . /usr/share/whonix/whonix_config_uuids
 . /usr/share/whonix/whonix_slim_down
 #. /usr/share/whonix/patch_torsocks # Not required for Debian Wheezy. Was required for Ubuntu Precise.
-. /usr/share/whonix/import_tpo_archive_key
+#. /usr/share/whonix/import_tpo_archive_key # No longer required. Up to date in Debian repos.
 
-whonix_internal_checks       # Depends on nothing.
-whonix_create_swap_file      # Depends on root_check, not being run again when in use.
-whonix_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
-#import_tpo_archive_key    # Depends on working internet connection. No longer required. Up to date in Debian repos.
+whonix_internal_checks    # Depends on nothing.
+whonix_create_swap_file   # Depends on root_check, not being run again when in use.
+whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
+adduser_user              # Depends on root_check.
+#import_tpo_archive_key   # Depends on working internet connection. No longer required. Up to date in Debian repos.
 update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
 
 #patch_torsocks           # Depends on root_check, working internet connection.
 			  # Depends on build-essential.
 			  # Not required for Debian Wheezy. Was required for Ubuntu Precise.
 
-                          # The following two provide a graphical gateway interface (Vidalia)
+                          # The following provides a graphical gateway interface (Vidalia)
                           # and can be commented out to increase security.
                           # Currently disabled by default because its not finished yet.
 #config_vidalia           # Depends on root_check.
 
 config_htp                # Depends on root_check.
 config_unsafe_user        # Depends on root_check.
-whonix_slim_down             # Must be run last.
+whonix_slim_down          # Must be run last.
 sync                      # Ensure changes get written to disk.
 
 # Inform about end.

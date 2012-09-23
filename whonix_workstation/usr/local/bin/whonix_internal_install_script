@@ -71,57 +71,9 @@ source /usr/local/bin/torbrowser
 
 
 
-apt_get() {
-trap "error_handler" ERR INT TERM
-
-echo "
-######################################################
-# Updating system, removing problematic software
-######################################################
-"
-
-echo "INFO: Running apt-get update..."
-apt-get update
-
-echo "INFO: Running apt-get dist-upgrade..."
-apt-get --yes dist-upgrade
-
-echo "INFO: Removing problematic software..."
-apt-get --yes remove --purge ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome 
-
-# required for tails_htp:
-#      curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl
-# required for whonixcheck, provides /usr/lib/update-notifier/apt-check:
-#      update-notifier-common
-echo "INFO: Installing required software..."
-apt-get --yes install --no-install-recommends nano wget gnupg ed torsocks mingetty dbus dnsutils \
-curl libdatetime-perl libdatetime-format-dateparse-perl libgetopt-long-descriptive-perl libtry-tiny-perl \
-update-notifier-common
-}
-
-
-
-base_desktop() {
-trap "error_handler" ERR INT TERM
-
-echo "
-######################################################
-# Installing base desktop
-######################################################
-"
-
-# required for gnome-terminal:
-# gnome-themes-standard
-
-apt-get --yes install --no-install-recommends xserver-xorg xinit openbox obmenu pcmanfm evince \
-libasound2 file-roller xchat gpicview gnome-mplayer tint2 unrar-free alsa alsa-utils \
-mplayer leafpad gnome-terminal zenity gnome-themes-standard
-
-# We should install the following at some later point...
-# - Thunderbird with TorBirdy, once added to deb repository.
-# - Pidgin, once torproject.org solved the remaining issues.
-# - Pidgin OTR
-# - Pidgin TorChat https://github.com/prof7bit/TorChat
+adduser_user() {
+useradd -m -d /home/user -s /bin/bash user || true
+usermod -a -G adm,cdrom,audio,dip,sudo,plugdev user || true
 }
 
 
@@ -180,6 +132,8 @@ config_htp() {
    update-rc.d htpdate defaults
 }
 
+
+
 config_irc_xchat() {
    trap "error_handler" ERR INT TERM
 
@@ -195,9 +149,13 @@ echo "
 Slim down the system.
 ######################################################
 "
+
+# Removing conflicting software. Should not be installed, but just in case.
+apt-get --config-file /usr/share/whonix/apt.conf --yes remove --purge \
+ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
+
 # Remove unnecessary packages to slim down the system.
 # This list contains only packages, which waste space and are not required.
-# Unsafe or problematic packages are being removed with apt_get().
 apt-get --yes remove --purge xserver-xorg-video-all xserver-xorg-video-ati xserver-xorg-video-fbdev \
 xserver-xorg-video-geode xserver-xorg-video-intel xserver-xorg-video-mach64 xserver-xorg-video-mga \
 xserver-xorg-video-neomagic xserver-xorg-video-nouveau xserver-xorg-video-openchrome \
@@ -250,11 +208,13 @@ find /var/log -type f -exec cp /dev/null {} \;
 # cd /usr/share/locale &&  ls | grep -v en | xargs rm -r && cd /home/$USERNAME
 # rm -r /usr/share/doc/* #(are we even allowed to do that, see licenses?)
 
+# TODO CHROOT
+# This will not work in chroot.
 # Take care of development leaks and make resulting ova image smaller.
 # Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
 # This also ensure that possible leaks we deleted before are really deleted.
-echo "INFO: Wiping free space. This can take a while."
-dd if=/dev/zero of=/zerofile bs=1024 || true
+#echo "INFO: Wiping free space. This can take a while."
+#dd if=/dev/zero of=/zerofile bs=1024 || true
 
 # Flush the zero-file to disk before removing it.
 sync
@@ -281,24 +241,23 @@ if [[ "$1" = "-install" ]]; then
 root_check                # Depends on nothing.
 
 workstation_source        # Depends on nothing.
-whonix_internal_checks       # Depends on nothing.
-whonix_create_swap_file      # Depends on root_check, not being run again when in use.
-whonix_config_uuids_fstab    # Depends on root_check, not being run again after adding new hdds.
+whonix_internal_checks    # Depends on nothing.
+whonix_create_swap_file   # Depends on root_check, not being run again when in use.
+whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
+adduser_user              # Depends on root_check.
 #import_tpo_archive_key   # Not yet required.
-apt_get                   # Depends on root_check, working internet connection, UTC.
 update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
 
 #patch_torsocks 	  # Not required for Debian Wheezy. Was required for Ubuntu Precise.
 		          # Depends on root_check, working internet connection.
 			  # build-essential
 
-base_desktop              # Depends on root_check, working internet connection.
 tb_force_install          # Depends on working internet connection.
 config_irc_xchat          # Depends on root_check.
-config_audio              # Depends on base_desktop.
+config_audio              # Depends on root_check.
 config_home               # Depends on nothing.
 config_htp                # Depends on root_check.
-whonix_slim_down             # Depends on root_check, being last function.
+whonix_slim_down          # Depends on root_check, being last function.
 
 echo "Script completed, this indicates neither success nor failure." >&2
 exit 0

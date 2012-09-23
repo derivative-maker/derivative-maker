@@ -25,6 +25,35 @@ exit 1
 }
 
 
+create_img() {
+   sudo -u $USERNAME mkdir -p /home/user/whonix_binary/
+
+   grml-debootstrap \
+      --arch i386 \
+      --filesystem ext4 \
+      --force \
+      --hostname debian \
+      --mirror http://127.0.0.1:3142/debian \
+      --keep_src_list \
+      --password changeme \
+      --release wheezy \
+      --verbose \
+      --vmfile \
+      --vmsize 3G \
+      --config ""$WHONIX_SOURCE_FOLDER"/grml_config" \
+      --packages ""$WHONIX_SOURCE_FOLDER"/"$VMNAME"_packages" \
+      --target /home/user/whonix_binary/"$VMNAME".img
+}
+
+
+
+convert_from_raw() {
+   sudo -u $USERNAME mkdir -p "/home/$USERNAME/VirtualBox VMs/"
+   sudo -u $USERNAME mkdir -p "/home/$USERNAME/VirtualBox VMs/""$VMNAME"
+   sudo -u $USERNAME VBoxManage convertfromraw /home/$USERNAME/whonix_binary/"$VMNAME".img "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
+}
+
+
 
 mount_vm_image() {
    trap "error_handler_int_whonix_image" ERR INT TERM
@@ -58,17 +87,23 @@ mount_vm_image() {
    # When restoring the VMClone to VM, the VDI may have another name.
 
    # Make sure required module to mount vdi images is installed.
-   modprobe nbd
+   #modprobe nbd
+   # Working around a bug.
+   #    sudo mount -o noatime,noexec /dev/nbd0p1 /tmp/vdi/
+   #    mount: special device /dev/nbd0p1 does not exist
+   # https://bugs.launchpad.net/ubuntu/+source/linux/+bug/342563
+   # Also present in Debian Wheezy.
+   modprobe nbd max_part=15
 
    # Create loopback dev for the image. New:
    qemu-nbd -c /dev/nbd0 "$VDI"
 
    # Folder has to exist to mount the image.
-   mkdir -p $CHROOT_FOLDER
+   mkdir -p "$CHROOT_FOLDER"
 
    sync
    # Mount the partitions, that are exposed as /dev/nbd0pXXX.
-   mount -o noatime /dev/nbd0p1 $CHROOT_FOLDER
+   mount -o noatime /dev/nbd0p1 "$CHROOT_FOLDER"
    sync
 }
 
@@ -91,6 +126,7 @@ copy_into_vm_image_whonix_gateway_post() {
 
    copy_shared_post
    copy_gateway_post
+   append_gateway_post
    # Ensure changes get written before unmounting.
    sync
 }
@@ -122,6 +158,8 @@ copy_into_vm_image_whonix_workstation_post() {
 unmount_vm_image_force() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
+do_unchroot
+
 # Will be called if there is an error.
 # || true to avoid more errors and to ensure
 # clean unmount.
@@ -133,11 +171,11 @@ sync || true
 qemu-nbd -d /dev/nbd0 || true
 
 # In the end unmount.
-umount $CHROOT_FOLDER || true
+umount "$CHROOT_FOLDER" || true
 
 # Delete temporary folder.
 # It did not contain anything. It was only a mount point.
-rm -r $CHROOT_FOLDER || true
+rm -r "$CHROOT_FOLDER" || true
 
 # Ensure changes get written.
 sync || true
@@ -158,12 +196,153 @@ sync
 qemu-nbd -d /dev/nbd0
 
 # In the end unmount.
-umount $CHROOT_FOLDER
+umount "$CHROOT_FOLDER"
 
 # Delete temporary folder.
 # It did not contain anything. It was only a mount point.
-rm -r $CHROOT_FOLDER
+rm -r "$CHROOT_FOLDER"
 
 # Ensure changes get written.
 sync
 }
+
+
+
+
+
+
+
+
+
+
+do_chroot() {
+##############
+# Discussion #
+# ############
+
+# Discussion: we may also think about mounting everything,
+#             i.e. recursively mounting.
+#             i.e. mount --rbind
+
+# Discussion: This would leak uuid of the host disk!
+#  We would need to phrase it and somehow to remove the uuids. How?
+#  And only use relevant stuff...
+#  grep -v rootfs /proc/mounts > /etc/mtab
+
+# No longer needed?
+# Missing info on mounted /dev/loop, needs testing.
+# (proper) Please elborate.
+#echo "/dev/sda1 / ext4 rw,noatime,errors=remount-ro 0 0
+#proc /proc proc rw,noexec,nosuid,nodev 0 0
+#sysfs /sys sysfs rw,noexec,nosuid,nodev 0 0
+#none /sys/fs/fuse/connections fusectl rw 0 0
+#none /sys/kernel/debug debugfs rw 0 0
+#none /sys/kernel/security securityfs rw 0 0
+#udev /dev devtmpfs rw,mode=0755 0 0
+#devpts /dev/pts devpts rw,noexec,nosuid,gid=5,mode=0620 0 0
+#tmpfs /run tmpfs rw,noexec,nosuid,size=10%,mode=0755 0 0
+#none /run/lock tmpfs rw,noexec,nosuid,nodev,size=5242880 0 0
+#none /run/shm tmpfs rw,nosuid,nodev 0 0" > /etc/mtab
+
+# REVIEW: not sure if we better mount more or less of them.
+
+########
+# /dev #
+########
+
+## We need /dev for create_swap_file
+## "dd if=/dev/zero of=/swapfile1 bs=1024 count=524288"
+mount --bind /dev "$CHROOT_FOLDER"/dev
+
+#########
+# /proc #
+#########
+
+mount --bind /proc "$CHROOT_FOLDER"/proc
+
+########
+# /sys #
+########
+
+#mount --bind /sys "$CHROOT_FOLDER"/sys
+
+############
+# /dev/pts #
+############
+
+# Fixes "Can not write log, openpty() failed (/dev/pts not mounted?)"
+# Thanks to
+# http://www.gentoo.org/proj/en/base/amd64/howtos/index.xml?part=1&chap=2
+# for the idea.
+# Would not be needed if we used mount --rbind.
+# REVIEW: not sure if we better ommit it.
+#mount -o bind /dev/pts "$CHROOT_FOLDER"/dev/pts
+
+####################
+# /etc/resolv.conf #
+####################
+
+# /etc/resolv.conf controversy:
+# When we are inside chroot, we need a functional /etc/resolv.conf,
+# otherwise dns lookups and subsequently apt-get and wget would be defunct.
+#
+# On the other hand, we do not want to copy /etc/resolv.conf from the
+# build machine into chroot, to prevent leaking personal data into chroot.
+#
+# Finally we also require to rewrite /etc/resolv.conf, so that after
+# booting the Virtual Machine, localhost (Tor) gets used for dns lookups.
+
+# Remove write protection, if any. Should not be the case after a fresh
+# creation of the image. Just to prevent an error if we ever support
+# re-running the script. Will not hurt.
+chattr -i "$CHROOT_FOLDER"/etc/resolv.conf
+
+# Must exist to be able to mount.
+echo "" > "$CHROOT_FOLDER"/etc/resolv.conf
+
+# We need two commands to remount an existing file read only.
+# Thanks to
+# https://lwn.net/Articles/281157/
+mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+
+# Does not work on Debian Wheezy.
+# Not required anymore. We are not starting any services, dhcp or
+# networking inside the chroot, so the file should remain untouched.
+#mount -o remount,ro,noload "$CHROOT_FOLDER"/etc/resolv.conf
+}
+
+
+
+# Currently not used.
+inside_chroot() {
+
+# No longer neccessary.
+# Lets keep it in case we need it again.
+# locale-gen en_US.UTF-8
+# dpkg-reconfigure locales 
+# echo 'LANG="en_US.UTF-8"' > /etc/default/locale
+
+# Just for testing.
+chroot "$CHROOT_FOLDER" dir
+chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
+mount
+
+# Run the whonix_internal_install_script.
+# (Which got copied into the image by copyinto-pre.)
+chroot "$CHROOT_FOLDER" "/usr/local/bin/whonix_internal_install_script" -install
+}
+
+
+
+do_unchroot() {
+#umount "$CHROOT_FOLDER"/dev/pts || true
+umount "$CHROOT_FOLDER"/dev || true
+umount "$CHROOT_FOLDER"/proc || true
+#umount "$CHROOT_FOLDER"/sys || true
+umount "$CHROOT_FOLDER"/etc/resolv.conf || true
+}
+
+
+
+
+

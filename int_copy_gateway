@@ -62,11 +62,6 @@ append_gateway_pre() {
       echo $LINE >> "$CHROOT_FOLDER"/etc/apt/sources.list
    done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/apt/appendto_sources.list
 
-   # Append Whonix help/welcome message to .bashrc.
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
-   done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/appendto_.bashrc
-
    # Append to sysctl.conf.
    # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0.
    while read LINE; do
@@ -91,8 +86,9 @@ copy_gateway_post() {
    # Copy Whonix torrc into VM.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
 
+   # TODO DESKTOP
    # Autologin, copy tty1.conf into VM.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
+   # cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
 
    # Delete /etc/resolv.conf to work around some strange bug
    # "Operation not supported While reading flags on" while
@@ -123,4 +119,13 @@ copy_gateway_post() {
    # Copy the developers-only clearnet traffic passthrough script.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/dev_clearnet "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
    chmod +x "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
+}
+
+
+
+append_gateway_post() {
+   # Append Whonix help/welcome message to .bashrc.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/appendto_.bashrc
 }

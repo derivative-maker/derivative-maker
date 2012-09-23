@@ -1,7 +1,7 @@
 # Whonix /home/user/.bashrc changes.
 
+# REVIEW!
 # Allow user to reboot and poweroff without having to supply a password:
-
 alias reboot="sudo reboot"
 alias poweroff="sudo poweroff"
 

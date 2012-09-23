@@ -12,7 +12,6 @@ backup_shared_pre() {
    # It restores the backups and therefore prevents files getting appended more than once.
 
    cp "$CHROOT_FOLDER"/etc/sudoers.backup "$CHROOT_FOLDER"/etc/sudoers || true
-   cp "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup "$CHROOT_FOLDER"/home/$USERNAME/.bashrc || true
    cp "$CHROOT_FOLDER"/etc/rc.local.backup "$CHROOT_FOLDER"/etc/rc.local || true
    cp "$CHROOT_FOLDER"/etc/apt/sources.list.backup "$CHROOT_FOLDER"/etc/apt/sources.list || true
    cp "$CHROOT_FOLDER"/etc/default/grub.backup "$CHROOT_FOLDER"/etc/default/grub || true
@@ -20,7 +19,9 @@ backup_shared_pre() {
    cp "$CHROOT_FOLDER"/etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces || true
    cp "$CHROOT_FOLDER"/etc/init/tty1.conf.backup "$CHROOT_FOLDER"/etc/init/tty1.conf || true
    cp "$CHROOT_FOLDER"/etc/init/tty6.conf.backup "$CHROOT_FOLDER"/etc/init/tty6.conf || true
-   cp "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup "$CHROOT_FOLDER"/etc/init/failsafe.conf || true
+
+   # Was required for Ubuntu Precise. No longer required for Debian Wheezy.
+   #cp "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup "$CHROOT_FOLDER"/etc/init/failsafe.conf || true
 
    #####################
    # Backup Shared Pre #
@@ -28,10 +29,7 @@ backup_shared_pre() {
 
    cp -n "$CHROOT_FOLDER"/etc/sudoers "$CHROOT_FOLDER"/etc/sudoers.backup
    chmod 0440 "$CHROOT_FOLDER"/etc/sudoers.backup
-   chown root /etc/sudoers.backup
-
-   cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
-   chown user "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
+   chown root "$CHROOT_FOLDER"/etc/sudoers.backup
 
    # Better no backup of localtime.
    #cp -n "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
@@ -43,9 +41,13 @@ backup_shared_pre() {
    cp -n "$CHROOT_FOLDER"/etc/default/grub "$CHROOT_FOLDER"/etc/default/grub.backup
    cp -n "$CHROOT_FOLDER"/etc/sysctl.conf "$CHROOT_FOLDER"/etc/sysctl.conf.backup
    cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/tty6.conf "$CHROOT_FOLDER"/etc/init/tty6.conf.backup
-   cp -n "$CHROOT_FOLDER"/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup
+
+   # TODO DESKTOP
+   #cp -n "$CHROOT_FOLDER"/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf.backup
+   #cp -n "$CHROOT_FOLDER"/etc/init/tty6.conf "$CHROOT_FOLDER"/etc/init/tty6.conf.backup
+
+   # Was required for Ubuntu Precise. No longer required for Debian Wheezy.
+   #cp -n "$CHROOT_FOLDER"/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf.backup
 }
 
 
@@ -74,13 +76,18 @@ copy_shared_pre() {
    # Ensure timezone is UTC. Just to be safe, already done with preseed install.
    cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
 
+   # Was required for Ubuntu Precise. No longer required for Debian Wheezy.
    # Fixes the long dhcp timeout bug.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf
+   #cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/init/failsafe.conf "$CHROOT_FOLDER"/etc/init/failsafe.conf
 
    # This is required because preseed without network connection will mess up /etc/apt/sources.list.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
 
    # dbus machine-id is shared among all Whonix users.
+   # We must create the folder, because that file does not exist at this point.
+   mkdir -p "$CHROOT_FOLDER"/var
+   mkdir -p "$CHROOT_FOLDER"/var/lib
+   mkdir -p "$CHROOT_FOLDER"/var/lib/dbus
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
 
    # copy tails_htpdate binary
@@ -175,9 +182,27 @@ append_shared_pre() {
 
 
 copy_shared_post() {
-   ##########################
+   #########################
+   # Backup Shared Restore #
+   #########################
+
+   # .bashrc does not exist during copyinto-pre, because the user "user" is not created at this time.
+   cp "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup "$CHROOT_FOLDER"/home/$USERNAME/.bashrc || true
+
+   #####################
+   # Backup Shared Pre #
+   #####################
+
+   # Create a backup of .bashrc, but only if .backrc.backup does not exist yet.
+   # Thus, the original will never be overwritten.
+   # Therefore re-running the script is supported.
+   # Append afterwards is okay.
+   cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
+   chown user "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
+
+   #############################
    # Whonix-Shared Delete Post #
-   ##########################
+   #############################
 
    # Make daemons start again.
    rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
@@ -190,9 +215,9 @@ copy_shared_post() {
    # || true because re-running this script is supported.
    rm "$CHROOT_FOLDER"/home/user/whonix_installlog || true
 
-   ########################
+   ###########################
    # Whonix-Shared Copy Post #
-   ########################
+   ###########################
 
    # /etc/rc.local was (ab)used to
    # run whonix_internal_install_script(s) only once. Thus, the

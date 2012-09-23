@@ -15,17 +15,21 @@ echo "
 
 # Source: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
 
-echo "Checking if something accessing /swapfile1."
-local result="`lsof | grep /swapfile1`" || true
-echo "$result" || true
+#echo "Checking if something accessing /swapfile1."
+#local result="`lsof | grep /swapfile1`" || true
+#echo "$result" || true
 
-echo "Delete /swapfile1 if it already exists. Only in case re-running the script."
-rm /swapfile1 || true
+#echo "Delete /swapfile1 if it already exists. Only in case re-running the script."
+#rm /swapfile1 || true
 
-# Creating 512 MB swap file.
-echo "INFO: Creating /swapfile1... This may take a while..."
-dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
-echo "INFO: Created /swapfile1."
+if [ -f "/swapfile1" ]; then
+   echo "INFO: /swapfile1 exists already."
+else
+   # Creating 512 MB swap file.
+   echo "INFO: Creating /swapfile1... This may take a while..."
+   dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
+   echo "INFO: Created /swapfile1."
+fi
 
 # Format swapfile.
 mkswap /swapfile1 --uuid 0615ba72-85b0-4183-8d54-300bb0d2e491
@@ -37,5 +41,6 @@ chown root:root /swapfile1
 chmod 0600 /swapfile1
 
 # Should be probable omitted. No need. Will be restarted so or so.
+# Will not work in chroot.
 # swapon /swapfile1
 }
