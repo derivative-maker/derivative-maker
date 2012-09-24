@@ -18,6 +18,8 @@ backup_shared_pre() {
    cp "$CHROOT_FOLDER"/etc/sysctl.conf.backup "$CHROOT_FOLDER"/etc/sysctl.conf || true
    cp "$CHROOT_FOLDER"/etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces || true
 
+   cp "$CHROOT_FOLDER"/home/user/.bashrc.backup "$CHROOT_FOLDER"/home/user/.bashrc || true
+
    #####################
    # Backup Shared Pre #
    #####################
@@ -36,6 +38,14 @@ backup_shared_pre() {
    cp -n "$CHROOT_FOLDER"/etc/default/grub "$CHROOT_FOLDER"/etc/default/grub.backup
    cp -n "$CHROOT_FOLDER"/etc/sysctl.conf "$CHROOT_FOLDER"/etc/sysctl.conf.backup
    cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
+
+   mkdir -p "$CHROOT_FOLDER"/home/user
+   chown user "$CHROOT_FOLDER"/home/user
+   touch "$CHROOT_FOLDER"/home/user/.bashrc
+   chwon user "$CHROOT_FOLDER"/home/user/.bashrc
+
+   cp -n "$CHROOT_FOLDER"/home/user/.bashrc "$CHROOT_FOLDER"/home/user/.bashrc.backup
+   chown user "$CHROOT_FOLDER"/home/user/.bashrc.backup
 }
 
 
@@ -52,10 +62,10 @@ copy_shared_pre() {
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/sbin/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
    chmod 755 "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
 
-   # Ensure timezone is UTC. Just to be safe, already done with preseed install.
+   # Ensure timezone is UTC.
    cp "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
 
-   # This is required because preseed without network connection will mess up /etc/apt/sources.list.
+   # This is required because debootstrap will mess up /etc/apt/sources.list.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
 
    # dbus machine-id is shared among all Whonix users.
@@ -127,62 +137,6 @@ copy_shared_pre() {
    # /etc/rc.local
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
    chmod +x "$CHROOT_FOLDER"/etc/rc.local
-}
-
-
-
-append_shared_pre() {
-   #####################
-   # Append Shared Pre #
-   #####################
-
-   # /etc/default/grub
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/default/grub
-   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/default/appendto_grub
-
-   # /etc/sudoers
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
-   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_sudoers
-
-   # Ensure correct permissions on sudoers.
-   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
-}
-
-
-
-copy_shared_post() {
-   #########################
-   # Backup Shared Restore #
-   #########################
-
-   # TODO DESKTOP
-   # .bashrc does not exist during copyinto-pre, because the user "user" is not created at this time.
-   #cp "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup "$CHROOT_FOLDER"/home/$USERNAME/.bashrc || true
-
-   #####################
-   # Backup Shared Pre #
-   #####################
-
-   # TODO DESKTOP
-   # Create a backup of .bashrc, but only if .backrc.backup does not exist yet.
-   # Thus, the original will never be overwritten.
-   # Therefore re-running the script is supported.
-   # Append afterwards is okay.
-   #cp -n "$CHROOT_FOLDER"/home/$USERNAME/.bashrc "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
-   #chown user "$CHROOT_FOLDER"/home/$USERNAME/.bashrc.backup
-
-   #############################
-   # Whonix-Shared Delete Post #
-   #############################
-
-   # Make daemons start again.
-   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
-
-   ###########################
-   # Whonix-Shared Copy Post #
-   ###########################
 
       #######
       # uwt #
@@ -251,4 +205,42 @@ copy_shared_post() {
    # - no wrapper required
 
    # More wrappers...
+}
+
+
+
+append_shared_pre() {
+   #####################
+   # Append Shared Pre #
+   #####################
+
+   # /etc/default/grub
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/default/grub
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/default/appendto_grub
+
+   # /etc/sudoers
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/sudoers
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_sudoers
+
+   # Ensure correct permissions on sudoers.
+   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
+}
+
+
+
+copy_shared_post() {
+   #############################
+   # Whonix-Shared Delete Post #
+   #############################
+
+   # Make daemons start again.
+   rm -f "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
+   ###########################
+   # Whonix-Shared Copy Post #
+   ###########################
+
+   # Nothing at the moment.
 }
