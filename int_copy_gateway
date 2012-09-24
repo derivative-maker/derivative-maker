@@ -6,9 +6,19 @@ set -x
 
 
 copy_gateway_pre() {
+   # Backup torrc inside VM before replacing it with Whonix version.
+   cp -n "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
+
    ############################
    # Whonix-Gateway Copy Pre  #
    ############################
+
+   # Copy Whonix torrc into VM.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
+
+   # Copy Whonix firewall script into VM.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/whonix_firewall "$CHROOT_FOLDER"/usr/local/bin/whonix_firewall
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/whonix_firewall
 
    # Copy interfaces into VM.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
@@ -42,40 +52,47 @@ copy_gateway_pre() {
    # Setup Vidalia to use Cookie Authentication.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/.vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
    chown user "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
+
+   # Copy the developers-only clearnet traffic passthrough script.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/dev_clearnet "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
+   chmod +x "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
+
+   # Autologin, copy tty1.conf into VM.
+   mkdir -p /etc/init/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
 }
 
 append_gateway_pre() {
-   ##########################
+   #############################
    # Whonix-Gateway Append Pre #
-   ##########################
+   #############################
 
    # Append to sysctl.conf.
    # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0.
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
    done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/appendto_sysctl.conf
+
+   # Append Whonix help/welcome message to .bashrc.
+   mkdir -p "$CHROOT_FOLDER"/home/
+   mkdir -p "$CHROOT_FOLDER"/home/user
+   chown user "$CHROOT_FOLDER"/home/user
+   #
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/appendto_.bashrc
+   #
+   chown user "$CHROOT_FOLDER"/home/user/.bashrc
 }
 
 copy_gateway_post() {
-   #########################
+   ############################
    # Whonix-Gateway Copy Post #
-   #########################
+   ############################
 
-   # No need to restore torrc. Will be replaced.
-
-   # Backup torrc inside VM before replacing it with Whonix version.
-   cp -n "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
-
-   # Copy Whonix firewall script into VM.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/whonix_firewall "$CHROOT_FOLDER"/usr/local/bin/whonix_firewall
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/whonix_firewall
-
-   # Copy Whonix torrc into VM.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
-
-   # TODO DESKTOP
-   # Autologin, copy tty1.conf into VM.
-   # cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/init/tty1.conf "$CHROOT_FOLDER"/etc/init/tty1.conf
+       ####################
+       # /etc/resolv.conf #
+       ####################
 
    # Delete /etc/resolv.conf to work around some strange bug
    # "Operation not supported While reading flags on" while
@@ -102,20 +119,11 @@ copy_gateway_post() {
    # edited by DHCP.
    # Do not override trap function, this step is essential.
    chattr +i "$CHROOT_FOLDER"/etc/resolv.conf
-
-   # Copy the developers-only clearnet traffic passthrough script.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/dev_clearnet "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
-   chmod +x "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
 }
 
 
 
 append_gateway_post() {
-   # TODO DESKTOP
-   # Append Whonix help/welcome message to .bashrc.
-   #while read LINE; do
-   #   echo $LINE >> "$CHROOT_FOLDER"/home/user/.bashrc
-   #done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/appendto_.bashrc
-
+   # Does nothing anymore.
    true
 }
