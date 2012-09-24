@@ -64,7 +64,6 @@ source /usr/share/whonix/whonix_internal_checks
 source /usr/share/whonix/whonix_create_swap_file
 source /usr/share/whonix/whonix_config_uuids
 source /usr/share/whonix/whonix_slim_down
-source /usr/local/bin/torbrowser
 }
 
 
@@ -107,7 +106,11 @@ trap "error_handler" ERR INT TERM
 sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
 sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
 sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/foreground_color" --type string "#FFFFFFFFFFFF"
+}
 
+
+
+config_gpg() {
 # Run gpg at least once to create the GPG default files
 # gpg.conf, pubring.gpg and trustdb.gpg.
 # The --fingerprint option will do nothing and has been
@@ -252,13 +255,12 @@ adduser_user              # Depends on root_check.
 # Building in the clear and behind a transparent Tor proxy is supported.
 # In case we are not behind a Whonix-Gateway with dedicated ports for
 # Tor Browser download, use TransPort or clear download instead of SocksPort.
-export UWT_DEV_PASSTHROUGH="1"
-tb_force_install          # Depends on working internet connection.
-export UWT_DEV_PASSTHROUGH="0"
+sudo -u user /usr/local/bin/torbrowser -force-install-uwt-dev-passthrough # Depends on working internet connection.
 
 config_irc_xchat          # Depends on root_check.
 config_audio              # Depends on root_check.
 config_home               # Depends on nothing.
+config_gpg                # Depends on nothing.
 config_htp                # Depends on root_check.
 whonix_slim_down          # Depends on root_check, being last function.
 
