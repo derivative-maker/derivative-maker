@@ -18,8 +18,8 @@ backup_shared_pre() {
    cp "$CHROOT_FOLDER"/etc/sysctl.conf.backup "$CHROOT_FOLDER"/etc/sysctl.conf || true
    cp "$CHROOT_FOLDER"/etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces || true
    cp "$CHROOT_FOLDER"/etc/hosts.backup "$CHROOT_FOLDER"/etc/hosts || true
-
-   cp "$CHROOT_FOLDER"/home/user/.bashrc.backup "$CHROOT_FOLDER"/home/user/.bashrc || true
+   cp "$CHROOT_FOLDER"/etc/motd.tail.backup "$CHROOT_FOLDER"/etc/motd.tail || true
+   cp "$CHROOT_FOLDER"/etc/issue.backup "$CHROOT_FOLDER"/etc/hosts || true
 
    #####################
    # Backup Shared Pre #
@@ -41,13 +41,10 @@ backup_shared_pre() {
    cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
    cp -n "$CHROOT_FOLDER"/etc/hosts "$CHROOT_FOLDER"/etc/hosts.backup || true
 
-   mkdir -p "$CHROOT_FOLDER"/home/user
-   chown user "$CHROOT_FOLDER"/home/user
-   touch "$CHROOT_FOLDER"/home/user/.bashrc
-   chown user "$CHROOT_FOLDER"/home/user/.bashrc
+   touch "$CHROOT_FOLDER"/etc/motd.tail
+   cp -n "$CHROOT_FOLDER"/etc/motd.tail "$CHROOT_FOLDER"/etc/motd.backup.tail || true
 
-   cp -n "$CHROOT_FOLDER"/home/user/.bashrc "$CHROOT_FOLDER"/home/user/.bashrc.backup
-   chown user "$CHROOT_FOLDER"/home/user/.bashrc.backup
+   cp -n "$CHROOT_FOLDER"/etc/issue "$CHROOT_FOLDER"/etc/issue.backup || true
 }
 
 
@@ -233,6 +230,16 @@ append_shared_pre() {
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/hosts
    done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_hosts
+
+   # /etc/motd.tail
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/motd.tail
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_motd.tail
+
+   # /etc/issue
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/issue
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_issue
 }
 
 
