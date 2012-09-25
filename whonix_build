@@ -11,16 +11,16 @@ script_help() {
 # build both Virtual machines
 #
 # -tg
+# (untested)
 # Builds Whonix-Gateway VBox machine.
 #
 # -tw
-# assumes Whonix-Gateway is running because
-# downloads go already through Whonix-Gateway.
+# (untested)
 # Builds Whonix-Workstation VBox machine.
 #
 # -clean
+# (untested / broken?)
 # deletes the whole content of the whonix_binary folder
-# (untested)
 "
 }
 
@@ -62,87 +62,35 @@ rm /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED || true
 
 
 
-whonix_build_gateway() {
+whonix_build_machine() {
       root_check
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_getiso -download
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-createimg
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_modifyiso -create
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-convertfromraw
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-createvm
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-copyinto-pre
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-install-os
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-chroot
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-post-install-os
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-copyinto-post
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-copyinto-pre
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-createvm
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-install-script
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-copyinto-post
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-export
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      echo "INFO: No errors."
-}
-
-
-
-whonix_build_workstation() {
-      root_check
-
-      trap "build_error_handler" ERR
-      : Assumes Whonix-Gateway has already been created, i.e.
-      : operating system iso already downloaded and preseed added.
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-createvm
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-install-os
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-post-install-os
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-copyinto-pre
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      : Assumes Whonix-Gateway is running, because downloads already go through Whonix-Gateway.
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-install-script
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-copyinto-post
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
-
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-export
+      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-export
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
       trap "build_error_handler" ERR
@@ -158,48 +106,10 @@ whonix_build_all() {
 	echo "whonix_Build: Not tested."
 
 	trap "build_error_handler" ERR
-	whonix_build_gateway
-
-	trap "build_error_handler" ERR
-	sudo -u $USERNAME VBoxSDL --startvm "Whonix-Gateway" &
-
-	trap "build_error_handler" ERR
-	whonix_build_workstation
-
-	trap "build_error_handler" ERR
-	sudo -u $USERNAME VBoxManage controlvm "Whonix-Gateway" poweroff
+	whonix_build_machine
 
 	trap "build_error_handler" ERR
 	echo "INFO: No errors."
-}
-
-
-
-whonix_build_clean() {
-	root_check
-
-	echo "whonix_Build: Not tested."
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_getiso -delete
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_modifyiso -delete
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-unmount
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-unmount
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_createvm -tg-delete
-
-	trap "build_error_handler" ERR
-	"$WHONIX_SOURCE_FOLDER"/whonix_createvm -tw-delete
-
-	trap "build_error_handler" ERR
-	echo "whonix_Build: Done."
 }
 
 
@@ -208,7 +118,8 @@ whonix_build_clean() {
 # tg                                                           #
 ################################################################ 
 if [ "$1" = "-tg" ]; then
-	whonix_build_gateway
+	MACHINE="g"
+	whonix_build_machine
 	exit 0
 fi
 
@@ -216,6 +127,7 @@ fi
 # tw                                                           #
 ################################################################ 
 if [[ "$1" = "-tw" ]]; then
+	MACHINE="w"
 	whonix_build_workstation
 	exit 0
 fi
@@ -224,7 +136,10 @@ fi
 # -all                                                         #
 ################################################################ 
 if [[ "$1" = "-all" ]]; then
-	whonix_build_all
+	MACHINE="g"
+	whonix_build_machine
+	MACHINE="w"
+	whonix_build_machine
 	exit 0
 fi
 
