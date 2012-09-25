@@ -17,6 +17,7 @@ backup_shared_pre() {
    cp "$CHROOT_FOLDER"/etc/default/grub.backup "$CHROOT_FOLDER"/etc/default/grub || true
    cp "$CHROOT_FOLDER"/etc/sysctl.conf.backup "$CHROOT_FOLDER"/etc/sysctl.conf || true
    cp "$CHROOT_FOLDER"/etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces || true
+   cp "$CHROOT_FOLDER"/etc/hosts.backup "$CHROOT_FOLDER"/etc/hosts || true
 
    cp "$CHROOT_FOLDER"/home/user/.bashrc.backup "$CHROOT_FOLDER"/home/user/.bashrc || true
 
@@ -38,6 +39,7 @@ backup_shared_pre() {
    cp -n "$CHROOT_FOLDER"/etc/default/grub "$CHROOT_FOLDER"/etc/default/grub.backup
    cp -n "$CHROOT_FOLDER"/etc/sysctl.conf "$CHROOT_FOLDER"/etc/sysctl.conf.backup
    cp -n "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
+   cp -n "$CHROOT_FOLDER"/etc/hosts "$CHROOT_FOLDER"/etc/hosts.backup || true
 
    mkdir -p "$CHROOT_FOLDER"/home/user
    chown user "$CHROOT_FOLDER"/home/user
@@ -225,7 +227,12 @@ append_shared_pre() {
    done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_sudoers
 
    # Ensure correct permissions on sudoers.
-   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers   
+   chmod 0440 "$CHROOT_FOLDER"/etc/sudoers
+
+   # /etc/hosts
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/hosts
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/appendto_hosts
 }
 
 
