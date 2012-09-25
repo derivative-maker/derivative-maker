@@ -4,22 +4,7 @@
 set -x
 
 copy_workstation_pre() {
-      ###########
-      # Restore #
-      ###########
 
-   # gpg.conf
-   # To support re-running the script for debugging.
-   cp "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf || true
-
-      ##########
-      # Backup #
-      ##########
-
-   # Create backup of gpg.conf.
-   # Do not override. This is important.
-   cp -n "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
-   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
 
    ###############################
    # Whonix-Workstation Copy Pre #
@@ -57,16 +42,16 @@ copy_workstation_pre() {
       # desktop #
       ###########
 
-   mkdir -p /home/
+   mkdir -p "$CHROOT_FOLDER"/home/
 
-   mkdir -p /home/user/
-   chown user /home/user/
-   mkdir -p /home/user/.local/
-   chown user /home/user/.local/
-   mkdir -p /home/user/.local/share/
-   chown user /home/user/.local/share/
-   mkdir -p /home/user/.local/share/applications/
-   chown user /home/user/.local/share/applications/
+   mkdir -p "$CHROOT_FOLDER"/home/user/
+   chown user "$CHROOT_FOLDER"/home/user/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.local/
+   chown user "$CHROOT_FOLDER"/home/user/.local/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.local/share/
+   chown user "$CHROOT_FOLDER"/home/user/.local/share/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.local/share/applications/
+   chown user "$CHROOT_FOLDER"/home/user/.local/share/applications/
 
    cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.local/share/applications/* \
 "$CHROOT_FOLDER"/home/user/.local/share/applications/
@@ -128,20 +113,29 @@ append_workstation_pre() {
    while read LINE; do
       echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
    done < "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/appendto_sysctl.conf
-
-   # gpg.conf
-   # Must be post because gpg.conf has not been created by gpg
-   # before gpg has not been run at least once.
-   while read LINE; do
-      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
-   done < "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.gnupg/appendto_gpg.conf
-   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
 }
 
 copy_workstation_post() {
    ################################
    # Whonix-Workstation Copy Post #
    ################################
+
+      ###########
+      # Restore #
+      ###########
+
+   # gpg.conf
+   # To support re-running the script for debugging.
+   cp "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf || true
+
+      ##########
+      # Backup #
+      ##########
+
+   # Create backup of gpg.conf.
+   # Do not override. This is important.
+   cp -n "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
+   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf.backup
 
       ####################
       # /etc/resolv.conf #
@@ -174,6 +168,14 @@ append_workstation_post() {
    ##################################
    # Whonix-Workstation Append Post #
    ##################################
+
+   # gpg.conf
+   # Must be post because gpg.conf has not been created by gpg
+   # before gpg has not been run at least once.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.gnupg/appendto_gpg.conf
+   chown user "$CHROOT_FOLDER"/home/user/.gnupg/gpg.conf
 
    # Not used at the moment.
    true
