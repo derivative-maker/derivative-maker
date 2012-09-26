@@ -115,6 +115,26 @@ phrase_cmd_options() {
 preparation() {
    trap "error_handler" ERR INT TERM
 
+   # Check if zenity is installed.
+   # - This is not the case for cli users.
+   # - This is also not the case on Whonix-Gateway.
+   if [ "`which zenity`" = "" ]; then
+      # zenity is not installed.
+      zenity() {
+         #dummy
+         true
+      }
+      zenity_progress() {
+         #dummy
+         true
+      }
+   else
+      # zenity is installed.
+      zenity_progress() {
+         echo "$1" >&3
+      }
+   fi
+
    # Initialize the variables.
    USERNAME="`whoami`"
    WHONIX_HOMEPAGE="http://whonix.sf.net"
@@ -122,7 +142,8 @@ preparation() {
    VERIFY_TEMPDIR="/home/$USERNAME/.whonixcheck_temp"
    # Find out installed Whonix version.
    # Read only FIRST line.
-   read -r INSTALLED_WHONIX_VERSION < /usr/share/whonix/version
+   INSTALLED_WHONIX_VERSION="Could not read Whonix version file. Please report this bug!"
+   read -r INSTALLED_WHONIX_VERSION < /usr/share/whonix/version || true
    # Remove ALL spaces.
    # Thanks to
    # http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
@@ -160,26 +181,6 @@ preparation() {
    else
       VM="whonixcheck script could not determine if this is whonix_Gateway or whonix_Workstation. Please report this bug."
       GATEWAY_IP="192.168.0.10"
-   fi
-
-   # Check if zenity is installed.
-   # - This is not the case for cli users.
-   # - This is also not the case on Whonix-Gateway.
-   if [ "`which zenity`" = "" ]; then
-      # zenity is not installed.
-      zenity() {
-         #dummy
-         true
-      }
-      zenity_progress() {
-         #dummy
-         true
-      }
-   else
-      # zenity is installed.
-      zenity_progress() {
-         echo "$1" >&3
-      }
    fi
    
    ## this is not the most stable daemon...
@@ -701,9 +702,9 @@ cleanup() {
 
 whonixcheck_main() {
   trap "error_handler" ERR INT TERM
-  
+
+  preparation  
   phrase_cmd_options $1
-  preparation
   kill_old_instances
   welcome
   disclaimer
