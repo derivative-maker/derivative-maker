@@ -43,7 +43,7 @@ copy_workstation_pre() {
       ###########
 
    mkdir -p "$CHROOT_FOLDER"/home/
-
+   # no chown...
    mkdir -p "$CHROOT_FOLDER"/home/user/
    chown user "$CHROOT_FOLDER"/home/user/
    mkdir -p "$CHROOT_FOLDER"/home/user/.local/
@@ -55,6 +55,25 @@ copy_workstation_pre() {
 
    cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.local/share/applications/* \
 "$CHROOT_FOLDER"/home/user/.local/share/applications/
+
+   chown user "$CHROOT_FOLDER"/home/user/.local/share/applications/*
+
+   # Prepare dirs.
+   mkdir -p "$CHROOT_FOLDER"/home/
+   # no chown...
+   mkdir -p "$CHROOT_FOLDER"/home/user/
+   chown user "$CHROOT_FOLDER"/home/user/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/
+   chown user "$CHROOT_FOLDER"/home/user/.config/
+   mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
+   chown user "$CHROOT_FOLDER"/home/user/.config/autostart
+
+   # .config/autostart/whonixcheck.desktop
+   # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
+   # Create whonixcheck autostart.
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.config/autostart/whonixcheck.desktop \
+"$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
+   chown user "$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
 
       #########
       # xchat #
@@ -149,19 +168,6 @@ copy_workstation_post() {
    # We do not need chattr +i for Whonix-W resolv.conf, because
    # dhcp is never used and resolvconf was uninstalled.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
-
-   # Prepare dirs.
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/
-   chown user "$CHROOT_FOLDER"/home/user/.config/
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
-   chown user "$CHROOT_FOLDER"/home/user/.config/autostart
-
-   # .config/autostart/whonixcheck.desktop
-   # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
-   # Create whonixcheck autostart.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.config/autostart/whonixcheck.desktop \
-"$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
-   chown user "$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
 }
 
 append_workstation_post() {
