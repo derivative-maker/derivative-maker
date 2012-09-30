@@ -45,7 +45,7 @@ error_handler() {
 Run: whonixcheck -v
 for verbose output. Clean the output and
 please report this bug!
-bash_commend: $BASH_COMMAND"
+bash_command: $BASH_COMMAND"
    echo "$MSG"
    output "--error" "ERROR" "$MSG"
    show_output
@@ -198,6 +198,8 @@ preparation() {
    #      true
    #   }
    #fi
+
+   TIME_START="$(date +%s)"
 }
 
 
@@ -306,9 +308,31 @@ check_htpdate() {
 
   local done_file="/var/run/htpdate/done"
   local success_file="/var/run/htpdate/success"
+
+  # Thanks to:
+  # http://unix.stackexchange.com/questions/12068/how-to-measure-time-of-program-execution-and-store-that-inside-a-variable
+
+  TIME_END="$(date +%s)"
+  TIME_DIFF=$(echo "$TIME_END - $TIME_START" | bc)
+  WAIT_MIN="60"
+
+  echo "check_htpdate debug info: expr $WAIT_MIN - $TIME_DIFF"
+  WAIT_RESULT=$(expr $WAIT_MIN - $TIME_DIFF)
+
+  echo "check_htpdate debug info: WAIT_RESULT: $WAIT_RESULT"
+
+  if [ -f "$success_file" ]; then
+     local MSG="Network Time Synchronization successful."
+     echo "$MSG"
+     echo "System clock is set to: `date`"
+     output "--info" "Info" "$MSG"
+     return
+  fi
   
-  if [ ! -f "$done_file" ]; then
-    local MSG='Network Time Synchronization not done!!! Please report this bug!
+  if [ -f "$done_file" ]; then
+    # Done but no success. This should rarely happen. Only in case the internet connection
+    # was done at this point. We checked internet connection some moments ago.
+    local MSG='Network Time Synchronization done but no success!!! Please report this bug!
 See logfile: tail -f -n 20 /var/log/htpdate.log
 See status files: cd /var/run/htpdate && dir
 Try again: Right click on desktop -> System -> Whonix Timesync
@@ -322,8 +346,16 @@ Last resort: manually set the clock! (In UTC!):
     return
   fi
   
-  if [ ! -f "$success_file" ]; then
-    local MSG='Network Time Synchronization failed!!!
+  echo "check_htpdate debug info: WAIT_RESULT: $WAIT_RESULT"
+
+  if [ $WAIT_RESULT -gt 0 ]; then
+    echo "check_htpdate debug info: Not done. Waiting up to $WAIT_RESULT more seconds."
+    sleep 5
+    check_htpdate
+    return
+  fi
+
+  local MSG='Network Time Synchronization failed!!!
 See logfile: tail -f -n 20 /var/log/htpdate.log
 See status files: cd /var/run/htpdate && dir
 Try again: Right click on desktop -> System -> Whonix Timesync
@@ -331,16 +363,10 @@ Try again: Right click on desktop -> System -> Whonix Timesync
 Last resort: manually set the clock! (In UTC!):
              sudo su
              date -s "17 FEB 2012 24:00:00" && hwclock -w'
-    echo "$MSG"
-    echo "System clock is set to: `date`"
-    output "--error" "ERROR" "$MSG"
-    return
-  fi
-  
-  local MSG="Network Time Synchronization successful."
   echo "$MSG"
   echo "System clock is set to: `date`"
-  output "--info" "Info" "$MSG"
+  output "--error" "ERROR" "$MSG"
+  return
 }
 
 
