@@ -379,12 +379,21 @@ check_network() {
    # Ensuring normal curl activity can not be linked to whonixcheck,
    # by using a SocksPort, which is solely used by whonixcheck.
 
-   #uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
+   # uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
 
    /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
-      local MSG="Your Internet connection appears to be down."
+      local MSG="Your Internet connection appears to be down.
+
+Possible reasons:
+- Is your host internet connections functional?
+- Did you start Whonix-Gateway beforehand?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+
+Try again: Start menu -> System -> Whonix Check
+           or in console: whonixcheck
+           or in console with debugging: whonixcheck -v"
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       show_output
@@ -597,8 +606,9 @@ download_whonix_news() {
    # uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
    # /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
    # whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc || DOWNLOAD_NEWS_SUCCESS="0"
-   #
+
    # sf.net does not yet support ssl for project web.
+   # --location is required since sf.net uses redirects.
    /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ --location --max-redirs 1 --output whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc || DOWNLOAD_NEWS_SUCCESS="0"
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
