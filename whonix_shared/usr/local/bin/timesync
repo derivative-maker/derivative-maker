@@ -249,14 +249,24 @@ check_htpdate() {
 
   local done_file="/var/run/htpdate/done"
   local success_file="/var/run/htpdate/success"
-  
-  if [ ! -f "$done_file" ]; then
-     if [ "$COUNTER" -lt 19 ]; then
-        sleep 5
-        check_htpdate
-     fi
 
-    local MSG='Network Time Synchronization not done!!! Please report this bug!
+  if [ -f "$success_file" ]; then
+    local MSG="Network Time Synchronization successful."
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--info" "Info" "$MSG"
+    zenity_progress 100
+    show_output
+    exit 0
+  fi
+  
+  if [ -f "$done_file" ]; then
+    local MSG='Network Time Synchronization done but no success.
+Is your internet connection down?
+Test your internet connection: Start menu -> System -> Whonix
+                               or in console: whonixcheck
+                               or in console with debugging: whonixcheck -v
+
 See logfile: tail -f -n 20 /var/log/htpdate.log
 See status files: cd /var/run/htpdate && dir
 Try again: Start menu -> System -> Whonix Timesync
@@ -272,9 +282,14 @@ Last resort: manually set the clock! (In UTC!):
     show_output
     exit 0
   fi
+
+  if [ "$COUNTER" -lt 19 ]; then
+    sleep 5
+    check_htpdate
+    return
+  fi
   
-  if [ ! -f "$success_file" ]; then
-    local MSG='Network Time Synchronization failed!!!
+  local MSG='Network Time Synchronization failed!!!
 See logfile: tail -f -n 20 /var/log/htpdate.log
 See status files: cd /var/run/htpdate && dir
 Try again: Start menu -> System -> Whonix Timesync
@@ -282,19 +297,10 @@ Try again: Start menu -> System -> Whonix Timesync
 Last resort: manually set the clock! (In UTC!):
              sudo su
              date -s "17 FEB 2012 24:00:00" && hwclock -w'
-    echo "$MSG"
-    echo "System clock is set to: `date`"
-    output "--error" "ERROR" "$MSG"
-
-    zenity_progress 100
-    show_output
-    exit 0
-  fi
-  
-  local MSG="Network Time Synchronization successful."
   echo "$MSG"
   echo "System clock is set to: `date`"
-  output "--info" "Info" "$MSG"
+  output "--error" "ERROR" "$MSG"
+
   zenity_progress 100
   show_output
   exit 0
