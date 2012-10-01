@@ -252,8 +252,24 @@ check_htpdate() {
   let "PROGRESS=$PROGRESS+1"
   zenity_progress $PROGRESS
 
+  local pid_file="/var/run/htpdate/pid"
   local done_file="/var/run/htpdate/done"
   local success_file="/var/run/htpdate/success"
+
+  if [ ! -f "$pid_file" ]; then
+    local MSG='Network Time Synchronization failed!!! pid_file does not exist. Please report this bug!
+See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: Start menu -> System -> Whonix Timesync
+           or in console: timesync
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+    echo "$MSG"
+    echo "System clock is set to: `date`"
+    output "--error" "ERROR" "$MSG"
+    return
+  fi
 
   if [ -f "$success_file" ]; then
     local MSG="Network Time Synchronization successful."
