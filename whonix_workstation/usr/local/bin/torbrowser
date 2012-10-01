@@ -92,7 +92,7 @@ trap "tb_error_handler" ERR
 
 
 USERNAME="user"
-WHONIX_GATEWAY_IP="192.168.0.10"
+GATEWAY_IP="192.168.0.10"
 SOCKS_PORT_TBB_DOWNLOAD="9115"
 SOCKS_PORT_TBB_GPG="9116"
 
@@ -119,8 +119,11 @@ echo "
 #################################
 "
 
-/usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
---output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+
+/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+--tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
 
@@ -261,14 +264,14 @@ echo "INFO: Getting the GPG keys... Verify the fingerprints."
 # !!!VERIFY!!!
 echo "INFO: Getting Erinn Clark's GPG key..."
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
-/usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
---homedir gpgtmpdir --keyserver keys.gnupg.net --recv 8738A680B84B3031A630F2DB416F061063FEE659
+/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
+--homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 8738A680B84B3031A630F2DB416F061063FEE659
 
 # !!!VERIFY!!!
 echo "INFO: Getting Sebastian Hahn's GPG key..."
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
-/usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
---homedir gpgtmpdir --keyserver keys.gnupg.net --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
+--homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
 
 # !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
@@ -285,19 +288,30 @@ echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 trap "tb_error_handler" ERR
 
 echo "INFO: Find out latest version..."
-/usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
---output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+
+/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+--tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 echo "INFO: Phrasing the last version information."
 TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`"
 
 echo "INFO: Downloading latest Tor Browser Bundle..."
 # http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
-/usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz
+
+/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+--tlsv1 --proto =https --output tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz
 
 echo "INFO: Downloading GPG signature..."
- /usr/local/bin/uwt -t 5 -i "$WHONIX_GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc
+
+/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+--tlsv1 --proto =https --output tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc
 
 echo "INFO:
