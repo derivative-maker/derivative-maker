@@ -106,7 +106,9 @@ preparation() {
       # zenity is installed.
       zenity_progress() {
          echo "progress: $PROGRESS"
-         echo "$1" >&3
+         if [ "$DISPLAY" ]; then
+            echo "$1" >&3
+	     fi
       }
    fi
    
@@ -185,9 +187,10 @@ $BITCOIN_ADDRESS"
          output "--info" "Info" "$MSG"  
       fi
    fi
-   
-   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
-   --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+   if [ "$DISPLAY" ]; then
+      zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
+      --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+   fi
 }
 
 
@@ -206,9 +209,11 @@ Running checks..."
    local NOTIFY_MSG="Running Secure Network Time Synchronization...
 This will happen in background and will take approximately 60 seconds."
 
-   # The progress window will close automatically after 100% progress.
-   exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
-   --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   if [ "$DISPLAY" ]; then
+      # The progress window will close automatically after 100% progress.
+      exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
+      --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   fi
 }
 
 
