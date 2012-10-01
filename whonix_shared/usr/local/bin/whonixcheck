@@ -131,15 +131,17 @@ preparation() {
    else
       # zenity is installed.
       zenity_progress() {
-         echo "$1" >&3
+         if [ "$DISPLAY" ]; then
+            echo "$1" >&3
+         fi
       }
    fi
 
    # Initialize the variables.
-   USERNAME="`whoami`"
+   USERNAME="user"
    WHONIX_HOMEPAGE="http://whonix.sf.net"
    BUG="0"
-   VERIFY_TEMPDIR="/home/$USERNAME/.whonixcheck_temp"
+   VERIFY_TEMPDIR="`mktemp --directory`"
    # Find out installed Whonix version.
    # Read only FIRST line.
    INSTALLED_WHONIX_VERSION="Could not read Whonix version file. Please report this bug!"
@@ -251,7 +253,7 @@ $3"
 
 
 show_output() {
-   # Show result of whonixcheck and TorBrowser Update check
+   trap "error_handler" ERR INT TERM
    
    if [ "$BUG" = "0" ]; then
       if [ "$ZENITY_TYPE" = "--info" ]; then
@@ -262,9 +264,11 @@ $BITCOIN_ADDRESS"
          output "--info" "Info" "$MSG"  
       fi
    fi
-   
-   zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
-   --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" &
+
+   if [ "$DISPLAY" ]; then
+      zenity --display=:0.0 --height=600 --width=800 --timeout 86400 --no-markup \
+      --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" & 2>/dev/null
+   fi
 }
 
 
@@ -283,9 +287,11 @@ Running checks..."
    local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, Whonix version, Whonix news...
 This will happen in background and will take approximately 60 seconds."
 
-   # The progress window will close automatically after 100% progress.
-   exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
-   --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   if [ "$DISPLAY" ]; then
+      # The progress window will close automatically after 100% progress.
+      exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
+      --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   fi
 }
 
 
@@ -430,7 +436,8 @@ check_torbrowser() {
 
    # Getting currently installed version number
    # Will fail if the file does not exist.
-   TBBINSTALLEDVERSION="`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
+   # TBBINSTALLEDVERSION="`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
+   TBBINSTALLEDVERSION="`head -1 /home/"$USERNAME"/tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'`"
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
       # echo "Successfully detected TorBrowser version."
@@ -547,6 +554,8 @@ $IP"
 
 
 error_handler_check_operating_system() {
+      trap "error_handler" ERR INT TERM
+
       local MSG="Could not check for operating system updates.
 Please check by manually running:
 sudo apt-get update
@@ -621,6 +630,8 @@ download_whonix_news() {
 
 
 whonix_news_verification_error() {
+   trap "error_handler" ERR INT TERM
+
    WHONIX_NEWS_VERIFY_ERROR="1"
 }
 
