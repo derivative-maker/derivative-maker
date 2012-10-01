@@ -20,10 +20,113 @@ error_handler() {
 trap "error_handler" ERR INT TERM
 
 ###########################
-## comments
+## configuration
 ###########################
 
-## WARNING! Do not use single quotes/apostrophes in the firwall comments!!!
+  ################################
+  ## Transparent Proxy Settings ##
+  ################################
+
+## Read first:
+## http://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing
+
+    #########################
+    ## For the Workstation ##
+    #########################
+
+## Enable (1) or disable (0) transparent TCP proxying for the Whonix-Workstation.
+## Any misc TCP traffic, for example /usr/bin/wget (circumventing uwt wrapper)
+## or any custom installed applications on the Whonix-Workstation will be
+## automatically routed through Tor.  In most cases you have to enable
+## WORKSTATION_TRANSPARENT_DNS as well.
+WORKSTATION_TRANSPARENT_TCP=1
+
+## Enable (1) or disable (0) transparent UDP proxying for the Whonix-Workstation.
+## This setting has really no effect.
+## The Tor network does not support UDP yet.
+## This is not a Whonix specific limitation.
+## There is a limited workarround for tunneling udp over Tor with Whonix:
+## http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-udp-over-tor
+## Do not bother changing this setting, it will do nothing.
+WORKSTATION_TRANSPARENT_UDP=0
+
+## Enable (1) or disable (0) transparent DNS proxying for the Whonix-Workstation.
+## Any misc DNS traffic, for example nslookup, from the Whonix-Workstation will be
+## automatically routed through Tor.
+WORKSTATION_TRANSPARENT_DNS=1
+
+  #####################
+  ## For the Gateway ##
+  #####################
+
+## Enable (1) or disable (0) transparent TCP proxying for the Whonix-Gateway.
+## Experts only!
+## Any misc TCP traffic, for example /usr/bin/wget (circumventing uwt wrapper)
+## from the Whonix-Gateway will be automatically routed through Tor.
+## For example apt-get, wget and gpg are torified using uwt wrappers in
+## /usr/local/bin/.
+## In most cases you have to enable GATEWAY_TRANSPARENT_DNS as well.
+## DISABELD BY DEFAULT, because the Whonix-Gateway should only be used as a proxy.
+## There are currently no useful use cases recognized by Whonix developer adrelanos.
+## Enable this only if you know what you are doing!
+GATEWAY_TRANSPARENT_TCP=0
+
+## Enable (1) or disable (0) transparent UDP proxying for the Whonix-Gateway.
+## This setting has really no effect.
+## The Tor network does not support UDP yet.
+## This is not a Whonix specific limitation.
+## Do not bother changing this setting, it will do nothing.
+GATEWAY_TRANSPARENT_UDP=0
+
+## Enable (1) or disable (0) transparent DNS proxying for the Whonix-Gateway.
+## Experts only!
+## Any misc DNS traffic, for example nslookup, from the Whonix-Gateway will be
+## automatically routed through Tor.
+## DISABELD BY DEFAULT, because the Whonix-Gateway should only be used as a proxy.
+## There are currently no useful use cases recognized by Whonix developer adrelanos.
+## Enable this only if you know what you are doing!
+GATEWAY_TRANSPARENT_DNS=0
+
+  ################################################################
+  ## Torify Gateway / Hide the fact, that you are a Whonix user ##
+  ################################################################
+
+## For ensuring, that the Whonix-Workstation can only send traffic through Tor,
+## it would not be required to route Whonix-Gateways traffic through Tor as well.
+## Torifying the Whonix-Gateway prevents your ISP from knowing you are a Whonix user.
+##
+## This does NOT prevent your ISP from knowing you are a Tor user.
+##   If you want this, read:
+##   http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hide-the-fact-that-you-are-using-torwhonix
+##
+## Torifying the Gateway has the disadvantage, that apt-get operating system updates
+## are slower. It also makes testing, developing and all kinds of special non-stock
+## configurations more complicated. You can optionally disable this feature.
+##
+## Experts only! There is also the user unsafe on the Whonix-Gateway, which
+## is allowed to to make non-Tor connections.
+##
+## Allow (1) or forbid (0) the root user on the Whonix-Gateway to make non-Tor connections.
+## Experts only!
+ALLOW_GATEWAY_ROOT_USER=0
+## Allow (1) or forbid (0) the user user on the Whonix-Gateway to make non-Tor connections.
+## Experts only!
+ALLOW_GATEWAY_USER_USER=0
+
+  #############################
+  ## SSH into Whonix-Gateway ##
+  #############################
+
+## This will simply open incomming port 22 in the Whonix-Gateway firewall.
+## A port forwarding from the host to the Whonix-Gateway has still to be created,
+## see Whonix build documentation.
+##   https://sourceforge.net/p/whonix/wiki/BuildDocumentation/
+## Experts only!
+GATEWAY_ALLOW_INCOMMING_SSH=0
+
+###########################
+## comments
+###########################
 
 ## --reject-with
 ## http://ubuntuforums.org/showthread.php?p=12011099
@@ -47,10 +150,12 @@ TOR_USER="`id -u debian-tor`"
 
 ## Get user uids.
 UNSAFE_USER="`id -u unsafe`"
+USER_USER="`id -u user`"
 ROOT_USER="`id -u root`"
 
 echo "OK: TOR_USER: $TOR_USER"
 echo "OK: UNSAFE_USER: $UNSAFE_USER"
+echo "OK: USER_USER: $USER_USER"
 echo "OK: ROOT_USER: $ROOT_USER"
 
 ###########################
@@ -113,21 +218,24 @@ SOCKS_PORT_TBB_DOWNLOAD="9115"
 SOCKS_PORT_TBB_GPG="9116"
 SOCKS_PORT_CURL="9117"
 
-
 ##+# #OptionalFeatureNr.4# More Socks Ports.
+##
+## Adding more Socks Ports here should no longer be neccessary.
+## There are already lots of custom ports prepared. If you need more
+## anyway, read below.
+## Please read:
+## http://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing
+##
 ##+# Additional Socks Ports for per application circuits.
 ##+# You can add more here but,
-##+# you will have to edit the Whonix-Gateway script:
+##+# you will have to edit:
 ##+# - /etc/tor/torrc
 ##+#   - And "sudo service tor reload" afterwards.
 ##+# - /usr/local/bin/whonix_firewall
 ##+#   - And issue "sudo /usr/local/bin/whonix_firewall" afterwards.
-##+# you will also have to edit in Whonix-Workstation script
-##+# - the line "extensions.torbutton.banned_ports" (search Whonix-Workstation script for that term)
+##+# you will also have to edit Whonix-Workstation
+##+# - the line "extensions.torbutton.banned_ports" in users.js
 ##+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
-##+#   - Issue sudo Whonix-Workstation -uwt to apply afterwards.
-##+# - the function "install_uwt_wrappers()"
-##+#   - Issue sudo Whonix-Workstation -uwt to apply afterwards.
 
 ###########################
 ## IPv4 DEFAULTS
@@ -186,16 +294,25 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 ## Allow incoming SSH connections on the external interface.
-#iptables -A INPUT -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
+## DISABELD BY DEFAULT. Only for testing/debugging.
+if [ "$GATEWAY_ALLOW_INCOMMING_SSH" = "1" ]; then
+  iptables -A INPUT -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
+fi
 
 ## OPTIONAL Allow incoming OpenVPN connections on the external interface.
 #iptables -A INPUT -i "$EXT_IF" -p tcp --dport 1194 -j ACCEPT
 
-## Allow TCP to TransPort and DNS traffic to DNSListenAddress.
+## Allow DNS traffic to DnsPort.
 ##+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i "$INT_TIF" -p udp --dport 53 -j ACCEPT
+if [ "$WORKSTATION_TRANSPARENT_DNS" = "1" ]; then
+  iptables -A INPUT -i "$INT_TIF" -p udp --dport 53 -j ACCEPT
+fi
+
+## Allow TCP traffic TransPort.
 ##+# SEE #OptionalFeatureNr.5#
-iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_WHONIXW" -j ACCEPT
+if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
+  iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_WHONIXW" -j ACCEPT
+fi
 
 ## Allow socksified applications.
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TB" -j ACCEPT
@@ -297,14 +414,18 @@ iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9188" -j REDIRECT --t
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9189" -j REDIRECT --to-ports "9189"
 
 ## Redirect remaining DNS traffic to DNSPORT.
-## Only user installed applications not configured to use a SocksPort are effected.
+## Only user installed applications not configured to use a SocksPort are affected.
 ##+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXW"
+if [ "$WORKSTATION_TRANSPARENT_DNS" = "1" ]; then
+  iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXW"
+fi
 
 ## Catch all remaining TCP and redirect to TransPort.
-## Only user installed applications not configured to use a SocksPort are effected.
+## Only user installed applications not configured to use a SocksPort are affected.
 ##+# SEE #OptionalFeatureNr.5#
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
+if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
+  iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
+fi
 
 ##+# #OptionalFeatureNr.3# Even more restrictive firewall rules.
 ##+# Replace above rule with a more restrictive one, e.g.:
@@ -338,27 +459,39 @@ iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
 ## No NAT for unsafe user.
 iptables -t nat -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j RETURN
 
+## No NAT for user user.
+## DISABELD BY DEFAULT. For testing/debugging only.
+if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
+  iptables -t nat -A OUTPUT -m owner --uid-owner "$USER_USER" -j RETURN
+fi
+
 ## No NAT for root user.
-## Out commented by default. For testing/debugging only.
-#iptables -t nat -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j RETURN
+## DISABELD BY DEFAULT. For testing/debugging only.
+if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
+  iptables -t nat -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j RETURN
+fi
 
-### Redirect of T-G DNS traffic to DnsPort_WHONIXG.
-### No longer in use. Using SocksPort instant.
-##iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXG"
+## Redirect of T-G DNS traffic to DnsPort_WHONIXG.
+## DISABELD BY DEFAULT. default. Using SocksPort instead.
+if [ "$GATEWAY_TRANSPARENT_DNS" = "1" ]; then
+  iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXG"
+fi
 
-## Exclude connections to local network, Whonix-Workstation, VirtualBox from being redirected through Tor.
+## Exclude connections to local network, Whonix-Workstation, Virtual Box from being redirected through Tor.
 for NET in $NON_TOR_WHONIXG; do
  iptables -t nat -A OUTPUT -d "$NET" -j RETURN
 done
 
 ## Redirect all T-G TCP traffic to TransPort_WHONIXG.
-## No longer in use. Using SocksPort instant.
-#iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXG"
+## DISABELD BY DEFAULT. Using SocksPort instead.
+if [ "$GATEWAY_TRANSPARENT_TCP" = "1" ]; then
+  iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXG"
+fi
 
 ## Existing connections are accepted.
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-## Accept outgoing connections to local network, Whonix-Workstation and VirtualBox.
+## Accept outgoing connections to local network, Whonix-Workstation and Virtual Box.
 for NET in $NON_TOR_WHONIXG; do
  iptables -A OUTPUT -d "$NET" -j ACCEPT
 done
@@ -369,9 +502,17 @@ iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
 ## unsafe user is allowed to connect any outside target.
 iptables -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j ACCEPT
 
+## user user is allowed to connect any outside target.
+## DISABELD BY DEFAULT. For testing/debugging only.
+if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
+  iptables -A OUTPUT -m owner --uid-owner "$USER_USER" -j ACCEPT
+fi
+
 ## root user is allowed to connect any outside target.
-## Out commented by default. For testing/debugging only.
-#iptables -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j ACCEPT
+##  DISABELD BY DEFAULT. For testing/debugging only.
+if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
+  iptables -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j ACCEPT
+fi
 
 ## Log.
 #iptables -A INPUT -j LOG --log-prefix "Whonix blocked output4: "
