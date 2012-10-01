@@ -69,6 +69,7 @@ ${UnderlineOn}Check Network Time Synchronization and Tor connection:${Reset}
 whonixcheck
 
 ${UnderlineOn}Swich to unsafe user. unsafe user has direct internet access:${Reset}
+(see DNS notes below)
 sudo su unsafe
 
 ${UnderlineOn}Reboot:${Reset}
@@ -83,10 +84,31 @@ ${UnderlineOn}Circumvent using uwt wrapper (Experts / Debugging only!):${Reset}
 /usr/sbin/htpdate
 /usr/bin/gpg
 
-${UnderlineOn}check if DNS resolution is functional
-(Only as unsafe user or activate transparent proxying for
-Whonix-Gateway in /usr/local/bin/whonix_firewall.):${Reset}
-nslookup check.torproject.org
+${UnderlineOn}check if DNS resolution is functional:${Reset}
+- Experts only!
+- This is only a summary.
+- You normally do not need to manually resolve DNS on Whonix-Gateway.
+- Whonix has by default a feature to hide the fact, that you are a Whonix user.
+  - This will NOT hide the fact that you are a Tor user from your ISP!
+    - Hiding the fact, that you are a Tor user, is available as an optional configuration.
+  - Whonix-Workstations traffic goes through Tors Socks-, Dns- or TransPorts.
+  - Whonix-Gateway can only send traffic through Tor as well.
+    - Whonix-Gateway has no longer a Trans- or DnsPort.
+    - For example, "apt-get" will actually call the uwt wrapper /usr/local/bin/apt-get.
+    - The apt-get uwt wrapper will with help of uwt and torsocks force also
+      Whonix-Gateways traffic through Tor.
+    - Thus hiding the fact, that you are a Whonix user.
+- Only as either,
+  - as unsafe user or
+  - after activation of transparent proxying for Whonix-Gateway 
+    in /usr/local/bin/whonix_firewall or
+  - after allowing Whonix-Gateways root sending non-Tor traffic
+    in /usr/local/bin/whonix_firewall
+- chattr -i /etc/resolv.conf
+- fix /etc/resolv.conf either,
+  - manually or
+  - sudo service networking restart
+- nslookup check.torproject.org
   
 ${UnderlineOn}Important files:${Reset}
 nano /etc/rc.local
