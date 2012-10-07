@@ -540,7 +540,7 @@ check_tor() {
 
    TOR_OR_NOT="1"
    TOR_OR_NOT="`grep "Congratulations" "index.html"`"
-   echo "TOR_OR_NOT: $TOR_OR_NOT"
+   #echo "TOR_OR_NOT: $TOR_OR_NOT"
 
    trap "check_tor_grep_error" ERR INT TERM
 
@@ -587,9 +587,15 @@ $IP"
          echo "$MSG"
          output "--info" "Info" "$MSG"
       else
-         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
-         echo "$MSG"
-         output "--info" "Info" "$MSG"
+         if [ "$NOT_USING_TOR" = "1" ]; then
+            local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ, but Tor not detected!!!"
+            echo "$MSG"
+            output "--info" "Info" "$MSG"
+         else
+            local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
+            echo "$MSG"
+            output "--info" "Info" "$MSG"
+         fi
       fi
    fi
 }
