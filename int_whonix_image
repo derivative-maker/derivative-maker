@@ -27,6 +27,8 @@ exit 1
 
 
 create_img() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
    sudo -u $USERNAME mkdir -p /home/user/whonix_binary/
 
    grml-debootstrap \
@@ -184,6 +186,8 @@ unmount_vdi_force() {
 
 
 convert_from_raw() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
    sudo -u $USERNAME mkdir -p "/home/$USERNAME/VirtualBox VMs/"
    sudo -u $USERNAME mkdir -p "/home/$USERNAME/VirtualBox VMs/""$VMNAME"
    sudo -u $USERNAME VBoxManage convertfromraw /home/$USERNAME/whonix_binary/"$VMNAME".img "/home/$USERNAME/VirtualBox VMs/""$VMNAME"/"$VMNAME".vdi
@@ -240,6 +244,8 @@ copy_into_vm_image_whonix_workstation_post() {
 
 
 do_chroot() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
 ##############
 # Discussion #
 # ############
@@ -338,35 +344,43 @@ mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
 
 
 inside_chroot() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
 
-# No longer neccessary.
-# Lets keep it in case we need it again.
-# locale-gen en_US.UTF-8
-# dpkg-reconfigure locales 
-# echo 'LANG="en_US.UTF-8"' > /etc/default/locale
+   sync
 
-# Just for testing.
-chroot "$CHROOT_FOLDER" dir
-chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
-chroot "$CHROOT_FOLDER" mount
-chroot "$CHROOT_FOLDER" update-grub -v
+   ## No longer neccessary.
+   ## Lets keep it in case we need it again.
+   ## locale-gen en_US.UTF-8
+   ## dpkg-reconfigure locales 
+   ## echo 'LANG="en_US.UTF-8"' > /etc/default/locale
 
-# Changeing partition uuid.
-tune2fs /dev/mapper/loop0p1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+   ## Just for testing.
+   chroot "$CHROOT_FOLDER" dir
+   chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
+   chroot "$CHROOT_FOLDER" mount
+   chroot "$CHROOT_FOLDER" update-grub -v
+   sync
 
-# Run the whonix_internal_install_script.
-# (Which got copied into the image by copyinto-pre.)
-chroot "$CHROOT_FOLDER" "/usr/local/share/whonix/whonix_internal_install_script" -install
+   ## Changeing partition uuid.
+   tune2fs /dev/mapper/loop0p1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+   sync
+
+   ## Run the whonix_internal_install_script.
+   ## (Which got copied into the image by copyinto-pre.)
+   chroot "$CHROOT_FOLDER" "/usr/local/share/whonix/whonix_internal_install_script" -install
+   sync
 }
 
 
 
 do_unchroot() {
-#umount "$CHROOT_FOLDER"/dev/pts || true
-umount "$CHROOT_FOLDER"/dev || true
-umount "$CHROOT_FOLDER"/proc || true
-#umount "$CHROOT_FOLDER"/sys || true
-umount "$CHROOT_FOLDER"/etc/resolv.conf || true
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   #umount "$CHROOT_FOLDER"/dev/pts || true
+   umount "$CHROOT_FOLDER"/dev || true
+   umount "$CHROOT_FOLDER"/proc || true
+   #umount "$CHROOT_FOLDER"/sys || true
+   umount "$CHROOT_FOLDER"/etc/resolv.conf || true
 }
 
 
