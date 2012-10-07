@@ -487,6 +487,13 @@ check_torbrowser() {
 
 
 
+check_tor_grep_error() {
+   echo "check_tor_grep_error: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+   TOR_OR_NOT=""
+}
+
+
+
 check_tor() {
    trap "error_handler" ERR INT TERM
 
@@ -505,8 +512,15 @@ check_tor() {
    elif [ "$1" = "TransPort" ]; then
       # Using curl binary to ensure the curl wrapper /usr/local/bin/curl does not get used.
       echo "Testing Tor's TransPort..."
-      # /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
+      
+      ## Old:
+      #/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
+
+      ## For production:
       /usr/bin/curl $WHONIXCHECK_VERBOSE --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+
+      ## For testing behind demo/test vpn from usaip. (They block SSL.)
+      #/usr/bin/curl $WHONIXCHECK_VERBOSE --output index.html http://check.torproject.org || NETWORK_DOWN="1"
 
       # Check if curl failed.
       if [ "$NETWORK_DOWN" = "1" ]; then
@@ -522,18 +536,21 @@ check_tor() {
      return
    fi
 
-   WHONIXCHECK="1"
+   trap "check_tor_grep_error" ERR INT TERM
 
-   # If the word "Congratulations" is not found in index.html,
-   # grep will return "".
-   # old with bug: WHONIXCHECK="`grep "Congratulations" index.html`"
+   TOR_OR_NOT="1"
+   TOR_OR_NOT="`grep "Congratulations" "index.html"`"
+   echo "TOR_OR_NOT: $TOR_OR_NOT"
 
-   # Thanks to
-   # http://stackoverflow.com/questions/7560587/supress-grep-output-but-capture-it-in-a-variable
-   local WERRORS=`echo $WHONIXCHECK | grep "Congratulations" "index.html" 2>&1`
+   trap "check_tor_grep_error" ERR INT TERM
 
-   # TODO: ...
-   IP="`grep "IP" index.html|sed 's/<b>//g'|sed 's/<\/b><br>//g'`" || true   
+   IP="error"
+   local IP="`grep "IP" "index.html" 2>&1`"
+   IP="`echo "$IP" | sed 's/<br>//g'`"
+   IP="`echo "$IP" | sed 's/<b>//g'`"
+   IP="`echo "$IP" | sed 's/<\\/b>//g'`"
+
+   trap "error_handler" ERR INT TERM
 
    # Store IP for later use in memory.
    if [ "$1" = "TransPort" ]; then
@@ -544,7 +561,7 @@ check_tor() {
 
    # Check if connected to Tor or not,
    # and choose which message to show.
-   if [ "$WHONIXCHECK" = "" ]; then
+   if [ "$TOR_OR_NOT" = "" ]; then
       NOT_USING_TOR="1"
       local MSG="Tor's $1: Looks like you are not connected through Tor! There could be something wrong or it's a false positive. (https://check.torproject.org fails in some cases to detect exit nodes.)
 $IP"
@@ -627,7 +644,6 @@ $CHECK_OS_RESULT"
 download_whonix_news() {
    trap "error_handler" ERR INT TERM
 
-   ip="$GATEWAY_IP"
    SOCKS_PORT_WHONIX_NEWS="9114"
 
    DOWNLOAD_NEWS_SUCCESS="1"
