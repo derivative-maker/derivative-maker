@@ -222,13 +222,12 @@ find /var/log -type f -exec cp /dev/null {} \;
 # cd /usr/share/locale &&  ls | grep -v en | xargs rm -r && cd /home/$USERNAME
 # rm -r /usr/share/doc/* #(are we even allowed to do that, see licenses?)
 
-# TODO CHROOT
 # This will not work in chroot.
 # Take care of development leaks and make resulting ova image smaller.
 # Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
 # This also ensure that possible leaks we deleted before are really deleted.
 #echo "INFO: Wiping free space. This can take a while."
-#dd if=/dev/zero of=/zerofile bs=1024 || true
+# TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
 
 # Flush the zero-file to disk before removing it.
 sync
@@ -257,10 +256,8 @@ root_check                # Depends on nothing.
 workstation_source        # Depends on nothing.
 whonix_internal_checks    # Depends on nothing.
 whonix_create_swap_file   # Depends on root_check, not being run again when in use.
-# TODO CHROOT whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
+whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
 adduser_user              # Depends on root_check.
-
-#TODO CHROOT #update-grub2              # /etc/grub/default gets appended by whonix_image copyinto.
 
 # Building in the clear and behind a transparent Tor proxy is supported.
 # In case we are not behind a Whonix-Gateway with dedicated ports for
