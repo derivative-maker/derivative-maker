@@ -103,7 +103,7 @@ GATEWAY_TRANSPARENT_DNS=0
 ## are slower. It also makes testing, developing and all kinds of special non-stock
 ## configurations more complicated. You can optionally disable this feature.
 ##
-## Experts only! There is also the user unsafe on the Whonix-Gateway, which
+## Experts only! There is also the user clearnet on the Whonix-Gateway, which
 ## is allowed to to make non-Tor connections.
 ##
 ## Allow (1) or forbid (0) the root user on the Whonix-Gateway to make non-Tor connections.
@@ -149,12 +149,12 @@ echo "OK: Loading Whonix firewall..."
 TOR_USER="`id -u debian-tor`"
 
 ## Get user uids.
-UNSAFE_USER="`id -u unsafe`"
+CLEARNET_USER="`id -u clearnet`"
 USER_USER="`id -u user`"
 ROOT_USER="`id -u root`"
 
 echo "OK: TOR_USER: $TOR_USER"
-echo "OK: UNSAFE_USER: $UNSAFE_USER"
+echo "OK: CLEARNET_USER: $CLEARNET_USER"
 echo "OK: USER_USER: $USER_USER"
 echo "OK: ROOT_USER: $ROOT_USER"
 
@@ -456,8 +456,8 @@ iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
 ## No NAT for Tor itself.
 iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
 
-## No NAT for unsafe user.
-iptables -t nat -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j RETURN
+## No NAT for clearnet user.
+iptables -t nat -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j RETURN
 
 ## No NAT for user user.
 ## DISABELD BY DEFAULT. For testing/debugging only.
@@ -499,8 +499,8 @@ done
 ## Tor is allowed to connect any outside target.
 iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
 
-## unsafe user is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner "$UNSAFE_USER" -j ACCEPT
+## clearnet user is allowed to connect any outside target.
+iptables -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j ACCEPT
 
 ## user user is allowed to connect any outside target.
 ## DISABELD BY DEFAULT. For testing/debugging only.
