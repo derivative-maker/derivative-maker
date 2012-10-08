@@ -1,0 +1,57 @@
+#!/bin/bash
+
+## version
+VERSION="0.4.5"
+
+##############
+## Run local #
+##############
+sha512sum /home/user/whonix_binary/Whonix-Gateway.ova
+sha512sum /home/user/whonix_binary/Whonix-Workstation.ova
+
+## update sf_README
+# manually
+
+## update whonix_news
+# manually
+
+## sign sf README
+gpg --clearsign /home/user/Whonix/release/README
+
+## verify sf README.asc
+gpg --verify /home/user/Whonix/release/README.asc
+
+## sign whonix_news
+gpg --clearsign /home/user/Whonix/release/whonix_news
+
+## verify whonix_news.asc
+gpg --clearsign /home/user/Whonix/release/whonix_news.asc
+
+## sf.net shell fingerprint
+## 80:1c:ee:50:14:cd:ef:28:3e:82:c6:ef:44:55:d7:74
+
+## request a sf.net shell
+ssh -t adrelanos,whonix@shell.sourceforge.net create
+
+## transfer Whonix-Gateway
+rsync --partial --progress --rsh=ssh Whonix-Gateway.ova adrelanos,whonix@shell.sourceforge.net:/home/frs/project/whonix/whonix-"$VERSION"/
+
+## transfer Whonix-Workstation
+rsync --partial --progress --rsh=ssh Whonix-Workstation.ova adrelanos,whonix@shell.sourceforge.net:/home/frs/project/whonix/whonix-"$VERSION"/
+
+## transfer sf_README
+rsync --partial --progress --rsh=ssh /home/user/Whonix/release/README.asc adrelanos,whonix@shell.sourceforge.net:/home/frs/project/whonix/whonix-"$VERSION"/README
+
+## transfer whonix_news.asc
+rsync --partial --progress --rsh=ssh /home/user/Whonix/release/whonix_news.asc adrelanos,whonix@shell.sourceforge.net:/home/project-web/whonix/htdocs/
+
+###############
+## Run remote #
+###############
+
+cd /home/frs/project/whonix/whonix-"$VERSION"/
+
+sha512sum Whonix-Gateway.ova
+sha512sum Whonix-Workstation.ova
+
+
