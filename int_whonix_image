@@ -18,7 +18,7 @@ echo "
 
 echo "whonix_image: unmount_vdi..."
 unmount_img_force
-#unmount_vdi_force
+unmount_vdi_force
 echo "whonix_image: Done."
 
 touch /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED
@@ -51,7 +51,7 @@ create_img() {
 
 
 mount_img() {
-   trap "error_handler_int_whonix_image" ERR INT TERM
+   trap "unmount_img_force" ERR INT TERM
 
    sync
    kpartx -av /home/$USERNAME/whonix_binary/"$VMNAME".img
@@ -64,7 +64,7 @@ mount_img() {
 
 
 unmount_img() {
-   trap "error_handler_int_whonix_image" ERR INT TERM
+   trap "unmount_img_force" ERR INT TERM
 
    sync
    umount "$CHROOT_FOLDER"
@@ -78,7 +78,7 @@ unmount_img() {
 unmount_img_force() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   do_unchroot
+   do_unchroot || true
 
    # Will be called if there is an error.
    # || true to avoid more errors and to ensure
@@ -97,7 +97,7 @@ unmount_img_force() {
 
 
 mount_vdi() {
-   trap "error_handler_int_whonix_image" ERR INT TERM
+   trap "unmount_vdi_force" ERR INT TERM
 
    sync
    # Ensure powered is off. Otherwise disk corruption is at high risk.
@@ -135,7 +135,7 @@ mount_vdi() {
 
 
 unmount_vdi() {
-   trap "error_handler_int_whonix_image" ERR INT TERM
+   trap "unmount_vdi_force" ERR INT TERM
 
    # Called after copying into vm.
    # Should not trow any errors.
@@ -161,7 +161,7 @@ unmount_vdi() {
 unmount_vdi_force() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   do_unchroot
+   do_unchroot || true
 
    # Will be called if there is an error.
    # || true to avoid more errors and to ensure

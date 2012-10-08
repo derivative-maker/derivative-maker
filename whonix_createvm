@@ -12,6 +12,10 @@ script_help() {
 : "help: -tg-converttovdi"
 : "help: -tg-createvboxvm"
 : "help: -tg-export"
+: "help: (debugging) -tg-mountimg"
+: "help: (debugging) -tg-unmountimg"
+: "help: (debugging) -tg-mountvdi"
+: "help: (debugging) -tg-unmountvdi"
 : "help: (perhaps) -tg-vboxdelete"
 :
 : "help: Only for Whonix-Gateway on Bare Metal (Physical Isolation). UNTESTED!"
@@ -26,6 +30,10 @@ script_help() {
 : "help: -tw-converttovdi"
 : "help: -tw-createvboxvm"
 : "help: -tw-export"
+: "help: (debugging) -tw-mountimg"
+: "help: (debugging) -tw-unmountimg"
+: "help: (debugging) -tw-mountvdi"
+: "help: (debugging) -tw-unmountvdi"
 : "help: (perhaps) -tw-vboxdelete"
 : "help:"
 }
@@ -395,7 +403,7 @@ if [[ "$1" = "-tg-createimg" ]]; then
 fi
 
 ################################################################ 
-# -tg-converttovdi                                           #
+# -tg-converttovdi                                             #
 ################################################################ 
 if [[ "$1" = "-tg-converttovdi" ]]; then
    root_check
@@ -406,7 +414,7 @@ if [[ "$1" = "-tg-converttovdi" ]]; then
 fi
 
 ################################################################ 
-# -tg-createvboxvm                                                 #
+# -tg-createvboxvm                                             #
 ################################################################ 
 if [[ "$1" = "-tg-createvboxvm" ]]; then
    root_check
@@ -530,7 +538,7 @@ if [[ "$1" = "-tw-createimg" ]]; then
 fi
 
 ################################################################ 
-# -tw-converttovdi                                           #
+# -tw-converttovdi                                             #
 ################################################################ 
 if [[ "$1" = "-tw-converttovdi" ]]; then
    root_check
@@ -541,7 +549,7 @@ if [[ "$1" = "-tw-converttovdi" ]]; then
 fi
 
 ################################################################ 
-# -tw-createvboxvm                                                 #
+# -tw-createvboxvm                                             #
 ################################################################ 
 if [[ "$1" = "-tw-createvboxvm" ]]; then
    root_check
@@ -627,9 +635,9 @@ if [[ "$1" = "-tw-vboxdelete" ]]; then
 fi
 
 ################################################################ 
-# -tg-mount                                                    #
+# -tg-mountimg                                                 #
 ################################################################ 
-if [[ "$1" = "-tg-mount" ]]; then
+if [[ "$1" = "-tg-mountimg" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
@@ -637,15 +645,43 @@ if [[ "$1" = "-tg-mount" ]]; then
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
    : echo "- Leave the folder after you are done!!! cd ~"
-   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmount"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmountimg"
    : echo "- Otherwise strange bugs may occur."
    exit 0
 fi
 
 ################################################################ 
-# -tw-unmount                                                  #
+# -tg-unmountimg                                               #
 ################################################################ 
-if [[ "$1" = "-tw-unmount" ]]; then
+if [[ "$1" = "-tg-unmountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_img
+   : echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mountimg                                                 #
+################################################################ 
+if [[ "$1" = "-tw-mountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmountimg"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmountimg                                               #
+################################################################ 
+if [[ "$1" = "-tw-unmountimg" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
    CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
@@ -655,29 +691,57 @@ if [[ "$1" = "-tw-unmount" ]]; then
 fi
 
 ################################################################ 
-# -tw-mount                                                    #
+# -tg-mountvdi                                                 #
 ################################################################ 
-if [[ "$1" = "-tw-mount" ]]; then
+if [[ "$1" = "-tg-mountvdi" ]]; then
    root_check
-   VMNAME="Whonix-Workstation"
+   VMNAME="Whonix-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
-   mount_img
+   mount_vdi
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
    : echo "- Leave the folder after you are done!!! cd ~"
-   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmount"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmountvdi"
    : echo "- Otherwise strange bugs may occur."
    exit 0
 fi
 
 ################################################################ 
-# -tg-unmount                                                  #
+# -tg-unmountvdi                                               #
 ################################################################ 
-if [[ "$1" = "-tg-unmount" ]]; then
+if [[ "$1" = "-tg-unmountvdi" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
    CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
-   unmount_img
+   unmount_vdi
    : echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mountvdi                                                 #
+################################################################ 
+if [[ "$1" = "-tw-mountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vdi
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmountvdi"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmountvdi                                               #
+################################################################ 
+if [[ "$1" = "-tw-unmountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_vdi
+   echo "INFO: unmount done."
    exit 0
 fi
