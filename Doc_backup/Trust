@@ -1,0 +1,99 @@
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+[TOC]
+
+# How can I trust these download images? #
+Don't trust 'us'! You don't know us. Never trust people you don't know, especially not on the internet. But you can trust these binary images to some extent if you can verify that you get exactly the same code as hundreds of other users (you can check sourceforge how often the builds where downloaded) and no one found and publicly reported any security issue. In order to verify that we post the sha512sum (sha256sum for Whonix prior 0.2.0) of both .ova images on sourceforge.
+
+Sourceforge ensures some trust and integrity of the hash file through TLS (check the certificate), unfortunately only for users who are registered and logged in.
+
+Hash sums are gpg signed by anonymous Whonix developer adrelanos. The Whonix project exists since 2012-01-11. (Earlier under the project names were TorBOX and aos.)
+
+If that's not good enough, you are very much welcome to build your own Whonix images using the [BuildDocumentation].
+
+## TLS ##
+TLS/SSL/HTTPS with the CA model is flawed. We don't trust it and you shouldn't either. Even if all the implementation details (revocation not working, every CA can issue certs for anything, including "*") having to trust a 3rd party is a no go. But, we still have to rely on it to some extent for that lack of a widely used web of trust or other alternative.
+
+## GPG ##
+GPG: Usually you get a fingerprint on a web site (insecure, or secured with the broken TLS) and then download that from a key server (insecure, or secured with the broken TLS). Unless you have attended any key signing parties and have a trust path to everyone you need to connect with, GPG is only as secure as TLS!
+
+To mitigate this, it is recommended to check GPG fingerprint from multiple "secure" sites. Bonus points for using different authentication systems. For example:
+https://www.torproject.org/docs/signing-keys.html.en AND http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en. Note, that hidden services do not offer very strong authentication. A powerful adversary is more likely than not able to impersonate a hidden service, but together with multiple sources it becomes increasingly costly and improbably that a single adversary can impersonate all of them.
+
+All current Whonix developers prefer to stay anonymous. There's no way to get GPG key signed (real life "key party") while remaining anonymous. For binary downloads we are currently only using hash sums posted to on sourceforge to assure authenticity. The hash sums are GPG signed by Whonix developer adrelanos. The source code is available from github over TLS, you can also git clone it over https. Each release git tag is gpg signed by Whonix developer adrelanos.
+
+
+Whonix developer [adrelanos (proper)](https://trac.torproject.org/projects/tor/wiki/doc/proper) published its GPG key on 05/29/12. Its GPG key is mirrored on four different websites.
+
+The GPG key ensures, should the Whonix infrastructure ever be compromised by a powerful adversary (domain seizure/takeover etc.), that the original Whonix developers can at least prove, that they are the same people who owned the infrastructure.
+
+Even if you distrust Whonix developers, gpg verifying binary downloads or git tags is still useful. If you want to audit Whonix, you should ensure, that you actually got the stuff from Whonix developers and that no third party tampered with it. Examples:
+
+* [An attacker could modify source codes on github](http://www.extremetech.com/computing/120981-github-hacked-millions-of-projects-at-risk-of-being-modified-or-deleted)
+* [sourceforge hacked](http://sourceforge.net/blog/sourceforge-attack-full-report/)
+* [sourceforge mirror hacked](http://www.theregister.co.uk/2012/09/26/sourceforge_backdoor_code_compromise/)
+
+# Whonix developer GPG guidelines #
+All Whonix developers who use long term pseudonyms, are encouraged to:
+
+* Create a 4096/4096 RSA/RSA GPG key.
+* Get the latest gpg.conf (currently in T-W script) for stronger hashes, no-emit-version, etc.
+* Store the private key inside an encrypted file.
+* Make a backup of that encrypted file.
+* Remember the password, check yourself regularly.
+* Also upload the encrypted file to some (free) online cloud hosting, in case of thief, fire, tornado, etc.
+* Since the project started in 2012, the more early the GPG public key was published, the less likely is it, that the public key is effected from an evil developer attack. Adrelanos expects evil developer attacks not to happen against relatively new, unpopular and insignificant projects.
+
+# evil developer attack #
+This is only a theoretical attack, as far as we know. We are not aware that it ever happened to any software project. This is not an Whonix specific problem. It applies to all open source software projects, but more to those where the developers stay anonymous. Examples for such anonymously developed software projects are TrueCrypt, Tails, i2p, Whonix... As of April 2012 all Whonix developers are also anonymous.
+
+The attack works like this: 
+1. Start a new software project. Alternatively join an existing software project. 
+2. Behave well, publish your sources. Gain trust. 
+3. Build binaries directly from your sources and offer them for download. 
+4. Make a great product, get a lot of users. 
+5. Continue to develop it. 
+6. Make a second branch of your sources and add malware. 
+7. Continue to publish your clean sources, but offer your malicious binaries for download. 
+8. Done! You infected a lot of users. 
+
+It is very difficult for end users to notice this attack. Of course, if all users would be added to a botnet, there would be news about this incident very soon and everyone would know. On the other hand, if the backdoor is barely used, it may remain secret for a long time.
+
+The myth, that open source software is automatically more secure than closed source, is still strong and widespread. Yes, open source has advantages but certainly not for this thread model. Who checks if the binaries are made from the proclaimed source and publishes the results? That is called deterministic builds (google it) and it's quite complicated to archive that. We are not aware of any projects, who done that already. For example, the Tor developers also want to offer it but still struggle, see #3688. If you are interested on how complex it is, also google 'trusting trust'.
+
+All that is very difficult and it all comes back to trust. How can you trust anonymous developers? Even if they where not anonymous, you still do not know them and can not trust them? And even if you know them, can you trust them not to have made any mistakes?
+
+These are serious questions to think about. Whonix is also affected by this issue, just like TrueCrypt, Tails, i2p, etc. Most projects (such as TrueCrypt) do not even admit and inform about this fact. Whonix is just an ordinary software project, unfortunately we are unable to fix all problems in the world.
+
+Whonix doesn't distribute any binaries, only redistributes unmodified upstream binaries, shell scripts, we do not create our own binaries. That's what we claim, but it's a lot easier to verify than if we were distributing our own binaries from source code we wrote. Users should worry about the motives and internal security of everyone contributing to torproject.org, all of the distro devs and maintainers and the hundreds of upstream devs and contributors. Trusted computing base size of a modern operating system today is so ridiculously big and so many people are involved we'd be really surprised if none of the "bugs" were intentional. And then there's the hardware. You think that even AMD could understand an Intel chip or vice versa? Of course one can't compare an anonymous contributor with no investment but time with a multi-national company. On the other hand, detection here is just ridiculously simple (diff the hash sums), while finding and then proving that something is not a bug but a backdoor in a compiler, well designed source code let alone a CPU is impossible. Anonymous or not no longer matters these days. We are in a more or less open "cyber war" or that's what media and lawmakers want us to believe. Fact is, today players are backed by governments, they can use their real identities without fear of repercussion, fake IDs can be created, trustworthy people can be coerced into giving up their GPG and ssh keys if projects even make use of any strong authentication. Judging by the lack of signatures on many open source upstream and even downstream downloads I'm sure many lack any internal security enforcement and still trust DNS to provide authenticity and clear text to provide integrity. About open source, yeah, you can bet Apple, Google and Microsoft have better internal security than the global open source community. However that doesn't make their code trustworthy or says anything about whether closed or open is more secure...
+
+# adrelanos's reasons to stay anonymous #
+For anyone curious to know... Protection and paranoia (depending on definition). Just a few examples...
+
+People failing to understand the software making death threats:
+
+* https://tails.boum.org/forum/Too_frequent_IP_address/#comment-cfc122dfc8de737737c076399250a766
+
+Making threats to "burn down his house", "pay him an overdue visit":
+
+* http://fscked.org/blog/something-rotten-opdarknet
+
+Harassment on border:
+
+* http://www.huffingtonpost.com/2010/08/02/jacob-appelbaum-wikileaks_n_667665.html
+* http://news.cnet.com/8301-27080_3-20012253-245.html
+
+Security and trust shouldn't depend on showing a face:
+
+* [Tails](https://tails.boum.org/forum/Who_is_behind_Tails__63__)
+
+Other reasons:
+
+* Staying out of press with real name.
+* Separating private, professional and project's activities.
+
+# Also interesting #
+* Tails is a live CD or live USB that aims at preserving your privacy and anonymity. [Tails about trust.](https://tails.boum.org/doc/about/trust/index.en.html)
+* I2p (anonymizing network) does also talk about [development attacks](http://www.i2p2.de/how_threatmodel.html#dev).
+* [Qubes: What do the Digital Signatures Prove and What They DO NOT Prove](http://wiki.qubes-os.org/trac/wiki/VerifyingSignatures)
+* [Miron?s Weblog: Attack Scenarios on Software Distributions](http://hyper.to/blog/link/attack-scenarios-software-distribution/)

@@ -1,0 +1,192 @@
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+**WARNING**: Instructions for Whonix 0.4.4 with Physical Isolation are still under development. Advanced Linux users can already understand them.
+
+**WARNING**: [Build Anonymity](https://sourceforge.net/p/whonix/wiki/Security/#build-anonymity) has not been considered for this article.
+
+**WARNING**: This article currently lacks information about Whonix-Gateway's and Whonix-Workstation's MAC address. See also
+
+* [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection)
+* [Whonix in public networks / MAC Address](https://sourceforge.net/p/whonix/wiki/Security/#whonix-in-public-networks-mac-address)
+* [Dev] Mac address in public networks.
+
+[TOC]
+
+# Introduction #
+When setting up Whonix in the form of two VMs running on the same host, exploits targeting the VM implementation or the host can still break out of the torified Client VM and expose the IP of a user. Malware running on the host has full control over all VMs. To prevent against such attacks we need a different approach: In this context we called it Physical Isolation, because the gateway system is installed on separate hardware. This drastically reduces the [TCB](https://en.wikipedia.org/wiki/Trusted_computing_base) by more than the half.
+
+In total we'll be installing and configuring two computers and set up an isolated point to point network between them (you could also set up a an ordinary, completely isolated, LAN behind the Whonix-Gateway. One computer acts as the client or "Whonix-Workstation", the other as a proxy or "Whonix-Gateway" which will transparently route all of the Whonix-Workstation's traffic through Tor.
+
+The Whonix-Gateway on its own physical device can be running either directly on hardware or inside a virtual machine. Both options have advantages and disadvantages. We recommend to use no additional Virtual Machine for the Whonix-Gateway.
+
+The Whonix-Workstation should always be installed in a Virtual Machine: A VM hides hardware serial numbers. See also [Recommendation to use multiple VM Snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots).
+
+## Using spare hardware + Virtual Machine ##
+Advantages:
+
+* You can install a graphical host.
+* Use the Whonix download version.
+* You can use the graphical network manager on the host, for example to connect to WiFi.
+* You can setup easily a VPN on the host. Tor will be tunneled through the VPN.
+
+Disadvantages:
+
+* Higher attack surface, because the Virtual Machine code get's involved.
+
+## Using spare hardware without Virtual Machine ##
+Advantages:
+
+* More secure, because less code is involved.
+
+Disadvantages:
+
+* Slightly more complicated setup
+* More difficult to set up VPN
+* More difficult to set up 3G networking compared to using a Windows host
+
+## Hardware ##
+We recommend that you use two dedicated computers for Whonix that are never used for activities that could lead back to your identity. Alternatively you can use an already existing and otherwise used computer for the Whonix-Gateway. To offer some isolation you should disconnect all internal and external drives and boot from a eSATA, USB or another internal drive into a clean environment.
+
+### non-anonymous use ###
+* non-anonymous box (leave it as is is, like you want)
+* non-anonymous home dial up internet router (leave it as is is, like you want)
+
+### anonymous use ###
+* Whonix-Gateway
+    * This really does not have to be a big desktop computer or ordinary server. There are alternatives.
+    * smartphone ^1^, [UMPC](https://en.wikipedia.org/wiki/Ultra-mobile_PC), pad, tablet, notebook, netbook, [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi), router ^2^, set top box, etc.
+    * how to utilize such a device as a linux server is beyond the scope of this guide, there are already better resources
+* anonymous 3G modem (see below) or anonymous wifi adapter (see below)
+* Whonix-Workstation
+    * You get the idea. Use a device which suits you.^1^
+
+<font size="-3">
+,,
+^1^ Just some hints to get started. It is difficult and beyond the scope of Whonix, because you don't have an ethernet interface. Some (after market) firmwares support USB-host. (You can plug USB devices into your phone, such as an USB ethernet card. For example some rooted android smartphones can [install](http://android.galoula.com/en/LinuxInstall/) Debian Linux.
+^2^ something like OpenWRT
+</font>
+
+# Prerequisites #
+* Whonix-Gateway: A device with at least two network adapters, at least one of them ethernet^1^, capable of running Linux. It will run Debian.^2^
+* Whonix-Workstation: A device connected via ethernet to the Whonix-Gateway. It must only have this one NIC and no other network connectivity! Must be connected by wire.^3^ This will be the torified client system or Whonix-Workstation. It must be capable of running Debian.^4^ 
+* We recommend to use a VM as the client, the same Whonix-Workstation, that most non Physical Isolation users use. ^7^
+* Whonix-Gateway is already read and started, host build environment has a working internet connection to Debian mirrors.
+
+<font size="-3">
+,,
+^1^ The other one may be either an [Anonymous 3G modem](https://sourceforge.net/p/whonix/wiki/Security/#anonymous-3g-modem); [Anonymous WiFi adapter](https://sourceforge.net/p/whonix/wiki/Security/#anonymous-wifi-adapter), another ethernet or wifi connected to your modem/router.
+^2^ Theoretically you could use any OS that supports iptables or pf. If you don't want to use Debian you will have to edit the shell script. This will be easy for Debian derivatives but much more difficult for *BSD for example. In any case, the choice of OS shouldn't really matter because this system isn't used for anything but running Tor. A cheap plug computer, something like Raspberry Pi or the hardware used by Torouter would be sufficient.
+^3^ If you don't connect by wire, you significantly weaken isolation and security. One the Whonix-Workstation were infected, it could jump onto another network and start leaking. 
+^4^ Any OS can be used. But this is not recommended! If you do anyway, read warning, especially for Windows: [Transparent Proxy Leaks](https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxyLeaks).
+^5^ A generic VM image can neither leak identifying hardware serial numbers nor unique software fingerprints. (e.g. trough [software updates](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Softwareupdaters)).
+^6^ This ensures that you get the latest security features and most secure configurations. (Such as stream isolation that protects against Identity correlation through circuit sharing, XChat IRC hardening or Whonix's Protocol-Leak-Protection and Fingerprinting-Protection.)
+^7^ From the download page or build yourself from source.
+</font>
+
+# Installation #
+From [BuildDocumentation] general advice about Build Security and Host preparation apply.
+
+## How To Install Whonix-Gateway on hardware (RECOMMENDED) ##
+These instructions were never updated for Whonix 0.2.1. Version 0.4.4 is currently in development. ^1^
+
+<font size="-3">
+,,
+^1^ The Whonix source code should be much more easy to understand, because there are no longer two immensely huge scripts, but all configuration files within their own files.
+</font>
+
+(1). Install Debian Wheezy and chose following settings:
+
+    In the boot menu press F4 and select "Install a minimal system"
+    Language: English
+    Country: United States
+    keyboard layout: English (US) (don't autodetect)
+    Primary network interface: eth0 (depends on hardware layout?)
+    Hostname: debian
+    Full name for the new user: user
+    Username for your account: user
+    Choose a password for the new user: <Set up a strong password>
+    encrypt home directory: No
+    Timezone: UTC
+    Partitioning: It's a good idea to set up cryptsetup based FDE at this point.
+    No proxy
+    No automatic updates 
+    tasksel (Choose software to install): select nothing
+
+(2). The external interface (usually eth0) may need to be configured according to the requirements of your local network, e.g. static or simply left to use dhcp if the gateway is connected to a dhcp capable router. For wlan follow the upstream documentations: [debian wiki](http://wiki.debian.org/WiFi), [Ubuntu help](https://help.ubuntu.com/community/WifiDocs/WiFiHowTo).
+
+(3). Make sure the internet is working.
+
+(4). Install all security updates and reboot.
+
+(5). Before running the whonix_createvm ^2^ script make sure eth1 and eth0 refer to the correct interfaces. *dmesg | grep eth* may be helpful. Otherwise you have to change the variables in the configuration files. To find the affected files *grep -r eth0\** and *grep -r eth1\** may be helpful. ^3^
+
+<font size="-3">
+,,
+^2^ Do not get concerned about the "vm" within whonix_createvm. The name is historically and the functionalty for building an Whonix-Gateway featuring Physical Isolation has been added later. 
+^3^ Should be really only a very few files. We used variables for eth0 and eth1 wherever possible. 
+</font>
+
+(6). On your Whonix-Gateway: It is assumed you created user account named "user".
+
+    su user
+    cd ~
+
+(7). Get latest source code. When 0.4.4 gets released there will be a signed release tag, if you wish a signed release tag of a snapshot in meanwhile please get in contact.
+
+    git clone https://github.com/adrelanos/Whonix
+
+(8). Get into Whonix source folder.
+
+    cd Whonix
+
+(9). Most configuration files work well inside Virtual Machines and on hardware. Only minor things such as deactivating powersaving, passwordless reboot, shutdown etc. are only recommend for Virtual Machines. You can easily comment them out by putting a hash # in front of them. They are marked, to find them, grep can be used.
+
+    grep -r VMONLY*
+
+(10). Copy the pre files on Whonix-Gateway from the Whonix source folder to their correct place.
+
+    sudo ./whonix_createvm -tg-bare-metal-pre
+
+(11). Reboot.
+
+    sudo reboot
+
+(12). whonix_internal_install_script will be automatically started, wait until it finishes. If all goes well, system will power off automatically.
+
+(13). Power on again. Copy the post files on Whonix-Gateway from the Whonix source folder to their correct place.
+
+    sudo ./whonix_createvm -tg-bare-metal-post
+
+(14). Reboot.
+
+    sudo reboot
+
+(15). Done.
+
+## How To Install Whonix-Gateway in a VM (UNTESTED / NOT RECOMMEND) ##
+It is advised to install a new OS just for hosting the Gateway VM, any OS that can run VirtualBox works but we recommend an Open Source system.
+
+Download or build the Whonix-Gateway image.
+
+Adapter 1 can be set up as a NAT network. Adapter 2 must either be set to NAT as well (but you will need to forward ports from the host to the guest) or much simpler: use bridged networking and set it to the second physical interface (the one that goes into the isolated network/point to point ethernet). See "NAT vs Bridging" below.
+
+This configuration is entirely untested and not recommended unless you need to run Tor through a VPN (can't that be done without VMs?) or an unsupported 3G modem and can't afford a 3rd physical device.
+
+## Install Whonix-Workstation ##
+**If the physical network (between Whonix-Gateway and a router) uses 192.168.0.* you need to review and edit all shell scripts you are going to use and switch the internal network to something else!**
+
+Install and update a host OS. The host can be any OS that can run VirtualBox but be aware of [Transparent Proxy Leaks](https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxyLeaks). It is not recommended to use Windows or another other commercial proprietary system.
+
+Download or build the Whonix-Workstation image.
+
+* Instead of setting Adapter 1 (eth0) to internal, you'll need to use bridged or NAT networking!
+
+# NAT vs Bridging #
+Since Whonix-Workstation can see the MAC address of whatever adapter it is connected to, if you use bridget networking you should change the MAC address of the internal interface on the Gateway: [Whonix in public networks / MAC Address](https://sourceforge.net/p/whonix/wiki/Security/#whonix-in-public-networks-mac-address).
+
+If you use NAT you will have to edit the Whonix-Workstation so it uses dhcp or static IP for VBox NAT. The host has to be set to use the static IP configuration as configured in the Whonix-Workstation script. When using NAT for a virtualized Gateway you need to set up port forwarding in VirtualBox.
+
+If you use bridget networking things will (or should, we haven't tested anything yet) just work, the host will have to be configured to use a static IP as well.
+
+# Further required reading #
+[Readme]. The On the host section applies to both computers! 

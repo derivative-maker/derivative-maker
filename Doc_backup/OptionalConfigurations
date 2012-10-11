@@ -1,0 +1,1111 @@
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+These are all OPTIONAL configurations. If you would like to use any of these features, go ahead and follow the instructions. However, you do not have to add any of those additional functions if you see no need for them.
+
+[TOC]
+
+# Using Tor's SocksProxy in Whonix-Workstation #
+    #OptionalFeatureNr.4#
+
+Moved to [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing).
+
+# Best possible protection against Identity correlation through circuit sharing #
+    #OptionalFeatureNr.5#
+
+Moved to [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing).
+
+# More than one Whonix-Workstation #
+Moved to [Using multiple Whonix-Workstations](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations).
+
+# VPN / Tunnel support #
+All kinds of tunnels is possible and tested. Route something Tor through or route through something before connecting to Tor. Read the table of contents at the top of this page, click: [OptionalConfigurations].
+
+<font size="-3">
+Replacing Tor with something is possible as well, although only for some combinations and networks. It's partially done but don't hold your breath for seeing those features finished, see [OtherAnonymizingNetworks](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/).
+</font>
+
+# Tunnel Tor through proxy, VPN or SSH #
+**user -> proxy/VPN/SSH -> Tor**
+
+Read first: [Tor Plus VPN or proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN) and [Whonix VPN disclaimer](https://sourceforge.net/p/whonix/wiki/Authorship/#whonix-vpn-disclaimer).
+
+This section is not fully tested/complete. Please give feedback if it worked for you.
+
+Sometimes you are **forced to use a proxy or VPN** to make outgoing connections, some ISP's force you, or you are in a LAN with a proxy (router), or in a cooperate environment.
+
+A proxy, VPN or SSH can also be possibly **used to circumvent Tor blocks** or to **hide the fact you are using Tor**. VPN and SSH are preferred choice, as they support secure encryption between you and them. It's a question, how much you can trust the server, they'll see, that you are using Tor, but thanks to Tor, they won't see what you are doing. If you use your own server in a safe country, while you are in a dangerous country, that's probable your best bet. Anyway, not so many people seem to do use a tunnel before they connect to Tor, therefore it's not so well tested, do not rely on it too much.
+
+If nothing above applies for you, skip this section.
+
+## Tunnel Tor through proxy ##
+**user -> proxy -> Tor**
+
+Depending on your proxy configuration, add the settings you'll need to your /etc/torrc. For more information on these settings, have a look in the [Tor manual](https://www.torproject.org/docs/tor-manual.html.en) and read the [FAQ](https://trac.torproject.org/projects/tor/wiki/doc/TorFAQ#MyInternetconnectionrequiresanHTTPorSOCKSproxy). *nano /etc/tor/torrc*
+
+    HTTPProxy host[:port]
+    HTTPProxyAuthenticator username:password
+    HTTPSProxy host[:port]
+    HTTPSProxyAuthenticator username:password
+    Socks4Proxy host[:port]
+    Socks5Proxy host[:port]
+    Socks5ProxyUsername username
+    Socks5ProxyPassword password
+
+## Tunnel Tor through SSH ##
+** user -> SSH -> Tor**
+
+This chapter is about tunnel Tor through a SSH tunnel.
+
+First we have to install the ssh client.
+
+    apt-get install ssh
+
+Then be sure that your SSH connection itself is working well. SSH to your ssh server using *ssh yourusername@your.ssh.server*. It's recommend to set up public key authentication. (TODO: how to create a private and public key) *cd /home/yourusername*, *mkdir .ssh*, *nano authorized_keys*, paste line beginning with *ssh-rsa ...* (your public key) (TODO: how to create that line).
+
+*exit* (terminate SSH connection) and login again using public key authentication. (TODO: how to do that) When that is working install your favorite text mode browser, for example *apt-get install lynx* and test if the shell's external internet connection is working. 
+*lynx check.torproject.org* You're done with the pre-requriements. Exit your shell. *exit*
+
+Now we will tell the SSH client to start a socks5 proxy server listening on localhost 127.0.0.1 port 1080. The following command has to be run in background (TODO: add line how to do that) on each start up, before Tor starts (TODO: to which file, to do that). It would be wise to activate public key authentication (TODO: how to add private key to use public key authentication).
+
+    ssh -C -D 1080 your.ssh.server
+
+Now we have to tell Tor to use the new local ssh server. *nano /etc/torrc* and add
+
+    Socks5Proxy 127.0.0.1:1080
+
+We are done, from now Tor will connect through the SSH server.
+
+(TODO: any new firewall rules needed?)
+
+## Tunnel Tor through VPN ##
+**user -> VPN -> Tor**
+
+There are too many different VPN protocols. To many to add all of them to this guide. If you are forced to use a VPN server or if you are already using a VPN server, you most likely know how you can connect to it. You must know how to connect to your VPN server from the linux command line. Use the following order, start the firewall, connect to your VPN and start Tor afterwards.
+
+If you are using VPN not **because you are forced to use VPN by your ISP**, but to **hide the fact that you are using Tor** or want to **add an additional layer of protection**, then be sure, that your VPN software is secure (ex: OpenVPN, not pptp). When your VPN is properly set up, all your connections are forced through the VPN. If you start Tor at the top of that, tunnel Tor through VPN will work.
+
+TODO: protection on linux needed. Do not to send something in clear, 
+- when VPN connection breaks down 
+- when VPN client crashes or gets terminated 
+
+# Tunnel Proxy/SSH/VPN through Tor #
+**user -> Tor -> Proxy/SSH/VPN**
+
+Read first: [Tor Plus VPN or proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN) and [Whonix VPN disclaimer](https://sourceforge.net/p/whonix/wiki/Authorship/#whonix-vpn-disclaimer).
+
+You can tunnel through Tor first and add an additional proxy, SSH or VPN hop at the very end of that chain as your "exit node". The services you connect to, will not know, that you are using Tor (unless it's a "transparent proxy" in sense of sending http forwarded for, covered in the article linked above). This can be useful to **evade Tor bans**, for example, to visit websites or IRC networks who blacklisted Tor. Beware of the risks, this adds a "permanent exit node", read [Tor Plus VPN or proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN).
+
+To do that, go to your Whonix-Workstation and add the proxy, SSH or VPN normally, like you would have to do, if you wouldn't use the Whonix-Gateway.
+
+[Protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO) still apply, thought to a lesser extend. Leaks would *only* leak through Tor and you have best possible [Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection).
+
+## Tunnel proxy through Tor ##
+**user -> Tor -> proxy**
+
+Note, that the connection, between the Tor exit node and the proxy, is in most cases, not encrypted.
+
+### Proxy Settings Method ###
+Very simply to set up. Simply add a proxy to your application's proxy settings or use a [socksifier](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO).
+
+### Transparent Proxying ###
+[torproject.org wiki version 129](https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/OptionalConfigurations?version=129#TransparentProxying) contains an old example using privoxy, JonDo and httpsdnsd. The new example uses redsocks and is simpler.
+
+#### Introduction ####
+You always have to keep in mind, which kind of data and which kind of proxy you are using. There are CGIproxies, http(s) proxies and socks4/4a/5 proxies.
+
+In case you redirect the network layer directly with iptables, you need a TransPort. Unfortunately very few applications, do offer a TransPort. For example, Tor supports a TransPort. In most other cases, you need to translate the different kinds of data.
+
+Due to the nature of Transparent Proxying, we need to redirect with iptables and end up with a "Trans data stream". Because most proxies are either http or socks we need to translate this. Below we discuss a few tools which help here, not all are required, depending on what you want to do.
+
+Required reading: 
+
+* [proxy](https://trac.torproject.org/projects/tor/wiki/doc/proxy)
+* [Tor Plus VPN or proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN)
+
+##### Tools #####
+Tor is a socks proxy and also has a TransPort. Unfortunately, Tor can not be directly used as a http proxy. You must also keep in mind, that Tor does not support UDP, although it offers a DnsPort..
+
+[redsocks](http://darkk.net.ru/redsocks/) can also accept "Trans data streams" and can forward them to http**s**, socks4 and socks5 proxies. If you were to use a http proxy (no https, without connect-method, see proxy article), you could access only http sites, no https sites. Rather redsocks can convert UDP DNS queries to TCP DNS queries.
+
+##### DNS resolution #####
+The complication (and also advantage/feature) with transparent proxying is, that the internet application (browser, etc.) is not aware of the proxy. Therefore the internet application will attempt to do the DNS resolution itself using the system, not using the proxy. The DNS requests also must be considered. Since Tor does not support UDP, we have to transmit DNS queries via TCP.
+
+It is impossible to resolve DNS directly on the proxy, when using the proxy as a transparent proxy, see [Transparent Proxying Method](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/#transparent-proxying-method) for explanation. You need an extra DNS server, which answers over TCP.
+
+You have several options to resolve DNS.
+
+Either leave the setup as it is, Tor's DnsPort and therefore the Tor exit nodes will still do the DNS requests. (See DNS rule 1.) This is probable not what you want, since you wanted to cloak your identity with an additional proxy after Tor.
+
+Alternatively you can use a public DNS resolver. The instructions for [DNSCrypt by OpenDNS](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#dnscrypt-by-opendns)^4^ should work out of the box (tested). (See DNS rule 2..) (See footnotes ^1^, ^2^ and ^3^ if you are looking for other alternatives.)
+
+Read the [DNS related warnings](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#secondary-dns-resolver).
+
+<font size="-3">
+,,
+^1^ Also [httpsdnsd by JonDos](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#httpsdnsd-by-jondos)^4^ might work, but you'd need to make some changes (use httpsdnsd as a system wide, Whonix-Workstation wide, DNS resolver, not just for a specific user account).
+^2^ Or perhaps also [ttdnsd](http://www.mulliner.org/collin/ttdnsd.php) with Google could work. All [DNS resolvers](https://en.wikipedia.org/wiki/Comparison_of_DNS_server_software) should work, as long TCP is supported and as long you are querying a TCP enabled DNS server.
+^3^ You can't simply add another public DNS resolver (i.e. OpenDNS or Google) to /etc/resolv.conf in Whonix-Workstation (i.e. Tor -> public DNS resolver), it would have no effect, as explained under [Whonix-Workstation is firewalled](https://sourceforge.net/p/whonix/wiki/Applications/#whonix-workstation-is-firewalled).
+^4^ DNSCrypt and httpsdnsd add the advantage, that neither the proxy nor the Tor exit node can sniff or manipulate your DNS requests, since they are encrypted and authenticated.
+</font>
+
+#### HowTo ####
+Everything on Whonix-Workstation.
+
+Get a working proxy and test if it works reliable.
+
+Install [redsocks](http://darkk.net.ru/redsocks/).
+
+Config redsocks. TODO: share config.
+
+Add user redsocks.
+
+    sudo adduser redsocks
+
+Start redsocks.
+
+    sudo -u redsocks ./redsocks
+
+
+Create a fw.sh and use this firewall rules.
+
+    #!/usr/bin/bash
+    # These iptables rules redirect the traffic for all users,
+    # including root, with the exception of the user redsocks,
+    # through the proxy.
+
+    ## TODO: these iptables rules need review.
+
+    # Choose either DNS rule #1 or DNS rule #2.
+
+    # For debugging/testing use this command in console.
+    # tail -f /var/log/syslog
+
+    # Flush old rules.
+    iptables -F
+    iptables -t nat -F
+    iptables -X
+
+    # Allow unlimited traffic on the loopback interface.
+    iptables -A INPUT -i lo -j ACCEPT
+    iptables -A OUTPUT -o lo -j ACCEPT
+    iptables -A OUTPUT --dst 127.0.0.1 -j ACCEPT
+
+    # Established incoming connections are accepted.
+    iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # Established outgoing connections are accepted.
+    iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    # DNS rule #1.
+    # Allow DNS directly through Whonix-Gateway.
+    iptables -A OUTPUT --dst 192.168.0.10 -p udp --dport 53 -j ACCEPT
+
+    # DNS rule #2.
+    # For DNSCrypt set /etc/resolv.conf to
+    # nameserver 127.0.0.1
+    #
+    # sudo dnscrypt-proxy --tcp-only --user=user
+    #
+    # DNSCrypt listening on port 53
+    iptables -t nat -A OUTPUT --dst 127.0.0.1 -p udp --dport 53 -j ACCEPT
+    iptables -t nat -A OUTPUT --dst 127.0.0.1 -p tcp --dport 53 -j ACCEPT
+
+    # redsocks must be allowed to establish direct connections.
+    iptables -A OUTPUT -j ACCEPT -m owner --uid-owner redsocks
+    iptables -t nat -A OUTPUT -j ACCEPT -m owner --uid-owner redsocks
+
+    # Redirect remaining traffic to redsocks.
+    iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-port 12345
+
+    # TODO: UDP rule untested.
+    #iptables -t nat -A OUTPUT -p udp -j REDIRECT --to-port 10053
+
+    # Log blocked traffic for debugging.
+    iptables -A OUTPUT -j LOG --log-level 4 --log-prefix "iptables: "
+
+    # Reject all other traffic.
+    iptables -A OUTPUT -j REJECT
+
+Make the firewall script executable.
+
+    sudo chmod +x fw.sh
+
+
+Apply the firewall rules.
+
+    sudo ./fw.sh
+
+## Tunnel SSH through Tor ##
+**user -> Tor -> SSH**
+
+This chapter is not about connecting to a SSH server as a client (see Whonix in general and the Torify HOWTO). It is about adding an extra SSH tunnel after Tor.
+
+Note, that even though SSH supports socks5, SSH is still not able to forward UDP on its own. Have a look the the [source](http://zarb.org/~gc/html/udp-in-ssh-tunneling.html) of that information. To summarize: to tunnel UDP over SSH client and shell admin need a special setup, which is for most shells, not going to happen.
+
+A SSH tunnel will provide a local socks5 proxy. Create the SSH tunnel in the Whonix-Workstation. From there you'll end up with a local socks5 proxy. You can use this socks5 proxy following the proxy instructions above. Once the SSH tunnel is established, there are not many differences, besides the difference already clarified above about UDP and that the warning about missing encryption to the proxy does not apply to SSH tunnels, since SSH is encrypted. The SSH process needs to be allowed to access the internet directly, if you use transparent proxying, run the SSH process under an account, which is privileged to access the internet directly.
+
+Another untested method may be [sshuttle](https://github.com/apenwarr/sshuttle).
+
+## Tunnel VPN through Tor ##
+**user -> Tor -> VPN**
+
+Note, that you have to choose TCP transport, because Tor does not support UDP.
+
+**Warning:** 
+For users who configured applications to use SocksPort, instant of TransPort. (Whonix's Whonix-Gateway default setting for some applications, Tor Browser, ...!)
+
+SocksPort is used to prevent [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing). As [Tor Plus VPN or proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN) explains, you have to keep in mind, a VPN behind Tor adds a permanent exit node.
+
+Rather, all applications, which are configured to use SocksPort, will not be tunneled through the VPN. They will be "only" tunneled through Tor. This is because, the VPN will not touch connections to 192.168.0.10, which is the Whonix-Gateway. For example, if you wish to tunnel through Tor -> VPN, you have to remove all proxy settings from Tor Browser. check.torproject.org will tell you then "You are not using Tor." and you'll see your VPN's IP. In fact your VPN was tunneled through Tor first. (Because Whonix-Workstation can not make any non-Tor connections by design, everything is tunneled over Tor.) When you stop your VPN for test reasons (*sudo /etc/init.d/openvpn stop*), it will show "You are using Tor." again.
+
+While you are using a VPN behind Tor, you probable also may not be able to make use of the upcoming stream isolation feature, which is planed Tor Browser. (#3455) This is because Tor Browser would not talk to Tor directly anymore. Tor Browser would connect to the VPN instant.
+
+VPN servers and VPN software can occasionally break down without announcement. Whonix-Workstation will seamlessly continue to make "direct" connections through Tor once the VPN breaks down. This is not a Whonix specific problem. Most users are simply not aware of it. This happens also with the common setup, where the VPN simply runs on a host. If you want to enforce, that the VPN is always tunneled over Tor, have a look at the modified routing table [VPN](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/#vpn).
+
+Also note, that once Whonix-Workstation gets rooted by malware, the VPN can be easily circumvented by the attacker and you are left to the protections by Whonix and Tor.
+
+By design, a VPN routes all your applications (those without any proxy settings, as explained above) through the VPN. You may not want this, as explained above (Identity correlation through circuit sharing). To circumvent that, you should use this Whonix-Workstation only for the particular application you want to route through the VPN. You are advised to read [Multiple Whonix-Workstations](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations).
+
+# A Free example VPN working with Whonix for testing purposes #
+Read first [Whonix VPN disclaimer](https://sourceforge.net/p/whonix/wiki/Authorship/#whonix-vpn-disclaimer).
+
+Can be either:
+
+* [Tunnel VPN through Tor](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-proxysshvpn-through-tor). (Read first!) (Install on Whonix-Workstation.)
+* [Tunnel Tor through VPN](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-tor-through-proxy-vpn-or-ssh). (Read first!) (Install on Whonix-Gateway.)
+
+The purpose of this chapter is mainly to demonstrate, how easy it is, to add a VPN to Whonix. Unfortunately securityKISS.com drops many TCP and UDP ports beside ports 80 and 443. That limits it's usefulness for testing purposes, such as [Tunnel UDP over Tor](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-udp-over-tor). If you know a less restrictive free VPN provider, we'd be thankful for a comment.
+
+Install openvpn.
+
+    apt-get install openvpn
+
+Register at securitykiss.com and leave no personal information. Use an extra e-mail address for registration, which you will never use for anything else. Login and download their OpenVPN package to /home/user. Unpack. The folder contains contains ca.cert, client.cert, client.key, README.txt (with list of their servers and ports). Rename the folder to securitykiss. Structure should be like /home/user/ca.cert etc.
+
+*nano /etc/openvpn/client.conf*, edit server IP and port and past it. (It's almost only the default openvpn client.conf with minor changes.)
+
+    ##############################################
+    # Sample client-side OpenVPN 2.0 config file #
+    # for connecting to multi-client server.     #
+    #                                            #
+    # This configuration can be used by multiple #
+    # clients, however each client should have   #
+    # its own cert and key files.                #
+    #                                            #
+    # On Windows, you might want to rename this  #
+    # file so it has a .ovpn extension           #
+    ##############################################
+
+    # Specify that we are a client and that we
+    # will be pulling certain config file directives
+    # from the server.
+    client
+
+    # Use the same setting as you are using on
+    # the server.
+    # On most systems, the VPN will not function
+    # unless you partially or fully disable
+    # the firewall for the TUN/TAP interface.
+    ;dev tap
+    dev tun
+
+    # Windows needs the TAP-Win32 adapter name
+    # from the Network Connections panel
+    # if you have more than one.  On XP SP2,
+    # you may need to disable the firewall
+    # for the TAP adapter.
+    ;dev-node MyTap
+
+    # Are we connecting to a TCP or
+    # UDP server?  Use the same setting as
+    # on the server.
+    proto tcp
+    ;proto udp
+
+    # The hostname/IP and port of the server.
+    # You can have multiple remote entries
+    # to load balance between the servers.
+    remote 91.121.208.218 443
+    ;remote my-server-2 1194
+
+    # Choose a random host from the remote
+    # list for load-balancing.  Otherwise
+    # try hosts in the order specified.
+    ;remote-random
+
+    # Keep trying indefinitely to resolve the
+    # host name of the OpenVPN server.  Very useful
+    # on machines which are not permanently connected
+    # to the internet such as laptops.
+    resolv-retry infinite
+
+    # Most clients don't need to bind to
+    # a specific local port number.
+    nobind
+
+    # Downgrade privileges after initialization (non-Windows only)
+    user nobody
+    group nogroup
+
+    # Try to preserve some state across restarts.
+    persist-key
+    persist-tun
+
+    # If you are connecting through an
+    # HTTP proxy to reach the actual OpenVPN
+    # server, put the proxy server/IP and
+    # port number here.  See the man page
+    # if your proxy server requires
+    # authentication.
+    ;http-proxy-retry # retry on connection failures
+    ;http-proxy [proxy server] [proxy port #]
+
+    # Wireless networks often produce a lot
+    # of duplicate packets.  Set this flag
+    # to silence duplicate packet warnings.
+    ;mute-replay-warnings
+
+    # SSL/TLS parms.
+    # See the server config file for more
+    # description.  It's best to use
+    # a separate .crt/.key file pair
+    # for each client.  A single ca
+    # file can be used for all clients.
+    ca /home/user/securitykiss/ca.crt
+    cert /home/user/securitykiss/client.crt
+    key /home/user/securitykiss/client.key
+
+    # Verify server certificate by checking
+    # that the certicate has the nsCertType
+    # field set to "server".  This is an
+    # important precaution to protect against
+    # a potential attack discussed here:
+    #  http://openvpn.net/howto.html#mitm
+    #
+    # To use this feature, you will need to generate
+    # your server certificates with the nsCertType
+    # field set to "server".  The build-key-server
+    # script in the easy-rsa folder will do this.
+    ns-cert-type server
+
+    # If a tls-auth key is used on the server
+    # then every client must also have the key.
+    ;tls-auth ta.key 1
+
+    # Select a cryptographic cipher.
+    # If the cipher option is used on the server
+    # then you must also specify it here.
+    ;cipher x
+
+    # Enable compression on the VPN link.
+    # Don't enable this unless it is also
+    # enabled in the server config file.
+    comp-lzo
+
+    # Set log file verbosity.
+    verb 3
+
+    # Silence repeating messages
+    ;mute 20
+
+
+To initially start the VPN type:
+
+    sudo /etc/init.d/openvpn start
+    sudo openvpn /etc/openvpn/client.conf
+
+
+After rebooting the VPN will be automatically started. 
+
+If you do not wish to start the VPN automatically for some reason: *nano /etc/default/openvpn*
+
+    AUTOSTART=="none"
+
+# Connect to a Tor Gateway on your local network using PPTP VPN #
+For what this is useful: PPTP is used because it's very easy to configure and well supported by all kind of devices. Compared to a proper set up with a hardware gateway between the internet and the devices you want to torify it's less secure but doesn't require any kind of hardware or network layout changes.
+
+Moved to [PPTP].
+
+# Hosting hidden services #
+Read first: [Hidden Services](https://sourceforge.net/p/whonix/wiki/Security/#hidden-services).
+
+You can provide **any** server service, which relies on TCP. 
+
+## Hidden webserver ##
+    #OptionalFeatureNr.2#
+
+### Whonix 0.2.1 and above ###
+On your Whonix-Gateway:
+
+Open torrc.
+
+    nano /etc/tor/torrc
+
+Look for #OptionalFeatureNr.2#. Read the comments, which explain where to find your .onion URL and to backup your hidden service keys. Comment in the following two lines.
+
+    HiddenServiceDir /var/lib/tor/hidden_service/
+    HiddenServicePort 80 192.168.0.11:12345
+
+Restart Tor.
+
+    sudo service tor reload    
+
+On your Whonix-Workstation:
+
+Run the following command. It will install lighttpd.
+
+    sudo hiddenserver-install
+
+Done.
+
+# Vidalia for Whonix #
+Not recommend. Better use arm. (See Readme.)
+
+You have two possibility to get Vidalia. 1. Vidalia on the Host and 2. Vidalia on the Whonix-Gateway. Each option has it's pros and cons, we'll discuss here.
+
+## 1. Vidalia on the Host ##
+Ok, this is an ugly hack, but it works. Vidalia can be installed on the host, in this example on a Windows host but you can most likely do it also on a Linux host. We have to "trick" Vidalia because Vidalia really wants to start Tor.
+
+You will be able to stop Tor using Vidalia, but not be able to start it again. Restarting Tor has to be done manually in console or ssh. "Start proxy application when Tor starts" will probable work (untested) but it will start it on the host and not on the Whonix-Gateway. What also won't work are all settings which modify torrc, because our torrc will be just a dummy one and the real torrc is inside the Whonix-Gateway. All settings in the settings, network tab won't work. Neither the "Sharing/Setup Relaying" tab will work (there will be instructions how to do it manually in torrc for the Whonix-Gateway). Services tab will also not work, this is covered above under Hosting Hidden Services. The "Start Tor" button will actually not start Tor, but connect to the Control Port inside the Whonix-Gateway. "View the network", "Use a New Identity" and "Message Log" should be functional.
+
+(0) You need to ensure yourself, that port 9051 is firewalled on your host. It must not be accessible from the internet.
+(1) Create a folder Vidalia somewhere you like it. Ensure that your current user account has the neccessary rights read, create, modify. 
+(2) Grab some dummy exe, for example cmd.exe from C:\Windows\System32\cmd.exe and copy it to your new Vidalia folder. 
+(3) Login as root *sudo su*. Go to your Whonix-Gateway and type in console.
+
+    tor --hash-password password
+
+This will result in something like
+
+    16:E61CFDC2FF3FDCDE605D8EDC3631F268B554612B0721E99F95588282B5
+
+    copy it into the clipboard.
+
+(4) *nano /etc/tor/torrc* and add
+
+    ControlPort 9051
+    ControlListenAddress 10.0.2.15:9051
+    HashedControlPassword 16:E61CFDC2FF3FDCDE605D8EDC3631F268B554612B0721E99F95588282B5
+
+(5) *nano /etc/firewall.sh* and look out for the following
+
+    # Allow incoming SSH connections on the external interface
+    iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
+
+and add additionally the following below
+
+    # Allow incomming Tor ControlPort connections on the external interface
+    iptables -A INPUT -i $EXT_IF -p tcp --dport 9051 -j ACCEPT
+
+(6) Then go to your host and create a file named *control_auth_cookie* inside your Vidalia folder. Insert the password only, this example we used "password". Choose your secure password. control_auth_cookie has no file extension, be sure that Windows will normally show you file extensions (like .exe, .pdf...), otherwise you will be probable unable to create a file without extension.
+
+(7) We need a start file, otherwise Vidalia will use the default documents and settings folder. Call it *vidalia.bat* and create it inside your Vidalia folder. The content of vidalia.bat must be
+
+    start do_not_start.exe --datadir .\\
+
+(8) And of course you will be needing the Vidalia binaries. Download the Tor Browser Bundle for your platform. Go to *\Tor Browser\App\* and copy the following files into your Vidalia directory.
+
+    libeay32.dll
+    libgcc_s_dw2-1.dll
+    libgnurx-0.dll
+    mingwm10.dll
+    QtCore4.dll
+    QtGui4.dll
+    QtNetwork4.dll
+    QtXml4.dll
+    ssleay32.dll
+    vidalia.exe
+
+tor.exe and tor-resolv.exe will not be needed (we have our own dummy tor.exe).
+
+(9) Rename vidalia.exe to do_not_start.exe.
+
+(10) Create a file called *vidalia.conf* inside your Vidalia directory. The content must be
+
+    [Tor]
+    TorExecutable=.\\tor.exe
+    Torrc=.\\torrc
+    DataDirectory=.\\
+    UseRandomPassword=false
+    ControlPassword=password
+    Changed=true
+    ControlPort=9052
+    ControlAddr=127.0.0.1
+
+(11) Create a file torrc inside your Vidalia directory, leave it empty, it's just another dummy file for Vidalia's fate.
+
+(12) In the Whonix-Gateway VM network settings. Set up Port Forwarding: within the "Adapter 1" tab click "Advanced", then Port Forwarding. Insert a new rule as follows: Name: Vidalia; Protocol: TCP; Host IP: 127.0.0.1; Host Port: 9052; Guest IP: leave blank; Guest Port: 9051
+
+(13) That's it. From now you can vidalia.bat. For your convinience create a shortcut of vidalia.bat on your desktop.
+
+((Optional, for debugging if you have problems. 
+We test if the IP/Port is reachable from the host. *telnet 192.168.0.10 9051*, press enter should say "514 Authenication required."))
+
+(([FAQ](https://trac-vidalia.torproject.org/projects/vidalia/wiki/FAQ Vidalia)))
+
+## 2. Vidalia on the Whonix-Gateway ##
+Install a "minimal" desktop environment on the Whonix-Gateway:
+
+    sudo apt-get install xinit xterm openbox vidalia
+
+You'll be asked to add your user to the debian-tor group. Do so! To apply this change you need to log out (type *exit*) and log in again. Then use *startx* from the console to launch the graphical desktop. Right-click on the desktop to open the menu, open a terminal and from that launch vidalia. A more user-friendly graphical environment would drastically increase RAM requirements and [attack surface](https://en.wikipedia.org/wiki/Attack_surface).
+
+Do not be tempted to use Whonix-Gateway as a client OS! Also remember that anything you do on the gateway is NOT routed through Tor.
+
+# How to safely transfer files between Host, Whonix-Gateway and Whonix-Workstation #
+Using filesharing built into the VM isn't very secure. Between the gateway and the host you can use ssh and scp but the Whonix-Gateway is firewalled tightly (and you should leave it that way). A secure and quick way to transfer files to the client vm is to use iso files:
+On the host install genisoimage: 
+
+    sudo apt-get install genisoimage
+
+To create an iso "files.iso" containing the content of "folder": 
+
+    mkisofs -o files.iso /path/to/folder
+
+Now attach the iso to the VM. Mount it with 
+
+    sudo mount /dev/sr0 /media/cdrom
+
+This is intentionally one-way as the Whonix-Workstation is inherently untrusted and should remain isolated to prevent side-channel attacks and covert channel leaks.
+
+# Whonix implementation with just a single VM (Tor runs on host) #
+More info on [OneVM].
+
+# Hosting a (private) (obfuscated) bridge or (exit) relay #
+You can still volunteer to Tor and host a bridge, private bridge, obfuscated bridge, private obfuscated bridge, middle node or exit relay when you are using Whonix. Either inside the Whonix-Gateway or directly on the host.
+
+## Inside the Whonix-Gateway ##
+This chapter hasn't been tested for a long time. Get in contact if you are interested in this feature.
+
+Simply follow all the usual instructions given on torproject.org inside the Whonix-Gateway just as you would, if Tor wouldn't run inside a virtual machine. The only additional thing to do is to set up a port forwarding from the host to the virtual machine. That is simple. 
+
+What's left are the firewall rules. On the Whonix-Gateway *sudo nano /usr/local/bin/whonix_firewall* and look out for
+
+    # Allow incoming SSH connections on the external interface
+    iptables -A INPUT -i $EXT_IF -p tcp --dport 22 -j ACCEPT
+
+    below that simply add similar
+
+    # Tor
+    iptables -A INPUT -i $EXT_IF -p tcp --dport YOURPORT -j ACCEPT
+
+## On the host ##
+And if you do not like using the Whonix-Gateway for this purpose, you can still host it directly on the host, simply follow the usual instructions on torproject.org.
+
+# Hide the fact that you are using Tor/whonix #
+Depending on how restricted your area is and how paranoid you are, you may want to hide the fact from your provider, that you are a Tor user. That's very tricky to archive. Be very careful. Here are some tips:
+
+Whonix users are most likely Tor power users. They are more paranoid then normal Tor users. And adversaries might ask themselves why. Whonix users most likely [host hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) or do other fancy stuff over Tor.
+
+This isn't a step by step tutorial. It's recommend to read the whole chapter.
+
+Use either private and obfuscated bridges or a VPN/SSH proxy. It's most secure if you combine both ways. 
+
+## Warnings ##
+* Download Tor through a trusted internet service provider (in your (home) country) or through SSH or VPN (or before entering a hostile environment).
+* Setup the SSH/VPN tunnel or the private obfuscated bridges first. (Depending on what you want to use, read below.)
+* Remove your internet connection while installing. (Tor starts and connects automatically after installing the .deb.)
+* First, think about, how do you obtain the Tor Browser Bundle and obfuscated bridges and/or VPN and/or SSH, without your ISP noticing it? It's a chicken egg problem. You most likely have to get it from a trusted source. This isn't a problem, which Whonix could solve, it's a Tor upstream question.
+* Another issue for hiding your Whonix usage is installing and/or downloading Whonix.
+* Download.
+    * If you download Whonix form sf.net that download will go unencrypted and your internet service provider (or SSH/VPN provider) will learn, that you downloaded Whonix.
+        * A workaround could be, to download Whonix through the official torproject.org Tor Browser Bundle.
+        * You have to turn off your network connection while starting it for the first time. Then set everything to hide your Tor/whonix usage. See #OptionalFeatureNr.1# and below.
+* Building from Source.
+    * You can learn everything about building Whonix, using the Tor Browser Bundle.
+    * If you are building Whonix from source, the build scripts, will execute a specific set of apt-get commands, and your internet service provider could notice, that you are building Whonix from source.
+    * If you understand the build scripts, you can also manually build Whonix, by applying the commands (or edit the script).
+        * Whonix-Gateway script Don't execute most of the apt-get commands.
+        * Whonix-Workstation script: Choose -custom and check, that the remaining essential modules, do not issue suspicious network connectivity. For example, the config_torbrowser module would download specific GPG public keys from the keyserver and execute specific wget commands.
+
+## Using a Proxy ##
+Impossible! (The connection between you and your proxy is unencrypted. That goes for all proxies, http, https, socks4, socks4a, socks5.) Your ISP could still see, that you are connecting to the Tor network.
+
+## Using SSH or VPN ##
+WARNING. some of this may be outdated. By default all traffic of Whonix-Gateway is routed through Tor! You need to route all that through SSH/VPN.
+
+See warnings above first. Tunnel all Tor related traffic first through a [VPN](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-tor-through-vpn) or [SSH](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-tor-through-ssh) server, this will hide the fact that you use Tor from your ISP. If the server is outside a national firewall this is also a way to circumvent Tor censorship.
+
+If you do not trust any SSH or VPN providers, then anonymously host your own in a safe place.
+
+## Using private and obfuscated bridges ##
+See warnings above first. Set up Tor to use [private and obfuscated bridges](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#using-private-obfuscated-bridges). This makes it harder for ISPs and national firewalls to detect and block Tor but it does not prevent a dedicated adversary to find out that you are using Tor (research is ongoing, see obfsproxy).
+
+# Whonix on Bare Metal #
+Using hardware instant of virtual machines. More secure. See [PhysicalIsolation].
+
+# Leak Testing #
+    #OptionalFeatureNr.6#
+
+See [LeakTests].
+
+# Anonymous 3G modem #
+Improves anonymity. See [Anonymous 3G modem](https://sourceforge.net/p/whonix/wiki/Security/#anonymous-3g-modem).
+
+# Anonymous wifi adapter #
+Improves anonymity. See [Anonymous WiFi adapter](https://sourceforge.net/p/whonix/wiki/Security/#anonymous-wifi-adapter).
+
+# Other Anonymizing Networks #
+It's possible to use other anonymizing networks in together with Whonix. Either in addition (tunneled through Tor) or as a replacement for Tor. See [Other Anonymizing Networks](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/).
+
+# Other Operating Systems #
+Whonix-Gateway can torify any operating system, see [Other Operating Systems](https://sourceforge.net/p/whonix/wiki/OtherOperatingSystems/).
+
+# Tunnel UDP over Tor #
+The Tor software does not support UDP itself yet. Whonix provides a limited workaround for using UDP anyway, in the best possible secure manner.
+
+Moved to [Tunnel UDP over Tor](https://sourceforge.net/p/whonix/wiki/TunnelUDPoverTor/).
+
+# Secondary DNS resolver #
+Normally Tor is used for DNS resolution. If you suspect a Tor exit node to tamper with DNS, you can get a second opinion from another non-Tor DNS server.
+
+You shouldn't use other DNS resolvers than Tor over an extended amount of time. Although it's technically possible to replace DNS resolution completely (not using Tor for DNS resolution anymore), that is not recommend. That would add too much power to a single DNS server. Using a permanent DNS server is not recommend as not using a permanent Tor exit node.
+
+Note, that even if you correctly set up all settings, it might happen that this won't work. Sometimes Tor or the DNS server causes a timeout. This gets even worse, when you additionally tunnel the DNS request through an additional proxy (for example: Tor -> JonDonym -> DNS server).
+
+Read first: [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing).
+
+In this chapter below are examples how to use authenticated DNS ([DNSSEC](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions)) or encrypted DNS (DNSCrypt or httpsdnsd). I haven't found any public DNS resolvers supporting both, encryption and authentication.
+
+Note that most applications, such as Tor Browser, will **not** automatically profit from setting up an alternative DNS resolver. This is because applications in Whonix are configured to use SocksPort instead of Trans- or DnsPort, see [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing) for details. Another reason is, that most applications do not yet make use of authenticated DNS (DNSSEC). However, you could use encrypted DNS when deconfiguring SocksPort and when using system resolver (TransPort).
+
+## DNSSEC over Tor ##
+### Example with CZ.NIC Labs DNS resolver ###
+<font size="-3">
+[source for this chapter: CZ NIC LABS](https://labs.nic.cz/page/993/dnssec-validation-over-tor--linux-/)
+</font>
+
+The *CZ.NIC Labs DNS resolver* has been chosen as an example. Feel free to use and other DNS resolver at your own choice.
+
+#### Installation ####
+Install [unbound](https://unbound.net/) and [socat](http://www.dest-unreach.org/socat/).
+
+    sudo apt-get install unbound socat
+
+Open */etc/unbound/unbound.conf*.
+
+    sudo nano /etc/unbound/unbound.conf
+
+*Add* the following lines.
+
+    #tcp-upstream goes under "server:" section
+        tcp-upstream: yes
+
+    #put forward-zone somewhere at the end of file
+    forward-zone:
+        name: "."
+        forward-addr: 0.0.0.0@5353
+
+#### Starting ####
+Open a terminal and start socat.
+
+    socat TCP4-LISTEN:5353,bind=localhost,reuseaddr,fork SOCKS4A:192.168.0.10:217.31.204.130:53,socksport=9150
+
+Open another terminal tab and restart unbound.
+
+    sudo service unbound restart
+
+#### Using ####
+Test with dig.
+
+    dig +dnssec nic.cz @localhost
+
+Please refer to upstream documentation on how to interpret the DNSSEC test results.
+
+## Encrypted DNS over Tor ##
+This is different from DNSSEC.
+
+### DNSCrypt by OpenDNS ###
+Although the official [DNSCrypt website](https://www.opendns.com/technology/dnscrypt/) states, that a Linux version does not exit, this [blog post](http://www.webupd8.org/2012/02/encrypt-dns-traffic-in-linux-with.html) suggests there is one.
+
+This has nothing to do with [DNSSEC](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions), the differences of DNSSEC and DNSCrypt are well explained on the [DNSCrypt website](https://www.opendns.com/technology/dnscrypt/).
+
+These instructions completely replace Tor's DNS resolver with opendns's dnscrypt for all users and the whole system. Not recommend for a longer amount of time, see warning above. Some hints are included how to do it only for a specific user account.
+
+(1). Download the [dnscrypt source code](https://github.com/opendns/dnscrypt-proxy/downloads) and unpack. You have to compile it. Get into the dnscrypt directory *cd dnscrypt-proxy-...*. Configure *./configure*, make *make*.
+
+(2). Start dnscrypt-proxy. ^1^ ^2^ ^3^ ^4^ ^5^ ^6^
+
+    sudo dnscrypt-proxy --tcp-only
+
+<font size="-3">
+,,
+^1^ *--tcp-only* is required since Tor does not support UDP. The UDP DNS request will immediately get truncated reply and a RFC-compliant resolver should repeat same query via TCP in this case. This is the case for Ubuntu's default DNS resolver. You can get some more information on UDP/TCP/DNS on the unrelated [redsocks](http://darkk.net.ru/redsocks/) website.
+^2^ To start it later in background (after debugging) add *--daemonize*.
+^3^ *--help* to see all options.
+^4^ Start up takes a few seconds "INFO Generating a new key pair", this is normal, wait. Until it's done, DNS will not work.
+^5^ *--user=username* can and should be used to start the dnscrypt-proxy under a specific user account.
+^6^ Since this instructions completely replace Tor's DNS resolver with opendns's dnscrypt for all users and the whole system, you could add *--local-port=5800* to let dnscrypt-proxy listen on port 5800. You would be able to add iptables rules to redirect only the DNS requests of a specific user account to opendns's dnscrypt, you can get some hints how to do that in the *httpsdnsd by JonDos* chapter below, which would be a very similar setup.
+</font>
+
+(3). Edit your resolv.conf *nano /etc/resolv.conf*, comment out everything and add *nameserver 127.0.0.1*.
+
+(4). Check if it's working, there are several [test pages](https://www.opendns.com/support/article/64) on opendns.com.
+
+(5). To shut it down you can use *sudo killall dnscrypt-proxy* and don't forget to revert the changes in /etc/resolv.conf.
+
+### httpsdnsd by JonDos ###
+Source: [anonymous-proxy-servers.net](https://anonymous-proxy-servers.net/en/help/transocks.html) and also use it as a more verbose tutorial, but keep in mind that their tutorial is JonDonym specific, while this tutorial is Tor specific.
+
+Everything inside your Whonix-Workstation.
+
+#### Installation ####
+Install dependencies.
+
+    sudo apt-get install libnet-ssleay-perl libnet-server-perl libnet-dns-perl libxml-simple-perl liblog-log4perl-perl
+
+Download httpsdnsd. (See source above in case download link changed.)
+
+    wget https://anonymous-proxy-servers.net/downloads/httpsdnsd.tar.bz2
+
+Unpack.
+
+    .    
+
+Go into the httpsdnsd folder.
+
+    cd httpsdnsd
+
+Install httpsdnsd. ^1^
+
+<font size="-3">
+,, ^1^ (It contains also a uninstall.sh, if you want to uninstall it later.)
+</font>
+
+    sudo install.sh
+
+Add a new user for httpsdnsd.
+
+    sudo adduser --system --disabled-password --group httpsdns_daemon
+
+Editing /etc/resolv.conf is not required. (You still could out comment everything against DNS leaks.)
+
+Create a firewall script.
+
+    nano dns-fw.sh
+
+Insert these firewall rules.
+
+    # Flush old rules
+    iptables -F
+    iptables -t nat -F
+    iptables -X
+
+    # Redirect DNS traffic to httpdnsd.
+    iptables -t nat -A OUTPUT -p udp -m owner --uid-owner anonuser --dport 53 -j REDIRECT --to-ports 4053
+
+    # Accept connections to the httpdnsd.
+    iptables -t filter -A OUTPUT -p udp -m owner --uid-owner anonuser --dport 4053 -j ACCEPT
+
+    # Reject all other traffic for anonuser.
+    iptables -t filter -A OUTPUT ! -o lo -m owner --uid-owner anonuser -j REJECT
+
+Install Privoxy. ^1^ 
+
+<font size="-3">
+,,
+^1^ [torproject.org Wiki Version 95](https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/OptionalConfigurations?version=95#httpsdnsdbyJonDos) of this site contains a working example using Polipo. Changed later to Privoxy, because Privoxy can be useful for other tasks as well. (Incomming: TransPort, http proxy; forwarding: http and socks.)
+</font>
+
+    sudo apt-get install privoxy
+
+Open the privoxy configuration file.
+
+    nano /etc/privoxy/config
+
+Add the following to your privoxy configuration file.
+
+    # Theoretically you can tunnel through any
+    # http or socks proxy. Local or remote proxy.
+    # Inside Whonix-Workstation, due to design,
+    # everything will be tunneled through Tor first.
+    
+    # Using Tor's socks5 proxy, running on Whonix-Gateway. 
+    # Change the port, see above...
+    forward-socks5 / 192.168.0.10:9112 .
+
+    # Another example using a http proxy.
+    # (In this case, JonDo running on localhost.)
+    # forward / 127.0.0.1:4001
+
+Restart privoxy to enable the changes.
+
+    sudo /etc/init.d/privoxy restart
+
+Privoxy is now listening on 127.0.0.1:8118. ^2^ 
+
+<font size="-3">
+,,
+^2^ For debugging you can enter this IP/port into Tor Browser as http proxy and try if you can still reach check.torproject.org. Deactivate after testing.
+</font>
+
+#### Starting ####
+Run httpsdnsd. ^1^ ^2^ ^3^ ^4^
+
+<font size="-3">
+,,
+^1^ For debugging, kill httpsdnsd and drop the *--runasdaemon*.
+^2^ Run *httpsdnsd --help* or *man httpsdnsd* for help. 
+^3^ Httpsdnsd will by default listen on localhost port 4053 for DNS queries.
+^4^ *--https_proxy_port=8118* will redirect traffic to port 8118, where Privoxy is listening. This is necessary because Tor offers a socks proxy and httpsdnsd requires a http proxy. Privoxy translates from http to socks. 
+</font>
+
+    sudo httpsdnsd --https_proxy_port=8118 --runasdaemon
+
+Activate the firewall. Shouldn't show any errors.
+
+    sudo ./dns-fw.sh
+
+#### Using ####
+Open a console and switch to anonuser.
+
+    su anonuser
+
+Resolve DNS.
+
+    nslookup check.torproject.org
+
+# OnionCat #
+Untested. Not done yet. In development. Please leave feedback if it worked for you.
+
+Introduction into OnionCat:
+
+* [torproject wiki about OnionCat](https://trac.torproject.org/projects/tor/wiki/doc/OnionCat)
+* [cypherpunk.at/onioncat](http://www.cypherpunk.at/onioncat)
+* [cryptoanarchy.org about OnionCat](https://cryptoanarchy.org/wiki/OnionCat)
+
+OnionCat (Tor) might work with Whonix. GarliCat (i2p) might partially work with Whonix.
+
+General debugging hints: there at multiple sources for issues, you might stumble upon. Therefore it's recommend, before you try using OnionCat with Whonix, try first to successfully test OnionCat without Whonix. As soon as you learnt that, it eliminated one source for possible issues (OnionCat) and can start learning how to use it with Whonix (which might introduce new issues, but enhanced security will be your reward). You also have to learn first, how to use hidden services with Whonix, see [hosting hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) for reference.
+
+## Over Tor ##
+As long you want to use OnionCat over Tor, it may work.
+
+IPv6 is currently disabled on Whonix-Gateway, because Tor doesn't support IPv6 yet, and we didn't see need for it. We also have no IPv6 firewall for Whonix-Gateway yet, because it's disabled. Anyway, that will be probable no issue. IPv6 on Whonix-Workstation, where OnionCat will be running, is enabled. Since only OnionCat's underlying operating system requires IPv6, but not the Tor process there will be probable no problem. OnionCat on Whonix-Workstation will probable translate the IPv6 requests to IPv4 to the Tor process which is running on Whonix-Gateway. Therefore probable no IPv6 on Whonix-Gateway is required.
+
+There instructions on [cryptoanarchy.org](https://cryptoanarchy.org/wiki/OnionCat) look very promising. To use them with Whonix, minor modifications are required. Follow the instructions on [cryptoanarchy.org](https://cryptoanarchy.org/wiki/OnionCat) but execute the steps on the right machine, either on Whonix-Gateway or on Whonix-Workstation.
+
+(0). Install ocat <-- on Whonix-Workstation
+
+(1). Create a hidden service <-- on Whonix-Gateway
+
+(2). Create the directory /etc/tor/ocat <-- on Whonix-Gateway
+
+(3). Find the hostname of your hidden service <-- on Whonix-Gateway 
+Also possibly see [hosting hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) for reference. Debugging: It's recommend to test if your hidden service is reachable first (for example, use test wise a hidden webserver), before you proceed with OnionCat.
+
+(4). Start ocat <-- on Whonix-Workstation
+
+(5). Final nodes. <-- on Whonix-Workstation
+
+## Over i2p ##
+GarliCat over i2p might only work, if you use [ip2 over Tor](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/#installing-i2p-inside-whonix-workstation-i2p-over-tor).
+
+There was the idea to create an [i2pBOX](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/#installing-i2p-on-whonix-gateway-i2pbox), but it never came to live due to lack of community interest, which means GarliCat directly over i2p will not be supported by Whonix.
+
+As soon as i2p over Tor is working, you can probable follow the instructions on [cryptoanarchy.org](https://cryptoanarchy.org/wiki/OnionCat) without modifications.
+
+# Mozilla Thunderbird with TorBirdy #
+Mozilla Thunderbird together with the TorBirdy add-on ([homepage](https://trac.torproject.org/projects/tor/wiki/torbirdy)) ([github]((https://github.com/downloads/ioerror/torbirdy))) [ can be used as an anonymous (or pseudonymous) e-mail client.
+
+The following everything on your Whonix-Workstation.
+
+(1) Install Mozilla Thunderbird and privoxy.
+
+    sudo apt-get install thunderbird privoxy
+
+(2) If you like, you can also optionally install [enigmail](http://www.enigmail.net/home/index.php) (A simple interface for OpenPGP email security).
+
+    sudo apt-get install enigmail
+
+(3) Backup /etc/privoxy/config.
+
+    sudo mv /etc/privoxy/config /etc/privoxy/config_backup
+
+(4) Open /etc/privoxy/config.
+
+    sudo nano /etc/privoxy/config
+
+(5) Safe the following content.
+
+    # Generally, this file goes in /etc/privoxy/config
+    #
+    # Tor listens as a SOCKS4a proxy here:
+    forward-socks4a / 192.168.0.10:9112 .
+    forward-socks5  / 192.168.0.10:9112 .
+    forward-socks5  .onion                  192.168.0.10:9112 .
+    confdir /etc/privoxy
+    logdir /var/log/privoxy
+    #actionsfile standard         # Internal purpose, recommended
+    #actionsfile default.action   # Main actions file
+    #actionsfile user.action      # User customizations
+    #filterfile default.filter
+
+    # Don't log interesting things, only startup messages, warnings and errors
+    logfile logfile
+    #jarfile jarfile
+    #debug   0   # show each GET/POST/CONNECT request
+    debug   4096 # Startup banner and warnings
+    debug   8192 # Errors -*we highly recommended enabling this*
+
+    listen-address  127.0.0.1:8118
+    toggle  1
+    enable-remote-toggle 0
+    enable-edit-actions 0
+    enable-remote-http-toggle 0
+    buffer-limit 4096
+
+    forwarded-connect-retries               2
+    accept-intercepted-requests             0
+
+    keep-alive-timeout                      5
+    socket-timeout                          300
+
+<font size="-3">
+,, Source: [tor-talk TorBirdy 0.0.10 released - testing and feedback requested!](https://lists.torproject.org/pipermail/tor-talk/2012-July/024782.html) (IPs changed by adrelanos for Whonix).
+</font>
+
+(6) Restart privoxy.
+
+    sudo service privoxy restart
+
+(7) Go to Tools -> Addons -> Plugins -> deactivate all.
+
+(8) Go to Tools -> Addons -> Addons -> deactivate all.
+
+(9) Download the most recent .xpi of [TorBirdy](https://github.com/ioerror/torbirdy/downloads) from github.
+
+(10) Also download the corresponding signature.
+
+(11) Get Jacob Appelbaums GPG key. (Bug: https://trac.torproject.org/projects/tor/ticket/6382)
+
+(12) GPG verify. Example will follow. You should use the most recent version.
+
+    gpg --verify torbirdy-0.0.11.xpi.asc torbirdy-0.0.11.xpi
+
+Must be "Good Signature".
+
+(13) Go to Mozilla Firefox -> Tools -> Addons -> Install Addon from file (button in the upper right) -> choose torbirdy.xpi.
+
+(14) Go to Mozilla Thunderbird -> Tools -> Add-ons -> Tor Birdy -> Use custom proxy settings -> Use following values:
+
+    Socks Host: 192.168.0.10
+    Port: 9102
+
+# VirtualBox Guest Additions #
+## Introduction ##
+Written and tested with Whonix 0.2.1 (Ubuntu precise). Many things can go wrong and none or the very least of them will be caused by Whonix. This has only limited support by the Whonix developers, because 1. it's not recommend, for security reasons and 2. the guest additions related bugs and instructions are somewhat out of the scope of the Whonix project.
+
+Installation is somewhat difficult and no packages exist. Just search the internet and you'll see, that loads of people having issues installing the VirtualBox guest additions. People having problems for years. VMware is of no alternative, people are also having trouble installing the VMware tools into Linux guests. The issue with the guest additions is ridiculous. For years no solution has been found. With each kernel update, recompilation is required, and quite often, due to some updates, complication becomes difficult or impossible for a long time.
+
+Also see article, [The VirtualBox Kernel Driver Is Tainted Crap](http://www.phoronix.com/scan.php?page#news_item&px#OTk5Mw).
+
+If you are having trouble, than in most cases not because of Whonix. The Whonix setup is a regular Ubuntu Linux and VirtualBox. You can try asking the regular VirtualBox and Ubuntu resources if you have trouble.
+
+## Installing VirtualBox Guest Additions ##
+### New Instructions for Debian Wheezy ###
+**Warning: Not recommend!** Weakens security as per [Security].
+
+Very simple.
+
+[Searching](http://packages.debian.org/search?searchon=names&keywords=virtualbox) for Debian packages containing Virtual Box was a wise thing. In past it was sometimes a real pain to install the guest additions. The search brought up, that honorable people created a debian package with the tools. Simply do:
+
+    sudo apt-get install virtualbox-guest-x11
+
+Reboot. And you're done.
+
+### Old Instructions for Ubuntu Precise ###
+**Warning: Not recommend!** Weakens security as per [Security].
+
+<font size="-3">
+On the host:
+
+    sudo apt-get install virtualbox-guest-additions-iso
+
+Inside Whonix-Workstation:
+
+Execute the following commands. They can take a very long time, due to the Ubuntu upstream bug [Unpacking linux-headers unbelievably slow in Lubuntu Precise (Beta 1)](https://bugs.launchpad.net/ubuntu/+source/dpkg/+bug/947664) (affects Ubuntu precise final as well).
+
+    sudo apt-get update
+    sudo apt-get dist-upgrade
+    sudo apt-get install dkms build-essential linux-headers-generic linux-headers-generic-pae
+
+Insert the guest additions iso by clicking on the VM -> devices -> install guest additions.
+
+    sudo mkdir -p /mnt/sr0
+    sudo mount /dev/sr0 /mnt/sr0
+    sudo sh /mnt//sr0/VBoxLinuxAdditions.run
+
+Or start autorun.sh (not with a console, strange bug!).
+
+Force remove CD eject.
+
+Reboot. Done.
+</font>
+
+## Shared Folder ##
+And if you want to use the shared folder read ahead... Go to VirtualBox -> machine -> change -> shared folder -> choose a folder -> use folder name "share". Choose mount automatically and create permanently. Press ok. Use the following commands to mount to folder.
+
+    sudo mkdir /mnt/shared
+    sudo chmod 777 /mnt/shared
+    sudo mount -t vboxsf -o uid=1000,gid=1000 shared /mnt/shared
+
+<font size="-3">
+If you run into a **Protocol Error** try using a different name, do not use **share**, use something else, anything, for example, *shared*.
+</font>
+
+After reboot, you have to repeat the mount command. If you want to mount the folder automatically, have a look at the [source](https://help.ubuntu.com/community/VirtualBox/SharedFolders) of that information.
+
+# Even more restrictive firewall rules #
+    #OptionalFeatureNr.3#
+
+is explained under [Whonix-Workstation is firewalled](https://sourceforge.net/p/whonix/wiki/Applications/#whonix-workstation-is-firewalled).
+
+# Using (private) (obfuscated) bridges #
+Read and understand what a [bridge](https://www.torproject.org/docs/bridges) and what a [obfuscated bridge](https://lists.torproject.org/pipermail/tor-talk/2012-February/023070.html) is. Also read [bridge vs non-bridge users anonymity](https://trac.torproject.org/projects/tor/wiki/doc/TorFAQ#bridgevsnon-bridgeusersanonymity)!
+
+Bridges can be configured on Whonix-Gateway the same way, they would be configured when not using Whonix. Have a look at /etc/tor/torrc. ([on github](https://github.com/adrelanos/Whonix/blob/master/whonix_gateway/etc/tor/torrc))
+
+    sudo nano /etc/tor/torrc
+
+# Isolate streams by destination port and/or destination address #
+Moved to [Identity correlation through circuit sharing](https://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing).
+
+# Grow Virtual Harddisk #
+In case you need more disk space on your virtual harddisk... Good news is, you are still a Virtual Box user. Whonix is nothing special. It's just another vm image. Any suggestions you find about Virtual Box will also work for Whonix.
+
+Somewhat difficult, there is no easy upstream solution such as a gui, there is also no better (free, Open Source) virtualizer with this feature. However, you do not need to be a genious. If you build Whonix from source this is a easier, since we create vdi images by default and it's easier to grow them. In case you are using the download version it's a bit more difficult. You have vmdk disk, because this is by the ova standard (exported virtual applicances).
+
+Unfortunately *vboxmanage modifyhd <uuid|filename> --resize <size in mb>* does not support vmdk images yet. (Perhaps that changes or has changed at your time of reading.)
+
+(1) On the host: Make a clone of all states of your existing virtual machine in case something goes wrong.
+
+(2) On the host: Delete all existing snapshots.
+
+(3) On the host: Find the folder of your virtual hdd.
+
+    vboxmange list hdds
+
+(4) On the host: Switch that folder.
+
+(5) On the host: Convert from vmdk to vdi.
+
+    VBoxManage clonehd "Whonix-Workstation-disk1.vmdk" --format vdi "Whonix-Workstation-disk1.vdi"
+
+(6) On the host: Grow the disk.
+
+    VBoxManage modifyhd "Whonix-Workstation-disk1.vdi" --resize 30000
+
+(7) On the host: Go to Virtual Box VM settings, mass storage, remove the old .vmdk, add the new .vdi.
+
+(8) Boot up and look if it's still working.
+
+(9) Until now we have only grew the physical size, we haven't changed the filesystem. Shut down again.
+
+(10) Inside VM: You have to boot from a boot cd (Ubuntu Precise *DVD* did work) and use some tool such as gparted to grow the filesystem. Start a terminal.
+
+    gksudo gparted
+
+(11) Inside VM: Grow filesystem. Apply and shut down.
+
+(12) Done.

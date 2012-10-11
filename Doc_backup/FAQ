@@ -1,0 +1,210 @@
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+[TOC]
+
+# Why are the Whonix images so big? #
+Compared to other "Tor-VM" or "Tor-LiveCD" projects which sometimes use special minimal or stripped down Linux distros (e.g. TinyCore, DSL, Puppy) Whonix is larger, both VMs together are currently almost 2 GB.
+
+One reason for that is, that small distros do not meet our requirements, namely: upstream needs to have a proactive security policy.
+
+* Most "minimal" distros are small projects that do not have a dedicated security team that audits packages and releases security patches quickly.
+* We want to support a wide range of user cases such has hosting hidden services, small distros usually have limited repositories.
+* We need a distro that fully signs updates (this is always desirable but especially so when updating over untrusted exit nodes).
+* For such distros security consist in a small attack surface^1^, but that's about it. A full distro supports MAC, kernel patches, IDS...
+* "Big" projects with many users and developers (many eyeballs) are inherently more trustworthy.
+* Whonix, since based on Debian, is complete operating system. An anonymous general purpose operating system, no stripped down minimal system. [OptionalConfigurations]; [Security]
+* Debian has much more documentation than small distros, also about topics such as Security and Hardening, [Ubuntu Security](https://help.ubuntu.com/community/Security); etc.
+* Debian has loads of Security Features, see (Ubuntu article, but mostly true fro Debian) [Ubuntu Security Features](https://wiki.ubuntu.com/Security/Features/). Small distros don't have it.
+
+<font size="-3">
+,,^1^ Our attack surface is still very small, no network listening services, no big DE, just a few selected applications.
+</font>
+
+Another reason is that Whonix does not play in the anonymity oriented Live CD market. Whonix is a new category of anonymity tools. Whonix does not have the requirement to fit on a CD. (Although in future we may develop an Whonix Live CD.) While anonymity oriented Live CD's have to balance between functionality they want to provide and available space and security, Whonix, as an anonymous general purpose operating system can by default or optionally provide any functionality and doesn't has to care so much about space. For example, integrating BitCoin into Whonix would be except for documentation, quite simple.
+
+# Why not use a Live CDs as Whonix-Workstation operating system? #
+We discussed this and came to the decision, that Live CDs are not suited for Whonix.
+
+Positive:
+
+* often active maintained
+* stabilized
+* hardened GNU/Linux distro
+* with advanced features.
+
+Negative:
+
+* no timely security updates
+* not persistent
+* not flexible enough
+* anonymity orientated Live CD's often have their own Tor enforcement included, which would lead into a [Tor over Tor](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#ToroverTor) scenario
+
+# Why should I (not) trust Whonix? #
+See [Trust] for a long answer.
+
+# Whonix crashes because of PAE? #
+Update 3.
+
+With Whonix 0.4.4 and above:
+Based on Debian Wheezy. Deactivate PAE and nx in Virtual Box virtual machine settings. In grub boot menu choose the linux-image-486 kernel.
+
+# You should not waste the Tor network's bandwith by downloading operating system updates over Tor! #
+Short answer: We discussed this with torproject.org are allowed to do so.
+
+Long answer: We had a thread about this issue, [updates over Tor, should not waste Tor bandwidth](https://trac.torproject.org/projects/tor/wiki/doc/TorBOX/Dev/ArchivedDiscussion/DOCUMENTATION#updatesoverTorshouldnotwasteTorbandwidthDOCUMENTATIONSOLVED). Discussed thoroughly. We speculated a lot and thought about solutions, until we finally done, what we should have done in the first place. We asked torproject.org, see [tor-talk Operating system updates / software installation behind Tor Transparent Proxy](https://lists.torproject.org/pipermail/tor-talk/2012-March/023486.html). Click [here](https://lists.torproject.org/pipermail/tor-talk/2012-March/subject.html#23507) for an overview of all answers. Andrew Lewman ([Executive Director, Director, press contact](https://www.torproject.org/about/corepeople.html.en)) does also download a lot updates over Tor and did not [not complain](https://lists.torproject.org/pipermail/tor-talk/2012-March/023493.html).
+
+# Alpha? Beta? Stable? Development? Whonix version scheme #
+DRAFT!
+
+Is Alpha, Beta or Stable related to security? No, our design makes security issues inherently less likely to occur.
+
+Whonix 0.2.0 will be Alpha.
+
+We are still working heavily on usability, working on some user facing stuff (like zenity). Until those are all integrated and tested we wouldn't be doing our users a favor by calling it not an alpha. They get turned away if things don't work right.
+
+Alpha: 
+Features are constantly being added.
+
+Beta: 
+Only fix important stuff, test it.
+
+Stable: 
+Build and release the current beta with all fixes when we feel it's ready. We expect beta testing to last a month or so, shorter if we can get feedback from more users.
+
+Development version: 
+Only goes for the source. Things can be added in order to get feedback from others. The longer things are inside, the longer they are accepted. Doesn't mean they are better tested. Sometimes the source can even break.
+
+# Why do you use the 32 bit operating system, not 64 bit? #
+Update:
+A critical Virtual Box bug: [Virtual Box ticket #10853: Mouse position repeatedly reset to top and/or left of screen](https://www.virtualbox.org/ticket/10853).
+
+Since Whonix 0.4.0 the build environment uses grml-debootstrap (perhaps kameleon in future) and chroot. Image creation goes much faster and changing the architecture requires only a very few changes. If Whonix revives contributions or due to user feedback it might be possible in future to have 32 and 64 bit downloads.
+
+Old statement:
+32bit software runs without problems on 32bit and 64bit hosts. 64bit software no so much. Because we generally don't control what host OS people use I chose to base Whonix on 32bit. Secondly, 64bit software needs more RAM, we already run 3 operating systems on a system which, eats RAM. Let's better minimize that. KVM and other solutions improve RAM usage through page sharing or what it's called, Virtual Box doesn't. Thirdly, according to Brad Spengler and/or PAX team, amd64 is a brain dead instruction set and actually worse than x86, despite the large address space making ASLR more effective. They recommended to use grsec on x86 and I hope we can switch to a grsec kernel (wheezy has one, let's see if they maintain it).
+
+# Why aren't you using OpenBSD, it's the most secure OS ever!!!1! #
+OpenBSD fails completely for the Tor threat model which downloading and updating software over untrusted exit nodes. OpenBSD does not offer any signed files, they do not even offer hash sums for all required files (at least the ports tar ball doesn't have one). When asking about that the answer is "buy the CDs" (#something like $80 per year if you want to stay current). As if CDs via post through a 3rd party reseller offer a better trust chain than mirrors with hash sums, let alone proper WOT signatures. There are alternatives to GnuPG if it's just about the license... Further, tracking stable - which is recommended for production systems - is needlessly complex: it requires the user to recompile everything even though there are usually only a few packages that require an update. The most fitting approach would be to just apply the patches from the errata but apparently not all security related fixes in -stable are listed there and OpenBSD admits as much that patch branch is really not userfriendly. Further problems: OpenBSD seems to default to using very "conservative" hash algorithms, md5 or sha1 which are both broken. This clashes with their claimed crypto focus. FDE support is lacking/limited. There doesn't seem to be a modern MAC, instead there's systrace which has been criticized for having fundamental security problems (this may or may not have changed since then). OpenBSD doesn't seem to be using PIE executables by default, meaning, it doesn't really have ASLR. Documentation about such issues is completely lacking. There's also the strange policy of sticking with bind and sendmail when there were secure-by-design alternatives (see [PDF!](http://cr.yp.to/qmail/qmailsec-20071101.pdf)) with much better track record, BIND-9, despite the rewrite, continues to be a security hazard just judging by the OpenBSD errata entries.
+OpenBSD would otherwise be a great choice for Whonix-Gateway. It has a very capable firewall, the track record is probably better than of any other OS though they (just like their competition for fairness sakes) prefer to label "potential" code execution vulnerabilities as a DoS. OpenBSD is also a very small OS (small TCB), it's kernel may be the most secure UNIX like kernel, but it's still a monolithic kernel. Their claim of being THE most secure operating system has become more and more dubious since the introduction of actually usable microkernels. In summary: I don't like their attitude and several essential (for Whonix) security properties are missing.
+
+Also see [security vulnerability - NTP not authenticated](http://thread.gmane.org/gmane.os.openbsd.bugs/18754) and it doesn't look they step forward to fix it. The suggestion was to authenticate the connection to the NTP server, which is not possible for Whonix for many reasons. ^1^ 
+
+<font size="-3">
+,, ^1^ We need to distribute the trust, not using only one NTP server and we must use free services which are available for anyone and not something requiring an own server.
+</font>
+
+OpenBSD's target audience aren't end users, that's why they don't care to provide signed updates for the masses, see [How to check downloaded package on OpenBSD 5.1?](http://unix.stackexchange.com/questions/38041/how-to-check-downloaded-package-on-openbsd-5-1).
+
+If they don't attract the masses, ordinary crackers, hackers and the security research community doesn't get attracted as they do with more popular operating systems. At the same time a targeted attack gets easier, because people who get paid to find exploits can find them more easily.
+
+If this sounds a bit harsh on OpenBSD it's because it could be such a great OS but it isn't (mostly more for political and social/"ego" than technical reasons) which is frustrating.
+
+# How is Whonix different from Tails? #
+See [Comparison of Whonix, Tails and TBB](https://sourceforge.net/p/whonix/wiki/Security/#comparison-of-whonix-tails-and-tbb).
+
+# Why don't you merge with Tails and join efforts? #
+**UPDATE 2**
+
+[Tails](https://tails.boum.org/) is a respected project with similar goals (anonymity, privacy and security), which exists for many years and which has multiple developers, experience and a working infrastructure. The Whonix and the Tails developers are no "enemies". They cooperate to some degree and are discussing things, which are related to the projects on the Tails developers mailing list. Parts of Whonix are based on Tails. For example tails_htp was invented by Tails. Whonix also profits from their previous (Debian) upstream efforts (packaging and so on), their old and current discussions, their research, design documents, experience, feedback and so on.
+
+Even though adrelanos highly values Tails, why is Whonix a separate project and not a contribution to Tails?
+
+Whonix can not merge with Tails. They are too different. Perhaps the biggest difference is, that Tails is a Live CD and therefore inherits some restrictions and limitations. Tails must fit on a CD (or DVD), while Whonix is a full operating system and does not have such a requirement. Whonix has higher hardware requirements, but therefore more space to implement features. That means that initially fewer people will be able to use Whonix, but over the years available hardware to people will (hopefully) improve. Whonix is discovering both, theoretically and practically, new designs. Over time, depending on user feedback and general interest, a Live DVD or Live Blu-ray might be created.
+
+Also political and design decisions differ too much. As a code contributor to Tails, adrelanos would have to obey the Tails developers decisions, otherwise contributions do not get merged. That's the great thing about Free Software. You are free to disagree and to create a fork. Since adrelanos motivation was not about a Live CD and personally found improving Tails much more difficult than starting fresh, a new project was created: Whonix. Some examples:
+
+* [Isolating Proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/IsolatingProxy) for strong IP/DNS leak protection.
+    * Whonix: Is a top priority for Whonix and already implemented
+    * Tails: It's only a stale Wishlist Item for Tails, see [Tails Wishlist Item: Two-layered virtualized system](https://tails.boum.org/todo/Two-layered_virtualized_system/).
+* Using Tor Browser
+    * Whonix: is a top priority for Whonix and already done.
+    * Tails: it's only a Todo ticket for Tails, see [Tails Todo Item: replace iceweasel with Torbrowser](https://tails.boum.org/todo/replace_iceweasel_with_Torbrowser/).
+* Web fingerprint
+    * Whonix: Done, uses same fingerprint as Tor Browser.
+    * Tails Todo: https://tails.boum.org/todo/evaluate_web_fingerprint/
+* Using [Entry Guards](https://www.torproject.org/docs/faq.html.en#EntryGuards)
+    * Whonix: is a top priority and done in Whonix
+    * Tails Todo: while it's only a Todo ticket for Tails, see [persistence preset - tor](https://tails.boum.org/todo/persistence_preset_-_tor/).
+* Hidden service support:
+    * Whonix: Done. Hidden services can be used without IP/DNS leaks, see [Hidden Service Support](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services). There is no nice graphical user interface to start it, but it works well nonetheless.
+    * Tails Todo: [Tails server: Self-hosted services behind Tails-powered Tor hidden services ](https://tails.boum.org/todo/server_edition/)
+* Requirement to fit on a CD.
+    * Tails has this requirement.
+    * Whonix does not have the requirement.
+* Multi language support:
+    * Whonix does not (yet) have the requirement to support as many languages as possible before a feature can be added. TODO: users are free to install languages packs themselfes. This is currently not documented and those package should probale be pre-installed on Whonix and the user should be asked to choice.
+    * Tails: Quote: "*The TBB ships l10n'd packages, while Tails needs to support as many languages as possible.*", see [Tails Todo Item: replace iceweasel with Torbrowser](https://tails.boum.org/todo/replace_iceweasel_with_Torbrowser/).
+* Remember installed packages.
+    * Whonix: Done.
+    * Tails Todo: https://tails.boum.org/todo/remember_installed_packages/
+* Amnesic.
+    * Whonix: No, missing and dropped. Although there is a [Recommendation to use multiple VM Snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots) it can not be prevented, that the host memory [swaps](https://en.wikipedia.org/wiki/Swap) to the host disk. This is the price, Whonix has to pay, because many features could be more easily added to Whonix or can be easily installed by the user.
+    * Tails: Done by design.
+* Source Code Merge Policy:
+    * Whonix: does not yet have a comprehensive merge policy. It's welcome, but not compulsory to write a design or documentation.
+    * Tails: In adrelanos opinion, [Tails merge policy](https://tails.boum.org/contribute/merge_policy/) is too strict. This not a complaint or critique. They will have their reasons for that and it has to be noted, that Tails is still doing well and useful for many people. Anyone who does not agree has the freedom to contribute to another project or to start a new project. Adrelanos just made use of that freedom.
+* Obfsproxy, (private) (obfuscated) bridges:
+    * Whonix: already supported on Whonix-Gateway
+    * Tails Todo: https://tails.boum.org/todo/obfsproxy/
+* VPN support
+    * Whonix: is already included, although there is no nice gui, it's available as Optional Configuration, see [VPN/tunnel support](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#vpn-tunnel-support).
+    * Tails Todo: https://tails.boum.org/todo/vpn_support/
+* IRC client configured safely and does not answer CTCP etc.
+    * Whonix: Done, XChat is configured securely.
+    * Tails Todo: https://tails.boum.org/todo/Pidgin_ctcp_replies/
+* Flash support
+    * Whonix: Done, see [Browser Plugins](https://sourceforge.net/p/whonix/wiki/Applications/#browser-plugins).
+    * Tails Todo: https://tails.boum.org/todo/Flash_support/
+* Video/streaming software.
+    * Whonix: None pre-installed, but I wouldn't know why users can't just install any of their own choice.
+    * Tails Todo: https://tails.boum.org/todo/include_audio_and_video_streaming_software/
+* PPP/Dial up support:
+    * Whonix: can be done on the host.
+    * Tails Todo: https://tails.boum.org/todo/Add_Gnome_PPP_for_Dial-Up_Users/
+* Support for free wifi hotspots.
+    * Whonix: Done, can be easily done on the host.
+    * Tail Todo: https://tails.boum.org/todo/add_support_for_free_wifi_hotspots/
+* Application audit.
+    * "*Any included networked application needs to be analyzed for possible information leakages at the protocol level, e.g. if IRC clients leak local time through CTCP, if email clients leak the real IP address through the EHLO/HELO request etc.*"
+        * Whonix: Not required.
+        * Tails Todo: https://tails.boum.org/todo/applications_audit/
+* Macchanger
+    * Whonix: Only partially solved. In Whonix-Workstation and Whonix-Gateway MACs are shared among all Whonix users. The host MAC is unchanged, see [Whonix in public networks / MAC Address](https://sourceforge.net/p/whonix/wiki/Security/#whonix-in-public-networks-mac-address).
+    * Tails Todo: https://tails.boum.org/todo/macchanger/
+* Kernel
+    * Whonix: Host kernel can be anything. Guest kernel i486 and 686-pae are pre-installed. TODO: Still lacks 64 bit guest builds.
+    * Tails Todo: https://tails.boum.org/todo/amd64_kernel/
+* USB Installer:
+    * Whonix: has no nice USB installer. Installing operating system on USB is recommend and left to the user.
+    * Tails: has a nice USB installer.
+* Unsafe browser fingerprint:
+    * Whonix: the unsafe browser on the host is untouched. It does not get any better or worse through Whonix.
+    * Tails Todo: https://tails.boum.org/todo/improve_fingerprint_of_the_Unsafe_Browser/
+* Spell-checker
+    * Whonix: Works in Tor Browser and Kate.
+    * Tails: https://tails.boum.org/todo/spell-checker/
+* Debian Wheezy support:
+    * Whonix: done
+    * Tails Todo: https://tails.boum.org/todo/Wheezy/
+* Mozilla Thunderbird / Icedove
+    * Whonix: Optional configuration, see [Mozilla Thunderbird with TorBirdy](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#mozilla-thunderbird-with-torbirdy).
+    * Tails Todo: (https://tails.boum.org/todo/Return_of_Icedove__63__/)
+* Download manager
+    * Whonix: users can simply install one of their choice. *wget -c* is working.
+    * Tails Todo: https://tails.boum.org/todo/include_download_manager/
+* FTP support
+    * Whonix: wget works. Filezilla (not pre-installed) works as well.
+    * Tails Todo: https://tails.boum.org/todo/fix_Internet_FTP_support/
+* See also [Comparison of Whonix, Tails and TBB](https://sourceforge.net/p/whonix/wiki/Security/#comparison-of-whonix-tails-and-tbb).
+
+# How is Whonix different form the Tor Browser Bundle? #
+See [Comparison of Whonix, Tails and TBB](https://sourceforge.net/p/whonix/wiki/Security/#comparison-of-whonix-tails-and-tbb).
+
+# Does this mean that, for example, is my IP and location safe when using Skype? #
+Yes, IP and location is safe. Some further comments you should be aware off...
+
+Those are not Whonix or Tor issues, those are Skype issues. Consider Skype usage pseudonymous rather than anonymous. Skype is closed source and given Skype's history (reading BIOS etc. just research) it's very much likely that they link all your account names to the same pseudonym. Also obviously, if you log into an account, which you haven't created over Tor, you get only IP/location privacy, but if they have logs, which you really should assume, they can link that too. Another obvious thing, if you chat with people, who have not created their account over Tor and who have not always connected over Tor, it's also not so hard to guess who you are. Remember, you are not in control of Skype's encryption keys and Skype is not Open Source, thus do not rely on Skype's encryption. Voice recognition software got also very sophisticated. Security depends not on Skype's codes and you local key management and security, but on a third party, the Skype authority.
+
+Also read [Do not mix Modes of Anonymity!](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#DonotmixModesofAnonymity).
+
+In conclusion Skype usage does not leak IP/location, but is discouraged anyway. You are advised to use alternatives. There will be soon some more information about alternative IM and VOIP applications. 

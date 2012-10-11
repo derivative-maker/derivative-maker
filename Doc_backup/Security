@@ -1,0 +1,1577 @@
+ 
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+[TOC]
+
+# Technical Intro #
+Whonix aims to be safer than Tor alone. The main goal is, that no one can find out the users IP and location.
+
+The basic idea is, that all applications are untrustworthy. No application must be able to obtain the users real external IP. Whonix ensures that applications can only connect through Tor. Direct connections (leaks) must be impossible. This is the only way we know of, that can reliably protect your anonymity from client application vulnerabilities and IP/DNS and [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks).^10^
+
+Whonix consists of two machines, which are connected through an isolated network. One machine acts as the client or *Whonix-Workstation*, the other as a proxy or *Whonix-Gateway*, which will route all of the Whonix-Workstation's traffic through Tor. This setup can be implemented either through virtualization and/or Physical Isolation (explained below).
+
+The **Whonix Concept** is agnostic about everything, the anonymizer, platform, etc. See **Whonix Framework** below.
+
+**Whonix Example Implementation**: Anonymity setup build around **Tor**, two virtual machines using **VirtualBox** and **Debian GNU/Linux**. Whonix can be installed on every computer capable of running [Virtual Box](https://www.virtualbox.org/wiki/Downloads). (Supports Windows, OS X, Linux, BSD and Solaris.)
+
+Physical Isolation describes installing Whonix-Gateway and Whonix-Workstation on two different pieces of hardware. It is more secure than virtual machines alone, requires more physical space, hardware and electricity costs are higher. Keep in mind that you don't need very powerful dedicated servers or desktops. For more information, see [Physical Isolation](https://sourceforge.net/p/whonix/wiki/PhysicalIsolation/).
+
+See below on this page for the threat model and security of Whonix.
+
+The listed advantages and disadvantages shall give you an overview, what Whonix is useful for, what Whonix can do for you, and what not.
+
+## Advantages of Whonix ##
+* All applications, including those, which do not support proxy settings, will automatically be routed through Tor.^1^
+* Installation of any software package possible.^11^
+* Safe hosting of [Hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) possible. ^7^
+* Protection against side channel attacks, no IP or DNS leaks possible^3^ To test for leaks, see [LeakTests](https://sourceforge.net/p/whonix/wiki/LeakTests/).
+* Advantage over Live CD's: Tor's data directory is still available after reboot, due to persistent storage. Tor requires persistent storage to save it's [Entry Guards](https://www.torproject.org/docs/faq.html.en#EntryGuards).
+* Java / JavaScript^9^ / flash / [Browser Plugins](http://sourceforge.net/p/whonix/wiki/Applications/#browser-plugins)^4^ / misconfigured applications cannot leak your real external IP. See [Whonix security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world).
+* Whonix does even protect against root exploits ([Malware](https://en.wikipedia.org/wiki/Malware) with root rights) on the Workstation^14^, but you really should not test it and read footnote ^1^ ^a^ and follow links.
+* Uses only [Free Software](https://en.wikipedia.org/wiki/Free_software).
+* Building Whonix from source is easy, see [BuildDocumentation].
+* [Tor](https://www.torproject.org)+[Vidalia](https://www.torproject.org/projects/vidalia.html.en)^5^ and [Tor Browser](https://www.torproject.org/projects/torbrowser.html.en) are not running inside the same machine. That means that for example an exploit in the browser can't affect the integrity of the Tor process.
+* It is possible to use Whonix in conjunction with VPNs, ssh and other proxies. But see [Tor plus VPN/proxies Warning](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN). Everything possible, as [first chain](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-tor-through-proxy-vpn-or-ssh) or [last chain](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-proxysshvpn-through-tor), or both.
+* Loads of [Optional Configurations](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/) (additional features / Add-Ons) available.
+* Best possible [Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection).
+* Adding private obfuscated bridges can be added to */etc/tor/torrc*.
+* Whonix-Gateway can also torify Windows, see [OtherOperatingSystems].
+
+## Disadvantages of Whonix ##
+* More difficult to set up compared to the regular Tor Browser Bundle.
+* Needs virtual machines or spare hardware.
+* Updating OS and applications behind the Tor proxy is slow.
+* Higher maintenance required.^8^
+* Tor Button's New Identity button is not supported with Whonix, see [Tor Browser](http://sourceforge.net/p/whonix/wiki/Applications/#tor-browser) for a workaround.
+
+## Footnotes ##
+<font size="-3">
+,, 
+^1^ For application warnings, see [Applications]. Only those dependent on UDP^2^ or IPv6^12^ will still not function. See footnotes for limited workarounds. Services that need to listen on publicly reachable ports (open/forwarded ports) are also not supported. However you may run [Hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) which are reachable via Tor or tor2web ([be careful]([https://trac.torproject.org/projects/tor/wiki/doc/tor2web)).
+^2^ ICMP, ping, VOIP calls^13^ over UDP, etc... Limited Workaround 1) [OnionCat](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#onioncat); Limited Workaround 2) [Tunnel UDP over Tor](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-udp-over-tor) 
+^3^ The operating system and applications behind the isolated Tor proxy (gateway) cannot determine the real external IP. Therefore they also cannot leak it as long as the network, gateway server, virtual machine or host system are not compromised as well. See whole Security And Hardening page footnote ^1^ ^a^ and follow links. 
+^4^ This is still not recommended as they may decrease anonymity (e.g. flash cookies) and often have security vulnerabilities. Most popular plugins are closed source. See [Browser Plugins](http://sourceforge.net/p/whonix/wiki/Applications/#browser-plugins) for more information. 
+^5^ [Vidalia](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#vidalia-for-whonix) is optional; [Arm](https://sourceforge.net/p/whonix/wiki/Readme/#tor-controller-vidalia-arm) is installed as alternative 
+^6^ Placeholder.
+^7^ Even if someone hacks your hidden server software (lighttpd, thttpd, apache, etc.), he can not steal your hidden service key. The key is stored on the Whonix-Gateway. Once you cleaned your Whonix-Workstation, no one can impersonate your hidden service anymore. 
+^8^ You need to maintain three instead of one OS. You need to remember several passwords and update at least three systems. 
+^9^ There is no difference compared to using JavaScript directly within the [Tor Browser Bundle](https://www.torproject.org/projects/torbrowser.html.en). Of course JavaScript within TBB inside Whonix will also not leak your IP. Decide yourself. Browser fingerprinting still applies. For more information see [Web-browser](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/WebBrowsers)! 
+^10^ Whonix protects against IP and DNS leaks. Other possible leaks (such as username; time zone; etc.) and how to mitigate them see [Applications](sourceforge.net/p/whonix/wiki/Applications/). Additionally [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection) mitigates many possible fingerprinting attacks by using common, non-identifying defaults. (username set to user; timezone set to UTC; etc.) 
+^11^ Must be able to run on Debian GNU/Linux. See [Software installation on Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#software-installation-on-whonix-workstation) for details. 
+^12^ IPv6 not yet supported by Tor. ([OnionCat](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#onioncat) is a limited workaround.) 
+^13^ Skype over TCP does work, but it's not recommend, because it's proprietary, closed source and there is no control over the encryption keys. Skype authority can compromise you out any moment. A secure encryption/authentication design looks different. For example GPG and OTR are secure, because the user has control over the keys, not the server. See [Skype FAQ entry](https://sourceforge.net/p/whonix/wiki/FAQ/#does-this-mean-that-for-example-is-my-ip-and-location-safe-when-using-skype) for details.
+^14^ The Workstation is the place where the browser, IRC client and so on is running. The Gateway is the place where Tor and the firewall is running.
+</font>
+
+## Comparison of Whonix, Tails and TBB ##
+Quick comparison of Whonix and Tails key virtues. If ever anything in this table is incorrect/outdated feel free to contact Whonix developers, we'll correct as fast as possible.
+
+### Different views ###
+One has always to be very careful, when talking about others. Especially, when talking about advantages and disadvantages. Different opinions are accepted and listed here.
+
+* [Tails-dev: please look at Comparison of Whonix, Tails and TBB](https://mailman.boum.org/pipermail/tails-dev/2012-September/001704.html)
+
+### General ###
+
+ | Whonix | Tails | Tor Browser Bundle |
+------------- |  ------------- | ------------- | -------------
+Focus on anonymity, privacy and security | Yes | Yes | Yes
+Type | general purpose operating system | LiveCD/DVD/USB | portable browser
+Supported hardware | any ^1^ | x86 compatible and/or and Virtual Machines | Windows, Linux, Mac and Virtual Machines
+Based on | Tor, Debian ^2^, Virtual Box^3^ | Tor, Debian | Tor, Firefox
+Gateway and torify any operating system (advanced users) | Yes ^4^ | Not a Gateway. | Not a Gateway.
+Live CD | No | Yes | No
+Live USB | No | Yes | No
+USB bootable | Yes ^5^ | Yes | Yes ^5^
+Requires Virtual Box | Yes ^3^ | No | No
+System requirements | higher | lower | lowest
+Can run in VM | Yes | Yes | Yes
+Persistence | Full | Optional for Live USB | Yes ^6^
+Number of developers | one with lots of anonymous contributions | multiple | multiple
+Maturity | project since 2012 | established, respected project for many years | established, respected project for many years
+Open Source | Yes | Yes | Yes
+Anonymous developers | Yes | Yes | No
+
+
+<font size="-3">
+,,
+^1^ *Whonix Framework* workstation: self made builds can run on any real or virtual hardware. Intel VT-x or AMD-V will greatly speed up Virtual Machines. *Whonix Framework* gateway: anonymizer (Tor) must support that platform. 
+^2^ In long term we are also agnostic about any other secure distributions. 
+^3^ Default downloads are for Virtual Box. (Subject for change in future.) You can build your own images for other virtualizers. You can also install on bare metal but we don't recommend that, because using a virtualizer is the only way to hide hardware serials. 
+^4^ See [OtherOperatingSystems ](https://sourceforge.net/p/whonix/wiki/OtherOperatingSystems/).
+^5^ You can install your host operating system on USB. 
+^6^ You can download files and keep them, save bookmarks and passwords depending on your settings.
+</font>
+
+### Security ###
+
+ | Whonix | Tails | Tor Browser Bundle
+------------- |  ------------- | ------------- | -------------
+Amnesic | No ^7^ | Yes | No ^12^
+Protection against root exploits ([Malware](https://en.wikipedia.org/wiki/Malware) with root rights) on the Workstation ^18^ | Yes ^1^ ^a^ | No ^2^ | No ^2^
+IP/DNS protocol leak protection | Full ^1^ | Depends ^5^ | Depends ^5^
+Takes advantage of Entry Guards | Yes | No | Yes
+Operating System Updates | persist once updated | are lost after reboot | persist once updated
+Hides hardware serials from malicious software | Yes ^16^ | No ^17^ | No ^17^
+Collects hardware serials | No | No | No
+Includes Tor Browser | Yes | No | Yes
+Stream isolation to prevent identity correlation through circuit sharing | Yes | No, planed. ^13^ | See ^14^ ^15^
+Stream isolates Tor Browser | No ^14^ | No ^14^ | No ^14^
+Encryption | Should be applied on host. | Yes, for persistent USB. | Should be applied on host.
+Cold Boot Attack Protection ^8^ | No, planed. | Yes | No
+Secure Distribiuted Network Time Synchronization | Yes | Yes | No
+
+<font size="-3">
+,,
+^1^ ^a^ In case Whonix-Workstation gets rooted, the adversary can not find out the users real IP/location. This is because Whonix-Workstation can only connect through the Whonix-Gateway. How difficult is it to compromise Whonix? See the whole Security and Hardening site. More skill is required. See [Attack on Whonix](https://sourceforge.net/p/whonix/wiki/Security/#attack-on-whonix). 
+^2^ In case Tails or TBB gets rooted, the adversary can simply bypass the firewall and get the user's real IP.
+^5^ See first example of [Whonix security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world). When applications in Tails are configured wrong, due to a bug in Tails or the application, IP can leak. 
+^7^ Although there is a [Recommendation to use multiple VM Snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots) it can not be prevented, that the host memory [swaps](https://en.wikipedia.org/wiki/Swap) to the host disk.
+^8^ See [Cold boot attack](https://en.wikipedia.org/wiki/Cold_boot_attack). 
+^12^ Although it does not try to store to disk, swap can still leak. 
+^13^ [Tails separate Tor streams](https://tails.boum.org/todo/separate_Tor_streams/)
+^14^ [Tor Browser should set SOCKS username for a request based on referer](https://trac.torproject.org/projects/tor/ticket/3455)
+^15^ Tor Browser comes with it's own Tor instance. It's just a browser, not a live system or operating system. 
+^16^ See [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection) for details.
+^17^ By default there get of course not send to anyone. This is only at risk in case the machine gets compromised by malware. See also, [Are hardware serial numbers hidden in TAILS?](https://tails.boum.org/forum/Are_hardware_serial_numbers_hidden_in_TAILS__63__/).
+^18^ The Workstation is the place where the browser, IRC client and so on is running. The Gateway is the place where Tor and the firewall is running.
+</font>
+
+### Attacks ###
+Knowledge assumed:
+
+* [Comparison of different Whonix variants](https://sourceforge.net/p/whonix/wiki/Security/#comparison-of-different-whonix-variants).
+* Unsafe Browser: Tails and Liberte Linux contain a so called Unsafe Browser. The Unsafe Browser does not use Tor. Connects in the clear. It is useful to register on hotspots or to view content in the clear without Tor.
+* Exploit against physically isolated Whonix-Gateway: difficult against a bare metal physical isolated Whonix-Gateway. This is because Whonix-Workstation can only access Tor running on Whonix-Gateway. We minimized attack surface, hardening etc. See the whole Security and Hardening page for details.
+* TBB stands for Tor Browser Bundle.
+* In the following table,
+	* "fail" is defined as "IP/location of user is compromised.".
+	* "safe" is defined as "IP/location of user is hidden behind Tor.".
+* The numbers (1) to (10) are used to numerate various attacks. Those attacks are described in more details below.
+
+Whonix protects against root exploits ([Malware](https://en.wikipedia.org/wiki/Malware) with root rights) on the Workstation^1^. This does not mean, risk to get infected with malware. Do not! Like said at other places as well, Whonix is not a perfect system. It can not be. Whonix is not unbreakable. What Whonix does, it higher the effort for an attacker. The following table shall visualize the various defense layers provided by Whonix.
+
+<font size="-3">
+,,
+^1^ The Workstation is the place where the browser, IRC client and so on is running. The Gateway is the place where Tor and the firewall is running.
+</font>
+
+attack | TBB | TBB in a VM | Tails | Tails in a VM | Whonix Standard Download version host+vm+vm | Whonix Physical Isolation
+------------- |  ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+(1) Protocol IP leak | fail | fail | fail | fail | safe | safe
+(2) exploit + Unsafe Browser | fail | fail | fail | fail | safe | safe
+(3) exploit + root exploit + Unsafe Browser | fail | fail | fail | fail | safe | safe
+(4) root exploit + Unsafe Browser | fail | fail | fail | fail | safe | safe
+(5) exploit + vm exploit + Unsafe Browser | fail | fail | fail | fail | fail | safe
+(6) exploit + vm exploit + exploit against physically isolated Whonix-Gateway | fail | fail | fail | fail | fail | fail
+(7) vm exploit | safe | fail | safe | fail | fail | safe
+(8) vm exploit + exploit against physically isolated Whonix-Gateway | safe | fail | safe | fail | fail | fail
+(9) exploit against Tor process | fail | fail | fail | fail | fail | fail
+(10) attack against the Tor network | fail | fail | fail | fail | fail | fail
+
+(1) For example proxy bypass bugs, where the application spills the users real IP. See [Whonix security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world), for examples where Whonix circumvented them. It gets circumvented by Whonix because Whonix-Workstation does not know the users real IP address.
+
+(2) Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the users machine. Remote cod execution is used to install malware on the users machine. The used vulnerability allows the adversary to get "only" user rights, not root. The adversary could remotely start the Unsafe Browser and therefore find out the users real IP address. This attack gets circumvented by Whonix, because any applications inside Whonix, including malware, can only connect through Tor.
+
+(3) Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the users machine. Remote cod execution is used to install malware on the users machine. The used vulnerability allows the adversary to get "only" user rights, not root. The adversary gains root through escalate privileges using a second vulnerability. This allows the adversary to tamper with iptables rules, to make non-Tor connections and so on. This attack gets circumvented by Whonix, because Whonix's Firewall runs on another (virtual) machine. This attack gets circumvented by Whonix, because any root applications inside Whonix, including malware with root rights, can only connect through Tor.
+
+(4) Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the users machine. Remote cod execution is used to install malware on the users machine. The used vulnerability allows the adversary to get root rights. This allows the adversary to tamper with iptables rules, to make non-Tor connections and so on. This attack gets circumvented by Whonix, because Whonix's Firewall runs on another (virtual) machine. This attack gets circumvented by Whonix, because any root applications inside Whonix, including malware with root rights, can only connect through Tor.
+
+(5)  Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the users machine. Remote cod execution is used to install malware on the users machine. A second exploit is being used to break out of the Virtual Machine. Whonix Standard Download version host+vm+vm is broken against this attack. Whonix Physical Isolation defeats this attack, because the Whonix-Workstation's host does not know it's real IP address, only Whonix-Gateway, running on an other physical machine knows it.
+
+(6) Same as attack (5). But the adversary uses an extra vulnerability to break into Whonix-Gateway. Whonix is broken against this attack.
+
+(7) Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the host. Whonix Standard Download version host+vm+vm: fail, same as attack (5). Physical Isolation defeats this attack, same as attack (5).
+
+(8) Example: user visits a website over Tor with a torified Browser. The website uses known or zero day vulnerability to gain remote code execution on the host. The adversary uses an extra vulnerability to break Whonix-Gateway. Whonix is broken against this attack.
+
+(9) Example: user visits a website over Tor with a torified Browser. Tor processes the traffic. The adversary uses a vulnerability to gain remote code execution. The machine were Tor is running always ^2^ knows the users real IP address. Whonix is broken against this attack.
+
+(10) Example: end to end correlation attack, but there are much more attacks where Tor is known to be broken against. Any successful attack against Tor on a Tor based anonymity operating system will naturally deanonymize the user. ^2^ ^3^
+
+<font size="-3">
+,,
+^1^ Placeholder. 
+^2^ Unless you are using Multiple Gateways. (Optional Whonix feature in progress.) 
+^3^ Whonix defeats some attacks against Tor (and components such as Tor Browser), for example, see [Whonix's Secure And Distributed Time Synchronization Mechanism](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-secure-and-distributed-time-synchronization-mechanism) and [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection) and the rest of the Security and Hardening page.
+</font>
+
+### Many other differences ###
+Please also read [Why don't you merge with Tails and join efforts?](https://sourceforge.net/p/whonix/wiki/FAQ/#why-dont-you-merge-with-tails-and-join-efforts).
+
+### Conclusion ###
+Conclusion: different threat model, different implementation, different use cases, although some overlap. Different political and design decisions.
+
+## Comparison of different Whonix variants ##
+Name| Nr. of systems | Comments|
+------------- |  ------------- | ------------- |
+[OneVM] | host+VM=2 | Protection: better security than Tor Browser Bundle, Tor Live CDs |
+Standard [Download] version | host+VM+VM=3 | Same as OneVM; redistributable and easy to deploy; larger maintenance overhead |
+[PhysicalIsolation] with bare metal Gateway | host+VM+host=3 | Protection: stronger than standard |
+[PhysicalIsolation] with virtualized Gateway | host+VM+host+VM=4 | Easier to deploy; higher attack surface; maintenance overhead |
+[PhysicalIsolation] without any virtualization | host+host=2 | Basically same as standard Physical Isolation;^1^; no protection against hardware fingerprinting^2^|
+
+Multiple options for operating system. Debian Wheezy GNU/Linux (default, recommend). Any other, see *Whonix Framework*. There is [Hardened Gentoo based Whonix-Gateway](https://sourceforge.net/p/whonix/wiki/HardenedGentooTG/). (outdated, experts only, needs maintainer!) 
+
+Potential future variant: Live CD
+<font size="-3">
+,,
+^1^ Smaller attack surface because not using Virtual Machines. 
+^2^ therefore unsupported! 
+</font>
+
+Virtual machines can provide following security related features:
+
+* Network isolation (connections can easily be forced through tor)
+* Hardware isolation (hide unique hardware serials)
+* Roll back feature
+* Cheap and simple multi-level security through running multiple clones/VMs
+
+Live CDs offer:
+
+* Non-persistence in case of software compromises
+* Anti-Forensics and deniability (no encryption keys to disclose, if it's powered down and RAM is wiped/faded everything is "gone")
+* But: difficult to roll out security updates
+
+## Whonix Framework ##
+The **Whonix Concept** is agnostic about everything. With some development effort you can replace any component. The Whonix developers would like to support each and any use case, but due to limited amount of developers this is impossible and we focus on the **Whonix Example Implementation**.
+
+The Tor network is Whonix's official and best supported anonymizing network. Whonix can also potentially and optionally use [other anonymizing networks](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/) (Such as JonDo, i2p, freenet, RetroShare), either in addition (tunneled through Tor) or as a replacement for Tor. See the article for more information.
+
+You can also avoid using virtualization by using [PhysicalIsolation], although that is not recommend, see [Comparison of different Whonix variants](https://sourceforge.net/p/whonix/wiki/Security/#comparison-of-different-whonix-variants) for more information.
+
+It's possible to use other virtualization platforms (e.g. [VMware](https://sourceforge.net/p/whonix/wiki/VMware/), KVM, XEN, Qemu, Bochs, etc.) See the article for more information.
+
+Other operating systems (e.g. Windows;*nix; BSD;etc.]) can potentially be used as host and/or guest operating system. See the [OtherOperatingSystems](https://sourceforge.net/p/whonix/wiki/OtherOperatingSystems) for more information.
+
+## Security Overview ##
+This page intends to document security philosophy, design, goals and current shortcomings of Whonix.
+
+This chapter is only a short introduction. Please read the full page.
+
+Whonix follows the principle of security by isolation. We know that making our currently used systems secure is a lost cause. They are too complex and too large to be trustworthy and verifiably free of any bugs. Whonix can't solve this but it tries to minimize attack surfaces and limit what danger exploitable bugs in more exposed parts can do, one primary danger specific to Tor is the danger of exposing the public IP address of a system. Whonix isolates client applications inside the Whonix-Workstation from discovering the external IP address. Specifically, Whonix is designed to prevent direct detection of the IP (not more!) even if an adversary has unrestricted access to the Whonix-Workstation.
+
+Once there is a vulnerability found in Tor (ex: exploiting Tor's ports) or a successful attack against Tor, Whonix fails.
+
+Same goes for iptables. Whonix is a setup based on Linux, iptables, Tor, etc. If any of the underlying projects has a vulnerability, which we can not rule out, of course, Whonix will fail as well.
+
+There are [three ways to torify](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#OverviewaboutdifferentmethodsforTorification). Read the link for a comparison of the security.
+
+Whonix-Workstation has no access to the internet without going through Tor. You can look into our setup. It's all Open Source and well documented.
+
+Whonix uses multiple security layers.
+--This chapter needs revision.--
+1. IP-forwarding is disabled.
+2. The firewall fails "closed": when Tor is disabled, loses connection, or the Whonix-Gateway crashes, no network connections are possible.
+3. Iptables redirects any traffic from Whonix-Workstation to Tor's ports. Local network connections are dropped. No leaks are possible, assuming the TCB is trustworthy.
+4. Applications are configured correctly using latest suggestions (correct application and proxy settings, stream isolation). 
+5. Firewall rules are enforced and prevent accessing the internet directly, thus leaks are prevented in case some application leaks. 
+6. Optionally, Physical Isolation is documented. 
+7. Whonix's Protocol Leak and Fingerprinting Protection.
+8. Check.torproject.org is checked (see whonixcheck script) anyway, even though we are sure, that there are no leaks.
+9. ...
+
+Whonix was tested for leaks, see [LeakTests]. All went negative. Additionally, Skype, which is known for it's ability to punch through firewalls, was not able to establish non-torified connections. Also BitTorrent doesn't leak the IP (there is an online bittorrent leak tester), which of course should never be used through Tor (because it chokes Tor nodes), but for leak testing it was welcome. Right now we don't know of any leak tests which leaks the real IP.
+
+[Protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks), like this the ones listed on [Whonix security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world), Skype, Flash or BitTorrent are impossible. This already justifies to use a "no non-Tor connections possible" approach.
+
+When you go ahead now, and ask in a cracker forum, they probable won't spread a simple method to get the real IP of Whonix-Workstation. On the other hand, if you run an intelligence service and have 100.000 $ left over, you can announce something like "find a new exploit in Tor's SocksPort and get 100.000 $". Qualified people start looking into it and might find something.
+
+## Hidden Services ##
+### Introduction ###
+Be sure to read and understand [Tor: Hidden Service Protocol](https://www.torproject.org/docs/hidden-services.html.en) (general information) and [Configuring Hidden Services for Tor](https://www.torproject.org/docs/tor-hidden-service.html.en) (standard setup, no isolated proxy) first. Note that hidden services are always only reachable using Tor or tunnel services, such as tor2web, ([be careful](https://trac.torproject.org/projects/tor/wiki/doc/tor2web)).
+
+You do not need [SSL](https://en.wikipedia.org/wiki/Secure_Sockets_Layer), because [connections to Tor hidden services are end-to-end encrypted by default](http://www.quora.com/Is-there-an-SSL-equivalent-for-Tor-Hidden-Services). (To be exact, only tor-to-tor, see [Notes about End-to-end security of Hidden Services](https://sourceforge.net/p/whonix/wiki/Security/#notes-about-end-to-end-security-of-hidden-services)). This is handy, as you do not have to bother with self singed certificates or certificate authorities.
+
+An adversary can see whether the service (and presumably Tor) is up and running or not.
+
+### Whonix specific ###
+You can provide any server service, which relies on TCP. Beware of application level leaks, see [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection).
+
+Even if someone hacks your hidden server software (lighttpd, thttpd, apache, etc.), the attacker can not steal your hidden service key or bypass Tor, see [Attack on Whonix(https://sourceforge.net/p/whonix/wiki/Security/#attack-on-whonix)]. The key is stored on the Whonix-Gateway. Once you cleaned your Whonix-Workstation, no one can impersonate your hidden service anymore.
+
+See [Hosting hidden services](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services) for instructions.
+
+## Status of Whonix ##
+Whonix 0.4.5 is currently alpha quality software.
+
+The basic functionality is ready. You can use Whonix to browse the web and [host hidden services](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services), use email, IRC, ssh, etc. Development is still ongoing and more features are being added to Whonix. If you want join the development process or want to see what issues are still open visit [Whonix/Dev](https://sourceforge.net/p/whonix/wiki/Dev).
+
+From [Whonix 0.4.5 release announcement](https://lists.torproject.org/pipermail/tor-talk/2012-October/025921.html):
+
+      Whonix uses the best of both worlds, the Isolating Proxy concept [2]
+    and the Transparent Proxy concept. At the moment there are no known
+    anonymity leaks or proxy bypass problems. The principal design is less
+    vulnerable for any kind of leaks. At time of writing (October 2012) I
+    have been working on the theoretical concept and practical
+    implementation for 9 months, the basics have been developed by (at
+    least) three people, adrelanos, smarm and anonymous. [1] [2]
+
+      Although Whonix has been developed with greatest care, a negative,
+    being leak free or being free form mistakes in the extended project
+    description [1], can not be proven. This is Whonix's first release
+    announcement. I hope skilled people look into the concept and
+    implementation and fail to find anonymity related bugs.
+
+See also [Whonix security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world) and [Security Reviews and Feedback](https://sourceforge.net/p/whonix/wiki/Security/#security-reviews-and-feedback).
+
+## Whonix security in real world ##
+Some real world examples that are **protected by using Whonix**:
+
+* Flash and Java, although recommend against, can also not leak IP/location. See [Browser Plugins](https://sourceforge.net/p/whonix/wiki/Applications/#browser-plugins) for details.
+* Skype, although recommend against, can also not leak IP/location. See [FAQ](https://sourceforge.net/p/whonix/wiki/FAQ/#does-this-mean-that-for-example-is-my-ip-and-location-safe-when-using-skype).
+* BitTorrent, although recommend against, can also not leak IP/location. See [BitTorrent](https://sourceforge.net/p/whonix/wiki/Applications/#bittorrent).
+* [Tails: Icedove (Thunderbird) leaks the real IP address](https://tails.boum.org/security/IP_address_leak_with_icedove/index.en.html T) - Whonix didn't exist at the time that bug existed. Such kinds of leaks are impossible in Whonix, since the Whonix-Workstation is unaware of it's external IP. To be fair, such kind of leaks are now much less likely in Tails, since they are no longer using transparent proxying. ([source](https://mailman.boum.org/pipermail/tails-dev/2012-September/001704.html))
+* [pidgin leaks the real IP](https://tails.boum.org/bugs/pidgin_leaks_the_real_IP/) - Whonix didn't exist at the time that bug existed. Such kinds of leaks are not possible with Whonix, since the Whonix-Workstation is unaware of it's external IP. To be fair, it has to be noted, that this bug existed only in the development source code. They spotted the bug and fixed it before the release. ([source](https://mailman.boum.org/pipermail/tails-dev/2012-September/001704.html))
+* [Tor Browser Bundle: Firefox security bug (proxy-bypass)](https://blog.torproject.org/blog/firefox-security-bug-proxy-bypass-current-tbbs) - This vulnerability was circumvented by Whonix. Any proxy bypass may have only emitted traffic through Tor's TransPort. All that could have been leaked is the IP address of another Tor exit node, which is harmless.
+* clock skew attack [link](http://www.reddit.com/r/onions/comments/10usgv/clock_skewing_a_clever_unconventional_means_of/) brief summary: The adversary gets the time of a hidden server (example: http header) and measures the skew. Then the adversary compares with Tor relays or other public reachable (web) servers. If they have the same skew, it's very likely, it's hosted on the same server. - Although recommend against to run a Tor relay/public reachable server and a hidden service on the same server (because that opens up for a lot other attacks (bandwidth, DDOS related)), Whonix 0.4.4 and above circumvent this attack. To be fair, when this attack was first described, Whonix didn't exist, but it would circumvent it now.
+
+At first glance this site may create the impression that Whonix is completely insecure and everything is a lost cause. We are upfront with things we could do better and we are still working on and try to consider all possibilities and document all thinkable and future threats. You must judge for your own which risks are acceptable for your use cases.
+
+## Security Reviews and Feedback ##
+If you want to get listed here or feel something is missing, please get in contact.
+
+### Official expert review ###
+None, but that doesn't mean anything. There is nothing of that kind about Tails or Liberté Linux as well. Is there even something of that kind about Debian, Ubuntu or Qubes OS?
+
+I am not aware of any serious research about any of such distributions in [anonbib](http://freehaven.net/anonbib/). No one like [Bruce Schneier](https://en.wikipedia.org/wiki/Bruce_Schneier) for cryptography exists for distribution review.
+
+### First public discussions ###
+There are [a few older threads](https://lists.torproject.org/pipermail/tor-talk/2012-March/subject.html#23489) on the Tor Talk Mailing List about the security of Whonix / transparent proxy.
+
+* [tor-talk] Operating system updates / software installation behind Tor Transparent Proxy"
+* [tor-talk] Obtain real IP behind Tor transparent proxy; was: Operating system updates / software installation behind Tor Transparent Proxy
+* [tor-talk] Risk with transparent proxy mode [was Re:Operating system updates / software installation behind Tor Transparent Proxy] - Summary: coderman (developer of TorVM / JanusVM) had some concerns, which could be cleared. "Looks fine form a cursory check."
+
+### Older places of people talking about Whonix ###
+A section to collect everyone discussing Whonix anywere. It's nice to see what people think and say about Whonix. If they don't give feedback directly, we still have a secondary feedback source. Most links are found through googeling "TorBOX" or "https://trac.torproject.org/projects/tor/wiki/doc/TorBOX".
+
+* ["My Hidden Blog"](http://utup22qsb6ebeejs.onion/?x=entry:entry120219-220943); (adrelanos) small blog entry; unfortunately not much information or feedback
+* [Whonix on theprivatebay.de](https://thepiratebay.se/tag/torbox); (adrelanos) Interesting but pointless imo. 6 seeders right now in total. People should not even trust us but they trust the packager of that torrent. I am not against sharing through torrent. It's all Free Software. As long we do not offer trusted and gpg signed builds, however I recommend against downloading through torrent.
+* [Whonix on wilderssecurity.com](https://encrypted.google.com/search?q=site%3Awilderssecurity.com+TorBOX); few threads
+* [ra's blog](http://ra.fnord.at/2011/05/easy-and-secure-anonymous-internet-usage/); Search for "TorBOX that they have".; Negative feedback.
+* LulzSec / AntiSecOp: [Want to be a ghost on the internet?](https://www.facebook.com/notes/lulzsec/want-to-be-a-ghost-on-the-internet/230293097062823?_fb_noscript=1) or google for 'Want to be a ghost on the internet?'; Whonix (TorBOX) is a part of their instructions.
+* seclist.us: [Whonix V-0.1.3 - Multi-VM anonymity setup using Tor's Transparent Proxy](http://www.seclist.us/2012/03/torbox-v-013-multi-vm-anonymity-setup.html)
+* ["My Hidden Blog"](http://utup22qsb6ebeejs.onion/?x=entry:entry120401-121133): longer positive review
+* (http://www.reddit.com/r/TOR/comments/tyabf/torbox_critical_issue_help/) (This only applied to 0.1.3, was announced, workaround provided and fixed since 0.2.0)
+
+### October 2012 - Whonix 0.4.5 release announcement ###
+* [on tor-talk Mailing List](https://lists.torproject.org/pipermail/tor-talk/2012-October/025921.html) - Summary: no answers.
+* [on debian-derivatives Mailing list](http://lists.debian.org/debian-derivatives/2012/10/msg00007.html) - Summary: Mentioned, that if Virtual Box gets exploited, it's game over. This is true and already mentioned in the [attack matrix](https://sourceforge.net/p/whonix/wiki/Security/#attacks).
+
+### October 2012 - Discussion ###
+* [Wilders Security Forum: Anonymous operating system Whonix](http://www.wilderssecurity.com/showthread.php?p=2122152#post2122152) - Summary: only questions, no concern.
+* [Are hardware serial numbers hidden in TAILS?](https://tails.boum.org/forum/Are_hardware_serial_numbers_hidden_in_TAILS__63__/?updated#comment-36536cef25dd56a09043bc8bee85681e)
+
+Qubes OS Mailing List:
+
+* [qubes vs whonix virtualization solution](https://groups.google.com/forum/?fromgroups=#!topic/qubes-devel/aJGrmlkwO3M) - Summary: Qubes OS would be safer than Virtual Box. True. Other than that, no complaints.
+* [Whonix: Virtual Box vs Qubes OS](https://groups.google.com/forum/?fromgroups=#!topic/qubes-devel/aJGrmlkwO3M) Summary: agreed, that Qubes OS would be safer then Virtual Box.
+
+# About Computer (In)Security #
+A secure and trustworthy computer is a computer that only does what _you_ (think you) tell it to.
+
+Computers are insecure and not trustworthy and there is nothing we can do about that. Computers are "universal machines" (see Von Neumann, Turing). They can be instructed to do anything they can do according to the laws of physic. It's important to understand that a computer can't discern between "good" and "bad" instructions, bits are bits. There are two general problems: 
+
+(1) There are a lot of people who can instruct a given machine to do something (anything!), we need to trust them all, or verify everything, which is impossible
+
+If you read or write all instructions (kernel, software, firmware) yourself, study the hardware design (so you understand what an instruction actually does) and compare that with the actual hardware and then make sure you are the only one who can access the machine and give it new instructions, you need to trust that other people only give the machine instructions to do things that you want it to do. You can tell it to accept other, external untrusted instructions in a restricted, controlled fashion (like "render that html but other wise don't touch my system") but this is next to impossible to do reliably because of point 2). Otherwise you could never connect that machine to a network or transfer any input from another system to it ("input" and "instructions" has to be understood in a very broad sense, it's not just about executable code, it can as well be media files or hardware devices that are being attached).
+
+The "Trusted Computing Base" (TCB) refers to all instructions and hardware used to restrict a "universal machine" from accepting and acting on (other) arbitrary instructions. It is used to set a certain security policy to enforce that a computer only does what these trusted instructions allow it to. "Trusted" simply means that we have to trust it, not that it's wise to trust it. The TCB tries to restrict what instructions can do but it consists of instructions itself. It can't restrict or police itself. Any flaw whatsoever in the TCB directly results in a compromise of the security of the system.
+
+(2) The machines themselves and the instructions are incredibly complex
+
+Even in an ideal world with mathematically verified hardware and software we may think we are giving instructions to do A while in reality the instructions tell it to do B, or also B. Machines can not make "mistakes" but they certainly can do unexpected things...  
+
+We can't give machines instructions in our language (programming language) it needs to be in machine code. The translation is so complex that we need another machine to do that for us, and to create that machine another was used and so on. This expands our chain of trust to basically all machines and humans involved to the first compiler created by an assembler which in turn was created by hand-written machine code.
+
+Hardware is fallible, hardware failure can result in entirely unpredictable results. Cosmic rays "flipping a bit" or just bad memory and extreme temperatures? Look up "Bit-squatting" for an example. Software depends on the hardware to function perfectly, what happens if the most basic assumptions are betrayed? 
+
+Another example for complexity, side channel attacks: they are very difficult to protect against and poorly understood by most software developers. E.g. through power or CPU load analysis otherwise isolated parts outside the TCB can influence or eavesdrop on privileged encryption. In other words, determining what is part of the TCB and what is definitely not, is a very hard problem.
+
+If that wasn't enough we also have the problem that circuit layouts, microcode and firmware of most vendors is proprietary. Part because of competition concerns, part because they are afraid of patents... In any case, this makes verification even more difficult that it already is. Further "hardware" (which includes firmware, i.e. software) is becoming more and more capable (#complex and dangerous). Features like Trusted Computing when used to prevent ring 0 access from the user and owner of the computer, EFI that has Internet connectivity and can update itself or Intel RMM which can grant remote access that is invisible to the user and OS combined with a less than perfect track record (e.g. see Intel related research by Invisible Things Lab) doesn't exactly spell trustworthy and 100% dependable.
+
+Conclusion:
+The TCB can never really be trustworthy. The source code of every currently usable OS kernel alone is too complex and large to completely audit and make error free, not just for a single human but even for large groups like the "Linux community". But let's assume we solve that (e.g. through using microkernels and formal verification): How do you make sure compiled binaries are actually doing what the source intended? Or, how can you verify that complex hardware and integrated circuits are actually built according to their intended design? For all the verification and auditing processes we are dependent on other complex computer systems that would have to be trusted unconditionally. Bootstrapping trust is a chicken and egg problem. We would have to be able to verify systems with just looking at them with our bare eyes and hands or build/verify all systems necessary to bootstrap a modern compiler and hardware development platform. This may have been possible for the first "computers" in the first half of the last century but not anymore.
+
+Since there's nothing we can do about that, what else can we do then?
+
+We need to design our systems in a way that makes it no longer necessary to trust them 100%. We only need to trust that it's good enough and that it's astronomically unlikely that multiple diverse systems are untrustworthy in the same way.
+
+If you don't want a computer to be able to tell anyone your location or identity better make sure the computer doesn't know either... The Whonix security design in some ways mimics the security design of the Tor network itself: Don't trust any single entity to be trustworthy. We only rely on the fact that it's unlikely that all entities (nodes, computers) are compromised and colluding. To be precise, that's a goal that isn't achieved yet with Whonix alone, see [Whonix²](https://sourceforge.net/p/whonix/wiki/Security/#whonix2). One could also say that the actual TCB of such a "system" (actually multiple systems) becomes the design, arrangement and usage policy which is very well possible for every user to comprehend and verify.
+
+This could be compared to the "Air Gap" used on most high security networks. They assume that the TCBs are not trustworthy and work around that using a simple and easily verifiable policy that basically eliminates the complete attack surface or hardware and software bugs and even protects against most backdoors (for example, a subverted PRNG could still result in weak crypto being exported from the trusted network where it can be recorded and "cracked" by an adversary. A strong pyhiscal isolation based system could then encrypt data twice on different systems using different PRNG implementations to protect against such attacks.)
+
+Physical Isolation in the sense of Whonix is not a new idea, see [Verifiable Computer Security and Hardware: Issues by William D. Young. September 1991 (PDF!)](http://www.cs.utexas.edu/ftp/boyer/cli-reports/070.pdf) page 18 for a summary. It seems like the idea was rediscovered by Whonix (independently, and we came up with the same term), to our knowledge Whonix is currently the only project following this approach in a defined way.
+
+# Our Threat Model #
+## The Threats ##
+First let's quickly consider all the possible threats we could face. We can put threats against computer systems into five categories:
+
+(1) Non-technical/non-computer-based and legal attacks
+E.g. "rubber hose cryptanalysis", mandatory key disclosure, subpoena, real police work/espionage (done by real humans, not bots), bugs, surveillance cameras...
+
+(2) Hardware attacks through physical access.
+RAM and Hard disk Forensics, keylogger, TEMPEST, Evil Maid attack...
+
+(3) Backdoors
+Intentional weaknesses or additional hidden "functionality" put into your system by a manufacturer, vendor or distributor (hardware or software) allowing remote access^1^ Can be put in anywhere between design/source code, manufacturing/compilation or distribution.
+
+(4) Vulnerabilities
+Coding or hardware design errors that can be exploited to gain remote access^1^ Vulnerabilities and Backdoors in practice can look exactly the same, only the way they are created differ.
+
+(5) Design flaws
+Even in a backdoors-free, error-free system with perfect physical and legal protection (no such thing in reality) perfect security may still be impossible. This is especially true for anonymity systems. While with cryptography a perfect design exists (the one time pad) anonymity isn't binary. You are not either anonymous or not, you only have some non-zero but not-perfect degree of anonymity. Your anonymity depends on hiding amongst others. Anonymity networks require trust and a large and diverse userbase. A perfect security system wouldn't require trusting other parties or depending on such extraneous factors. Any design of a complex (but still usable) system (all computer systems are complex) needs to make tradeoffs. That's why pretty much everything uses non-perfect cryptography instead of the one-time-pad...
+
+Bug [Research: IP discovery through Tor behind isolated network](https://trac.torproject.org/projects/tor/ticket/5928) seems to only be about learning the IP address which a Tor client connects to the Internet through. It doesn't mention other information leaks.
+
+<font size="-3">
+,,^1^ Used in the broadest sense, can be classic remote code execution, privilege escalation, DoS... Essentially they all allow remote parties to send your system instructions that diverge from the allowed security policy
+</font>
+
+## Attacker capabilities ##
+* Legal/Non-technical "attacks" and physical access is expensive
+Anything that requires real humans to do work instead of letting computers and algorithms do it is prohibitively expensive against more than a small target group.
+
+* Backdoors (hardware or software) are expensive
+It is hard to make one and it's risky. The more you use it the more likely it is it will be caught and closed. Adversaries are not going to waste it on anything but high profile targets. However, well hidden passive "backdoors" are of a concern, they can practically be impossible to detect and remain functional for years. Imagine a backdoor in a compiler affecting the PRNG. The cost for such backdoor is high (for this example an attacker need patience, non-trivial coding and social engineering as well as some crypto skills) but the "ROI" would be great too...
+
+* Software attacks are cheap
+A good 0day can still cost a lot and isn't useful for very long once you start using it. But new vulnerabilities are found all the time, new exploits can be written. Compared to physical access and backdoors it is cheap. It can be fully automated against a large target set.
+If you are wondering how realistic or important the client application 0day threat is consider pwn2own 2012. A semi-legal but most certainly immoral and reckless company demonstrated how they can exploit every web browser circumventing all state of the art security features (MAC, Sandbox, ASRL, NX, etc). This is not too surprising, we already established how big code bases always have bugs and a subset of those bugs will always be exploitable. The noteworthy news here is that this company doesn't report their findings to the developers, they sell it to governments (and/or the highest bidder) as offensive "cyber weapons" (naturally not their term).
+It's only likely that also Tor vulnerabilities are sold behind closed doors. You should act accordingly and never rely on Tor alone if your threat model demands "reasonably strong anonymity" even from not-nearly-global but well funded adversaries.
+
+* Crypto-attacks are enormously expensive
+If you know how to break currently used crypto you will try keep this a secret at all costs. Most crypto attacks will most likely require enormous computing power.
+
+* Attacking design flaws: it depends...
+The costs can vary greatly but in every case, once you attack a design flaw and it becomes publicly known the target will fix the flaw and will become harder to attack in the future. This can result in an arms race and often neither party wants to go that way. A grave problem for the defender side can be that some systems are so widely used that it becomes almost impossible to mitigate away to a more secure design. The best example for that is the certificate authority system. It's design is flawed on so many levels yet it's relied upon, often solely for all authentication and confidentiality, to this day by pretty much everyone who's ever used a computer. Similarly, a lack of crypto and hash agility in many applications results in a dependence on weak and broken algorithms, not because we don't know any better but because backwards compatibility and some bad apples spoil it for everyone. There's certainly a threshold, were, if an attacker plays it slow and carefully, he can stay just below the radar for a long time and let everyone believe that it's not "that bad yet". For example, a [collision attack](https://en.wikipedia.org/wiki/Collision_attack#Attack_scenarios) against SHA-1 (which would affect software updates, version control systems as well as Tor, GPG, TLS and pretty much everything that uses public key crypto) is known to be "within the reach of a powerful adversary" since 2005, with Moore's Law and Schneier/NSA's Law ("Attacks always get better; they never get worse") in play the range of potential adversaries only got larger. SHA-1 will probably be relied on pretty universally until someone publicly demonstrates a collision. Not because we don't know any better, but because to cost of switching are so high.
+
+##  Our Goals ##
+* Hiding our Location and Identity when transmitting information
+* Confidentiality, Integrity, Authenticity and Availability of transmitted data
+
+##  Our Attack Surface ##
+Basically any part used by us to achieve our goals can be attacked:
+
+* We need some physical security and privacy. It's obvious that anonymity and confidentiality is difficult or impossible to achieve otherwise.
+* Tor, the code, the design, the whole network (see "Whonix's Tor Setup" below for more)
+We also can't look at Tor as an isolated piece of software, we need to consider its whole TCB because if any part of a TCB can be subverted the Tor process can be subverted. The attack surface in case of backdoors is the full TCB, in case of vulnerabilities "only" the network facing parts of the TCB.
+	* The Whonix-Gateway Hardware
+	* GNU/Linux/OS: kernel, essential userland, apt-get and all software update packages provided by the OS distributor/vendor
+	* Tor itself
+	* The build system (gcc...)
+Using Virtualization (instead of "PhyIso") increases the TCB significantly. In addition to the above:
+	* Host Kernel
+	* Host applications
+	* Host software updater
+	* Virtualization software
+* We rely that the software we use doesn't more than absolutely necessary reduce our anonymity set through protocol leaks, identity correlation and fingerprinting. For that we also have to rely on the Whonix-Workstation and the TCB of the applications we use. (for more see 
+"Whonix's Protocol-Leak-Protection and Fingerprinting-Protection" below).
+
+For Confidentiality, Integrity and Authenticity we (we all, not just Whonix...) are still way too heavily dependent on TLS (Transport Layer Security, the "s" in https). Further we depend on:
+
+* The complete Host (Hardware and Software)
+* all software in Whonix-Workstation
+* TLS/PKI infrastructure
+* In case of hidden services: The full location/identity TCB.
+* The "other end", the security of whoever you are communicating with, unless it's symmetric key crypto and you got the only key.
+
+To achieve Availability of information we depend on:
+
+* the upstream internet provider, uptime and connectivity 
+* Tor network resilience against DoS
+* resilience of webservers you connect to against DoS
+* Your own system's resilience against DoS
+
+## Applying the threat model to Whonix ##
+First of all, you don't want to end up in the "high profile target" list of any of your resourceful adversaries. Because if you do neither Whonix nor any other computer based system can protect you. 
+
+Whonix is mostly a software project. There isn't a lot we can do on the hardware and physical side of things. Hardware security would be a much smaller problem if we weren't using monolithic systems where dozens of parts have full system access through DRM (or indirectly though hardware drivers that all run in kernel space). Have a look at QubesOS for state of the art hardware deprivileging. It requires latest gen hardware and software support still needs to catch up, therefore this isn't available in Whonix yet. 
+
+We assume the hardware is trustworthy, we assume the physical location is not compromised. To protect against forensic analysis we recommend to use full disk encryption, wipe the RAM on shutdown. We recommend to use "clean" computers made of parts manufactured by reputable companies and to pay in cash so as to not have hardware IDs leak our identity. Further some pointers:
+
+* DMA is bad, IOMMU is good, avoid attaching untrusted (or any for that matter) devices on Firewire and PCI* interfaces.
+* Use open source hardware or at least open source friendly that makes specifications public. Open source means that multiple companies can implement the hardware, the Linus law of "many eyeballs and all bugs are shallow" applies, backdoors are harder to hide.
+* simple is beautiful, complexity is the enemy Nr.1 of security. Whonix-Gateway can run on very simple hardware like the Raspberry Pi. 
+
+Crypto is even worse, the only thing we can do is to use [cascades](https://en.wikipedia.org/wiki/Multiple_encryption) of different cipher and hash families. This is slightly more complicated than it sounds and we don't know of any software that does it right.
+
+As established above in "Attacker capabilities" the main attack vector we need to concern (and we can actually do something about) is software attacks.
+
+To protect against software backdoors and vulnerabilities:
+
+* the source needs to be audited, preferably by yourself and many others and should ideally be bug free.
+Popular open source projects are your best bet. Whonix is fully open source, anyone can audit and patch. Whonix comes with a software updater which allows rapid deployment of security patches. 
+* if you rely on others (you do), you need to make sure that you get the same code as everyone else
+Hash sums + signatures, the more public they are, the better. If completely transparent signing is used (as common in proprietary systems) it's much more difficult to determine that you get the same files as everybody else. By default signing is only concerned with making sure that you get code by someone with access to the key. This protects against 3rd parties but not insiders.
+Checksums and signatures of Whonix and updates are publicly available.
+* the code you use should have a good track record, know issues must be corrected immediately
+Code that doesn't get checked but has zero known problems is worse than code that has hundreds of known and patched security issues but is constantly being reviewed and worked on. However, a trustworthy code should have very few if any security issues despite having been audited thoroughly. After all, projects that constantly need security patches are constantly insecure. But it's not really about numbers, check the severity of the bugs. Linux needs many security patches but fatal flaws that would affect Whonix are few and far between (i.e. remote code execution with root privileges). Fatal flaws in user facing applications (like browsers, pdf readers, media players, IRC) are frequent and therefore such software is not be part of the TCB (see below).
+* checking the source is not enough, you need trustworthy binaries
+analyzing binaries is a lot more difficult than analyzing source code. If you rely on source code auditing you absolutely require a trustworthy compiler (and a complete trusted system to run it on) and use [DCC](http://www.dwheeler.com/trusting-trust/). Similarly you already need a trusted system to check signature and hashes. This is the bootstrapping chicken and egg problem we mentioned earlier. Generally, to address it you need to use at least two different diverse systems that are completely independent (includes their parent build system and compiler) and set up the system in such a way that both would have to be compromised by the same adversary in a compatible way in order to result in a fatal security breach.
+
+If the code base is huge and complex code auditing isn't a realistic strategy, therefore we need to reducing complexity and attack surface by:
+
+* making the TCB small 
+and
+
+* using privilege separation:
+The TCB for identity/anonymity is as small as it gets on a monolithic general purpose OS. It could be smaller (e.g. a custom kernel, busybox, uclibc instead of libc and gnu-utils) but that comes at the cost of maintainability, security updates and ease of use. (and still leaves us with a comparably huge monolithic kernel and a gigantic gcc infrastructure). 
+Linux/Xorg (with DAC or even MAC) isn't very good with privilege separation (e.g. no trusted path). The strongest privilege separation is offered by using multiple physical computers, that's what we recommend, [PhysicalIsolation], multiple Whonix-Workstations. The more practical but less secure alternative is virtualization. For details about privilege separation between IRC/Browser/Clients and Tor see [Technical Intro](https://sourceforge.net/p/whonix/wiki/Security/#technical-intro)
+
+We've thought a lot about making Whonix yet more secure but with the (free and open source) tools available today it doesn't seam possible. What we'd need is a isolation kernel that would offer some strong guarantees of isolation between the different subsystems and ideally would be verified so you don't have to worry about sophisticated backdoors (apart from the compiler, see "Trusting trust"/chicken and egg), software vulnerabilities and even some hardware backdoors and vulnerabilities (through IOMMU and microkernel design one can put hardware and firmware components, apart from the CPU, out of the TCB).
+For Fingerprint/Protocol leaks and the [CIA Triad](https://en.wikipedia.org/wiki/CIA_triad#Key_concepts) we are depending on the Whonix-Workstation TCB. This is a hopelessly large TCB/attack surface. For this reason we use yet another approach which can be called "security through non-persistence". That is, you should extensively make use of the snapshot and roll back feature of the virtual machine. Instead of privilege separation within a Tor-Workstation (e.g. by using a Mandatory Access Control framework) which would come at great usability costs we recommend to use the coarse-grained isolation provided through multiple VMs (also see "About grsecurity" below).
+
+To protect against software attacks (vulnerabilities) in particular:
+
+* make software hard to attack
+ASLR, canaries, NX, kernel hardening, See the Debian section below: [About Debian](https://sourceforge.net/p/whonix/wiki/Security/#operating-system). Note that this makes attacks "harder" but not impossible. Hardening is no replacement for fixing bugs. In a really trustworthy system hardening would not be necessary.
+* detection
+This is still left to the user. IDS, Log auditing. The usefulness of this approach is limited. It doesn't prevent security breaches. It can only help making future breaches less likely.
+
+To mitigate Design flaws the primary strategy is eliminating single points of failure. Do not rely on Tor alone, use wifi or tunnel through another system running VPN. Do not rely on TLS alone, use GPG as well (and vice versa). Do not rely on a software monoculture, you shouldn't have to rely on Debian infrastructure to never be compromised. We are currently guilty of not following this advice. To lessen the impact of a potential compromise of the update infrastructure (which includes developer machines, build systems, key security and cryptographic primitives like PRNG - remember openssl or Flame?) we do not enable automatic software updates. After all, they are essentially remote root level backdoors (although with some checks in place).
+
+### Notes about securing Confidentiality, Integrity and Authenticity ###
+This is no different than in any other computer system without Tor. Use end to end public key encryption, there is not really an alternative to that. But there are alternative implementations: TLS, SSH, GPG... End to end means both ends need to be secure, one end is the Whonix-Workstation which you can control and secure. In case of hidden services, the Whonix-Gateway is ALSO part of the TCB! 
+
+Whonix-Worstation isn't specifically hardened because hardening a Desktop system to a degree that makes it actually secure against a serious adversary makes the system unusable. Instead we follow the nuke and restore approach, see [Recommendation to use multiple Whonix-Workstation VM's and Snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots).
+
+About Availability: This is most likely the least of our worries. The most resilient approach is probably a distributed data store, like Tahoe-LAFS or Freenet. i2p offers multi-homing built in. For Tor we don't know of any solutions ready for general usage.
+
+#### Notes about End-to-end security of Hidden Services ####
+Hidden services are not really "end-to-end" encrypted, they encrypted only Tor to End. (or "Tor to Tor") The communication between the browser or server and Tor is sent in clear text. This doesn't really constitute a security issue, as localhost (or Workstation to Gateway on an isolated network), is supposed to be secure. But it has some security implications:
+
+With hidden services alone, without TLS enabled, the adversary only needs to compromise Whonix-Gateway to get knowledge of the content of the connection and the clients identity/location. To compromise the content of the connection, the adversary only needs to compromise either the gateway or the workstation.
+
+With hidden services, and TLS enabled, an adversary needs to compromise Whonix-Workstation to gain knowledge of the content of the connection. The adversary would have to compromise Whonix-Gateway as well, to gain knowledge of the client's identity/location.
+
+It is possible to use hidden services and TLS at the same time, i.e. https://****************.onion. There are only a very few hidden services reachable over TLS. For example https://pad.riseup.net/ can be reached over https://ttbmov2dezfs2fln.onion/. But since this only offers benefits to users of Whonix (and other Tor gateway implementations), there is no demand. It would provide some nice defense in depth as it eliminates a single point of failure.
+
+It would open the question, how would the certificate be verified?
+
+That's simple for private sites, where server and clients know each other. They simply verify it over preshared secure channel, for example, a meeting.
+
+And public hidden services? It is unlikely, that certificate authorities will give out certificates for .onion sites. Startssl.com declined, because .onion is no .gTLD, see [Bug #6116: apply for .onion gTLD at IANA](https://trac.torproject.org/projects/tor/ticket/6116). Although you could try asking other certificate authorities, if they offer SSL certificates for people who can prove that they own a .onion domain. You can prove, that you have control over the domain by editing its contents on their request.
+
+But CAs should not be relied on anyway. See chapter [SSL](https://sourceforge.net/p/whonix/wiki/Security/#ssl).
+
+Hidden Services with Whonix are still safer than running Tor and the server software on the same host, see [Hidden Services](https://sourceforge.net/p/whonix/wiki/Security/#hidden-services) for more information.
+
+## Attack on Whonix ##
+There is a comparison of TBB, Tails, Whonix Standard/Download version (host+VM+VM) and Whonix with Physical Isolation in Technical Intro chapter (https://sourceforge.net/p/whonix/wiki/Security/#attacks)[Attacks].
+
+## Design Document, innovations and research ##
+Whonix developer proper is also interested in serious design documents. There is only one design documents with respect to Tor, transparent/isolated proxying, isolation and Virtual Machines. Proper has read the old design paper "A Tor Virtual Machine Design and Implementation" from 2009, which can be found at [DesignDocumentBase]. After reading, adrelanos forked that paper, removed non-essential, non-security relevant stuff and made sure, all considerations from the old design paper, were implemented into Whonix. The forked paper can be found at [DesignDocument].
+
+The whole Whonix documentation, especially this page and [Applications] supersede the old design document. Also the [TorifyHOWTO](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO) is co-maintained by adrelanos.
+
+Also the following documents are being monitored.
+
+* [Tails Design](https://tails.boum.org/contribute/index.en.html)
+* [Tails Design: specification and implementation](https://tails.boum.org/contribute/design/)
+* [Security and Anonymity in Liberté Linux](http://dee.su/liberte-security)
+* [Liberté Linux Motivation and Philosophy](http://dee.su/liberte-motivation)
+
+If there are any security/privacy/anonymity updates they will be considered for Whonix.
+
+The Whonix project also enjoys asking good questions, providing useful suggestions and creating useful things.
+
+The following list is to keep track of all discussions and to review them in the future again, to see if something has changed.
+
+* Smarm created serious [LeakTestsOld], which have been scripted by adrealanos (see [Leaktests]) and which are potentially useful for other projects as well.
+* [Tor project trac, Reporter is proper](https://trac.torproject.org/projects/tor/query?reporter#proper&col#id&col#summary&col#status&col#type&col#priority&col#milestone&col#component&order#priority)
+* [Tails-dev Removing SSL CA dependency for HTP](https://mailman.boum.org/pipermail/tails-dev/2012-June/001245.html)
+* [Modified usewithtor to support setting ip and port by command line parameter by adrelanos](https://trac.torproject.org/projects/tor/wiki/doc/torsocks)
+* [Research: IP discovery through Tor behind isolated network](https://trac.torproject.org/projects/tor/ticket/5928)
+* [Enhance "Transparent Torification (Requires custom transproxy or Tor router)" in Tor Button.](https://trac.torproject.org/projects/tor/ticket/5611)
+* Read [Dev] and also read the archives. We don't just do things. Everyone is invited to add some points and then we try to make the best decision.
+* [tor-talk Tor Browser disabling Javascript anonymity set reduction](https://lists.torproject.org/pipermail/tor-talk/2012-May/024227.html)
+* [tor-talk Awareness for identity correlation through circuit sharing is almost zero.](https://lists.torproject.org/pipermail/tor-talk/2012-March/023535.html); [Add warning related to Identity correlation through circuit sharing](https://trac.torproject.org/projects/tor/ticket/6102)
+* [tor-talk Operating system updates / software installation behind Tor Transparent Proxy](https://lists.torproject.org/pipermail/tor-talk/2012-March/023486.html)
+* [tor-talk Attack against Tor: Statistic Manipulation Attack](https://lists.torproject.org/pipermail/tor-talk/2012-August/025128.html)
+* [Tails-dev tails_htp: exit node can fingerprint Tails users until exit node is changed](https://mailman.boum.org/pipermail/tails-dev/2012-July/001394.html); [2](https://mailman.boum.org/pipermail/tails-dev/2012-August/001421.html)
+* [Tails-dev better IRC client, include XChat](https://mailman.boum.org/pipermail/tails-dev/2012-August/001436.html)
+* [Tails-dev separate Tor streams](https://mailman.boum.org/pipermail/tails-dev/2012-August/001422.html)
+
+* ...
+
+## Whonix Threat Model not available as pdf or paper version ##
+You may skip this optional chapter. Written by Whonix developer adrelanos.
+
+While I read real papers, like the [Onion routing design paper](https://svn.torproject.org/svn/projects/design-paper/tor-design.pdf) and many others, I can't be coerced into creating a paper "Designing an anonymous operating system" with latex as pdf.
+
+Like Mike Perry, developer of Tor Browser [said](https://lists.torproject.org/pipermail/tor-talk/2012-May/024405.html) "I find the pdf format heavy and unnerving from a security perspective.". That also goes for adrelanos and I also find the pdf format inconvinient. It would also take me some time to learn latex, pdf creation, formatting etiquette and so on. Time, which I rather invest into improving the design, developing and so on. The "Onion routing design paper" is now also outdated and I rather have an editable, often updated and revised website compared to a paper/pdf.
+
+Tails does also not have a design paper as pdf and still lots of users and developers. Also TrueCrypt had not design paper about plausible deniability and still got reviewed by Bruce Schneier et al.
+
+# Whonix's Protocol-Leak-Protection and Fingerprinting-Protection #
+**Read Security of Whonix and Whonix threat model above first!**
+
+Whonix can not do the impossible and magically prevent all kinds of [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks). However, it does offer best possible protection. It is a multi level protection always trying to prevent the worst.
+
+## Most dangerous leaks are protected ##
+Most dangerous leaks are protected. The following ones are in the most dangerous categorical, because they would lead remotely and directly to the users real identity.
+
+* Your real external non-Tor IP address is covered due to the whole Whonix design, isolated proxy usage and [the Whonix firewall](sourceforge.net/p/whonix/wiki/Applications/). ^1^
+* The same as above goes for DNS^1^ requests, they are safe. ^2^ 
+
+## Many Whonix default applications are already configured, not to leak ##
+* Using their own SocksPort, thus preventing [Identity correlation through circuit sharing](http://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing).
+* Browser fingerprinting: *Whonix Example Implementation* includes Tor Browser. Browser fingerprinting is as good/as worse, as you were using the normal Tor Browser Bundle.
+* GPG: is configured not to leak your operating system version (no-emit-version) and other stuff. [appendto_gpg.conf on github](https://github.com/adrelanos/Whonix/blob/master/whonix_workstation/home/user/.gnupg/appendto_gpg.conf)
+* XChat: uses secure defaults as per [TorifyHOWTO/XChat](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/XChat). [XChat configuration files on github](https://github.com/adrelanos/Whonix/tree/master/whonix_workstation/usr/local/share/whonix/xchat2) Identity can be reset using *xchat-reset* [xchat-reset on github](https://github.com/adrelanos/Whonix/blob/master/whonix_workstation/usr/local/bin/xchat-reset). 
+* ssh: <font size="-3">Without Whonix, syntax for ssh is user@hostname [...], but if the user forgets to specific user before @hostname, the operating system user name will be used and if that is something identifiable, anonymity is broken.</font> Since Whonix set the user name to *user*, in worst case, only the username *user* can be leaked, which is harmless. He could just have copied the syntax from the manpage. <font size="-3">In another, similar project, Tails, the username is set to amnesia, which is also not something the user entered and therefore safe.</font>
+
+Many protocol leaks are documented, see [Applications] and [TorifyHOWTO](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO).
+
+## Important identifies ##
+These are also important identifies, because they can be used for fingerprinting, narrow down the list of suspects (for example, the time zone) or even lead to directly to deanonymization (for example, if username were set to John Doe).
+
+* Desktop resolution is 1024x768 for all Whonix users. (Virtual) refresh rate is set to 60. ^a^ ^c^
+* Color depth is the default 24 bit for all Whonix users. ^b^ ^c^ 
+* All Whonix users have the same list of fonts installed. ^d^ ^e^ ^f^
+* Internal (virtual LAN) IP address is the same for all Whonix users.^3^ 
+* Time zone is set to UTC. ^15^
+* User name is set to user.
+* Automatic updates are routed through their own circuit (stream isolation) to prevent accidentally leakage of your software packages and versions (if any custom software installed) which then could be correlated with other anonymous activity. See also [Software updaters](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Softwareupdaters) and [Software installation Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#software-installation-on-whonixs-whonix-workstation).
+* [MAC address](https://en.wikipedia.org/wiki/MAC_address) is the same for all Whonix users.
+	* Whonix-Workstation's MAC address is shared among all Whonix users. That is useful, in case an application leaks the MAC address or in case Whonix-Workstation got compromised. ^11^
+	* Whonix-Workstation can also see Whonix-Gateway's MAC address.
+	* Whonix-Gateways MAC address is also shared among all Whonix users. **This may have side effects, were are still discussing, see [Dev].**
+* Worst case scenario: contents of your RAM (error reporting; RAM dump if infected with malware; [Transparent Proxy Leaks](https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxyLeaks)) would "only" contain the RAM of your Whonix-Workstation. All your non-anonymous stuff on your Host would stay safe.
+
+## Metadata ##
+Metadata (as explained under [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks)) can not be used to de-anonymization, if you follow the following guidelines:
+
+* Always think twice before uploading anything.
+* Upload only files, which you, either:
+    * created inside your Whonix-Workstation
+    * downloaded using your Whonix-Workstation
+    * carefully scrubbed yourself
+* For example, if you want to upload photos or videos, unless you know what you are doing, get an extra device, which you only use for anonymous usage.
+* Keep in mind, that even if de-anonymization is not possible, that still identity correlation to the same pseudonym might happen. For example, let's suppose your created a video using any video creation software and you uploaded it to a popular video portal under the pseudonym A. Then you create a another video using the same machine (and same application) and upload it under the pseudonym B. An adversary checking the metadata could correlate pseudonym A with pseudonym B.
+* Look into [MAT](https://mat.boum.org/) (Metadata Anonymisation Toolkit). Preinstalled on Whonix 0.4.4 and above.
+
+## Less important identifies ##
+These identifies are less important, because an adversary can only collect them, either if the user installed malicious software (for example, some copyright enforcement and anticheat tools collect them) or only if the the adversary local access, i.e. the adversary has compromised a user or in some cases the root account.
+
+Implemented:
+
+* Hardware serial numbers which any applications could collect are hidden due to the Virtual Machine.^4^ 
+* CPU model and capabilities are hidden by Virtual Box "Synthetic CPU" option.
+    * Unfortunately, the clock speed of your host CPU is visible to all code (applications or malware) inside Whonix-Workstation.^5^ 
+* RAM is set to 768 MB.
+* Sensor information (cpu temperature, hdd temperature, [S.M.A.R.T.](https://en.wikipedia.org/wiki/S.M.A.R.T.)) are hidden. ^6^ Fortunately Virtual Box does hide them from the guest Virtual Machine by not implementing them. 
+* Battery information is unfortunately not hidden by Virtual Box. ^7^
+* BIOS DMI information is hidden by Virtual Box. ^8^
+* Virtual BIOS DMI information and Virtual HDD and CD serial numbers are implemented by Virtual Box.
+    * Even less important: Beginning with Whonix 0.4.4 we try to share those values among all Whonix users as well. See the whonix_createvm script if you are interested. ^8^ ^9^
+* VM UUID, as in explained in [VBoxManage modifyhd](http://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvdi) is shared among the same Whonix versions. (Implemented in 0.4.4 and above.) ^14^
+* [SLIC table](https://msdn.microsoft.com/en-us/library/windows/hardware/hh673514.aspx) is empty by default inside Virtual Box. ^10^
+* HDD UUID is the same for all Whonix users. ^12^ 
+* CD-ROM UUID is the same for all Whonix users. ^13^
+* All Whonix users have by default the same set of software packages installed. - If you install software packages yourself, you give up that advantage. See also [Software updaters](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Softwareupdaters) and [Software installation Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#software-installation-on-whonix-workstation).
+* Disk uuids of the real hardware is of course hidden through Virtual Box.
+* The disk uuids of the virtual partitions have been set at build time and are shared among the same Whonix versions beginning form Whonix 0.4.5. */etc/fstab* is shared among all Whonix users.
+
+* Related Virtual Box tickets:
+    * [document all virtual hardware serial numbers implemented by Virtual Box](https://www.virtualbox.org/ticket/10976)
+    * [document which information from the host are visible to VMs](https://www.virtualbox.org/ticket/10975)
+
+## Footnotes ##
+<font size="-3">
+,,
+^a^ You can check desktop resolution and refresh rate by running in console:
+</font>
+
+    xrandr
+
+<font size="-3">
+^b^ You can color depth by running in console:
+</font>
+
+    xdpyinfo | grep "of root"
+ 
+<font size="-3">
+^c^ Note that you can not rely on https://ip-check.info or similar websites for checking desktop resolution and color depth, because Tor Button changes this values to improve your anonymity. See Tor Button specification and Tor trac for details.
+^d^ You can check installed fonts using:
+</font>
+
+    fc-list
+
+<font size="-3">
+^e^ As long you or any additional software packages do not install further packages. 
+^f^ Robert Ransom suggested, if possible, to share the same list of fonts as Tails. Since Tor Browser does not leak, which fonts are installed anymore ^g^, Whonix developer adrelanos fails to see the advantage of this. Follow-up inquiry ignored.
+^g^ Only 3 common fonts (monospace, serif, times new roman) for all Tor Browser / TBB users can be detected.
+</font>
+
+<font size="-3">
+,,
+^1^ This does not cover application vulnerabilities and exploits, which escalate from the virtual machine to the host see [Attacks](https://sourceforge.net/p/whonix/wiki/Security/#attacks Attacks). However, by design, the Whonix-Workstation does not know it's own external non-Tor IP address. 
+^2^ */etc/resolv.conf* in Whonix-Workstation is configured to use the Whonix-Gateway as DNS resolver, which is routed through Tor.
+</font>
+
+    nano /etc/resolv.conf
+
+<font size="-3">
+^3^ You can check your internal (virtual LAN) IP address using:
+</font>
+
+    sudo ifconfig
+
+<font size="-3">
+^4^ You can check visible hardware yourself with
+</font>
+
+    sudo lshw
+
+<font size="-3">
+and
+</font>
+
+    sudo lspci
+
+<font size="-3">
+If you have USB devices attached use:
+</font>
+
+    sudo apt-get install usbutils
+    sudo lsusb
+
+<font size="-3">
+^5^ This is due to the design of virtualization platforms (VirtualBox, VMware, etc.). Most virtualization platforms leak cpu model, capabilities and clock speed. VirtualBox (4.1+ if not earlier) can mask at least the model and capabilities of the CPU with the "Synthetic CPU" option. This option is activated by default on Whonix 0.2.1 and above. Check
+</font>
+
+    cat /proc/cpuinfo
+
+<font size="-3">
+If that is a still problem for you another workaround could be to use an emulator, such as [bochs](http://bochs.sourceforge.net/) or qemu. Unfortunately such emulators are slow and there might be other limitations. (Does Bochs support internal networking?)
+^6^ You can check sensor information using:
+</font>
+
+    sudo apt-get install hddtemp
+    sudo hddtemp /dev/sda
+
+<font size="-3">
+and
+</font>
+
+    sudo apt-get install lm-sensors
+    sudo sensors-detect
+
+<font size="-3">
+^7^ You can battery information that using:
+</font>
+
+    acpi -V
+
+<font size="-3">
+^8^ You can check BIOS DMI information using:
+</font>
+
+    sudo dmidecode
+
+<font size="-3">
+^9^ You can disk ids using:
+</font>
+
+    sudo ls -la /dev/disk/by-id/
+
+<font size="-3">
+^10^ You can check the SILC table using:
+</font>
+
+    sudo nano /sys/firmware/acpi/tables/SLIC
+
+<font size="-3">
+inside Virtual Box and on your host. On your host there might be a SLIC table. Also no problem if not.
+^11^ You can check Whonix-Workstations MAC addreess using
+</font>
+
+    sudo ifconfig | grep HWaddr
+
+<font size="-3">
+which is set to *08:00:27:07:0b:08*. At build time it was set to *080027070B08* (just different format, without :) in whonix_createvm.
+^12^ You can check the HDD UUID using:
+</font>
+
+    sudo hdparm -i /dev/sda
+
+<font size="-3">
+^13^ You can check the CD-ROM UUID using:
+</font>
+
+    udisks --show-info /dev/cdrom
+
+<font size="-3">
+^14^ You can check the VM UUID using:
+</font>
+
+    sudo dmidecode
+
+<font size="-3">
+It should the UUID line should look like *UUID: 9852BF98-B83C-49DB-A8DE-182C42C7226B*. It was set at build time by [whonix_createvm](https://github.com/adrelanos/Whonix/blob/master/whonix_createvm).
+^15^ You can check your time zone using:
+</font>
+
+        cat /etc/timezone
+
+# Whonix in public networks / MAC Address #
+Keep care in public networks. Note the following advice.
+
+Source of information: [Tails 1](https://tails.boum.org/contribute/design/MAC_address/); [Tails 2](https://tails.boum.org/todo/macchanger/). Both worth reading! Thanks to Tails!
+
+Every network interface has a [MAC address](https://en.wikipedia.org/wiki/MAC_address). The MAC address is only visible inside LAN, not inside WAN. While you are at home, this isn't an issue.
+
+There are cases, were some stupid applications gather your MAC address and send it to a remote server (proprietary license checks use the MAC for hardware fingerprinting). That's not an issue for Whonix, since all Whonix users share the same MAC address on Whonix-Workstation, see [Whonix's Protocol Leak Protection and Fingerprinting Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-secure-and-distributed-time-synchronization-mechanism) for details.
+
+You have to keep care, if you are going to use Whonix in public networks (i.e. open WIFI hotspot). The admin might log your MAC address.
+
+Rather the admin might find out, that you are using Tor, depending on your your configuration, i.e. perhaps you are using obfsproxy or you tunnel your traffic SSH/VPN -> Tor and on the adversary's skills.
+
+The MAC address and being a Tor user, might depending on your personal threat model, be a risk visiting that public network (again).
+
+Using a random MAC address is not recommend. While this might sufficiently confuse some adversaries, it won't defeat skilled adversaries. If you are using a random MAC address, it might happen that the vendor id part of the MAC address is non-existent. Even if it were existent, you might up with a vendor id, which has either never been used or never been used in decades. If you are going to spoof your MAC, you have to use a popular vendor id.
+
+The initial second part of the MAC address may be random/unique.
+
+If you are going to use the same public network again, you have to decide, depending on your threat model, if you are going to use the very same MAC address or if you are going to create a new MAC address. In case you suspect, the admin has seen you and logged the MAC, you shouldn't change the MAC, since this were suspicious. If you believe that public network is so public, that no one has seen you, you might decide to use a new MAC address (popular vendor id, random/unique second part) each time you step by.
+
+Unfortunately, we can't yet provide detailed instructions on how to create such appropriate MAC addresses. Research is still ongoing.
+
+Apart from the difficulty creating such an appropriate MAC address, there are also technical hurdles. All the care creating the MAC does not help, if you boot your computer and it instantly connects to the public network and spills your MAC. For Virtual Machine users: your host operating system most likely automatically connects (updates, perhaps time sync). For Physical Isolation users: Whonix-Gateway automatically connects to Tor after start.
+
+Also if you plug in a wifi stick, it might happen, they automatically try to connect and spill your MAC.
+
+TODO: test and expand, please help!
+To change the Mac address in Tor-Gateway or a Debian/Ubuntu host edit /etc/network/interfaces and add "hwaddress ether 00:00...." To automatically randomize the MAC address on boot add "pre-up macchanger -e eth0" instead. To prevent automatically bringing up new network interfaces I think all that's needed is to uncomment "auto eth0", then manually bring up with "sudo ifup eth0".
+
+# Anonymity Network #
+## Introduction ##
+Tor has been chosen for *Whonix Example Implementation*, because it's the best researched and most used network. Whonix developer adrelanos believes Tor is currently the most secure anonymity network legally available to most users. See [anonbib](http://freehaven.net/anonbib/) for a collection about research papers about Tor and other anonymity networks.
+
+Many users are important, because you can only be anonymous within a big group of people. More secure networks exist in theory, such as the mixminion high latency network, but without enough users, in practice they are less secure. See [Roger Dingledine explanation](http://www.mail-archive.com/liberationtech@lists.stanford.edu/msg00022.html) for details.
+
+The *Whonix Framework* is agnostic about the Anonymity Network being used, see [OtherAnonymizingNetworks].
+
+## About Tor ##
+Any successful attacks against Tor, does also work against Whonix and will result in a compromise of location/identity. ^1^
+
+Whonix does not try to defend against network attacks, like a massive amount of evil nodes, end to end correlation attacks and so on. We leave that to the Tor developers. Developing Whonix is already a big task.
+
+If TransPort, DnsPort or SocksPort, which Whonix heavily relies on, can be exploited, then it's also game over.
+
+There is no known bug (or "feature") to obtain the users real IP address through either SocksPort, TransPort or DnsPort. If there were such a bug found in the future, which is possible, it would be a major bug in Tor. We would hope, that the Tor developers fix that bug. We hope that compile time hardening features will be added. [Bug #5210: Enable gcc and ld hardening by default in 0.2.3.x](https://trac.torproject.org/projects/tor/ticket/5210) has been fixed. [Bug #5024: compile time hardening of TBB (RELRO, canary, PIE)](https://trac.torproject.org/projects/tor/ticket/5024) is still open.
+
+There are other attacks thinkable, which we can not defend against. For example, if an adversary controls your entry node or can observe your ISP and has access to the Whonix-Workstation. He can simply use "morse" (5 seconds much traffic, 10 seconds no traffic...) And then observe it's incoming connections. Then it's game over as well.
+
+<font size="-3">
+,,
+^1^ Unless Tor is combined with other means of anonymization (optional feature).
+</font>
+
+# Host Security #
+## Introduction ##
+If the host is compromised so is every VM, Tor and all anonymous communication. The host should only be used to run and manage the VMs.
+
+## Recommendation to use a dedicated host operating system ##
+You are advised to use a dedicated host operating system just for hosting Whonix Virtual Machines.
+
+## Recommendation to use a dedicated host ##
+You are advised to use a dedicated host operating system installation. Not in a cloud, that would virtually destroy any additional security! Dedicated within the meaning of using a second/extra host operating system(s), which you never use(ed) for anything else.
+
+## Recommendation to use Whonix on External Media ##
+No one stops you from installing the host operating systems(s) required for Whonix on external disks such as USB, firewire, eSATA, etc. You can improve security by installing Whonix's host operating system(s) on a dedicated disk(s). That reduces the risk that any other operating system(s) of yours infecting Whonix's host operating system. You can remove and hide the Whonix disk(s) while you're not using them.
+
+Whonix on CD or DVD has yet not been worked on, although there is a development discussion.
+
+## Recommendation to use Whonix with Physical Isolation ##
+Whonix using Physical Isolation, setup using two different computers AND virtualization. This is the most secure Tor configuration to date. Unfortunately, it is difficult to setup. See [PhysicalIsolation].
+
+## One VM ##
+**One VM is deprecated.** It was tested and developed for 0.1.3. The concept worked. It's deprecated now, because it has no maintainer.
+
+Alternatively, you could also use one VM instead of two, where Tor runs on the host. It has some security and other kinds of advantages/disadvantages listed in the article. See [OneVM].
+
+## Whonix without Physical Isolation ##
+Affects Standard / Download version (host+VM+VM). Does not affect Whonix with Physical Isolation.
+
+Robert Ransom pointed out: "The main lesson of [Bug #6537: Possible timing side-channel in router selection](https://trac.torproject.org/projects/tor/ticket/6537) and [Bug #6538: Use bit-twiddling tricks to make choose-by-bandwith algorithm even more time-invariant](https://trac.torproject.org/projects/tor/ticket/6538) was that Tor is not designed to keep various sensitive pieces of information secret from other native-code programs running on the same physical processor."
+
+It depends on the implementation details of the Virtual Machine and the processor. It's a difficult topic. We are now aware of any research about this topic. Robert Ransom pointed out as well, that probable no one would bother with this attack and rather use an exploit against the Virtual Machine. Whonix developer adrelanos agrees.
+
+Anyone looking into Whonix solely because of security should really consider using Whonix with [PhysicalIsolation].
+
+## Hardening ##
+Whonix does not yet improve host security. You are advised to use a secure host operating system.
+
+General hardening recommendations apply: Minimize attack surface, securely configure services (e.g. for ssh: use fail2ban, allow only key authentication), add proactive (compile time hardening, MAC, IPS...) and retroactive defenses (rkhunter, IDS, AV...). This is probably beyond the scope of this guide.
+
+## Physical Attacks ##
+To protect against physical attacks use FDE (Full Disk Encryption) and always lock the screen if you leave the system unattended. Keep [cold boot attacks](https://en.wikipedia.org/wiki/Cold_boot_attack) in mind. Unfortunately there is not yet a upstream script, to implement wiping the RAM. We can not provide a solution for this attack, this is solved nowhere but partially in Tails and Liberte Linux (not checked), waiting for upstream solution, see Dev#WipeRAMpanicscriptSECURITYWAITINGFORUPSTREAMSOLUTION Wipe RAM panic script.
+
+## Risks through hardware components ##
+Thanks to Robert Ransom for pointing Whonix developer adrelanos to this issue.
+
+Assumption: 
+an adversary managed to break out of Whonix-Gateway's Virtual Machine using an exploit.
+
+Hardware components, either built in or extra components, such as CPU or hdd temperature sensors, microphones and cameras introduce risks.
+
+Whonix with Physical Isolation is affected. 
+
+* Users IP address is still safe, but the temperature sensors can be used for anonymity set reduction. Different CPU or hdd models will have a different sensor information, depending on climate and weather. If you can, you are advised to remove or to obfuscate the sensors result.
+* Camera and microphones can be covertly activated by the adversary. At least remove them (external ones) or disable them in BIOS if possible. Better cover them or ideally remove them.
+
+Whonix Standard / Download version (host+VM+VM) is affected, although it does not matter: 
+
+* Same as above applies. If the assumption is true, the adversary can already find out the users real IP address.
+
+## Anonymous 3G modem ##
+Normally your dial up or broadband provider knows your name, postal address and non-anonymous payment method. This is bad. Suppose Tor or Whonix are compromised. An adversary just has to pressure your provider and can very easily find our your identity. This is not the case here.
+
+* plugged or integrated into Whonix-Gateway
+* Buy the 3G modem anonymously [in a store, second hand, on street, no personal data].
+* Be sure to have never used it for non-anonymous use before.
+    * This is because, in many countries the telecommunication company log the phone serial number (IMEI), the SIM serial number and the phone number for each network login.
+* Also be sure to buy the SIM-card anonymously.
+* Prepaid is better.
+* Buy cash codes in different stores anonymously.
+* Be sure, to never have used this anonymous SIM-card with a non-anonymous phone or 3G model.
+    * This is because, in many countries the telecommunication company log the phone serial number (IMEI), the SIM serial number and the phone number for each network login.
+    * Optionally use from distant random spots only. (security vs. comfort)
+    * Check of cameras and witnesses.
+* 3G users often get only a shared IP. Due to scarcity of IPv4 IP's, thousands of users share the same external IP (IPv4). Some providers do not log yet users (NAT) ports. Consequently they can not identify them, when they are given an IP and timestamp. Nice to have, but don't rely on it! (Some providers assign additional IPv6 IP's to their users, which are unique. Tor does not use IPv6 yet.)
+
+## Anonymous WiFi adapter ##
+Normally your dial up or broadband provider knows your name, postal address and non-anonymous payment method. This is bad. Suppose Tor or Whonix are compromised. An adversary just has to pressure your provider and can very easily find our your identity. This is not the case here.
+
+* Plugged or integrated into Whonix-Gateway.
+* Buy the wifi adapter anonymously [in a store, second hand, on street, no personal data].
+* Be sure to have never used it for non-anonymous use before.
+    * This is because a few providers or hotspot providers log the mac address and the username (for paid hotspots) for each dial up.
+* Use only free hotspots or pay them anonymously (if that's possible, otherwise abstain from paid hotspots).
+    * Optionally use from distant random spots only. (security vs. comfort)
+    * Check of cameras and witnesses. 
+
+# Operating System #
+This chapter applies to the host(s), Whonix-Gateway and Whonix-Workstation.
+
+*Whonix Example Implementation* is currently based on Debian. There are development discussions about switching to [Qubes OS](http://qubes-os.org), BSD, Alpine Linux or other secure operating systems.
+
+Also the [FAQ](https://sourceforge.net/p/whonix/wiki/FAQ/) contains information about this topic.
+
+## Recommendation to install latest security updates on all systems ##
+Important!
+
+## Switch from Ubuntu to Debian ##
+Beginning from 0.4.4, *Whonix Example Implementation* is based on Debian. Previously it was based on Ubuntu. From technical view, Ubuntu was a good choice, see below if you are interested.
+
+The switch was due to Ubuntu Licensing, see [About Ubuntu Licensing
+](http://www.ubuntu.com/project/about-ubuntu/licensing). The terms are long and complicated. Since Whonix's changes are beyond a *remix* (as defined in Ubuntu Licensing), Whonix would either to have to ask for a license, which they reserve to revoke. Such a legally insecure state is not acceptable. Or Whonix would have to rebrand Ubuntu. It would be possible in theory, but in practice it would require a lot work to remove all Ubuntu strings. Even new apt mirrors would be required which is much beyond the manpower of the Whonix project.
+
+Debian is much more free. According to Debian project leader Stefano Zacchiroli (in private mail), there are no trademark issues as long as the derivative does not claim to be Debian. That is easy to fulfill.
+
+Derivatives of Debian are even encouraged to use Debian infrastructure, see [Derivatives/Guidelines](http://wiki.debian.org/Derivatives/Guidelines). Debian even supports derivatives. There is a lot documentation, see [Derivatives](http://wiki.debian.org/Derivatives) and even a [debian-derivatives mailing list](http://lists.debian.org/debian-derivatives/).
+
+## About Debian ##
+As in 2012 Debian Squeeze is still Debian stable and Debian Wheezy is still Debian testing. Thus, as long as Wheezy does not get released as stable, Whonix is based on testing. Wheezy is used as codename in */etc/apt/sources.list*, not testing. Whonix developer adrelanos looks forward for Wheezy becoming the stable distribution.
+
+Although the [Debian security FAQ](http://www.debian.org/security/faq) states, that stable gets more attention from the security team, Wheezy is in adrelanos opinion a better choice. Wheezy, in comparison to Squeeze, has hardening options activated, see [Debian Wiki Hardening](http://wiki.debian.org/Hardening). It can't be so bad anyway, since many distributions are based on Debian testing and/or even Debian sid (unstable).
+
+Also see:
+
+* [Debian Security Information](http://www.debian.org/security/)
+* [Securing Debian Manual Chapter 6 - Automatic hardening of Debian systems]
+* [Securing Debian Manual](http://www.debian.org/doc/manuals/securing-debian-howto/ch-automatic-harden.en.html)
+* [Hardening Walkthrough](http://wiki.debian.org/HardeningWalkthrough)
+* Feel free to research even more.
+
+Most hardening steps can not be easily added by default to Whonix. Mostly the user has to understand them and to be aware of them, require knowledge and effort, otherwise one thing or another will break. This is still under investigation and open for suggestions. Having a secure operating system will always be an important topic.
+
+## About Ubuntu ##
+***Outdated. Since 0.4.4, Whonix is based on Debian. See above.*** Kept for historical relevance.
+
+While Ubuntu is one of the more secure (See [Overview](https://wiki.ubuntu.com/Security/Features)) Linux distributions it's by no means a secure operating system. It is designed first and foremost to bring Linux to end users. It doesn't protect against some of the threat models that some Tor users will have.
+
+Here's an (incomplete) list of things the more paranoid user will have to consider:
+
+* *apt-get* as currently used in Ubuntu does not protect against a *stale mirror attack* where an adversary provides validly signed but outdated metadata to prevent users from downloading and installing the latest critical security updates. When fetching updates over tor this problem is of a lesser extent because no single malicious exit node will realistically prevent users from downloading updates more than once in a row. Malicious mirror is possible but Whonix-Workstation uses the main US mirror, any irregularities will be uncovered pretty soon. More of concern is the clear text update of the host operating system. Here it's a good idea to manually check how old the repository metadata is yourself:
+
+	find /var/lib/apt/lists/* -type f | xargs cat | grep "Date: "
+
+  From time to time vulnerabilities that allow installation of untrusted code are discovered in apt. New security features are often implemented in Debian first.
+
+* Whonix can't protect against malicious code inserted into Ubuntu infrastructure. Ubuntu uses bzr/launchpad which ensures some chain of trust as it requires contributors to sign commits.
+
+* The Ubuntu server kernel comes with everything and the kitchen sink. At any given day the kernel will be vulnerable in one way or the other. It's by far the most patched piece of code in the default Ubuntu Server installation, obviously runs at full kernel privileges and naturally can't be protected with mandatory access control. Whonix-Gateway exposes the kernel to attacks through its firewall, TCP/IP stack and whatever kernel calls Tor does or could be compelled to do.
+
+  [checksec.sh](http://www.trapkit.de/tools/checksec.html) --kernel reports good kernel protection: GCC stack protector support, Enforce read-only kernel data, Restrict /dev/mem and /dev/kmem access are all enabled!
+
+* Userland protection for Tor is great. Unlike TBB bundles the tor version distributed via the .deb comes with RELRO, canaries etc. and can fully make use of ASLR since it's compiled as PIE. Of course with Grsec the entropy would be higher.
+
+## Harden Software Repositories ##
+Many operating systems provide multiple repositories. Since *Whonix's example implementation* is based on Debian, you should read [Ubuntu Repositories (similar in Debian)](https://help.ubuntu.com/community/Repositories/) and [Debian Policy Manual Chapter 2 - The Debian Archive](http://www.debian.org/doc/debian-policy/ch-archive.html) as introduction.
+
+In conclusion, the main repository gets most attention and security updates. It would make sense to tweak */etc/apt/sources.list* and to only use software from the main repository and to only install security fixes, no other updates.
+
+Whonix currently doesn't do that by default and it's an open question for research if that really improves security.
+
+[dpkg-origins](https://github.com/fab1an/unix-admin-tools/blob/master/dpkg-origins) can create a list of all packages and their repository.
+
+## About grsecurity ##
+Linux kernel is not a secure OS, Linus himself made it pretty clear that he doesn't think highly of the "security community". His threat model and a Tor User threat model don't have much in common. Good that Linux is open source and if we disagree with a policy or politics we can just patch or fork it... Grsecurity/PaX is the most comprehensive kernel patch providing much needed security hardening both for the kernel itself and for making userland protections more effective.
+
+Sadly no distribution of binary grsec kernel exists.* That means either a packager/maintainer of Whonix needs to compile them EVERY TIME there is a security update to the kernel (which is pretty frequently) or the Whonix users themselves need to compile and update their kernels. This is undesirable because kernel compilation is not set and forget, you need a bit of knowledge, it takes a while, especially in a resource restricted VM and you need to keep updated about new releases via mailing lists or similar because your software updater doesn't automatically handle custom kernels (even emerge in hardened gentoo doesn't). All this would most likely only result in users running old, outdated kernel versions.
+
+Further for Whonix-Gateway and the Identity/Location TCB grsecurity only addresses a subset of security risks: It can mitigate *some* kernel vulnerabilities (and we only really care about the networking stack which is pretty secure judging from its track record). **Maybe** ***some*** (memory corruption) vulnerabilities in apt-get and Tor that aren't already mitigated by the existing userland hardening done by Ubuntu. It can't protect against backdoors or security issues related to design, policy or yet unknown classes of exploits. We feel that these relatively small advantages outweigh the issues introduced by using a custom compiled kernel. We hope a binary distro will step forward and start using grsecurity. In that case we'll most likely switch Whonix-Gateway to that distro as soon as possible. (*There's Alpine Linux but they don't package Tor yet: http://bugs.alpinelinux.org/issues/1067)
+
+For Whonix-Workstation the benefits are even more doubtful. To be effective grsecurity needs to lock down some functions that are needed by Xorg, JIT compilers... but we need those to be working. To solve this we'd have to write a restrictive RBAC policy which is far from trivial. We think accepting that Whonix-Workstation will be exploitable and acting accordingly (using snapshots and rolling back to clean state) is the right approach for a desktop system.
+
+If you disagree with this assessment or have any suggestions how to improve the current situation please let us know on [Dev]!
+
+Experts only: There is also Hardened Gentoo based Whonix-Gateway. Outdated, needs maintainer. See [HardenedGentooTG]
+
+# Virtualization Platform #
+*Whonix Example Implementation* is based on Virtual Box. There is a dev discussion about switching to a more secure Virtualization Platform and help is required.
+
+In an ideal world, *Whonix Example Implementation* would support all Virtualization Platforms. Theoretically it could be done using [libvirt](http://libvirt.org/). Practically  libvirt is out of question. [libvirt-users Does libvirt abstract each and any vm specific command?](https://www.redhat.com/archives/libvirt-users/2012-August/msg00150.html) Libvirt does not (yet) abstract some commands Whonix depends on.
+
+## About VirtualBox ##
+VirtualBox is developed by Oracle, a company not exactly know for being very "open". That includes how they announce security issues in their products as well as how they are perceived by the security community and how they will communicate with each other.
+
+VirtualBox is primarily a simple, "user friendly", desktop solution and most certainly not designed with our threat model in mind. I haven't heard of anyone seriously auditing the code and I'd like to recommend a different VM solution at least as an alternative. There's KVM and Xen, open source but not cross-platform. It seems they are still lacking in terms of a reliable "internal networking" feature which Whonix heavily depends on. (If you know more, please edit this paragraph).
+
+Anyone looking into Whonix solely because of security should really consider using Whonix with [PhysicalIsolation].
+
+Related Virtual Box Links:
+
+* [Custom Ticket Search](https://www.virtualbox.org/query?summary=~&col=id&col=summary&col=status&col=owner&col=type&col=priority&col=component&order=priority)
+* [New Ticket](https://www.virtualbox.org/newticket)
+
+## Secure Label ##
+[Secure labeling with VBoxSDL](http://www.virtualbox.org/manual/ch09.html#idp12297856) has not yet been added to Whonix. I couldn't get it to work. If you know more, please share your knowledge.
+
+We must not end up with non-standard desktop resolution, as per [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection).
+
+## Harden Virtualbox ##
+For an overview on security risks of VMs in general: [How secure are Virtual Machines really?](http://security.stackexchange.com/questions/3056/how-secure-are-virtual-machines-really-false-sense-of-security)
+
+The less features, the smaller the [attack surface](http://en.wikipedia.org/wiki/Attack_surface). Here are some suggestions for features which you can remove and not impact core functionality:
+
+* Disable Audio
+* Do not enable Shared Folders
+* Do not enable video accelaration
+* Do not enable Serial Port
+* Do not install Guest Additions
+* Remove Floppy drive
+* Remove CD/DVD drive
+* Do not attach USB devices
+* Do not enable Remote Display server
+* Do not enable IO APIC, EFI (questionable)
+* Enable PAE/NX? (NX is a security feature)
+
+For the best security you should consider using multiple physical systems, see [PhysicalIsolation].
+
+# Whonix-Gateway Security #
+You should never use Whonix-Gateway for anything other than running Tor on it!
+
+If this machine is compromised the identity (public IP), all destinations and all clear-text (and hidden service) communication over Tor is available to the attacker.
+
+Our first goal in securing the Whonix-Gateway is minimize its attack surface. By installing a "minimal system" and using static IPs the only attack surface to an external attack (i.e. not physical and not attacks from the host which can never be protected against) is Tor itself. You can verify this with netstat.
+
+Security features that do not prevent exploitation but only restrict what exploits can do, such as chrooting or sandboxing, do not make much sense: A compromise of Tor already results in a compromise of everything the user cares about.
+
+Compile time hardening (see [Bug #5024: compile time hardening of TBB (RELRO, canary, PIE)](https://trac.torproject.org/projects/tor/ticket/5024)) should be done by the Tor package maintainer and is beyond the scope of Whonix.
+
+Ubuntu is a good choice as a base for the Whonix-Gateway, Tor is well supported and compared to Debian for example, all the currently used compile time hardening features are supported by default [Ubuntu Security Features](https://wiki.ubuntu.com/Security/Features). More secure and hardened Linux or BSD based options do exist but they require too much work and/or maintenance to be considered for Whonix.
+
+Having said this, you are welcome to use your own distro. The Whonix design is distro agnostic. You just won't be able to thoughtlessly copy and paste commands or to use the source without modifications.
+
+There is also Hardened Gentoo based Whonix-Gateway] (unfinished, experts only! Needs maintainer). See [HardenedGentooTG].
+
+# Whonix-Workstation Security #
+## Introduction ##
+If this VM is compromised all data it has access to, all credentials, browser data, passwords... the user has entered can be compromised. The IP is never leaked but these information can still result in identity disclosure.
+
+Best practice is to create snapshots of the VM and "roll back" after risky activity and whenever the user suspect the integrity of the system could have been compromised, see [Recommendation to use multiple VM Snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots).
+
+*Whonix Example Implementation* is currently based on Ubuntu, see About Ubuntu.
+
+## Hardening ##
+Whonix isn't a perfectly hardened system. Additional hardening would be very welcome. At the same time, hardening by default is very difficult. That's why this is outside the scope of the Whonix Anonymous Operating System project, unless the project gets serious amounts of help with it. Hardening is left to the upstream operating system. See [Operating System](https://sourceforge.net/p/whonix/wiki/Security/#operating-system) for details.
+
+Use AppAmor:
+
+* [AppArmor Profile for TBB](https://trac.torproject.org/projects/tor/wiki/doc/AppArmorForTBB)
+
+## Software installation on Whonix-Workstation ##
+You can install your own software packages on Whonix-Workstation using *apt-get*, as it's based on Ubuntu. This has some advantages and some disadvantages as well. 
+
+Advantages:
+
+* Obviously you can install your favorite software packages. Almost any application with a few exceptions listed under [impossible to torify](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Howtotorifyspecificprograms).
+* You are protected from IP and DNS leaks. (Read above for details.)
+* You have some, but no perfect [Protocol-Leak Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection). 
+
+Disadvantages: 
+
+* You should still try to prevent any other [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks) using the [TorifyHOWTO]([https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO) (but most of those most are mitigated by using Whonix).
+* When you are updating using apt-get, you'll leak which software packages and versions you have installed, see [Software updaters](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Softwareupdaters). This information can not be directly linked to any other activity, such as web browsing, because the Whonix apt-get uwt wrapper forces apt-get to go through it's own circuit. There are still risks for [correlation](http://sourceforge.net/p/whonix/wiki/Applications/#identity-correlation-through-circuit-sharing) to the same pseudonym. ^1^ ^2^
+
+You should update using the guidelines below "How to safely update using apt-get?".
+
+Extra care is needed when adding extra custom repositories, especially PPA's (Personal Package Archives). Single developers may be pressured and/or turn malicious more easily than the main repositories.
+
+<font size="-3">
+,,
+^1^ For example, if you announced somewhere, that you a X user and have a specific set of x, y, and z installed, this information may be available to an adversary. If you run apt-get (which goes through it's own circuit) though any exit nodes, mirrors or ISP's controlled by the adversary, it's possible to guess for the adversary, that it's the same pseudonym, which is running it. In that case the adversary gets your list of installed packages, can run stale mirror attack (see About Ubuntu), or can try other attacks against apt-get. 
+^2^ Another example, if you run a hidden service with a specific set of server software, let's say apache, mediawiki, phpbb, x, y, z... Similar as ^1^...
+</font>
+
+## How to safely update using apt-get? ##
+1. Stop all your activities. ^2^ 
+2. Change your circuit.^1^ 
+3. Update using apt-get after a random delay. 
+4. Change your circuit again.^1^ 
+5. Continue your activities later with a random delay. 
+
+<font size="-3">
+,,
+^1^ One way to do it using Arm (see Readme): Go to your Whonix-Gateway and start "arm". Press *m* for menu, go down to *New Identity* and press enter. 
+^2^ Maybe not, if you run a hidden service.
+</font>
+
+## Adding NAT adapter to Whonix-Workstation / Updates without Tor ##
+Obviously the anonymity will get compromised if you add another NAT network adapter to the Whonix-Workstation. It is quite clear not to do that. If you were infected, it could leak then. Therefore it's recommend to do updates over Tor. It's slow and there are no leaks.
+
+## Adding Host-Only Networking adapter to Whonix-Workstation / SSH into Whonix-Workstation ##
+One might wish to access the Whonix-Workstation through SSH. Therefore one could add a second network adapter with [Host-Only Networking](http://www.virtualbox.org/manual/ch06.html#network_hostonly). Dangerous! Don't add another network adapter! Also potentially dangerous if any other VMs are running besides Whonix-Workstation! This would expose the mac address of your host to Whonix-Workstation.
+
+The warning of VMware Host Only networking may also apply to Whonix:
+
+*"If you install the proper routing or proxy software on your host computer, you can establish a connection between the host virtual Ethernet adapter and a physical network adapter on the host computer. This allows you, for example, to connect the virtual machine to a Token Ring or other non-Ethernet network.*
+
+*On a Windows 2000, Windows XP or Windows Server 2003 host computer, you can use host-only networking in combination with the Internet connection sharing feature in Windows to allow a virtual machine to use the host's dial-up networking adapter or other connection to the Internet. See your Windows documentation for details on configuring Internet connection sharing."*
+
+* (1) If you want to SSH or VNC your Whonix-Workstation your safest bet could be to do it from another Whonix-Workstation. If they are within the same virtual LAN, they can see each other.
+* (2) Or you could run those services using [hidden services](https://sourceforge.net/p/whonix/wiki/Security/#hidden-services) and to access them though another Whonix-Workstation...
+* (3) ...or from the host using the ordinary torification methods.
+* (4) Alternatively you could from the host [SSH into Whonix-Gateway](https://sourceforge.net/p/whonix/wiki/BuildDocumentation_0.4.0/#ssh-into-whonix-gateway) and from there SSH into Whonix-Workstation. (If you are interested in that approach and need more information, try searching for "Chaining SSH" or "SSH hopping".)
+
+In any case (3) and (4) you would weaken isolation between host and Whonix-Workstation.
+
+## Recommendation to use multiple VM Snapshots ##
+Apart from offering protection against hardware serial leaks VMs got another great advantage: the ability to quickly discard and restore a system.
+
+It is recommended that you keep a master copy of Whonix-Workstation, keep it updated, make regular "clean" snapshots but do not edit any settings or install additional software or use it directly for any activity. Instead make a clone or use snapshotting (but never mix up clean and unclean states!) for activities that require anonymity.
+
+## Using multiple Whonix-Workstations ##
+### Introduction ###
+For tasks where you want to use additional software you should use a second (or third) VM, you can make a clone. Consider this more of a pseudonymous than an anonymous environment and act accordingly. 
+
+Multiple Whonix-Workstation VM's isolate different torified clients from each other. For example, an exploit in the browser can not read your IRC identity in another VM. However, keep in mind, if Tor inside the Whonix-Gateway or your host internet connection goes offline, all Whonix-Workstations will go offline, and if you were simultaneously using something, an attacker could guess, that you are the same person (i.e. two Tor users in one IRC channel go offline at the same moment).
+
+The most safe thing to do is using only one Whonix-Workstation for one activity at the same time.
+
+Leaving multiple Whonix-Workstations running at the same time introduces also new risks. One compromised Whonix-Workstation can perform various attacks. It's impossible to defeat all those attacks. Depending on the adversary's skills and assumptions and your activity in other Whonix-Workstations, he could correlate various running Whonix-Workstations to the same pseudonym.
+
+* An adversary could stress either/and CPU, HDD, RAM, network connection and other Whonix-Workstations and perhaps also the host would suffer. 
+* There is no defense against DOSing other Whonix-Workstations or the Whonix-Gateway.
+* The adversary could try to exploit other Whonix-Workstations or the Whonix-Gateway. This risk can be reduced by hardening. Whonix-Workstation provides an optional (disabled by default, because it can get into the way for other tasks) firewall (under "/usr/local/bin/whonix_firewall") to isolate different Whonix-Workstations from each other.
+* A defense against impersonating (i.e. MITM or malicious gateway) other Whonix-Workstations or the Whonix-Gateway can be implemented using authentication, this is outlined below.
+
+### How to use more than one Whonix-Workstation ###
+The setup for a second or any additional Whonix-Workstation is does only differ in one detail. You can simply clone a clean Whonix-Workstation. The minimal difference: It needs ^1^  its own fixed IP address. If you want to run multiple Whonix-Workstations at the same time, you should read "Connections between Whonix-Gateway and Whonix-Workstation" below.
+
+Not that important: VM uuid should be taken care off. (See [VirtualBox: Clone VM without Re-activation of Windows 7](http://www.windowstablettv.com/windows-tips/190-virtualbox-clone-windows-activation/) (different motivation and goals, but technically the same)) TODO: expand. TODO: Virtual Box will also assign a new virtual MAC address to the cloned VM.
+
+(1). Open /etc/network/interfaces.
+
+	nano /etc/network/interfaces
+
+(2). And change the last octet. E.g. 192.168.0.**11** or 192.168.0.**12**.
+
+(3). Reboot or restart network using
+
+	/etc/init.d/networking restart
+
+(4). Done.
+
+<font size="-3">
+,,
+^1^ It only needs its own fixed IP address, if you want to run multiple Whonix-Workstations at the same time. Give it it's own fixed IP address anyway, because that will stream isolate their Trans-, Dns- and SocksPorts, which is highly recommend.
+</font>
+
+# Connection between Whonix-Gateway and Whonix-Workstation #
+## Introduction ##
+**This chapter is only important, if you do not use the Default/Download (host + VM + VM) version.** You should read it if you are using Physical Isolation or for any kind of custom, non-stock configurations.
+
+### Basics ###
+By Whonix default, it is assumed, that Whonix-Gateway and Whonix-Workstation are connected by (virtual) LAN cable. Wireless technologies are recommend against, because a malware compromised Whonix-Workstation could jump to other wireless access point and subsequently connect without Tor. Using a (virtual) cable enforces, that Whonix-Workstation can only connect through Whonix-Gateway. For the same reason connections to Whonix-Gateway over internet are recommend against as well.
+
+By Whonix default, connections between Whonix-Workstation and Whonix-Gateway are not authenticated/encrypted. This is because of the assumption above. The connection between Whonix-Workstation and Whonix-Gateway is assumed to be secure. ^1^ Adding authentication/encryption by default would also greatly increase complexity of Whonix, which is what we want to avoid in the first place for reasons explained in earlier chapters.
+
+In case you want to run multiple Whonix-Workstations at the same time inside the same (virtual) isolated LAN, you should add authentication:
+
+* Inside virtual LANs:
+    * Authentication is enough.
+    * No encryption is required.
+        * When no machines can be impersonanted, no MITM is possible inside the virtual LAN.
+* Inside real LANs:
+    * You only need encryption if in your threat model includes the possibility for a MITM.
+
+In case you want to connect to Whonix-Gateway over insecure networks (internet):
+
+* You should add encryption and authentication.
+    * Encryption is required because there can be possible a MITM.
+    * Authentication ensures you're connecting to the right machine.
+        * Most encryption solutions, such as OpenVPN or ssh also provide authentication.
+
+<font size="-3">
+,,
+^1^ Secure means, you assume that no one on your (virtual) LAN is going to MITM.
+</font>
+
+### Motivation for secure connections between Whonix-Gateway and Whonix-Workstation ###
+**Only applies to non-stock configurations**: if you run multiple Whonix-Workstations at the same time or if you want to connect to Whonix-Workstation over insecure networks (internet):
+
+A compromised Whonix-Workstation can impersonate Whonix-Gateway or any other Whonix-Workstation inside the same (virtual) LAN, perform active MITM attacks or passively eavesdrop.
+
+### OpenVPN vs SSH ###
+Adding encryption can be done using OpenVPN or SSH. Using SSH and not OpenVPN, has the advantage, that you an later, still easily tunnel a VPN through Tor. If you don't plan to do this, using OpenVPN is probable easier. The disadvantage of using SSH is, that it's complicated to setup for this use case. You are probable better off using OpenVPN.
+
+## Authenticated connections between Whonix-Gateway and Whonix-Workstation ##
+### ARP spoofing defense ###
+This is only been quickly researched. After reading the [wikipedia article about ARP spoofing](https://en.wikipedia.org/wiki/ARP_spoofing), it looks like *Static ARP entries* could be used for authenticated connections between Whonix-Gateway and Whonix-Workstation.
+
+This is currently being considered to be added by default to a further Whonix version. It still needs more research and help is welcome.
+
+### Using additional (isolated) network interfaces ###
+(This chapter is actually not authentication, solves the threat nonetheless.)
+
+A workaround, when using Virtual Box and running everything on the same host:
+
+* One can also enable Virtual Network Adapter 3 and 4 and use uniquely named internal networks, for up to 3 Whonix-Workstations, which are isolated against each other.
+
+A workaround, for Whonix with Physical Isolation, where all machines in the same trusted place: 
+
+* That Whonix-Gateway already requires two network interfaces is a though requirement. (External and internal interface.) You could theoretically also add additional interfaces for additional internal LAN interfaces.
+
+## Encrypted and authenticated connections between Whonix-Gateway and Whonix-Workstation ##
+### Using SSH (not tested/recommend) ###
+You must not allow [ssh login](http://serverfault.com/questions/56566/ssh-tunneling-only-access).
+
+Each Whonix-Workstation probable needs its own SSH account, with public key authentication and the SSH private key distributed to each T-W. Whonix-Gateway and all Whonix-Workstations need the correct SSH commands. Whonix-Gateway has to autostart SSH and to continuously listening for connections. And Whonix-Workstation has to autostart SSH as well and continuously reconnect (in case Whonix-Workstation started before Whonix-Gateway or Whonix-Gateway restarted) (perhaps using autossh or something similar). All Whonix-Workstations need to use the tunnel IP, to connect to the Whonix-Gateway. And the Whonix-Gateway should reject unencrypted gateway requests, and only accept forwarding to Tor over the SSH tunnel. And also answer only over the SSH tunnel. All Whonix-Workstations must use the SSH tunnel as gateway (redirect network level to socks using tranSOCKS_ev or similar). Perhaps also changes in the Whonix-Gateway firewall are required. Taking all the into account, it looks like, it's not impossible to use SSH for this task, but it's quite complicated.
+
+You are probable better off using OpenVPN.
+
+### Using OpenVPN ###
+**DRAFT! UNFINISHED!**
+
+Right now only supports two modes/security domains:
+
+* Whonix-Workstations with the secret key (=trusted) and
+* other workstation with no key/vpn configured.
+
+NOTE:
+
+* Transparent proxying doesn't seem to work at all, therefore you need to configure all applications to use socks ports.
+
+On the gateway:
+
+	sudo -i
+	apt-get -y install openvpn
+
+	# create a new symmetric key
+	sudo -u user openvpn --genkey --secret /home/user/static.key
+
+	# copy key to workstation (Firewall needs to be disabled and openssh-server installed on Whonix-Workstation for this to work)
+	sudo -u user scp /home/user/static.key user@192.168.0.10:/home/user/static.key
+
+	mv /home/user/static.key /etc/openvpn/static.key
+	chown root:root /etc/openvpn/static.key
+	chmod 700 /etc/openvpn/static.key
+
+	# create server configuration
+	echo "
+	user nobody
+	group nogroup
+	daemon
+	dev tun
+	ifconfig 10.8.0.1 10.8.0.2
+	secret /etc/openvpn/static.key" > /etc/openvpn/server.conf
+
+	service openvpn restart
+
+	# Edit torrc
+	# TODO: only selectively change listening addresses. TransPort and optionally other SocksPorts have to remain available,
+	#       if unauthenticated workstations are to be used.
+	# NOTE: we are using a hardcoded default IP here, if you are using non standard settings this will have to be edited.
+	ed -s /etc/tor/torrc <<< $',s/192.168.0.10/10.8.0.1/g\nw'
+
+	# Edit /usr/local/bin/whonix_firewall
+	# TODO: Put this automatically where it actually belongs
+	echo '
+	# Allow openvpn in on port 1194
+	iptables -A INPUT -i $INT_IF -p udp --dport 1194 -j ACCEPT' >> /usr/local/bin/whonix_firewall
+	# TODO: replace hardcoded "eth1" with a wildcard
+	ed -s /usr/local/bin/whonix_firewall<<< $',s/INT_TIF=eth1/INT_TIF=tun0/g\nw'
+
+	/usr/local/bin/whonix_firewall
+
+On the Workstation(s):
+
+TODO: Disable/tweak the new firewall
+
+	sudo -i
+	
+	mv /home/user/static.key /etc/openvpn/static.key
+	chown root:root /etc/openvpn/static.key
+	chmod 700 /etc/openvpn/static.key
+	
+	# should be in the default installation
+	apt-get --yes install --no-install-recommends torsocks
+	
+	echo "
+	user nobody
+	group nogroup
+	daemon
+	remote 192.168.0.10
+	dev tun
+	ifconfig 10.8.0.2 10.8.0.1
+	secret /etc/openvpn/static.key" > /etc/openvpn/server.conf
+
+	# Edit resolv.conf
+	chattr -i /etc/resolv.conf
+	echo "nameserver 10.8.0.1" > /etc/resolv.conf
+	chattr +i /etc/resolv.conf
+
+# Whonix's Secure And Distributed Time Synchronization Mechanism #
+Please also read the chapter [Network Time Syncing](https://sourceforge.net/p/whonix/wiki/Readme/edit#network-time-syncing) in the Readme please.
+
+For understanding Whonix's Secure And Distributed Time Synchronization Mechanism, it is required to know Virtual Box's time synchronization features:
+
+* Virtual Box uses the hosts time if it needs to correct the time for guests.
+* (Some of Virtual Box time synchronization features depend on guest additions.)
+* By default Virtual Box corrects Virtual Machine guests virtual hardware system clock,
+    * when the they get powered on,
+    * when they resume from suspension and
+    * when their clock is more then X minutes off.
+
+Facts: 
+People have been using:
+
+* the Tor Browser Bundle and Mozilla Firefox in parallel
+* Tails inside VMs and Firefox on the host
+* Tor Browser inside Whonix-Workstation and Mozilla Firefox on the host
+
+Other facts:
+
+* Almost no one and no operating system, is using Secure Network Time Synchronization or External Clocks by default. Most systems synchronize the system clock using unauthenticated NTP. An adversary tampering with NTP replies or malicious NTP server makes things even worse. Even if there were authenticated NTP there is a requirement for a distributed trust model.
+* A system not using NTP or using authenticated NTP stands out form most other users.
+
+Attacks 
+A correct system clock is crucial for many reasons:
+
+* Attack (1) Replay attacks ^1^
+* Attack (2) Feeding old/outdated/known vulnerable updates and (https) certificates ^2^
+* Attack (3) deanonymizing ^3^
+* Attack (4) Linking all sessions to the same pseudonym ^4^
+* Attack (5) Locating hidden services. ^5^
+
+<font size="-3">
+,,
+^1^ Replay old Tor consensus, see [Tails: Time syncing](https://tails.boum.org/contribute/design/Time_syncing/) for detailed explanation. 
+^2^ Cryptographic verification depends on system clock, i.e. a clock two years in past will accept certificates/updates, which have been expired/revoked for two years. 
+^3^ Javascript is enabled in Tor Button by default and javascript can be used to read the client's clock, see https://ip-check.info for demonstration. Also other applications do leak the client's clock, such as Thunderbird (patch has been proposed by TorBirdy developers) and https. Image the user connects to an adversary controlled webserver with Mozilla Firefox and connects to another adversary controlled websever with Tor Browser. As long as TBB upstream [Bug #3059: Find some way to deal with time-based fingerprints](https://trac.torproject.org/projects/tor/ticket/3059) is open, the adversary can link the anonymous and non-anonymous session, thus deanonymizing. 
+^4^ If the clock is too much off, it's also easy for an adversary's webserver to detect "Oh, that's the Tor Browser user who's clock is X in past/future.", thus allowing the adversary to link all sessions to the same pseudonym. 
+^5^ For hidden services a correct clock is curial, see:
+[Hot or Not: Revealing Hidden Services by their Clock Skew](http://www.cl.cam.ac.uk/~sjm217/papers/ccs06hotornot.pdf);
+[An improved clock-skew measurement technique for revealing hidden services](http://caia.swin.edu.au/talks/CAIA-TALK-080728A.pdf);
+[SkewMask: Frustrating Clock Skew Fingerprinting Attempts](http://people.cs.umass.edu/~elisha/Papers/SkewMask%20-%20final%20version.pdf)
+</font>
+
+Whonix's Secure Distributed Time Synchronization mechanism:
+
+* Whonix 0.4.4 and above leave the host's system clock or time synchronization mechanism untouched.
+* Whonix-Gateway and Whonix-Workstation are based on Virtual Box and therefore have their own virtual hardware system clocks.
+* Most Virtual Box time synchronization features get disabled by Whonix.
+    * Guest additions time synchronization gets disabled in */etc/init.d/htpdate* at run time. See Virtual Box bug report [VBoxService --disable-timesync broken](https://www.virtualbox.org/ticket/10828). They say it's actually not a bug. It's a missing feature, that running instances of VBoxService can not be modified in their settings. Whonix would need to edit */etc/init.d/vboxadd-service* by adding *--disable-timesync* [source](https://www.virtualbox.org/ticket/2928). Whonix developer adrelanos does not see a reliable way to do so. If the guest additions get automatically updated in future the option would get overwritten. That's why Whonix added a line in */etc/init.d/htpdate* to turn it off completely. Guest additions time synchronization gets disabled, but the rest of the guest additions continues to work fine. Unless you have a better idea, it's an acceptable workaround.
+    * built in time synchronization features get disabled by *VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"* at build time.
+* When Whonix-Gateway or Whonix-Workstation get powered on, they still get their time from the host, but the user is advised to modify the biossystemtimeoffset. ^6^
+* After Whonix-Gateway and Whonix-Workstation are connected to the Tor network, they use a modified [tails_htp](https://tails.boum.org/contribute/design/Time_syncing/) to set the system clock. ^7^
+* **TODO: still broken**:Every hour, at a random time, tails_htp will set the clock again. This is useful for machines running for long time periods without reboot.
+* tails_htp runs at non predictable times to prevent the ISP or Tor guard/bridge node to guess, that the user is running Whonix.
+* Implementation details are in [Dev_timesync].
+* That will reach the design goal, that all clocks, the host's, Whonix-Gateway's and Whonix-Workstation's slightly differ.
+
+Thus,
+
+* Attack (1) is a general Tor problem. It is impossible to solve for Whonix. It is unsolved in other projects as well.
+* Attack (2) gets partially defeated.
+    * Whonix-Gateway and Whonix-Workstation are immune.
+    * This problem is unsolved in other projects as well.
+        * This is general problem with all operating systems.
+        * The host is still at risk.
+        * [Ubuntu Brainstorm Idea #30050: Secure Network Time Synchronization](http://brainstorm.ubuntu.com/idea/30050/)
+        * [Debian Bug Report ntp: NTP security vulnerability because not using authentication by default](http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=%23687166)
+        * [Ubuntu Bug Report NTP security vulnerability because not using authentication by default ](https://bugs.launchpad.net/ubuntu/+source/ntp/+bug/1039420)
+    * Manual workaround: Check your clock manually and read [About Ubuntu](https://sourceforge.net/p/whonix/wiki/Security/#operating-system) (stale mirror attack).
+* Attack (3) gets defeated, Whonix adds additional security.
+* Attack (4) gets defeated, Whonix adds additional security.
+* Attack (5) is a general Tor problem, which can not be solved by Whonix and which is unsolved in other projects as well.
+
+When the user powers on Whonix-Gateway and the host time is too much off, it will not be able to connect to the Tor network. It is advised, when powering on Whonix-Gateway, to check that the host time is no more then 1 hour in past or 3 hour in future. ^8^ An adversary tampering with the users clock while the user doesn't recognize can't do any more damage to Whonix than he could do the the Tor Browser Bundle. All that happens is a denial of service. On the other hand, an adversary capable of actively tampering with the traffic between the user and it's entry guard or bridge poses much bigger risks to Tor in general. ^9^
+
+<font size="-3">
+,,
+^6^ Developer information: If we needed or wanted to render the hardware clock unusable, we could set Virtual Box *--biossystemtimeoffset* several decades in past or future. 
+^7^ Stream isolation has been added, for Whonix's tails_htp implementation, see [Dev_timesync] i.e. people using Tor Browser prevent notifying their exit node, that they are tails_htp or Whonix users. 
+^8^ [source of information](https://lists.torproject.org/pipermail/tor-talk/2012-February/023264.html)
+^9^ General Tor problems, Tor is known to be broken against many active attacks. This can not be solved by Whonix. When an adversary is capable of running active attacks, tampering with the time leading into a denial of service is the least of the worries. The adversary could also disrupt the service easier. And as for active attacking in general, there are other attacks which are easier to deploy and which pose a greater danger. Not a Whonix specific problems. 
+</font>
+
+## External Clock ##
+This topic is still under research.
+
+It might make sense to add an external clock, such as a GPS, or even better an atomic clock. (Can we get an atomic USB clock?) This clock should be added to the host and/or Whonix-Gateway and/or Whonix-Workstation.
+
+Open question: would the GPS/atomic clock be too accurate and would that make Whonix fingerprintable?
+
+# Whonixcheck #
+*whonixcheck* [on github](https://github.com/adrelanos/Whonix/blob/master/whonix_shared/usr/local/bin/whonixcheck) is a a bash script, checking many important things. Supports to be run in console and also has a grapical progress meter and info popup for the results. It's stored in */usr/local/bin/whonixcheck*. Whonix will also work without that script. Nothing is compiled, it's just a script and anyone can read the source code.
+
+Screenshots:
+
+ * gui: http://whonix.sourceforge.net/screenshots/whonixcheck_gui.png
+ * progress: http://whonix.sourceforge.net/screenshots/whonixcheck_progress.png
+ * cli: http://whonix.sourceforge.net/screenshots/whonixcheck_cli.png
+
+The script gets autostarted on each boot of Whonix-Workstation. */etc/cron.daily/* should run it every day, (TODO) but that feature appears to be broken and needs fixing.
+
+The *ca-certificates* debian package is installed. Curl will verify the SSL certificate and aborts if the certificate is not valid.
+
+* Status of Network Time Synchronization
+    * see above
+    * Only the status of the logfiles is read, there is no actual network traffic, that is done before.
+ * Tor connection
+    * downloads https://check.torproject.org with curl through extra SocksPort
+    * downloads https://check.torproject.org with wget through TransPort
+ * Tor Browser version
+    * downloads https://check.torproject.org/RecommendedTBBVersions with curl through extra SocksPort
+ * operating system updates
+    * Run *apt-get update* through apt-get SocksPort and inform about the system being up to date or requiring updates.
+ * Whonix version and Whonix news
+    * Downloads http://whonix.sourceforge.net/whonix_news.asc with curl through extra whonix news SocksPort.
+    * [Whonix News Format](https://sourceforge.net/p/whonix/wiki/Dev_news/)
+    * Whonix version and news file must be signed by Whonix developer adrelanos.
+    * Adrelanos gpg key got copied to /usr/share/whonix/adrelanos.asc at build time.
+    * Warns if the file can not be gpg verified with adrelanos gpg key. In that case version and news is ignored.
+    * Also see [Trust].
+    * An adversary with (temporary) control over the sourceforge.net server could replace that file with any other message ever signed by adrelanos. There is no defense against this attack. An adversary in that position could run even more powerful attacks, such as malicious website news and documentation, malicious downloads (adrelanos is sure, that not everyone will verify gpg signatures) etc.
+
+Attack surface for this script includes at least curl, apt-get, gpg, grep, sed, bash, uwt, torsocks, zenity, pgrep, htpdate logs. Adrelanos believes, that benefits outweigh the risks not running those checks. The user is free to *sudo chmod -x /usr/local/bin/whonixcheck* and adrelanos remains as always open for reviews and suggestions.
+
+Also see chapter [SSL](https://sourceforge.net/p/whonix/wiki/Security/#ssl) below.
+
+# SSL #
+The public SSL certificate authority system is not to be trusted. Too many security breaches happened. (See [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar) and [Comodo](http://www.scmagazine.com/two-more-comodo-resellers-owned-in-ssl-hack/article/199620/)).
+
+SSL certificates, especially for https://check.torproject.org (check.tpo) are not yet pinned in Whonix. Eventually that will be done in future. That needs some more discussion. How that technically could be done is documented under [Dev_sslcertpinning]. This has low priority for Whonix, since not even the Tor Browser Bundle does pin the check.tpo SSL certificate, which is a much bigger issue. Whonix developer adrelanos does not aggree with "low priority" in TBB. See [TBB: hardcode SSL cert check to prevent MITM](https://trac.torproject.org/projects/tor/ticket/3555).
+
+## Alternatives ##
+Look into:
+
+ * [Monkeysphere](http://web.monkeysphere.info/)
+ * [Convergence](https://en.wikipedia.org/wiki/Convergence_%28SSL%29)
+ * [Perspectives Project](http://perspectives-project.org/)
+
+# DISCLAIMER #
+See [DISCLAIMER](https://sourceforge.net/p/whonix/wiki/Authorship/#disclaimer).
+
+# Whonix does not (yet)... #
+Whonix is currently alpha quality software and missing features, some of them security related. Some of the following will probably never get "fixed" or implemented because they are impossible to do in a software only project.
+
+Whonix in its current form does not:
+
+* Encrypt your stuff.
+* Wipe RAM on shut down. See [Idea #30076: Enhancy Privacy/Security, Wipe RAM on shut down, reboot and trigger](http://brainstorm.ubuntu.com/idea/30076/).
+* Wipe video RAM on shut down. See [Tails -erase video memory on shutdown ](https://tails.boum.org/todo/erase_video_memory_on_shutdown/).
+* Make weak passwords stronger.
+* Protect against local adversaries, who for example can mount cold boot and evil maid attacks.
+* Will be solved in next version 0.4.4 and above: Automatically protect against time skew attacks (you need to set and check the time of all Whonix systems manually!).
+* Protect you if you don't read our [Readme] or do stupid things or change default settings without knowing what you are doing.
+* Automatically apply security updates. This was a conscious decision because automated updates also come with their own set of security problems.
+* Automatically isolate different identities and pseudonyms from each other, you should use [multiple Whonix-Workstations](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations).
+* Protect against global network adversaries.
+* Protect against hardware or software backdoors.
+* Automatically protect against MAC address fingerprinting on public networks.
+* Protect against the more skilled software attack, unless you use Physical Isolation.
+* By default, protect you if Tor is somehow broken. You can improve that to some extend and with caveats by chaining Tor with SSH, proxies or VPNs.
+* By default, hide the fact that you are using Tor, though there is an optional feature, [Hide your Tor usage](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hide-the-fact-that-you-are-using-torwhonix).
+* Use all the possible hardening options like full PIE and grsecurity. It doesn't use AppArmor profiles for everything.
+* Have deterministic builds, see [Dev]. Also Tor itself does not have [deterministic builds] yet, see [Bug 3688](https://trac.torproject.org/projects/tor/ticket/3688).
+* This list might be incomplete. Please read the rest of this page to get an overview about security, what's in and what not.
+
+If you want to help us improve the security of Whonix, please join the discussions on [Dev] or expand this site.
+
+# Whonix² #
+That's just a code name for a **BOX** setup "2.0" that may eventually offer strong guarantees of security and anonymity.
+
+It should address all the current single points of failure:
+
+**CPU:** Even in a microkernel + IOMMU system the CPU (and to some extend the GPU, this ) needs to be trusted blindly. The system needs to consists of multiple (diverse) CPUs. Whonix with Physical Isolation already does that. This is just an reminder that software based isolation (through next gen sandboxing and microkernel design) will never be able to replace hardware isolation.
+
+**Software/Compiler** Even if the TCB is small and verifiable to some extent there is an inherently unsolvable problem: Compilers ("trusting trust"). The only option to improve this I see is to rely on a diverse "polyculture" of software stacks and infrastructure instead of our current Windows and gcc monocultures. (I suppose most .mil and all research microkernels are written on monolithic untrusted "legacy" systems). Alternatives do exist (most likely built with gcc...) but probably not mature enough, though I hear OpenBSD kernel can be built with pcc. clang/LLVM is probably the best bet. This also extends to the build system, workstations and gateways should be built on their respective target platforms, not a single build system. 
+
+**Software updates:** Currently, one single bad update from Ubuntu and it's game over. Software updates are always a root "backdoor", they grant unknown people full remote access to all your systems. This needs to be changed. If the TCB is small and well tested there won't be many security updates and they will be simple, small patches. Deterministic binary builds could make that userfriendly. At least we should not rely on a single organization to provide security updates for all systems in Whonix (this includes having the same upstream for complicated software, i.e. the Linux kernel...).
+
+**Tor:** Currently, one serious Tor vulnerability and it's game over. Even with true end-to-end communications, if Tor (or its TCB) is subverted an adversary can find out who is talking and to whom one is talking. Whonix should route all traffic over at least two strong anonymity networks (not just single hop proxy/VPN/SSH). Further, there should be the option to use a high latency network. This could be as simple as a single hidden service (which would have to be fully trusted to not collude with our "global adversary". A real solution would of course have to be decentralized. The only options so far are remailers (Mixminion...) but those have few users (poor anonymity set) which is probably related to their outdated user interface and experience. However, even with a small number of users, if remailers are routed through Tor they are still more secure than Tor (in this context the resulting anonymity is cumulative).
+
+** "Protocol leaks", Anonymity set reduction:**  The current platform of choice (for pretty much everything, including anonymous communication) is the web browser. Browser really suck when it comes to privacy, anonymity or security. Allowing scripting, storing IDs (cookies and more), constantly changing features (html5, webgl, websockets...), [lack](http://rdist.root.org/2010/11/29/final-post-on-javascript-crypto/) of strong crypto environment make the web browser one of the worst platforms imaginable for strong anonymity (or security). Why? Because we also lack a credible alternative. One such alternative could have been the now dead or in limbo [Syndie](http://syndie.i2p2.de/) ("Syndie's design as an anonymity-sensitive client application carefully avoids the intricate data sensitivity problems that nearly every application not built with anonymity in mind does not.")
+
+In summary: Whonix² needs to consist of at least two very diverse systems, different hardware manufacturers, different kernels, different companies/orgs providing support and offer at least two different anonymizing networks. Bonus points for utilizing diverse crypto systems and cascades. Neither system should "know" both who is communicating and with whom. 
+
+# Build Anonymity #
+This does only apply, if you are going to build Whonix from source, and/or if you are going to redistribute Whonix and/or if you are going to use Physical Isolation. This is not a Whonix specific problem. Most projects do not even have a chapter about build anonymity. While building Whonix, software has to be downloaded. It's a unique selection of software and there is no way to make it not unique. Therefore your **i**nternet**s**ervice**p**rovider (ISP) could guess, that you are building Whonix. This should not be of any concern in a free country (free by your own definition), if the content of your traffic is not being observed or logged.
+
+Especially, but not exclusively, in case you want to redistribute Whonix, you might be interested to hide the fact, you are building Whonix (i.e. you want to stay anonymous). Therefore we are working on support to build Whonix over Tor.
+
+To prevent any kind of personally identifiable or even fingerprintable information leaking from the build system into the Whonix images, it is recommended to build inside of an already torified Virtual Machine. ^1^ You can build Whonix inside an existing Whonix-Workstation, but it can also be built on a headless server.
+
+It's also recommend to build in an already torified Virtual Machine, because that prevents leaks from the build system, which could help an attacker (with root access to the Whonix-Workstation), to gather identifiable information about that build system, that could ultimately lead back to your identity.
+
+Beginning with Whonix 0.4.0 we use grml-debootstrap and chroot for virtual machine image creation. grml-debootstrap source code tells, that it copies /etc/network/interfaces and /etc/resolv.conf into the chroot. grml-debootstrap also mounts a lot devices (/dev, /proc etc.) inside the chroot and later Whonix's chroot also mounts some devices. That's why it's recommend to build inside an already torified virtual machine.
+
+It would also possible to build directly on the host and torify all connections the scripts make, but we don't know what other grml-debootstrap/chroot releated leaks there may be possible.
+
+We know it's not the best solution to build inside a VM.
+
+<font size="-3">
+,,
+^1^ Yes, this creates a bootstrap, chicken or egg problem. To solve it you can either download already existing Whonix binary builds or if you prefer to build form source, build a minimal torified machine yourself first while running any network traffic over Tor. Any help required with that? Contact us.
+</font>
+
+## Virtual Box inside Virtual Box ##
+No longer required beginning from Whonix 0.4.0.
+
+Using *vboxmanage "Whonix-Workstation" modifyvm --acpi on* and *vboxmanage "Whonix-Workstation" modifyvm --ioapic on* for all VM's, i.e. for the build_Whonix-Workstation and the ones you build, speeds up the VM inside the VM a lot. That is already the default for Whonix Virtual Machines since version 0.2.0.
+
+# Further hints and readings #
+This page and [Applications] explain a lot security related things you should be aware of. Read them for tips how to improve the security.
+
+[Whonix-Workstation is firewalled](http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#even-more-restrictive-firewall-rules) also explains #OptionalFeatureNr.3# (Even more restrictive firewall rules.).
+
+## Application specific warnings and hardening instructions ##
+See [Applications].
+
+## Trusting Whonix ##
+See [Trust].
+
+## Leak Testing ##
+In your own interest, you should do the additional [LeakTests], to check everything is properly set up.
+
+## Other projects similar pages ##
+* [Tails's warnings](https://tails.boum.org/doc/about/warning/index.en.html); some things apply to Whonix as well

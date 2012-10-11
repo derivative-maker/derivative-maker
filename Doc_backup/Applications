@@ -1,0 +1,309 @@
+[Whonix Homepage](https://sourceforge.net/p/whonix/wiki/Home/)
+
+This page is about the security of certain applications. For general security see [Security].
+
+[TOC]
+
+# Identity correlation through circuit sharing #
+## Introduction ##
+If you are not careful and install custom applications, you risk, that different activities, let's say Web (Chromium or similar) or IRC (mIRC or similar) go through the same circuit and exit node. Even though, the exit node would still not know your real IP/location, they can easily correlate those activities to the same pseudonym.
+
+Whonix 0.2.1 and above implement protection against *identity correlation through circuit sharing*, but you are still advised understand a bit of the technical background. Since Tor version 0.2.3, different Socks,- Dns-, or TransPorts go through different circuits, therefore preventing *identity correlation*. Whonix configures most applications, that come preinstalled with Whonix, to use different SocksPort, thus no *identity correlation* is at risk. Whonix uses either socks proxy settings to direct various applications to different SocksPorts or uwt (more information below).
+
+Any other traffic (i.e. custom installed applications, misc applications, such as *nslookup*, go through Tor's Dns-, and/or TransPort (can be optionally disabled, see below).
+
+Applications in Whonix 0.2.1 and above configured to prevent *identity correlation through circuit sharing*:
+
+* Tor Browser (socks proxy settings) 
+* XChat (socks proxy settings)
+* Thunderbird with TorBirdy (not preinstalled, socks proxy settings, follow [Mozilla Thunderbird with TorBirdy](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#mozilla-thunderbird-with-torbirdy)).
+* Instant Messenger (none preinstalled, port prepared, IP 192.168.0.10, port 9103)
+* apt-get (uwt wrapper)
+* gpg (uwt wrapper)
+* ssh (uwt wrapper) 
+* git (not preinstalled, uwt wrapper prepared)
+* [htpdate](https://sourceforge.net/p/whonix/wiki/Dev_timesync/) (socks proxy settings)
+* wget (uwt wrapper)
+* whonixcheck script (uses uwt and separate SocksPorts for wget)
+* BitCoin (not preinstalled, socks proxy settings, port prepared, port 9111)
+* privoxy (not preinstalled, socks proxy settings, port prepared, port 9112)
+* polipo (not preinstalled, socks proxy settings, port prepared, port 9113)
+* torbrowser update script (uses uwt and separate SocksPorts for wget and gpg)
+* apt-cacher-ng (not preinstalled, uses apt-get port, helper script with comments prepared, see /usr/local/bin/apt-cacher-ng_uwt)
+
+The required socks proxy settings were setup by the Whonix build scripts. uwt wrappers and are located on Whonix-Gateway and on Whonix-Workstation under */usr/local/bin/*. [uwt](https://trac.torproject.org/projects/tor/wiki/doc/torsocks) is a wrapper around torsocks, which is also already installed to /usr/local/bin/uwt.
+
+* Example, each time you run a uwt wrapped application, i.e. simply type *apt-get* in console, the uwt wrapper /usr/local/bin/apt-get will run. It adds uwt before apt-get. For curiosity check *nano /usr/local/bin/apt-get*. The uwt wrapper then runs */usr/local/bin/uwt /usr/bin/apt-get*. That is also the case for all other uwt wrapped applications.
+* If you ever want or must run a uwt wrapped application without uwt, do not run for example *apt-get* in console, do run */usr/bin/apt-get*. Use cases could be if you connect to localhost. If you know what you are doing, you should also be able to deactivate any uwt wrappers you dislike with *chmod -x /usr/bin/apt-get*.
+* When running */usr/bin/apt-get* directly it goes through Tor's DnsPort and through Tor's TransPort and not through it's own SocksPort.
+* uwt looks if the command contains the words *localhost* or *127.0.0.1*, if that is the case, uwt will not be used. The command will be run without uwt. Thus, if a localhost connection is falsely detected it will leak, but only leak through Tor's DnsPort and through Tor's TransPort, which should be ok.
+
+Isolate by destination address:
+Let's assume SSH goes over port 22 and you want to connect to different SSH servers and do not want an observer to be able to correlate that activity to the same pseudonym. If the SSH servers run on different IP's isolate by destination address might help.
+
+Isolate by destination port:
+This doesn't seem to be useful for anything in Whonix, applications using different protocols (and therefore different ports) are already isolated through using different SOCKSPorts.
+
+Isolate by destination port doesn't really achieve anything for web browsing: [tor-talk Tor's stream isolation features defaults](https://lists.torproject.org/pipermail/tor-talk/2012-May/024403.html).
+
+For more information about stream isolation refer to the Tor manual.
+
+ * [Tor stable manual](https://www.torproject.org/docs/tor-manual.html.en)
+ * [Tor alpha manual](https://www.torproject.org/docs/tor-manual-dev.html.en)
+
+### Tor Browser ###
+Different tabs and websites in Tor Browser are not isolated until Tor upstream feature "[Tor Browser should set SOCKS username for a request based on referer](https://trac.torproject.org/projects/tor/ticket/3455)" gets implemented. A limited workaround is described below.
+
+### Custom Software ###
+If you install custom software on Whonix-Workstation, and want to prevent *identity correlation through circuit sharing* (which you should do), you have to manually configure them. This is not a Whonix specific problem. ^1^ ^2^ ^3^ 
+
+Read also [Software installation on Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#software-installation-on-whonix-workstation).
+
+### Hidden Services ###
+[Hidden services are automatically separated from each other.](https://lists.torproject.org/pipermail/tor-talk/2012-September/025432.html)
+
+### Footnotes ###
+<font size="-3">
+,,
+^1^ If you used to use only one SocksPort with the [common torifycation methods](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO), the [same thing happened](https://lists.torproject.org/pipermail/tor-talk/2012-March/023535.html).
+^2^ Also the current (March 2012) [Tor Browser Bundle](https://www.torproject.org/projects/torbrowser.html.en) is affected, all Firefox Tabs can be correlated to the same identity until the circuit is automatically changed by Tor. 
+^3^ [Tails](https://tails.boum.org/), which is officially listed on torproject.org is [also affected](https://lists.torproject.org/pipermail/tor-talk/2012-March/023535.html). Tails has now a [Todo](https://tails.boum.org/todo/separate_Tor_streams/) item.
+</font>
+
+## How to mitigate identity correlation ##
+### Basic Protection ###
+Most applications which come with Whonix 0.2.1 and above are already configured to prevent *identity correlation through circuit sharing*, you really should read the introduction above.
+
+All custom installed application's TCP traffic is routed through Tor's TransPort and all their DNS requests through Tor's DnsPort. This means different activities or "identities" in different applications (say browser, IRC, email) end up being routed through the same circuit, thus *identity correlation* is at risk.
+
+To protect against this, you have to set up per-application SOCKS ports in Whonix-Gateway.
+
+On Whonix-Gateway in /etc/tor/torrc ([on github](https://github.com/adrelanos/Whonix/blob/master/whonix_gateway/etc/tor/torrc)) are already a lot custom socks ports prepared for custom installed applications:
+
+* Without IsolateDestAddr and without IsolateDestPort: SocksPort 192.168.0.10:9150 to 9159
+* With IsolateDestAddr, but without IsolateDestPort: SocksPort 192.168.0.10:9160 to 9169
+* Without IsolateDestAddr, but with IsolateDestPort: SocksPort: 192.168.0.10:9170 to 9179
+* With IsolateDestAddr and with IsolateDestPort: SocksPort: 192.168.0.10:9180 to 9189
+* If they those are not enough, you can add your own ones.
+
+You can point your applications, where you want to prevent *identity correlation though circuit sharing*, to those SocksPorts. Each custom installed application has to be torified, for directions how to do that use the [Torify HOWTO](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO).
+
+Additional comments regarding the Torify HOWTO:
+
+* Warnings about protocol related warnings you must honor. You are still better off with Whonix, as it offers best possible [Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection).
+* Whonix's setup provides protection against IP leaks through [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks).
+* If you do not correctly torify, no connections will be possible.
+* If you redirect more than one application to the same SocksPort, *identity correlation* is at risk.
+* DNS related [warnings](https://trac.torproject.org/projects/tor/wiki/doc/TorFAQ#IkeepseeingthesewarningsaboutSOCKSandDNSandinformationleaks.ShouldIworry) still apply, though to a lesser extent - an attack could only make correlations but still couldn't figure out your IP. You can prevent that, be out commenting (# in front) DnsPort in /etc/tor/torrc on the Whonix-Gateway and by removing the DNS redirection firewall rule from /usr/local/bin/whonix_firewall. ([on github](https://github.com/adrelanos/Whonix/blob/master/whonix_gateway/usr/local/bin/whonix_firewall))
+    * Do not use a [local DNS resolver](https://trac.torproject.org/projects/tor/wiki/doc/SupportPrograms#DNS), as all DNS requests would be executed by the same circuit.
+* Other leaks, such as applications not honoring the proxy settings / wrapper, ICMP or UDP leaks do not apply to Whonix.
+
+### Better Protection ###
+For best protection against *identity correlation*:
+
+Read the advice above and on Whonix-Gateway:
+
+To deactivate TransPort and DnsPort...
+
+* Set *WORKSTATION_TRANSPARENT_TCP=0* in */usr/local/bin/whonix_firewall* ([on github](https://github.com/adrelanos/Whonix/blob/master/whonix_gateway/usr/local/bin/whonix_firewall))
+* Set *WORKSTATION_TRANSPARENT_DNS=0* in in */usr/local/bin/whonix_firewall*
+* Reload whonix_firewall (*sudo /usr/local/bin/whonix_firewall*) or simply reboot.
+
+Although not strictly required, you could additionally, comment out:
+
+* TransPort in /etc/tor/torrc
+* DnsPort in /etc/tor/torrc
+* And restart Tor. (*sudo service tor restart*)
+
+This will disable transparent proxying. All applications not configured to use a SocksPort or forced to use a SocksPort (use uwt) will not be able to establish connections. This is the only way to ensure, that different SocksPorts are used and that also DNS is remotely resolved through that SocksPort.
+
+### Total protection ###
+Total protection is only possible, if you honor the advice above and only use one application per session and always revert to a fresh snapshot or use [more than one Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations). Multiple Whonix-Workstations (using different internal IP's) are automatically separated by Tor (IsolateClientAddr is Tor's default).
+
+### Limited workaround for Tor Browser ###
+One option would be to install a second browser and configure it to use its own SOCKSPort.
+
+As a workaround you could enable IsolateDestAddr and IsolateDestPort for the Tor Browser. 
+
+This comes at great performance costs, especially for websites with lots of 3rd party content. It will not isolate connections to different websites on a shared server and it will create new circuits for every IP address you connect to (e.g. it will isolate subdomains if they use different IPs). Generally, for these reasons you should not enable this feature. Instead close the browser and get a "new identity" through arm on the gateway if you want to separate activities inside Tor Browser.
+
+On Whonix-Gateway open /etc/tor/torrc.
+
+    sudo nano /etc/tor/torrc
+
+Comment out.
+
+    #SocksPort 192.168.0.10:9100
+
+Comment in.
+
+    SocksPort 192.168.0.10:9100 IsolateDestAddr IsolateDestPort
+
+## Sources ##
+* [Separate streams across circuits by connection metadata](https://gitweb.torproject.org/torspec.git/blob/HEAD:/proposals/171-separate-streams.txt)
+* [tor-talk Operating system updates / software installation behind Tor Transparent Proxy](https://lists.torproject.org/pipermail/tor-talk/2012-March/023496.html)
+* [tor-talk Awareness for identity correlation through circuit sharing is almost zero.](https://lists.torproject.org/pipermail/tor-talk/2012-March/023536.html)
+* [tor-talk Tor's stream isolation features defaults Question](https://lists.torproject.org/pipermail/tor-talk/2012-May/024401.html)
+* [tor-talk Tor's stream isolation features defaults Answer](https://lists.torproject.org/pipermail/tor-talk/2012-May/024403.html)
+* [Tails-dev separate Tor streams](https://mailman.boum.org/pipermail/tails-dev/2012-August/001422.html)
+* [Tails separate Tor streams](https://tails.boum.org/todo/separate_Tor_streams/)
+* [Tails-dev Please review Tails stream isolation plans](https://mailman.boum.org/pipermail/tails-dev/2012-August/001532.html)
+
+# Application specific WARNINGS #
+## General ##
+Read [Whonix's Protocol-Leak-Protection and Fingerprinting-Protection](https://sourceforge.net/p/whonix/wiki/Security/#whonixs-protocol-leak-protection-and-fingerprinting-protection) first! (Many leaks, such as DNS and IP related leaks do not apply to Whonix; etc.)
+
+The [TorifyHOWTO](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO) contains documentation about [protocol leaks](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO#Protocolleaks) and how to mitigate them.
+
+Also see [Transparent Proxy Leaks](https://trac.torproject.org/projects/tor/wiki/doc/TransparentProxyLeaks). (Mostly Microsoft Windows related.)
+
+## Tor Browser ##
+Note, that if you are using the Tor Browser, which comes with Whonix, that the New Identity button of Tor Button is defunct. This is because Tor Button can not access Tor's control port. Due to Whonix design, Tor Browser and Tor are isolated from each other, which means there is no way to fix this without loosing the added security by Whonix.
+
+The New Identity button unlinks your old identity, changes your circuit (exit node IP) and creates a fresh identity.
+
+As a workaround close Tor Browser, change your circuit with arm (see Whonix/readme) and start Tor Browser again.
+
+This isn't a big issue, since the New Identity button isn't perfect yet anyway, there are open bugs. (See [tbb-linkability](https://trac.torproject.org/projects/tor/query?status=accepted&status=assigned&status=needs_information&status=needs_review&status=new&status=reopened&order=priority&col=id&col=summary&col=keywords&col=status&col=owner&col=type&col=priority&keywords=tbb-linkability) and [tbb-fingerprinting](https://trac.torproject.org/projects/tor/query?status=accepted&status=assigned&status=needs_review&status=needs_revision&status=new&status=reopened&order=priority&col=id&col=summary&col=keywords&col=status&col=owner&col=type&col=priority&keywords=tbb-fingerprinting).)
+
+## Browser Plugins ##
+We explain the risks of browser plugins (flash etc.), discuss some alternatives and finally explain how to use browser plugins anyway in the best possible secure manner.
+
+### Warning not to use them ###
+From the Whonix homepage... 
+"Java / JavaScript / flash / browser plugins / [Malware](https://en.wikipedia.org/wiki/Malware) / misconfigured applications cannot leak your real external IP.^1^"
+
+<font size="-3">
+,,
+^1^ "This is still not recommended as they may decrease anonymity (e.g. flash cookies) and often have security vulnerabilities. Most popular plugins are closed source. See [Whonix Security in real world](https://sourceforge.net/p/whonix/wiki/Security/#whonix-security-in-real-world)."
+</font>
+
+Although it's not recommend, we don't want to withhold the knowledge from you how to use browser plugins.
+
+IP leaks are not easily^2^ possible.
+
+The concern against browser plugins are: 
+1. Likability: browser plugins use can be probably^3^ correlated to the same pseudonym. 
+2. Fingerprinting: browser plugins can probable leak lots of information about your (virtual) operating system (=Whonix-Workstation) 
+3. Security: some plugins have a history for remote exploits. More concrete: the risk for your virtual operating system to get infected by trojan horses etc. is higher.
+
+Example, which information flash leaks:
+
+* Flash Cookies
+* Number of installed fonts.
+* Exact flash player version.
+* GNU/Linux Kernel version.
+* Language.
+* Exact date and time.
+* Exact screen resolution and DPI.
+* With Tor Browser (and perhaps other browsers, where under about:config, plugin.expose_full_path is default) the full path to your flash plugin.
+* What else?
+* You can check that yourself offsite on https://ip-check.info
+
+But anyway, of course you should look for alternatives first (see below), but if you must use browser plugins, a transparent proxy like Whonix is probable your best bet.
+
+<font size="-3">
+,,
+^2^ Read [Security] for details on how much effort would be needed. 
+^3^ Realistic threat for flash, no research done for other plugins are they are rarely needed nowadays.
+</font>
+
+### Avoiding browser plugins ###
+Avoiding browser plugins and flash is better than using them.
+
+Note that there are alternatives to flash (and perhaps other browser plugins). Most of the workarounds aren't a 100% complete, perfect drop in replacement, but perhaps it works sufficient for you (for example, if you only need youtube). Alternatives are html5, gnash, flash video replacer, flash video download or using a flash video download and convert online service. There are also applications worth checking, such as youtuberipper, ClipGrab, minitube, Totem with totem-plugins-extra, etc. Discussing the flash alternatives in details is beyond the scope of Whonix.
+
+Also the Tails folks prepared a good list of Flash alternatives, see [Tails Flash support]([https://tails.boum.org/todo/Flash_support).
+
+If you still want to use browser plugins or flash, read below.
+
+### How to use browser plugins ###
+If you want to use plugins anyway (read warning above), you can [install new software](https://sourceforge.net/p/whonix/wiki/Security/#software-installation-on-whonix-workstation) in Whonix-Workstation. For example you could install the mainstream Firefox^1^, Chromium^2^, Flash^3^ etc. Your best bet may be using the Tor Browser.
+
+Consider the plugin usage *pseudonymous rather than anonymous* ^3^. If you are using any plugins such as Flash, it will be probable known to the exit node, exit node's ISP and website, that you are a Whonix user. ^3^ ^4^ ^5^
+
+<font size="-3">
+,,
+On Whonix default/download version, Debian derivative:
+^1^ Firefox is called Iceweasel in Debian and derivatives. *sudo apt-get install iceweasel*
+^2^ *sudo apt-get install chromium-browser chromium-browser-l10n*
+^3^ Most "plugins over Tor" users probable use Mozilla Firefox and Flash on Microsoft Windows with a socksifier. They can be easily browser fingerprinted and probable even linked, see [TorifyHOWTO/WebBrowsers](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/WebBrowsers) and [Tor Button FAQ](https://www.torproject.org/torbutton/torbutton-faq.html.en#oldtorbutton).
+^4^ That is because very few people use Tor Browser with plugins, which are routed through Tor. Also because Tor Browser was at Whonix build time manually configured to use a Tor's SocksPort (for stream isolation), while user-installed plugins will will be automatically routed Tor's TransPort. The SocksPort and the TransPort will go through different circuits and most times through different exit nodes. That probable differs from the rest of the "Plugins over Tor" users group. For demonstration, see [Whonix Flash Leak Test Screenshot SocksPort and TransPort](https://sourceforge.net/projects/whonix/screenshots/flash_leak_test.png), you'll see, that the Tor Browser and Flash have different Tor exit IP's. It's questionable if that particular difference could and should be fixed and if situation had improved afterwards. ^5^
+^5^ It is currently not easily possible to use Tor Browser through Tor's TransPort, see Tor Browser upstream bugs: [broken "Transparent Torification (Requires custom transproxy or Tor router)"](https://trac.torproject.org/projects/tor/ticket/6566) and [Support Tor Router/Transtor mode in Tor Browser](https://trac.torproject.org/projects/tor/ticket/6254). Beginning with Tor Button 1.4.6.2, as far I know currently only available if you build from source. Beginning from that Tor Button version you could add *export TOR_TRANSPROXY=1* to the top of the startup script *start-tor-browser*. Then both, Tor Browser and plugins would go through Tor. This has been tested by adrelanos, see screenshot [Flash leak test both TransPort](http://whonix.sourceforge.net/screenshots/flash_leak_test_both_transport.png). The question would be, if that would actually improve the situation talked about in footnotes ^3^ and ^4^. There are probable only a very few using Tor Browser and plugins through the same circuit. (In footnote ^3^ it was mentioned, that they are still using Mozilla Firefox, even though that's even more discouraged.)
+</font>
+
+For best security use [More than one Tor Browser behind an transparent or isolating proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/WebBrowsers#TorBrowserbehindatransparentorisolatingproxy) or even better, [multiple VM snapshots](https://sourceforge.net/p/whonix/wiki/Security/#recommendation-to-use-multiple-vm-snapshots) or [multiple Whonix-Workstations](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations).
+
+Note that Tor Button in Tor Browser disables all plugins by the default settings. That decision is made by the Tor Browser developers, not by the Whonix developers. (Of course, the Whonix developers second their decision.)
+
+To activate plugins right click on Tor Button in Tor Browser -> Preferences... -> Security Settings -> uncheck: Disable Plugins during Tor usage. You have to restart Tor Browser.
+
+It's also recommend to use only plugins you really need. On most browsers their is a pseudo URL 'about:plugins' to check which are activated. Go to Tor Browser -> Tools -> Plugins and deactivate all plugins, which you don't need, or even better, uninstall them.
+
+Go to about:config, search for plugin.expose_full_path and set to false.
+
+#### Extra notes about Flash ####
+Read above first. Additional do the following...
+
+<font size="-3">
+,,
+^3^ *sudo apt-get install flashplugin-nonfree*
+</font>
+
+As explains on [1. Deactivating Flash cookies (Adobe Flash Player)](https://anonymous-proxy-servers.net/en/help/flash-applets.html), set this and all other settings in the Flash settings manager as restrictive as possible. ^4^
+
+<font size="-3">
+,,
+^4^ Personal side note: you see how ridiculous that plugin is, if the usage of the Flash settings manager depends on their website being reachable.
+</font>
+
+Additionally it might make sense to install [BetterPrivacy](https://addons.mozilla.org/en-US/firefox/addon/betterprivacy/), which can be setup to delete Flash Cookies, just in case the Flash settings manager messes up.
+
+## BitTorrent ##
+Even though p2p over Whonix is anonymous it is still discouraged. It's slow. Tor is not really designed for it and file sharing through Tor puts excessive load on nodes because it opens hundreds of new circuits. Don't be a lame, the exit node admins get the trouble and may shut their node, at our all cost. [Bittorrent over Tor isn't a good idea.](https://blog.torproject.org/blog/bittorrent-over-tor-isnt-good-idea)
+
+## IRC-clients ##
+(The [Ident Protocol](https://en.wikipedia.org/wiki/Ident) is automatically blocked because Whonix-Workstation is firewalled.)
+
+XChat in Whonix-Workstation builds 0.1.3 or later is already configured securely as per [TorifyHOWTO/XChat](https://trac.torproject.org/projects/tor/wiki/doc/TorifyHOWTO/XChat).
+
+# Whonix-Workstation is firewalled #
+This means:
+
+* does not support incoming connections
+    * however, if you make an outgoing connections, the following incoming connections are accepted (web browsing, irc, etc. works)
+    * so called server ports
+    * or also called open ports
+    * Ident Protocol / web server listening port is not reachable, unless you explicitly configure it
+* you can [Host hidden services](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hosting-hidden-services)
+* the firewall can be found on the Whonix-Gateway /usr/local/bin/whonix_firewall ([on github](https://github.com/adrelanos/Whonix/blob/master/whonix_gateway/usr/local/bin/whonix_firewall))
+* Standard DNS requests on UDP port 53 will be redirected to Tor's DnsPort. If you change the DNS server in /etc/resolv.conf in Whonix-Workstation, this will probable have no effect, since the firewall on Whonix-Gateway will redirect all those requests to Tor's DnsPort. (However, if you tunneling/encrypting DNS request, as per [Secondary DNS resolver](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#secondary-dns-resolver) (DNSCrypt, httpsdnsd) it will work.)
+
+Also note:
+
+* Tor does not support UDP. This is not an Whonix issue. ^1^
+* Tor does not support IPv6. This is not an Whonix issue. ^1^
+
+<font size="-3">
+,,
+^1^ Perhaps [OnionCat with Whonix](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#onioncat) can be a suitable workaround.
+</font>
+
+Whonix's firewall on the Whonix-Gateway is very restrictive. You can make it even more restrictive by activating #OptionalFeatureNr.3# within the firewall script. It's possible to limit, which outgoing ports will be redirected to Tor's TransPort. That would only make sense, if you would also remove all SocksPorts.
+
+# Other Anonymizing Networks over Tor UDP Tunnel #
+Read first: [Tor Plus VPN or Proxy](https://trac.torproject.org/projects/tor/wiki/doc/TorPlusVPN) and [Whonix VPN disclaimer](https://sourceforge.net/p/whonix/wiki/Authorship/#whonix-vpn-disclaimer).
+
+If you are [Tunneling UDP over Tor](https://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-udp-over-tor) to connect to [Other Anonymizing Networks](https://sourceforge.net/p/whonix/wiki/OtherAnonymizingNetworks/) you must read this chapter, otherwise you can skip this one.
+
+You should be aware, that because you need to install additional tunnel software (OpenVPN, etc.), once exploits are found, an attacker could target them.
+
+However, when you are using a secure tunnel software (for example, OpenVPN, not PPTP), the Tor exit node may not read your communication with the VPN provider. It can only recognize, a encrypted VPN connection to the VPN provider.
+
+The VPN provider can find out, depending on the other anonymizing network design, that you are connecting to that network. The VPN provider won't know you, but can find out, that someone is connecting over Tor.
+
+The encryption of the tunnel software is not relevant, because the other anonymizing network most likely will make use of encryption itself. Subsequently neither the Tor exit node nor the VPN provider will know the content of your other anonymizing network connection. The usefulness of the information, the Tor exit node and the VPN provider can gather, is minimal.
+
+"Normally Tor switches frequently its path through the network. When you choose a permanent destination X, you give away this advantage, which may have serious repercussions for your anonymity." as mentioned applies.
+
+It's recommend to use a dedicated virtual machine for this activity, see [dedicated Whonix-Workstation](https://sourceforge.net/p/whonix/wiki/Security/#using-multiple-whonix-workstations). 
