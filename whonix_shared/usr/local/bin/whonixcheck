@@ -156,6 +156,7 @@ preparation() {
    NOT_USING_TOR="0"
    DOWNLOAD_NEWS_SUCCESS="0"
    WHONIX_NEWS_VERIFY_ERROR="0"
+   APT_GET_SUCCESS="1"
    ZENITY_TYPE=""
    ZENITY_TITLE=""
    ZENITY_MESSAGE=""
@@ -605,6 +606,8 @@ $IP"
 error_handler_check_operating_system() {
       trap "error_handler" ERR INT TERM
 
+      APT_GET_SUCCESS="0"
+
       local MSG="Could not check for operating system updates.
 Please check by manually running:
 sudo apt-get update
@@ -623,8 +626,12 @@ check_operating_system() {
    # Minmal custom script.
    echo "Checking for operating system updates..."
    sudo /usr/local/bin/apt-get-update >/dev/null
-   
+
    trap "error_handler" ERR INT TERM
+
+   if [ "$APT_GET_SUCCESS" = "0" ]; then
+      return
+   fi
 
    # /etc/update-motd.d/90-updates-available
    # /usr/lib/update-notifier/update-motd-updates-available
