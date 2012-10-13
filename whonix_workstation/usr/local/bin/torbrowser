@@ -422,11 +422,11 @@ user_pref\
 
 
 #########################################################################
-# tb_start_with_readme                                                  #
+# tb_start_new_tab                                                      #
 #########################################################################
 
-tb_start_with_readme() {
-trap "tb_error_handler" ERR
+tb_start_new_tab() {
+   trap "tb_error_handler" ERR
 
    PID="`pidof firefox`" || true
 
@@ -434,18 +434,21 @@ trap "tb_error_handler" ERR
       echo "Starting Tor Browser"
       ~/tor-browser_en-US/start-tor-browser &
    else
-      echo "TBB is already running"
+      echo "Tor Browser is already running"
    fi
 
    while [ "$PID" = "" ]
    do
-      PID="`pidof firefox`" || true
+      echo "Waiting 10 seconds for Tor Browser to start..."
       sleep 10
+      PID="`pidof firefox`" || true
    done
 
-   echo "Opening Whonix Readme..."
+   echo "Opening link..."
 
-   ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab "$WHONIX_README" &
+   #echo "tb_start_new_tab debug: ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
+
+   ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
 }
 
 
@@ -508,7 +511,21 @@ fi
 # -readme                                                      #
 ################################################################ 
 if [[ "$1" = "-readme" ]]; then
-tb_start_with_readme
+LINK="$WHONIX_README"
+echo "Setting link to $LINK"
+tb_start_new_tab
+exit 0
+fi
+
+
+
+################################################################ 
+# -new-tab                                                     #
+################################################################ 
+if [[ "$1" = "-new-tab" ]]; then
+echo "Setting link to $2" 
+LINK="$2"
+tb_start_new_tab
 exit 0
 fi
 
