@@ -63,6 +63,7 @@ echo "
 ##   https://trac.torproject.org/projects/tor/ticket/6053
 ## - Tor Browsers support for Isolating and Transparent Proxies is very limited:
 ##   https://trac.torproject.org/projects/tor/ticket/5611
+## This script may break when the file name or RecommendedTBBVersions format changes!
 
 
 
@@ -127,105 +128,6 @@ SOCKS_PORT_TBB_GPG="9116"
 
 
 #########################################################################
-## tb_update_check                                                      #
-#########################################################################
-
-tb_update_check() {
-trap "tb_error_handler" ERR
-
-#################################
-## prompt user about TBB update.
-#################################
-cd "/home/"$USERNAME""
-rm -r "tbbdownload/" || true
- mkdir -p "tbbdownload"
-cd tbbdownload
-
-echo "
-#################################
-## Getting latest version number
-#################################
-"
-
-/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
-
-TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
-
-echo "
-#################################
-## Getting currently installed version number
-#################################
-"
-
-## Will fail if the file does not exist, i.e. Tor Browser not installed.
-## Will not break the script.
-TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$LANG"/Docs/changelog`"
-TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
-TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
-
-if [ "$TBBINSTALLEDVERSION" != "" ]; then
-   #echo "INFO: Successfully detected Tor Browser version."
-   true
-else
-   echo "INFO: Could not determine the currently installed Tor Browser version."
-   echo "INFO: This could be either because none is installed or because the version format changed."
-   TBBINSTALLEDVERSION="UNKNOWN"
-fi
-
-if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
-   echo "Looks like your Tor Browser version is up to date."
-else
-   echo "Looks like there is an update for Tor Browser."
-fi
-
-echo "Please close Tor Browser if you want to upgrade!"
-echo "Locally installed version: "$TBBINSTALLEDVERSION""
-echo "Online detected version  : "$TBBVERSION""
-echo 'If your currently installed version is higher, you are likely victim of a downgrade attack, SAY NO NOW!'
-echo "If your currently installed version is lower, you should upgrade, if it matches say no now."
-echo "WARNING: YOUR BROWSER WILL BE KILLED."
-echo "WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!"
-echo "INFO: A backup of your old Tor Browser and settings will be created in your home folder." 
-echo "INFO: It is a good idea to delete old TBB backups once in a while if you are running low with disk space."
-echo -n "Do you want to upgrade? [y/N]"
-
-read answer
-
-if test "$answer" != "Y" -a "$answer" != "y";
-then 
-	cd "/home/"$USERNAME""
-	echo "INFO: Deleting temporary folder tbbdownload."
-	rm -r "tbbdownload" || true
-	## Exit this function.
-	exit 0
-fi
-
-echo "
-#################################
-## Killing Tor Browser if it is still running.
-#################################
-"
-
-killall firefox || true
-
-echo "
-#################################
-## Starting TBB download and installation
-#################################
-"
-
-tb_force_install
-} 
-
-
-
-#########################################################################
 ## gpg_key_verification_error                                           #
 #########################################################################
 
@@ -250,11 +152,10 @@ echo "ERROR: GPG download signature could NOT be verified."
 #echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
 #rm tor-browser-gnu-linux-*.tar.gz*
 
-echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
 cd "/home/"$USERNAME""
 ## Tell about failure.
 touch TorBrowser_installation_FAILED
-echo "Update Failed." >&2
+echo "ERROR: Tor Browser update failed!" >&2
 echo "INFO: Tor Browser Download failed. Try again later using:"
 echo "      torbrowser -update"
 exit 1
@@ -263,15 +164,15 @@ exit 1
 
 
 #########################################################################
-## tb_force_install                                                     #
+## tb_update_check                                                      #
 #########################################################################
 
-tb_force_install() {
+tb_update_check() {
 trap "tb_error_handler" ERR
 
-## Install TBB and patch it.
-## This part may break when the file name or RecommendedTBBVersions format changes!
-
+#################################
+## preparation
+#################################
 ## Get into correct directory is required for relative paths.
 cd "/home/"$USERNAME""
 
@@ -283,6 +184,89 @@ mkdir -p "tbbdownload"
 
 ## Get into the tbbdownload folder.
 cd "tbbdownload"
+
+echo "
+#################################
+## Getting latest version number
+#################################
+"
+
+echo "INFO: Find out latest version..."
+/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+--tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+
+TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
+
+echo "
+#################################
+## Getting currently installed version number
+#################################
+"
+
+## Will fail if the file does not exist, i.e. Tor Browser not installed.
+## Will not break the script.
+TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$LANG"/Docs/changelog`" || true
+TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
+TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
+
+if [ "$TBBINSTALLEDVERSION" != "" ]; then
+   #echo "INFO: Successfully detected Tor Browser version."
+   true
+else
+   echo "INFO: Could not determine the currently installed Tor Browser version."
+   echo "INFO: This could be either because none is installed or because the version format changed."
+   TBBINSTALLEDVERSION="UNKNOWN"
+fi
+
+if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+   echo "INFO: Looks like your Tor Browser version is up to date."
+else
+   echo "INFO: Looks like there is an update for Tor Browser."
+fi
+
+echo "INFO: Please close Tor Browser if you want to upgrade!"
+echo "INFO: Locally installed version: "$TBBINSTALLEDVERSION""
+echo "INFO: Online detected version  : "$TBBVERSION""
+echo 'INFO: If your currently installed version is higher, you are likely victim of a downgrade attack, SAY NO NOW!'
+echo "INFO: If your currently installed version is lower, you should upgrade, if it matches say no now."
+echo "WARNING: YOUR BROWSER WILL BE KILLED."
+echo "WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!"
+echo "INFO: A backup of your old Tor Browser and settings will be created in your home folder." 
+echo "INFO: It is a good idea to delete old TBB backups once in a while if you are running low with disk space."
+
+if [ "$TB_FORCE_INSTALL" = "1" ]; then
+	echo "INFO: TB_FORCE_INSTALL = 1"
+	true
+else
+	echo -n "Do you want to upgrade? [y/N]"
+	read answer
+	if [ "$answer" != "Y" -a "$answer" != "y" ]; then 
+		cd "/home/"$USERNAME""
+		echo "INFO: Deleting temporary folder tbbdownload."
+		rm -r "tbbdownload" || true
+		## Exit this function.
+		exit 0
+	fi
+fi
+
+echo "
+#################################
+## Killing Tor Browser if it is still running.
+#################################
+"
+
+killall firefox || true
+
+echo "
+#################################
+## Installing Tor Browser...
+#################################
+"
 
 ## Importing GPG keys...
 echo "INFO: Importing GPG keys to the temporary directory gpgtmpdir..."
@@ -323,25 +307,14 @@ echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
-echo "INFO: Find out latest version..."
-/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
-
-echo "INFO: Phrasing the last version information."
-TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
-TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
-
 echo "INFO: Downloading latest Tor Browser Bundle..."
-## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz{,.asc}
+## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$LANG".tar.gz \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
 
 echo "INFO: Downloading GPG signature..."
+## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
@@ -353,7 +326,7 @@ echo "INFO:
 ## users keyring will be ignored.
 "
 trap "gpg_download_verification_error" ERR
- gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
+gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
 
 trap "tb_error_handler" ERR
 echo "INFO: Signature valid."
@@ -463,20 +436,20 @@ tb_start_new_tab() {
    PID="`pidof firefox`" || true
 
    if [ "$PID" = "" ]; then
-      echo "Starting Tor Browser"
+      echo "INFO: Starting Tor Browser..."
       ~/tor-browser_"$LANG"/start-tor-browser &
    else
-      echo "Tor Browser is already running"
+      echo "INFO: Tor Browser is already running"
    fi
 
    while [ "$PID" = "" ]
    do
-      echo "Waiting 10 seconds for Tor Browser to start..."
+      echo "INFO: Waiting 10 seconds for Tor Browser to start..."
       sleep 10
       PID="`pidof firefox`" || true
    done
 
-   echo "Opening link..."
+   echo "INFO: Opening link..."
 
    #echo "tb_start_new_tab debug: ~/tor-browser_"$LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
@@ -511,7 +484,9 @@ fi
 ## -force-install                                              #
 ################################################################ 
 if [[ "$1" = "-force-install" ]]; then
-tb_force_install
+export TB_FORCE_INSTALL="1"
+tb_update_check
+export TB_FORCE_INSTALL="0"
 exit 0
 fi
 
@@ -521,9 +496,11 @@ fi
 ## -force-install-uwt-dev-passthrough                          #
 ################################################################ 
 if [[ "$1" = "-force-install-uwt-dev-passthrough" ]]; then
+export TB_FORCE_INSTALL="1"
 export UWT_DEV_PASSTHROUGH="1"
-tb_force_install
+tb_update_check
 export UWT_DEV_PASSTHROUGH="0"
+export TB_FORCE_INSTALL="0"
 exit 0
 fi
 
@@ -544,7 +521,7 @@ fi
 ################################################################ 
 if [[ "$1" = "-readme" ]]; then
 LINK="$WHONIX_README"
-echo "Setting link to $LINK"
+echo "INFO: Setting link to $LINK"
 tb_start_new_tab
 exit 0
 fi
@@ -555,7 +532,7 @@ fi
 ## -new-tab                                                    #
 ################################################################ 
 if [[ "$1" = "-new-tab" ]]; then
-echo "Setting link to $2" 
+echo "INFO: Setting link to $2" 
 LINK="$2"
 tb_start_new_tab
 exit 0
@@ -577,7 +554,7 @@ fi
 ## no option chosen                                            # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
-echo "Whonix torbrowser: No option chosen. Please run with -help to find out more."
+echo "torbrowser: No option chosen. Please run with -help to find out more."
 ## This script gets sources by whonix_internal_install_script. 
 ## an exit 0 at the end would break it.
 #exit 0
