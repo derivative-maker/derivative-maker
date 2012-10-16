@@ -31,6 +31,10 @@ echo "
 # Downloads while circumventing uwt,
 # thus though TransPort when using Whonix.
 #
+# -new-tab url
+# Opens a new tab or starts Tor Browser and
+# opens a new tab.
+#
 # -readme
 # Starts Tor Browser and opens the Whonix
 # online Readme.
@@ -71,6 +75,30 @@ echo "
 
 # Debugging.
 #set -x
+
+
+
+# Available languages as in October 2012:
+# ar
+# de
+# en-US
+# es-ES
+# fa
+# fr
+# it
+# ko
+# nl
+# pl
+# pt-PT
+# ru
+# vi
+# zh-CN
+LANG="en-US"
+
+
+
+# Currently hardcoded. Will change if we start offering 64 bit builds.
+ARCH="i686"
 
 
 
@@ -119,13 +147,19 @@ echo "
 #################################
 "
 
-# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
+# old: /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
 # --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
-TBBVERSION=`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`
+# old: TBBVERSION=`grep Linux-"$ARCH" RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-"$ARCH"",/,"")}1'|tail -1`
+TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
 echo "
 #################################
@@ -135,24 +169,32 @@ echo "
 
 # Will fail if the file does not exist, i.e. Tor Browser not installed.
 # Will not break the script.
-TBBINSTALLEDVERSION=`head -1 ../tor-browser_en-US/Docs/changelog|awk -F '[()]' '{print $2}'` || true
 
-current="$TBBINSTALLEDVERSION"
-check=""
+# old: TBBINSTALLEDVERSION=`head -1 ../tor-browser_"$LANG"/Docs/changelog|awk -F '[()]' '{print $2}'` || true
+TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$LANG"/Docs/changelog`"
+TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
+TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
 
-if [ "$current" != "$check" ];
-then
-	echo "INFO: Successfully detected Tor Browser version."
+if [ "$TBBINSTALLEDVERSION" != "" ]; then
+   # echo "INFO: Successfully detected Tor Browser version."
+   true
 else
-	echo "INFO: Could not determine the currently installed Tor Browser version."
-	echo "INFO: This could be either because none is installed or because the version format changed."
-	TBBINSTALLEDVERSION="UNKNOWN"
+   echo "INFO: Could not determine the currently installed Tor Browser version."
+   echo "INFO: This could be either because none is installed or because the version format changed."
+   TBBINSTALLEDVERSION="UNKNOWN"
+fi
+
+if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+   echo "Looks like your Tor Browser version is up to date."
+else
+   echo "Looks like there is an update for Tor Browser."
 fi
 
 echo "Please close Tor Browser if you want to upgrade!"
-echo "TBB version $TBBINSTALLEDVERSION is currently installed. Do you want to replace it with $TBBVERSION?"
-echo 'If your currently installed version is higher you are likely victim of a downgrade attack, SAY NO NOW!'
-echo "If your currently installed version is lower you should upgrade, if it matches say no now."
+echo "Locally installed version: "$TBBINSTALLEDVERSION""
+echo "Online detected version  : "$TBBVERSION""
+echo 'If your currently installed version is higher, you are likely victim of a downgrade attack, SAY NO NOW!'
+echo "If your currently installed version is lower, you should upgrade, if it matches say no now."
 echo "WARNING: YOUR BROWSER WILL BE KILLED."
 echo "WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!"
 echo "INFO: A backup of your old Tor Browser and settings will be created in your home folder." 
@@ -165,7 +207,7 @@ if test "$answer" != "Y" -a "$answer" != "y";
 then 
 	cd "/home/"$USERNAME""
 	echo "INFO: Deleting temporary folder tbbdownload."
-	 rm -r "tbbdownload" || true
+	rm -r "tbbdownload" || true
 	# Exit this function.
 	exit 0
 fi
@@ -295,24 +337,30 @@ echo "INFO: Find out latest version..."
 --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 echo "INFO: Phrasing the last version information."
-TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`"
+#old: TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-"$ARCH"",/,"")}1'|tail -1`"
+TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
+TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
 echo "INFO: Downloading latest Tor Browser Bundle..."
-# http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz{,.asc}
+# http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz{,.asc}
 # /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz
+# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
 
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz \
-https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz
+--tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$LANG".tar.gz \
+https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
 
 echo "INFO: Downloading GPG signature..."
 # /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc
+# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
 
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc \
-https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-i686-$TBBVERSION-dev-en-US.tar.gz.asc
+--tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc \
+https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
 
 echo "INFO:
 # Verifying GPG signature.
@@ -335,29 +383,29 @@ else
 fi
 
 echo "Fixing the start script..."
-ed -s tor-browser_en-US/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
+ed -s tor-browser_"$LANG"/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
 
 echo "INFO: Deleting stuff we do not need..."
 # Overwrite with true in case filenames change.
 # In past minor things changed, like Tor was renamed to tor.
-rm "./tor-browser_en-US/App/tor" || true
-rm "./tor-browser_en-US/App/vidalia" || true
-rm -r "./tor-browser_en-US/Data/tor" || true
-rm -r "./tor-browser_en-US/Data/vidalia" || true
+rm "./tor-browser_"$LANG"/App/tor" || true
+rm "./tor-browser_"$LANG"/App/vidalia" || true
+rm -r "./tor-browser_"$LANG"/Data/Tor" || true
+rm -r "./tor-browser_"$LANG"/Data/Vidalia" || true
 # We should not delete it, contains licenses.
-# rm -r "./tor-browser_en-US/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}" || true
-rm -r "./tor-browser_en-US/Lib" || true
+# rm -r "./tor-browser_"$LANG"/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}" || true
+rm -r "./tor-browser_"$LANG"/Lib" || true
 
 echo "INFO: Calling the function tb_create_user_js()..."
 tb_create_user_js
 
-echo "INFO: Moving old folder tor-browser_en-US..."
-mv /home/"$USERNAME"/tor-browser_en-US /home/"$USERNAME"/tor-browser_en-US.old."`date '+%F-%H:%M:%S'`" || true
-echo "INFO: Moving temporary folder tbbdownload/tor-browser_en-US to /home/$USERNAME/tor-browser_en-US"
-mv "/home/"$USERNAME"/tbbdownload/tor-browser_en-US" "/home/"$USERNAME"/tor-browser_en-US"
+echo "INFO: Moving old folder tor-browser_"$LANG"..."
+mv /home/"$USERNAME"/tor-browser_"$LANG" /home/"$USERNAME"/tor-browser_"$LANG".old."`date '+%F-%H:%M:%S'`" || true
+echo "INFO: Moving temporary folder tbbdownload/tor-browser_"$LANG" to /home/"$USERNAME"/tor-browser_"$LANG""
+mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$LANG"" "/home/"$USERNAME"/tor-browser_"$LANG""
 echo "INFO: Deleting temporary folder tbbdownload..."
 rm -r "/home/"$USERNAME"/tbbdownload"
-echo "INFO: Finished installing TBB. Can be found in /home/$USERNAME/tor-browser_en-US."
+echo "INFO: Finished installing TBB. Can be found in /home/"$USERNAME"/tor-browser_"$LANG"."
 }
 
 
@@ -369,7 +417,7 @@ echo "INFO: Finished installing TBB. Can be found in /home/$USERNAME/tor-browser
 tb_create_user_js() {
 trap "tb_error_handler" ERR
 
-# Editing /home/$USERNAME/tor-browser_en-US/Data/profile/users.js
+# Editing /home/"$USERNAME"/tor-browser_"$LANG"/Data/profile/users.js
 # http://kb.mozillazine.org/User.js_file
 # Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (Whonix-Gateway);
 # expanding extensions.torbutton.banned_ports with Whonix specific ports.
@@ -416,7 +464,7 @@ user_pref\
 ");
 
 # End of Whonix user.js.
-' | tee /home/$USERNAME/tbbdownload/tor-browser_en-US/Data/profile/user.js
+' | tee /home/"$USERNAME"/tbbdownload/tor-browser_"$LANG"/Data/profile/user.js
 }
 
 
@@ -432,7 +480,7 @@ tb_start_new_tab() {
 
    if [ "$PID" = "" ]; then
       echo "Starting Tor Browser"
-      ~/tor-browser_en-US/start-tor-browser &
+      ~/tor-browser_"$LANG"/start-tor-browser &
    else
       echo "Tor Browser is already running"
    fi
@@ -446,9 +494,9 @@ tb_start_new_tab() {
 
    echo "Opening link..."
 
-   #echo "tb_start_new_tab debug: ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
+   #echo "tb_start_new_tab debug: ~/tor-browser_"$LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
-   ~/tor-browser_en-US/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
+   ~/tor-browser_"$LANG"/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
 }
 
 
@@ -460,7 +508,7 @@ tb_start_new_tab() {
 tb_start_without_readme() {
    trap "tb_error_handler" ERR
 
-   ~/tor-browser_en-US/start-tor-browser &
+   ~/tor-browser_"$LANG"/start-tor-browser &
 }
 
 
