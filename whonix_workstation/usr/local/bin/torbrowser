@@ -1,103 +1,103 @@
 #!/bin/bash
-# /usr/local/bin/torbrowser
+## /usr/local/bin/torbrowser
 
 WHONIX_README="http://sourceforge.net/p/whonix/wiki/Readme/"
 
-# Only in case you are not on Whonix and interested in this script.
-#
-# 	apt-get install --no-install-recommends torsocks
-# 	apt-get install ed
+## Only in case you are not on Whonix and interested in this script.
+##
+## 	apt-get install --no-install-recommends torsocks
+## 	apt-get install ed
 
 script_help() {
 echo "
-# Not a multiuser script!
-# Do not run as root!
-# Only tested for user \"user\".
-#
-# This script depends on torsocks,
-# uwt and ed. (Available in Whonix.)
-#
-# -update
-# Check if there is an update and ask to
-# install it. Will create a backup.
-#
-# -force-install
-# Installs without asking. Will create
-# a backup. Also internally used by
-# whonix_workstation script.
-#
-# -force-install-uwt-dev-passthrough
-# For developers only! Do not use!
-# Downloads while circumventing uwt,
-# thus though TransPort when using Whonix.
-#
-# -new-tab url
-# Opens a new tab or starts Tor Browser and
-# opens a new tab.
-#
-# -readme
-# Starts Tor Browser and opens the Whonix
-# online Readme.
-#
-# -noreadme
-# Starts Tor Browser without opening
-# the Whonix online Readme.
-#
-# -help
-# Show this help.
+## Not a multiuser script!
+## Do not run as root!
+## Only tested for user \"user\".
+##
+## This script depends on torsocks,
+## uwt and ed. (Available in Whonix.)
+##
+## -update
+## Check if there is an update and ask to
+## install it. Will create a backup.
+##
+## -force-install
+## Installs without asking. Will create
+## a backup. Also internally used by
+## whonix_workstation script.
+##
+## -force-install-uwt-dev-passthrough
+## For developers only! Do not use!
+## Downloads while circumventing uwt,
+## thus though TransPort when using Whonix.
+##
+## -new-tab url
+## Opens a new tab or starts Tor Browser and
+## opens a new tab.
+##
+## -readme
+## Starts Tor Browser and opens the Whonix
+## online Readme.
+##
+## -noreadme
+## Starts Tor Browser without opening
+## the Whonix online Readme.
+##
+## -help
+## Show this help.
 "
 }
 
 
 
-# Comment on this script:
-# I would be very happy if this script would not be requried.
-# Unfortunately, it is required. It works arround a lot bugs:
-# - There is no deb/rpm/whatever package with Tor Browser.
-#   https://trac.torproject.org/projects/tor/ticket/5236
-#   https://trac.torproject.org/projects/tor/ticket/3994
-# - There is no way to keep Tor Browser updated.
-#   (Thandy doesn't exist yet.)
-# - There is no way to add the Whonix Readme well visible to Tor Browser:
-#   https://trac.torproject.org/projects/tor/ticket/6025
-#   https://trac.torproject.org/projects/tor/ticket/6053
-# - Tor Browsers support for Isolating and Transparent Proxies is very limited:
-#   https://trac.torproject.org/projects/tor/ticket/5611
+## Comment on this script:
+## I would be very happy if this script would not be requried.
+## Unfortunately, it is required. It works arround a lot bugs:
+## - There is no deb/rpm/whatever package with Tor Browser.
+##   https://trac.torproject.org/projects/tor/ticket/5236
+##   https://trac.torproject.org/projects/tor/ticket/3994
+## - There is no way to keep Tor Browser updated.
+##   (Thandy doesn't exist yet.)
+## - There is no way to add the Whonix Readme well visible to Tor Browser:
+##   https://trac.torproject.org/projects/tor/ticket/6025
+##   https://trac.torproject.org/projects/tor/ticket/6053
+## - Tor Browsers support for Isolating and Transparent Proxies is very limited:
+##   https://trac.torproject.org/projects/tor/ticket/5611
 
 
 
-# For developers:
-# Please keep in mind, we allow running this without root. If you ever
-# make some changes, which require root, please disallow running the
-# script without root.
+## For developers:
+## Please keep in mind, we allow running this without root. If you ever
+## make some changes, which require root, please disallow running the
+## script without root.
 
 
 
-# Debugging.
+## Debugging.
 #set -x
 
 
 
-# Available languages as in October 2012:
-# ar
-# de
-# en-US
-# es-ES
-# fa
-# fr
-# it
-# ko
-# nl
-# pl
-# pt-PT
-# ru
-# vi
-# zh-CN
+## Available languages as in October 2012:
+## ar
+## de
+## en-US
+## es-ES
+## fa
+## fr
+## it
+## ko
+## nl
+## pl
+## pt-PT
+## ru
+## vi
+## zh-CN
 LANG="en-US"
 
 
 
-# Currently hardcoded. Will change if we start offering 64 bit builds.
+## Currently hardcoded. Will change if we start offering 64 bit builds.
 ARCH="i686"
 
 
@@ -105,11 +105,11 @@ ARCH="i686"
 tb_error_handler() {
    echo "
 #########################################################
-# Whonix script bug.
-# BASH_COMMAND: $BASH_COMMAND
-# Please report this bug.
-# You can enable debugging in /usr/local/bin/torbrowser
-# Uncomment set -x.
+## Whonix script bug.
+## BASH_COMMAND: $BASH_COMMAND
+## Please report this bug.
+## You can enable debugging in /usr/local/bin/torbrowser
+## Uncomment set -x.
 #########################################################
 "
    exit 1
@@ -127,14 +127,14 @@ SOCKS_PORT_TBB_GPG="9116"
 
 
 #########################################################################
-# tb_update_check                                                       #
+## tb_update_check                                                      #
 #########################################################################
 
 tb_update_check() {
 trap "tb_error_handler" ERR
 
 #################################
-# prompt user about TBB update.
+## prompt user about TBB update.
 #################################
 cd "/home/"$USERNAME""
 rm -r "tbbdownload/" || true
@@ -143,7 +143,7 @@ cd tbbdownload
 
 echo "
 #################################
-# Getting latest version number
+## Getting latest version number
 #################################
 "
 
@@ -159,18 +159,18 @@ TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
 echo "
 #################################
-# Getting currently installed version number
+## Getting currently installed version number
 #################################
 "
 
-# Will fail if the file does not exist, i.e. Tor Browser not installed.
-# Will not break the script.
+## Will fail if the file does not exist, i.e. Tor Browser not installed.
+## Will not break the script.
 TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$LANG"/Docs/changelog`"
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
 
 if [ "$TBBINSTALLEDVERSION" != "" ]; then
-   # echo "INFO: Successfully detected Tor Browser version."
+   #echo "INFO: Successfully detected Tor Browser version."
    true
 else
    echo "INFO: Could not determine the currently installed Tor Browser version."
@@ -202,13 +202,13 @@ then
 	cd "/home/"$USERNAME""
 	echo "INFO: Deleting temporary folder tbbdownload."
 	rm -r "tbbdownload" || true
-	# Exit this function.
+	## Exit this function.
 	exit 0
 fi
 
 echo "
 #################################
-# Killing Tor Browser if it is still running.
+## Killing Tor Browser if it is still running.
 #################################
 "
 
@@ -216,7 +216,7 @@ killall firefox || true
 
 echo "
 #################################
-# Starting TBB download and installation
+## Starting TBB download and installation
 #################################
 "
 
@@ -226,7 +226,7 @@ tb_force_install
 
 
 #########################################################################
-# gpg_key_verification_error                                            #
+## gpg_key_verification_error                                           #
 #########################################################################
 
 gpg_key_verification_error() {
@@ -245,14 +245,14 @@ trap "tb_error_handler" ERR
 
 echo "ERROR: GPG download signature could NOT be verified."
 
-# No longer deleting, might be interesting in case an adversary
-# tampered with it.
+## No longer deleting, might be interesting in case an adversary
+## tampered with it.
 #echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
 #rm tor-browser-gnu-linux-*.tar.gz*
 
 echo "Regular file tor-browser-gnu-linux-*.tar.gz missing."
 cd "/home/"$USERNAME""
-# Tell about failure.
+## Tell about failure.
 touch TorBrowser_installation_FAILED
 echo "Update Failed." >&2
 echo "INFO: Tor Browser Download failed. Try again later using:"
@@ -263,28 +263,28 @@ exit 1
 
 
 #########################################################################
-# tb_force_install                                                      #
+## tb_force_install                                                     #
 #########################################################################
 
 tb_force_install() {
 trap "tb_error_handler" ERR
 
-# Install TBB and patch it.
-# This part may break when the file name or RecommendedTBBVersions format changes!
+## Install TBB and patch it.
+## This part may break when the file name or RecommendedTBBVersions format changes!
 
-# Get into correct directory is required for relative paths.
+## Get into correct directory is required for relative paths.
 cd "/home/"$USERNAME""
 
-# Delete old tbbdownload folder.
+## Delete old tbbdownload folder.
 rm -r "tbbdownload/" || true
 
-# Create new tbbdownload folder.
+## Create new tbbdownload folder.
 mkdir -p "tbbdownload"
 
-# Get into the tbbdownload folder.
+## Get into the tbbdownload folder.
 cd "tbbdownload"
 
-# Importing GPG keys...
+## Importing GPG keys...
 echo "INFO: Importing GPG keys to the temporary directory gpgtmpdir..."
 echo "INFO: The GPG keys will not be permanently added to your keyring."
 mkdir "gpgtmpdir"
@@ -292,30 +292,30 @@ chmod 700 "gpgtmpdir/"
 
 echo "INFO: Getting the GPG keys... Verify the fingerprints."
 
-# !!!VERIFY!!!
-#
-# https://www.torproject.org/docs/signing-keys.html.en
-# http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+## !!!VERIFY!!!
+##
+## https://www.torproject.org/docs/signing-keys.html.en
+## http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
 
-# !!!VERIFY!!!
+## !!!VERIFY!!!
 echo "INFO: Getting Erinn Clark's GPG key..."
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 8738A680B84B3031A630F2DB416F061063FEE659
 
-# !!!VERIFY!!!
+## !!!VERIFY!!!
 echo "INFO: Getting Sebastian Hahn's GPG key..."
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
 
-# !!!VERIFY!!!
+## !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
 trap "gpg_key_verification_error" ERR
 gpg --homedir "gpgtmpdir" --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
 echo "INFO: Successfully verified Erinn Clark's GPG key."
 
-# !!!VERIFY!!!
+## !!!VERIFY!!!
 echo "INFO: Verifying Sebastian Hahn's GPG key..."
 trap "gpg_key_verification_error" ERR
 gpg --homedir "gpgtmpdir" --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
@@ -336,7 +336,7 @@ TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
 echo "INFO: Downloading latest Tor Browser Bundle..."
-# http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz{,.asc}
+## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz{,.asc}
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$LANG".tar.gz \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
@@ -347,10 +347,10 @@ echo "INFO: Downloading GPG signature..."
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
 
 echo "INFO:
-# Verifying GPG signature.
-# Not using the users GPG keyring also ensures, that the key can be only
-# singed by the GPG keys we added. Signatures from random people from the
-# users keyring will be ignored.
+## Verifying GPG signature.
+## Not using the users GPG keyring also ensures, that the key can be only
+## singed by the GPG keys we added. Signatures from random people from the
+## users keyring will be ignored.
 "
 trap "gpg_download_verification_error" ERR
  gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
@@ -370,14 +370,14 @@ echo "Fixing the start script..."
 ed -s tor-browser_"$LANG"/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
 
 echo "INFO: Deleting stuff we do not need..."
-# Overwrite with true in case filenames change.
-# In past minor things changed, like Tor was renamed to tor.
+## Overwrite with true in case filenames change.
+## In past minor things changed, like Tor was renamed to tor.
 rm "./tor-browser_"$LANG"/App/tor" || true
 rm "./tor-browser_"$LANG"/App/vidalia" || true
 rm -r "./tor-browser_"$LANG"/Data/Tor" || true
 rm -r "./tor-browser_"$LANG"/Data/Vidalia" || true
-# We should not delete it, contains licenses.
-# rm -r "./tor-browser_"$LANG"/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}" || true
+## We should not delete it, contains licenses.
+#rm -r "./tor-browser_"$LANG"/Docs/{Tor,Vidalia,Qt,README-TorBrowserBundle}" || true
 rm -r "./tor-browser_"$LANG"/Lib" || true
 
 echo "INFO: Calling the function tb_create_user_js()..."
@@ -395,30 +395,30 @@ echo "INFO: Finished installing TBB. Can be found in /home/"$USERNAME"/tor-brows
 
 
 #########################################################################
-# tb_create_user_js                                                     #
+## tb_create_user_js                                                    #
 #########################################################################
 
 tb_create_user_js() {
 trap "tb_error_handler" ERR
 
-# Editing /home/"$USERNAME"/tor-browser_"$LANG"/Data/profile/users.js
-# http://kb.mozillazine.org/User.js_file
-# Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (Whonix-Gateway);
-# expanding extensions.torbutton.banned_ports with Whonix specific ports.
+## Editing /home/"$USERNAME"/tor-browser_"$LANG"/Data/profile/users.js
+## http://kb.mozillazine.org/User.js_file
+## Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (Whonix-Gateway);
+## expanding extensions.torbutton.banned_ports with Whonix specific ports.
 
 echo '
-# Begin of Whonix user.js.
-# If you edit this file while Firefox is running, your changes will be
-# overwritten, when you close Firefox.
+## Begin of Whonix user.js.
+## If you edit this file while Firefox is running, your changes will be
+## overwritten, when you close Firefox.
 
-# How to create the user.js network settings:
-# 1. Make a backup of prefs.js.
-# 1. Start Tor Browser with the patched start script.
-# 2. Apply Whonix proxy settings using the Tor Button settings dialog..
-# 3. Make a diff from the old and the new pref.js.
-# 4. Copy the relevant changes to user.js.
+## How to create the user.js network settings:
+## 1. Make a backup of prefs.js.
+## 1. Start Tor Browser with the patched start script.
+## 2. Apply Whonix proxy settings using the Tor Button settings dialog..
+## 3. Make a diff from the old and the new pref.js.
+## 4. Copy the relevant changes to user.js.
 
-# network settings
+## network settings
 user_pref("network.proxy.socks", "192.168.0.10");
 user_pref("network.proxy.socks_port", 9100);
 user_pref("extensions.torbutton.use_privoxy", false);
@@ -428,14 +428,14 @@ user_pref("extensions.torbutton.socks_port", 9100);
 user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
 user_pref("extensions.torbutton.custom.socks_port", 9100);
 
-# misc settings
+## misc settings
 user_pref("extensions.torbutton.prompt_torbrowser", false);
 user_pref("general.autoScroll", true);
 
-# banned ports
-# https://www.torproject.org/torbutton/en/design/
-# http://idnxcnkne4qt76tg.onion/torbutton/en/design/
-# and search for extensions.torbutton.banned_ports
+## banned ports
+## https://www.torproject.org/torbutton/en/design/
+## http://idnxcnkne4qt76tg.onion/torbutton/en/design/
+## and search for extensions.torbutton.banned_ports
 user_pref\
 ("extensions.torbutton.banned_ports", "\
 8118,8123,9050,9051,\
@@ -447,14 +447,14 @@ user_pref\
 9180,9181,9182,9183,9184,9185,9186,9187,9188,9189,\
 ");
 
-# End of Whonix user.js.
+## End of Whonix user.js.
 ' | tee /home/"$USERNAME"/tbbdownload/tor-browser_"$LANG"/Data/profile/user.js
 }
 
 
 
 #########################################################################
-# tb_start_new_tab                                                      #
+## tb_start_new_tab                                                     #
 #########################################################################
 
 tb_start_new_tab() {
@@ -486,7 +486,7 @@ tb_start_new_tab() {
 
 
 ################################################################
-# tb_start_without_readme                                      #
+## tb_start_without_readme                                     #
 ################################################################
 
 tb_start_without_readme() {
@@ -498,7 +498,7 @@ tb_start_without_readme() {
 
 
 ################################################################ 
-# -update                                                      #
+## -update                                                     #
 ################################################################ 
 if [[ "$1" = "-update" ]]; then
 tb_update_check
@@ -508,7 +508,7 @@ fi
 
 
 ################################################################ 
-# -force-install                                               #
+## -force-install                                              #
 ################################################################ 
 if [[ "$1" = "-force-install" ]]; then
 tb_force_install
@@ -518,7 +518,7 @@ fi
 
 
 ################################################################ 
-# -force-install-uwt-dev-passthrough                           #
+## -force-install-uwt-dev-passthrough                          #
 ################################################################ 
 if [[ "$1" = "-force-install-uwt-dev-passthrough" ]]; then
 export UWT_DEV_PASSTHROUGH="1"
@@ -530,7 +530,7 @@ fi
 
 
 ################################################################ 
-# -noreadme                                                    #
+## -noreadme                                                   #
 ################################################################ 
 if [[ "$1" = "-noreadme" ]]; then
 tb_start_without_readme
@@ -540,7 +540,7 @@ fi
 
 
 ################################################################ 
-# -readme                                                      #
+## -readme                                                     #
 ################################################################ 
 if [[ "$1" = "-readme" ]]; then
 LINK="$WHONIX_README"
@@ -552,7 +552,7 @@ fi
 
 
 ################################################################ 
-# -new-tab                                                     #
+## -new-tab                                                    #
 ################################################################ 
 if [[ "$1" = "-new-tab" ]]; then
 echo "Setting link to $2" 
@@ -564,7 +564,7 @@ fi
 
 
 ################################################################ 
-# -help                                                        #
+## -help                                                       #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
 script_help
@@ -574,11 +574,11 @@ fi
 
 
 ################################################################ 
-# no option chosen                                             # 
+## no option chosen                                            # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
 echo "Whonix torbrowser: No option chosen. Please run with -help to find out more."
-#This script gets sources by whonix_internal_install_script. 
-#an exit 0 at the end would break it.
+## This script gets sources by whonix_internal_install_script. 
+## an exit 0 at the end would break it.
 #exit 0
 fi
