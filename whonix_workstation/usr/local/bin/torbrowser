@@ -147,13 +147,9 @@ echo "
 #################################
 "
 
-# old: /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
-
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
-# old: TBBVERSION=`grep Linux-"$ARCH" RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-"$ARCH"",/,"")}1'|tail -1`
 TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
@@ -169,8 +165,6 @@ echo "
 
 # Will fail if the file does not exist, i.e. Tor Browser not installed.
 # Will not break the script.
-
-# old: TBBINSTALLEDVERSION=`head -1 ../tor-browser_"$LANG"/Docs/changelog|awk -F '[()]' '{print $2}'` || true
 TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$LANG"/Docs/changelog`"
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
@@ -318,26 +312,22 @@ echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whoni
 # !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
 trap "gpg_key_verification_error" ERR
- gpg --homedir "gpgtmpdir" --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
+gpg --homedir "gpgtmpdir" --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
 echo "INFO: Successfully verified Erinn Clark's GPG key."
 
 # !!!VERIFY!!!
 echo "INFO: Verifying Sebastian Hahn's GPG key..."
 trap "gpg_key_verification_error" ERR
- gpg --homedir "gpgtmpdir" --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+gpg --homedir "gpgtmpdir" --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
 echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
 echo "INFO: Find out latest version..."
-# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
-
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
 echo "INFO: Phrasing the last version information."
-#old: TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-"$ARCH"",/,"")}1'|tail -1`"
 TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
@@ -347,17 +337,11 @@ TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
 echo "INFO: Downloading latest Tor Browser Bundle..."
 # http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz{,.asc}
-# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
-
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$LANG".tar.gz \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz
 
 echo "INFO: Downloading GPG signature..."
-# /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_DOWNLOAD" /usr/bin/wget \
-# https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
-
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc \
 https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$LANG".tar.gz.asc
