@@ -261,7 +261,7 @@ INFO:    lower : you should upgrade.
 WARNING: YOUR BROWSER WILL BE KILLED.
 WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
 
-INFO: A backup of your old Tor Browser and settings will be created in your home folder."
+INFO: A backup of your old Tor Browser and settings will be created in your home folder.
 INFO: It is a good idea to delete old TBB backups once in a while if you are running low with disk space.\
 "
 
@@ -373,8 +373,18 @@ else
 	echo "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
 
-echo "Fixing the start script..."
-ed -s tor-browser_"$TB_LANG"/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
+#echo "Fixing the start script..."
+#ed -s tor-browser_"$TB_LANG"/start-tor-browser <<< $',s/.\/App\/vidalia --datadir Data\/Vidalia\//.\/App\/Firefox\/firefox --profile Data\/profile/g\nw'
+
+# The tor-browser_"$TB_LANG"/Docs folder should already exist.
+# Just to make sure the script will not break in case the get changed by upstream.
+mkdir -p tor-browser_"$TB_LANG"/Docs
+
+echo "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
+mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
+
+echo "INFO: Creating Tor Browser startup script for Whonix..."
+tb_create_startup_script
 
 echo "INFO: Calling the function tb_create_user_js()..."
 tb_create_user_js
@@ -386,6 +396,23 @@ mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor
 echo "INFO: Deleting temporary folder tbbdownload..."
 rm -r "/home/"$USERNAME"/tbbdownload"
 echo "INFO: Finished installing TBB. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
+}
+
+
+
+#########################################################################
+## tb_create_startup_script                                             #
+#########################################################################
+
+tb_create_startup_script() {
+echo "\
+#!/bin/bash
+## Whonix Tor Browser start script
+
+~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile
+
+## End of Whonix Tor Browser start script
+" | tee /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/start-torbrowser
 }
 
 
