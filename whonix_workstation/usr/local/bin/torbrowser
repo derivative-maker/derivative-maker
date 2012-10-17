@@ -296,40 +296,45 @@ echo "INFO: The GPG keys will not be permanently added to your keyring."
 mkdir "gpgtmpdir"
 chmod 700 "gpgtmpdir/"
 
-echo "INFO: Getting the GPG keys... Verify the fingerprints."
-
 ## !!!VERIFY!!!
-##
-## https://www.torproject.org/docs/signing-keys.html.en
-## http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+echo "
+INFO: Getting the GPG keys... Verify the fingerprints."
+https://www.torproject.org/docs/signing-keys.html.en
+http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+"
 
 ## !!!VERIFY!!!
 echo "INFO: Getting Erinn Clark's GPG key..."
+ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
+echo "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
+
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
---homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 8738A680B84B3031A630F2DB416F061063FEE659
+--homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$ERINN_FINGERPRINT"
 
 ## !!!VERIFY!!!
 echo "INFO: Getting Sebastian Hahn's GPG key..."
+SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
+echo "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
 echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
---homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+--homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$SEBASTIAN_FINGERPRINT"
 
 ## !!!VERIFY!!!
 echo "INFO: Verifying Erinn Clark's GPG key..."
 trap "gpg_key_verification_error" ERR
-gpg --homedir "gpgtmpdir" --fingerprint 8738A680B84B3031A630F2DB416F061063FEE659
+gpg --homedir "gpgtmpdir" --fingerprint "$ERINN_FINGERPRINT"
 echo "INFO: Successfully verified Erinn Clark's GPG key."
 
 ## !!!VERIFY!!!
 echo "INFO: Verifying Sebastian Hahn's GPG key..."
 trap "gpg_key_verification_error" ERR
-gpg --homedir "gpgtmpdir" --fingerprint 261C5FBE77285F88FB0C343266C8C2D7C5AA446D
+gpg --homedir "gpgtmpdir" --fingerprint "$SEBASTIAN_FINGERPRINT"
 echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
-echo "INFO: Downloading latest Tor Browser Bundle..."
+echo "INFO: Downloading Tor Browser Bundle $TBBVERSION..."
 ## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$TB_LANG".tar.gz \
