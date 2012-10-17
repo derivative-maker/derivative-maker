@@ -298,7 +298,7 @@ chmod 700 "gpgtmpdir/"
 
 ## !!!VERIFY!!!
 echo "
-INFO: Getting the GPG keys... Verify the fingerprints."
+INFO: Getting the GPG keys... Verify the fingerprints.
 https://www.torproject.org/docs/signing-keys.html.en
 http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
 "
@@ -334,17 +334,22 @@ echo "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
-echo "INFO: Downloading Tor Browser Bundle $TBBVERSION..."
-## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz
+TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+#TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+
+echo "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
+TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
+TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
+echo "INFO: Downloading: "$TBB_PACKAGE_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-$TBBVERSION-dev-"$TB_LANG".tar.gz \
-https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz
+--tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK"
 
 echo "INFO: Downloading GPG signature..."
-## http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc
+TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
+TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
+echo "INFO: Downloading: "$TBB_SIG_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc \
-https://www.torproject.org/dist/torbrowser/linux/tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc
+--tlsv1 --proto =https --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK"
 
 echo "INFO:
 ## Verifying GPG signature.
@@ -353,7 +358,7 @@ echo "INFO:
 ## users keyring will be ignored.
 "
 trap "gpg_download_verification_error" ERR
-gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
+gpg --homedir "gpgtmpdir" --verify totor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.ascr-browser*.asc
 
 trap "tb_error_handler" ERR
 echo "INFO: Signature valid."
