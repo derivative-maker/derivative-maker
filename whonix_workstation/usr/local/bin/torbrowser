@@ -11,7 +11,6 @@ WHONIX_README="http://sourceforge.net/p/whonix/wiki/Readme/"
 script_help() {
 echo "
 ## Not a multiuser script!
-## Do not run as root!
 ## Only tested for user \"user\".
 ##
 ## This script depends on torsocks,
@@ -76,6 +75,18 @@ echo "
 
 ## Debugging.
 #set -x
+
+
+
+root_check() {
+  if [ "$(id -u)" != "0" ]; then
+       #echo "INFO: torbrowser script running as user."
+       true
+  else
+       echo "FATAL ERROR: do not run this script as root! Please run it as user."
+       exit 1
+  fi
+}
 
 
 
@@ -482,6 +493,7 @@ tb_start_without_readme() {
 ## -update                                                     #
 ################################################################ 
 if [[ "$1" = "-update" ]]; then
+root_check
 tb_update_check
 exit 0
 fi
@@ -492,6 +504,7 @@ fi
 ## -force-install                                              #
 ################################################################ 
 if [[ "$1" = "-force-install" ]]; then
+root_check
 export TB_FORCE_INSTALL="1"
 tb_update_check
 export TB_FORCE_INSTALL="0"
@@ -504,6 +517,7 @@ fi
 ## -force-install-uwt-dev-passthrough                          #
 ################################################################ 
 if [[ "$1" = "-force-install-uwt-dev-passthrough" ]]; then
+root_check
 export TB_FORCE_INSTALL="1"
 export UWT_DEV_PASSTHROUGH="1"
 tb_update_check
@@ -518,6 +532,7 @@ fi
 ## -noreadme                                                   #
 ################################################################ 
 if [[ "$1" = "-noreadme" ]]; then
+root_check
 tb_start_without_readme
 exit 0
 fi
@@ -528,6 +543,7 @@ fi
 ## -readme                                                     #
 ################################################################ 
 if [[ "$1" = "-readme" ]]; then
+root_check
 LINK="$WHONIX_README"
 echo "INFO: Setting link to $LINK"
 tb_start_new_tab
@@ -540,6 +556,7 @@ fi
 ## -new-tab                                                    #
 ################################################################ 
 if [[ "$1" = "-new-tab" ]]; then
+root_check
 echo "INFO: Setting link to $2" 
 LINK="$2"
 tb_start_new_tab
