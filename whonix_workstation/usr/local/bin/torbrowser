@@ -1,8 +1,6 @@
 #!/bin/bash
 ## /usr/local/bin/torbrowser
 
-WHONIX_README="http://sourceforge.net/p/whonix/wiki/Readme/"
-
 ## Only in case you are not on Whonix and interested in this script.
 ##
 ## 	apt-get install --no-install-recommends torsocks
@@ -12,12 +10,10 @@ echo "
 ## This script may break when the file name
 ## or RecommendedTBBVersions format changes!
 ##
-## Not a multiuser script!
 ## Do not run as root!
 ## Only tested for user \"user\".
 ##
-## This script depends on torsocks,
-## uwt and ed. (Available in Whonix.)
+## This script depends on torsocks and uwt.
 ##
 ## -update
 ## Check if there is an update and ask to
@@ -25,8 +21,7 @@ echo "
 ##
 ## -force-install
 ## Installs without asking. Will create
-## a backup. Also internally used by
-## whonix_workstation script.
+## a backup.
 ##
 ## -force-install-uwt-dev-passthrough
 ## For developers only! Do not use!
@@ -93,6 +88,10 @@ and so on.
 
 
 
+## -force-install is internally used by whonix_internal_install_script.
+
+
+
 ## Developer comment on this script:
 ## I would be very happy if this script would not be requried.
 ## Unfortunately, it is required. It works arround a lot bugs:
@@ -119,22 +118,13 @@ root_check() {
        #echo "INFO: torbrowser script running as user."
        true
   else
-       echo "FATAL ERROR: do not run this script as root! Please run it as user."
+       ZENITY_TYPE="--error"
+       output "FATAL ERROR: do not run this script as root! Please run it as user."
        exit 1
   fi
 }
 
 
-
-#echo "TB_LANG: $TB_LANG"
-
-# Check if TB_LANG exists and is not empty.
-if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-   echo "INFO: Tor Browser language variable is set to "$TB_LANG"."
-else
-   echo "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
-   TB_LANG="en-US"
-fi
 
 ## Currently hardcoded. Will change if we start offering 64 bit builds.
 ## ARCH="x86_64"
@@ -143,26 +133,83 @@ ARCH="i686"
 
 
 tb_error_handler() {
-   echo "
+   local MSG="\
 #########################################################
 ## Whonix script bug.
 ## BASH_COMMAND: $BASH_COMMAND
 ## Please report this bug.
 ## You can enable debugging in /usr/local/bin/torbrowser
 ## Uncomment set -x.
-#########################################################
+#########################################################\
 "
+   echo "$MSG"
+   ZENITY_TYPE="--error"
+   output "$MSG"
    exit 1
 }
 
-trap "tb_error_handler" ERR
+
+
+debug() {
+   # debug is just a marker for messages which is are not essential for users.
+   # either in cli or gui.
+   echo "$*"
+}
+
+
+
+output() {
+   echo "$*"
+
+   echo "ZENITY_TYPE: $ZENITY_TYPE"
+
+   echo "kdialog --title="Tor Browser Update Check" "$ZENITY_TYPE" "$*""
+
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      true
+   else
+      kdialog --title="Tor Browser Update Check" "$ZENITY_TYPE" "$*"
+   fi
+}
 
 
 
 USERNAME="`whoami`"
-GATEWAY_IP="192.168.0.10"
-SOCKS_PORT_TBB_DOWNLOAD="9115"
-SOCKS_PORT_TBB_GPG="9116"
+
+
+
+# Whonix mode
+if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+   GATEWAY_IP="192.168.0.10"
+   SOCKS_PORT_TBB_DOWNLOAD="9115"
+   SOCKS_PORT_TBB_GPG="9116"
+   README_LINK="http://sourceforge.net/p/whonix/wiki/Readme/"
+   ICON="--window-icon /usr/local/share/whonix/whonix.ico"
+# Tails mode, just a file to find out it is running in Tails
+elif [ -f "/etc/whisperback/config.py" ]; then
+   GATEWAY_IP="127.0.0.1"
+   SOCKS_PORT_TBB_DOWNLOAD="9050"
+   SOCKS_PORT_TBB_GPG="9050"
+   README_LINK="https://tails.boum.org/news/index.en.html"
+   ICON=""
+# Any other users of this script.
+else
+   GATEWAY_IP="127.0.0.1"
+   SOCKS_PORT_TBB_DOWNLOAD="9050"
+   SOCKS_PORT_TBB_GPG="9050"
+fi
+
+
+
+#debug "TB_LANG: $TB_LANG"
+
+# Check if TB_LANG exists and is not empty.
+if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
+   debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
+else
+   debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
+   TB_LANG="en-US"
+fi
 
 
 
@@ -173,9 +220,11 @@ SOCKS_PORT_TBB_GPG="9116"
 gpg_key_verification_error() {
 trap "tb_error_handler" ERR
 
-echo "ERROR: Could not verify GPG key."
-echo "INFO: Tor Browser Download failed. Try again later using:"
-echo "      torbrowser -update"
+ZENITY_TYPE="--error"
+output "\
+ERROR: Could not verify GPG key.
+ERROR: Tor Browser update failed! Try again later.\
+"
 exit 1
 }
 
@@ -184,19 +233,20 @@ exit 1
 gpg_download_verification_error() {
 trap "tb_error_handler" ERR
 
-echo "ERROR: GPG download signature could NOT be verified."
+ZENITY_TYPE="--error"
+output "\
+ERROR: GPG download signature could NOT be verified.
+ERROR: Tor Browser update failed! Try again later.\
+"
 
 ## No longer deleting, might be interesting in case an adversary
 ## tampered with it.
-#echo "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
+#debug "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
 #rm --force tor-browser-gnu-linux-*.tar.gz*
 
 cd "/home/"$USERNAME""
 ## Tell about failure.
 touch TorBrowser_installation_FAILED
-echo "ERROR: Tor Browser update failed!" >&2
-echo "INFO: Tor Browser Download failed. Try again later using:"
-echo "      torbrowser -update"
 exit 1
 }
 
@@ -229,8 +279,8 @@ cd "tbbdownload"
 ## Getting latest version number
 #################################
 
-echo "INFO: Find out latest version..."
-echo "INFO: Downloading: https://check.torproject.org/RecommendedTBBVersions"
+debug "INFO: Find out latest version..."
+debug "INFO: Downloading: https://check.torproject.org/RecommendedTBBVersions"
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
 
@@ -252,46 +302,68 @@ TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (/
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
 
 if [ "$TBBINSTALLEDVERSION" != "" ]; then
-   #echo "INFO: Successfully detected Tor Browser version."
+   #debug "INFO: Successfully detected Tor Browser version."
    true
 else
-   echo "INFO: Could not determine the currently installed Tor Browser version."
-   echo "INFO: This could be either because none is installed or because the version format changed."
-   TBBINSTALLEDVERSION="UNKNOWN"
+   debug "\
+INFO: Could not determine the currently installed Tor Browser version.
+INFO: This could be either because none is installed or because the version format changed.\
+"
+   TBBINSTALLEDVERSION="UNKNOWN OR NONE"
 fi
 
 if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
-   echo "INFO: Looks like your Tor Browser version is up to date."
+   VERSION_CHECK_RESULT="Looks like your Tor Browser version is up to date."
 else
-   echo "INFO: Looks like there is an update for Tor Browser."
+   VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
 fi
 
-echo "\
-INFO: Please close Tor Browser if you want to upgrade!
-INFO: Currently installed version: "$TBBINSTALLEDVERSION"
-INFO: Online detected version    : "$TBBVERSION"
+## Setting default answer to 1, which means no.
+## Just in case the question dialog fails for
+## some reason, the default will be no.
+answer="1"
 
-INFO: If your currently installed version is:
-INFO:    higher: you are likely victim of a downgrade attack, SAY NO NOW!
-INFO:    equal : only proceed, if you want to create a new browser profile.
-INFO:    lower : you should upgrade.
+## Need to deactivate the trap, otherwise answering
+## no will throw an error.
+trap "" ERR
 
-WARNING: YOUR BROWSER WILL BE KILLED.
-WARNING: YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
+ZENITY_TYPE="--yesno"
+output "\
+"$VERSION_CHECK_RESULT"
 
-INFO: A backup of your old Tor Browser and settings will be created in your home folder.
-INFO: It is a good idea to delete old TBB backups once in a while if you are running low with disk space.\
+Please close Tor Browser if you want to upgrade!
+Currently installed version: "$TBBINSTALLEDVERSION"
+Online detected version    : "$TBBVERSION"
+
+If your currently installed version is:
+   higher: you are likely victim of a downgrade attack, SAY NO NOW!
+   equal : only proceed, if you want to create a new browser profile.
+   lower : you should upgrade.
+
+YOUR BROWSER WILL BE KILLED.
+YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
+
+A backup of your old Tor Browser and settings will be created in your home folder.
+It is a good idea to delete old TBB backups once in a while if you are running low with disk space.\
 "
 
+## zenity return codes
+## kdialog has same return codes
+## no 1
+## yes 0
+answer="$?"
+
+debug "answer: $answer"
+
+trap "tb_error_handler" ERR
+
 if [ "$TB_FORCE_INSTALL" = "1" ]; then
-	echo "INFO: TB_FORCE_INSTALL = 1"
+	debug "INFO: TB_FORCE_INSTALL = 1"
 	true
 else
-	echo -n "Do you want to upgrade? [y/N]"
-	read answer
-	if [ "$answer" != "Y" -a "$answer" != "y" ]; then 
+	if [ "$answer" = "1" ]; then 
 		cd "/home/"$USERNAME""
-		echo "INFO: Deleting temporary folder tbbdownload."
+		debug "INFO: Deleting temporary folder tbbdownload."
 		rm --force --recursive "tbbdownload" || true
 		## Exit this function.
 		exit 0
@@ -300,78 +372,80 @@ fi
 
 
 #################################
-echo "INFO: Killing Tor Browser if it is still running..."
+debug "INFO: Killing Tor Browser if it is still running..."
 #################################
 
 
 killall firefox || true
 
 #################################
-echo "INFO: Installing Tor Browser..."
+debug "INFO: Installing Tor Browser..."
 #################################
 
 ## Importing GPG keys...
-echo "INFO: Importing GPG keys to the temporary directory gpgtmpdir..."
-echo "INFO: The GPG keys will not be permanently added to your keyring."
+debug "\
+INFO: Importing GPG keys to the temporary directory gpgtmpdir...
+INFO: The GPG keys will not be permanently added to your keyring.\
+"
 mkdir "gpgtmpdir"
 chmod 700 "gpgtmpdir/"
 
 ## !!!VERIFY!!!
-echo "
+debug "\
 INFO: Getting the GPG keys... Verify the fingerprints.
 https://www.torproject.org/docs/signing-keys.html.en
-http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en
+http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en\
 "
 
 ## !!!VERIFY!!!
-echo "INFO: Getting Erinn Clark's GPG key..."
+debug "INFO: Getting Erinn Clark's GPG key..."
 ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
-echo "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
+debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
 
-echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
+debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$ERINN_FINGERPRINT"
 
 ## !!!VERIFY!!!
-echo "INFO: Getting Sebastian Hahn's GPG key..."
+debug "INFO: Getting Sebastian Hahn's GPG key..."
 SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
-echo "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
-echo "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
+debug "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
+debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
 /usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$SEBASTIAN_FINGERPRINT"
 
 ## !!!VERIFY!!!
-echo "INFO: Verifying Erinn Clark's GPG key..."
+debug "INFO: Verifying Erinn Clark's GPG key..."
 trap "gpg_key_verification_error" ERR
 gpg --homedir "gpgtmpdir" --fingerprint "$ERINN_FINGERPRINT"
-echo "INFO: Successfully verified Erinn Clark's GPG key."
+debug "INFO: Successfully verified Erinn Clark's GPG key."
 
 ## !!!VERIFY!!!
-echo "INFO: Verifying Sebastian Hahn's GPG key..."
+debug "INFO: Verifying Sebastian Hahn's GPG key..."
 trap "gpg_key_verification_error" ERR
 gpg --homedir "gpgtmpdir" --fingerprint "$SEBASTIAN_FINGERPRINT"
-echo "INFO: Successfully verified Sebastian Hahn's GPG key."
+debug "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
 TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
 #TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
 
-echo "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
+debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
 TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
 TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
-echo "INFO: Downloading: "$TBB_PACKAGE_LINK""
+debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK"
 
-echo "INFO: Downloading GPG signature..."
+debug "INFO: Downloading GPG signature..."
 TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
 TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
-echo "INFO: Downloading: "$TBB_SIG_LINK""
+debug "INFO: Downloading: "$TBB_SIG_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK"
 
-echo "INFO:
+debug "INFO:
 ## Verifying GPG signature.
 ## Not using the users GPG keyring also ensures, that the key can be only
 ## singed by the GPG keys we added. Signatures from random people from the
@@ -381,36 +455,38 @@ trap "gpg_download_verification_error" ERR
 gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
 
 trap "tb_error_handler" ERR
-echo "INFO: Signature valid."
+debug "INFO: Signature valid."
 
 if [ -f tor-browser-gnu-linux-*.tar.gz ]; then
-	echo "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
-	echo "INFO: Unpacking..."
+	debug "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
+	debug "INFO: Unpacking..."
 	 tar -xzvf tor-browser-gnu-linux-*.tar.gz
 else
-	echo "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
+        ZENITY_TYPE="--error"
+	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
 
 # The tor-browser_"$TB_LANG"/Docs folder should already exist.
 # Just to make sure the script will not break in case the get changed by upstream.
 mkdir -p tor-browser_"$TB_LANG"/Docs
 
-echo "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
+debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
 mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
 
-echo "INFO: Creating Tor Browser startup script for Whonix..."
+debug "INFO: Creating Tor Browser startup script for Whonix..."
 tb_create_startup_script
 
-echo "INFO: Calling the function tb_create_user_js()..."
+debug "INFO: Calling the function tb_create_user_js()..."
 tb_create_user_js
 
-echo "INFO: Moving old folder tor-browser_"$TB_LANG"..."
+debug "INFO: Moving old folder tor-browser_"$TB_LANG"..."
 mv /home/"$USERNAME"/tor-browser_"$TB_LANG" /home/"$USERNAME"/tor-browser_"$TB_LANG".old."`date '+%F-%H:%M:%S'`" || true
-echo "INFO: Moving temporary folder tbbdownload/tor-browser_"$TB_LANG" to /home/"$USERNAME"/tor-browser_"$TB_LANG""
+debug "INFO: Moving temporary folder tbbdownload/tor-browser_"$TB_LANG" to /home/"$USERNAME"/tor-browser_"$TB_LANG""
 mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
-echo "INFO: Deleting temporary folder tbbdownload..."
+debug "INFO: Deleting temporary folder tbbdownload..."
 rm --force --recursive "/home/"$USERNAME"/tbbdownload"
-echo "INFO: Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
+ZENITY_TYPE="--msgbox"
+output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
 }
 
 
@@ -447,30 +523,36 @@ trap "tb_error_handler" ERR
 ## expanding extensions.torbutton.banned_ports with Whonix specific ports.
 
 echo '
-## Begin of Whonix user.js.
+## Begin of patched user.js.
 ## If you edit this file while Firefox is running, your changes will be
 ## overwritten, when you close Firefox.
 
 ## How to create the user.js network settings:
 ## 1. Make a backup of prefs.js.
 ## 1. Start Tor Browser with the patched start script.
-## 2. Apply Whonix proxy settings using the Tor Button settings dialog..
+## 2. Apply proxy settings using the Tor Button settings dialog..
 ## 3. Make a diff from the old and the new pref.js.
 ## 4. Copy the relevant changes to user.js.
 
 ## network settings
-user_pref("network.proxy.socks", "192.168.0.10");
-user_pref("network.proxy.socks_port", 9100);
 user_pref("extensions.torbutton.use_privoxy", false);
 user_pref("extensions.torbutton.settings_method", "custom");
 user_pref("extensions.torbutton.socks_host", "192.168.0.10");
 user_pref("extensions.torbutton.socks_port", 9100);
-user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
-user_pref("extensions.torbutton.custom.socks_port", 9100);
 
 ## misc settings
 user_pref("extensions.torbutton.prompt_torbrowser", false);
 user_pref("general.autoScroll", true);
+' >> /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
+
+
+if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+
+   echo '
+user_pref("network.proxy.socks", "192.168.0.10");
+user_pref("network.proxy.socks_port", 9100);
+user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
+user_pref("extensions.torbutton.custom.socks_port", 9100);
 
 ## banned ports
 ## https://www.torproject.org/torbutton/en/design/
@@ -486,9 +568,35 @@ user_pref\
 9170,9171,9172,9173,9174,9175,9176,9177,9178,9179,\
 9180,9181,9182,9183,9184,9185,9186,9187,9188,9189,\
 ");
-
 ## End of Whonix user.js.
-' | tee /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
+' >> /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
+
+elif [ -f "/etc/whisperback/config.py" ]; then
+
+   echo '
+user_pref("network.proxy.socks", "127.0.0.1");
+user_pref("network.proxy.socks_port", 9050);
+user_pref("extensions.torbutton.custom.socks_host", "127.0.0.1");
+user_pref("extensions.torbutton.custom.socks_port", 9050);
+
+## banned ports
+## https://www.torproject.org/torbutton/en/design/
+## http://idnxcnkne4qt76tg.onion/torbutton/en/design/
+## and search for extensions.torbutton.banned_ports
+
+## TODO
+
+## End of Tails user.js.
+' >> /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
+
+else
+
+   # Other users of this script.
+   # No tweaks neccessary.
+   true
+
+fi
+
 }
 
 
@@ -503,22 +611,22 @@ tb_start_new_tab() {
    PID="`pidof firefox`" || true
 
    if [ "$PID" = "" ]; then
-      echo "INFO: Starting Tor Browser..."
+      debug "INFO: Starting Tor Browser..."
       ~/tor-browser_"$TB_LANG"/start-tor-browser &
    else
-      echo "INFO: Tor Browser is already running"
+      debug "INFO: Tor Browser is already running"
    fi
 
    while [ "$PID" = "" ]
    do
-      echo "INFO: Waiting 10 seconds for Tor Browser to start..."
+      debug "INFO: Waiting 10 seconds for Tor Browser to start..."
       sleep 10
       PID="`pidof firefox`" || true
    done
 
-   echo "INFO: Opening link..."
+   debug "INFO: Opening link..."
 
-   #echo "tb_start_new_tab debug: ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
+   #debug "tb_start_new_tab debug: ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
    ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
 }
@@ -592,8 +700,8 @@ fi
 ################################################################ 
 if [[ "$1" = "-readme" ]]; then
 root_check
-LINK="$WHONIX_README"
-echo "INFO: Setting link to $LINK"
+LINK="$README_LINK"
+debug "INFO: Setting link to $LINK"
 tb_start_new_tab
 exit 0
 fi
@@ -605,7 +713,7 @@ fi
 ################################################################ 
 if [[ "$1" = "-new-tab" ]]; then
 root_check
-echo "INFO: Setting link to $2" 
+debug "INFO: Setting link to $2" 
 LINK="$2"
 tb_start_new_tab
 exit 0
