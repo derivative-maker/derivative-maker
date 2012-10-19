@@ -1,7 +1,7 @@
 #!/bin/bash
 ## /usr/local/bin/torbrowser
 
-## Only in case you are not on Whonix and interested in this script.
+## Only in case you are not on Whonix or Tails and interested in this script.
 ##
 ## 	apt-get install --no-install-recommends torsocks
 
@@ -11,9 +11,10 @@ echo "
 ## or RecommendedTBBVersions format changes!
 ##
 ## Do not run as root!
-## Only tested for user \"user\".
 ##
-## This script depends on torsocks and uwt.
+## This script is currently only tested
+## in Whonix and Tails. It could be easily
+## made to work on any Linux.
 ##
 ## -update
 ## Check if there is an update and ask to
@@ -26,19 +27,19 @@ echo "
 ## -force-install-uwt-dev-passthrough
 ## For developers only! Do not use!
 ## Downloads while circumventing uwt,
-## thus though TransPort when using Whonix.
+## thus through TransPort when using Whonix.
 ##
 ## -new-tab url
 ## Opens a new tab or starts Tor Browser and
 ## opens a new tab.
 ##
 ## -readme
-## Starts Tor Browser and opens the Whonix
+## Starts Tor Browser and opens the
 ## online Readme.
 ##
 ## -noreadme
 ## Starts Tor Browser without opening
-## the Whonix online Readme.
+## the online Readme.
 ##
 ## -lang
 ## Language help. How to get Tor Browser in
@@ -136,7 +137,7 @@ ARCH="i686"
 tb_error_handler() {
    local MSG="\
 #########################################################
-## Whonix script bug.
+## torbrowser script bug.
 ## BASH_COMMAND: $BASH_COMMAND
 ## Please report this bug.
 ## You can enable debugging in /usr/local/bin/torbrowser
@@ -416,7 +417,7 @@ http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en\
 debug "INFO: Getting Erinn Clark's GPG key..."
 ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
 debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
-debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
+debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
 $UWT_VAR /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$ERINN_FINGERPRINT"
 
@@ -424,7 +425,7 @@ $UWT_VAR /usr/bin/gpg \
 debug "INFO: Getting Sebastian Hahn's GPG key..."
 SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
 debug "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
-debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
+debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
 $UWT_VAR /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$SEBASTIAN_FINGERPRINT"
 
@@ -488,7 +489,7 @@ mkdir -p tor-browser_"$TB_LANG"/Docs
 debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
 mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
 
-debug "INFO: Creating Tor Browser startup script for Whonix..."
+debug "INFO: Creating Unbundled Tor Browser startup script..."
 tb_create_startup_script
 
 debug "INFO: Calling the function tb_create_user_js()..."
@@ -514,11 +515,11 @@ output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-b
 tb_create_startup_script() {
 echo "\
 #!/bin/bash
-## Whonix Tor Browser start script
+## Unbundled (without Tor/Vidalia) Tor Browser start script
 
 ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile
 
-## End of Whonix Tor Browser start script
+## End of Unbundled Tor Browser start script
 " | tee /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/start-torbrowser
 
 chmod +x /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/start-torbrowser
@@ -535,7 +536,7 @@ trap "tb_error_handler" ERR
 
 ## Editing /home/"$USERNAME"/tor-browser_"$TB_LANG"/Data/profile/users.js
 ## http://kb.mozillazine.org/User.js_file
-## Configuring Tor Button to use SOCKSPort 9100 on 192.168.0.10 (Whonix-Gateway);
+## Configuring Tor Button to use SOCKSPort;
 ## expanding extensions.torbutton.banned_ports with Whonix specific ports.
 
 echo '
@@ -600,7 +601,7 @@ user_pref("extensions.torbutton.custom.socks_port", 9050);
 ## http://idnxcnkne4qt76tg.onion/torbutton/en/design/
 ## and search for extensions.torbutton.banned_ports
 
-## TODO
+## TODO: does Tails need any banned ports?
 
 ## End of Tails user.js.
 ' >> /home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
