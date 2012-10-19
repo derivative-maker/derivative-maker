@@ -118,6 +118,7 @@ root_check() {
        #echo "INFO: torbrowser script running as user."
        true
   else
+       KDIALOG_TYPE="--error"
        ZENITY_TYPE="--error"
        output "FATAL ERROR: do not run this script as root! Please run it as user."
        exit 1
@@ -143,6 +144,7 @@ tb_error_handler() {
 #########################################################\
 "
    echo "$MSG"
+   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "$MSG"
    exit 1
@@ -161,14 +163,20 @@ debug() {
 output() {
    echo "$*"
 
-   echo "ZENITY_TYPE: $ZENITY_TYPE"
+   echo "KDIALOG_TYPE: $KDIALOG_TYPE"
+   echo "ZENITY_TYPE= $ZENITY_TYPE"
 
-   echo "kdialog --title="Tor Browser Update Check" "$ZENITY_TYPE" "$*""
+   echo "kdialog --title="Tor Browser Update Check" "$KDIALOG_TYPE" "$*""
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      kdialog --title="Tor Browser Update Check" "$ZENITY_TYPE" "$*"
+      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+          kdialog --title="Tor Browser Update Check" "$KDIALOG_TYPE" "$*"
+          #debug: zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
+      else
+          zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
+      fi
    fi
 }
 
@@ -220,6 +228,7 @@ fi
 gpg_key_verification_error() {
 trap "tb_error_handler" ERR
 
+KDIALOG_TYPE="--error"
 ZENITY_TYPE="--error"
 output "\
 ERROR: Could not verify GPG key.
@@ -233,6 +242,7 @@ exit 1
 gpg_download_verification_error() {
 trap "tb_error_handler" ERR
 
+KDIALOG_TYPE="--error"
 ZENITY_TYPE="--error"
 output "\
 ERROR: GPG download signature could NOT be verified.
@@ -327,7 +337,8 @@ answer="1"
 ## no will throw an error.
 trap "" ERR
 
-ZENITY_TYPE="--yesno"
+KDIALOG_TYPE="--yesno"
+ZENITY_TYPE="--question"
 output "\
 "$VERSION_CHECK_RESULT"
 
@@ -462,6 +473,7 @@ if [ -f tor-browser-gnu-linux-*.tar.gz ]; then
 	debug "INFO: Unpacking..."
 	 tar -xzvf tor-browser-gnu-linux-*.tar.gz
 else
+        KDIALOG_TYPE="--error"
         ZENITY_TYPE="--error"
 	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
@@ -485,7 +497,8 @@ debug "INFO: Moving temporary folder tbbdownload/tor-browser_"$TB_LANG" to /home
 mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
 debug "INFO: Deleting temporary folder tbbdownload..."
 rm --force --recursive "/home/"$USERNAME"/tbbdownload"
-ZENITY_TYPE="--msgbox"
+KDIALOG_TYPE="--msgbox"
+ZENITY_TYPE="--info"
 output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
 }
 
