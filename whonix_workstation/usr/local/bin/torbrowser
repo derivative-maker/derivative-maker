@@ -186,25 +186,29 @@ USERNAME="`whoami`"
 
 
 
-# Whonix mode
+## Whonix mode
 if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
    GATEWAY_IP="192.168.0.10"
    SOCKS_PORT_TBB_DOWNLOAD="9115"
    SOCKS_PORT_TBB_GPG="9116"
    README_LINK="http://sourceforge.net/p/whonix/wiki/Readme/"
    ICON="--window-icon /usr/local/share/whonix/whonix.ico"
-# Tails mode, just a file to find out it is running in Tails
+   UWT_VAR="/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG""
+## Tails mode, just a file to find out it is running in Tails
+## TODO: perhaps another file than /etc/whisperback/config.py as Tails marker?
 elif [ -f "/etc/whisperback/config.py" ]; then
    GATEWAY_IP="127.0.0.1"
    SOCKS_PORT_TBB_DOWNLOAD="9050"
    SOCKS_PORT_TBB_GPG="9050"
    README_LINK="https://tails.boum.org/news/index.en.html"
    ICON=""
-# Any other users of this script.
+   UWT_VAR=""
+## Torified TBB download mode for any other users of this script.
 else
    GATEWAY_IP="127.0.0.1"
    SOCKS_PORT_TBB_DOWNLOAD="9050"
    SOCKS_PORT_TBB_GPG="9050"
+   UWT_VAR="/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG""
 fi
 
 
@@ -412,9 +416,8 @@ http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en\
 debug "INFO: Getting Erinn Clark's GPG key..."
 ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
 debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
-
 debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
-/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
+$UWT_VAR /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$ERINN_FINGERPRINT"
 
 ## !!!VERIFY!!!
@@ -422,7 +425,7 @@ debug "INFO: Getting Sebastian Hahn's GPG key..."
 SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
 debug "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
 debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Whonix Design. There can be no DNS leaks."
-/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG" /usr/bin/gpg \
+$UWT_VAR /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$SEBASTIAN_FINGERPRINT"
 
 ## !!!VERIFY!!!
