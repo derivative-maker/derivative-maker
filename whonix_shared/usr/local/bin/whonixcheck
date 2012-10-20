@@ -17,9 +17,10 @@
 # --no-markup to allow showing "&" see https://bugzilla.gnome.org/show_bug.cgi?id=621907
 #
 # We would prefer a popup free solution. As soon as the timeout bug in
-# notify-send is fixed, we swtich to notify-send.
+# notify-send is fixed, we switch to notify-send.
+# https://bugs.launchpad.net/bugs/390508
 # If we change to notification daemon later, when the timeout bug is fixed,
-# we have to ensure zenity output is compatible with being started by cron.
+# we have to ensure notify-send output is compatible with being started by cron.
 #
 # This script uses /usr/bin/curl directly. Otherwise the uwt wrapper /usr/local/bin/curl
 # would be used. Using the uwt wrapper is not desired, since that is redirect through
@@ -124,15 +125,21 @@ preparation() {
          #dummy
          true
       }
-      zenity_progress() {
+      progress_bar() {
          #dummy
          true
       }
    else
       # zenity is installed.
-      zenity_progress() {
+      progress_bar() {
          if [ "$DISPLAY" ]; then
+            # zenity
             echo "$1" >&3
+	    # kdialog
+	    #qdbus ${ref} Set org.kde.kdialog.ProgressDialog value "$1"
+            #if [ "$1" = 100 ]; then
+	    #   qdbus ${ref} org.kde.kdialog.ProgressDialog.close
+	    #fi
          fi
       }
    fi
@@ -246,6 +253,14 @@ output() {
       ZENITY_TITLE="$2"
    fi
 
+   if [ "$ZENITY_TYPE" = "--error" ]; then
+	KDIALOG_TYPE="--error"
+   elif [ "$ZENITY_TYPE" = "--info" ]; then
+	KDIALOG_TYPE="--msgbox"
+   else
+	error "ZENITY_TYPE is neither --error nor --info."
+   fi
+
    ZENITY_MESSAGE="$ZENITY_MESSAGE
 
 $3"
@@ -266,11 +281,32 @@ $BITCOIN_ADDRESS"
       fi
    fi
 
-   if [ "$DISPLAY" ]; then
+   if [ ! "$DISPLAY" ]; then
+      return
+   fi
+
+   local TITLE=" $ZENITY_TITLE - $VM $INSTALLED_WHONIX_VERSION `date`"
+
+   if [ "`which kdialog`" = "" ]; then
+      # kdialog not installed
       zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
       --window-icon /usr/local/share/whonix/whonix.ico \
-      --title="$VM $INSTALLED_WHONIX_VERSION $ZENITY_TITLE `date`" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" & 2>/dev/null
-   fi
+      --title="$TITLE" "$ZENITY_TYPE" --text "$ZENITY_MESSAGE" & 2>/dev/null
+   else
+      ## kdialog only creates a windows which needs to be scrolled down,
+      ## even though there is still space on the desktop
+      ## --geometry is ignored
+      ## https://bugs.kde.org/show_bug.cgi?id=87389
+      #kdialog --title "$TITLE" --icon /usr/local/share/whonix/whonix.ico "$KDIALOG_TYPE" "$ZENITY_MESSAGE"
+
+      ## workaround
+      local tempfile="`mktemp`"
+      echo "$ZENITY_MESSAGE" > "$tempfile"
+      KDIALOG_TYPE="--textbox"
+      kdialog --title "$TITLE" --icon /usr/local/share/whonix/whonix.ico "$KDIALOG_TYPE" "$tempfile" 800 600
+      ## --force in case the temporary file got deleted in meanwhile to prevent an exception.
+      rm --force "$tempfile"
+   fi   
 }
 
 
@@ -290,10 +326,16 @@ Running checks..."
 This will happen in background and will take approximately 60 seconds."
 
    if [ "$DISPLAY" ]; then
+      local TITLE="$VM $INSTALLED_WHONIX_VERSION Info `date`"
+
       # The progress window will close automatically after 100% progress.
       exec 3> >(zenity --display="$DISPLAY" --timeout 86400 --no-markup \
       --window-icon /usr/local/share/whonix/whonix.ico \
-      --title="$VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+      --title="$TITLE" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+
+      ## zenity is easier to use for the progress bar, has auto-close, auto-kill, timeout feature
+      ## not using kdialog for the progressbar, zenity does fine.
+      #ref=$(kdialog --progressbar "$TITLE $NOTIFY_MSG" 100)
    fi
 }
 
@@ -427,7 +469,7 @@ Run whonixcheck on Whonix-Gatway as well."
       echo "$MSG"
       output "--error" "ERROR" "$MSG"
       show_output
-      zenity_progress 100
+      progress_bar 100
       cleanup
       exit 1
    fi
@@ -818,19 +860,19 @@ whonixcheck_main() {
   disclaimer
 
   # The 5% indicate, that the check has begun.
-  zenity_progress 5
+  progress_bar 5
 
   # connection 1
   # (Download through curl's SocksPort.)
   check_network
-  zenity_progress 20
+  progress_bar 20
 
   if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
     # for Whonix-Workstation
   
     # connection 2
     check_torbrowser
-    zenity_progress 40
+    progress_bar 40
 
     # no connection
     check_tor "SocksPort"
@@ -838,18 +880,18 @@ whonixcheck_main() {
 
     # connection 3
     check_tor "TransPort"
-    zenity_progress 60
+    progress_bar 60
 
     # connection 4
     check_operating_system
-    zenity_progress 80
+    progress_bar 80
 
     # connection 5
     download_whonix_news
     verify_whonix_news
     check_whonix_version
     check_whonix_news
-    zenity_progress 95
+    progress_bar 95
   else
     # for Whonix-Gateway
     check_tor "SocksPort"
@@ -857,7 +899,7 @@ whonixcheck_main() {
 
   check_htpdate
 
-  zenity_progress 100
+  progress_bar 100
   show_output
   cleanup
 
