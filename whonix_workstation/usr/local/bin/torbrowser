@@ -184,6 +184,16 @@ output() {
 
 
 USERNAME="`whoami`"
+DOWNLOAD_FAIL_HELP="Possible reasons:
+- no internet connectivity
+
+Please check: Start menu -> System -> Whonix Check
+              or in console: whonixcheck
+              or in console with debugging: whonixcheck -v
+
+Run whonixcheck on Whonix-Gatway as well.
+
+If whonixcheck reports no problems with internet activity and this still fails, please report a bug!"
 
 
 
@@ -295,9 +305,20 @@ cd "tbbdownload"
 #################################
 
 debug "INFO: Find out latest version..."
-debug "INFO: Downloading: https://check.torproject.org/RecommendedTBBVersions"
+LINK="https://check.torproject.org/RecommendedTBBVersions"
+debug "INFO: Downloading: "$LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions
+--tlsv1 --proto =https --output RecommendedTBBVersions "x_$_LINK" || NETWORK_DOWN="1"
+
+# Check if curl failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   KDIALOG_TYPE="--error"
+   ZENITY_TYPE="--error"
+   output "Failed to download: "$LINK"
+
+$DOWNLOAD_FAIL_HELP"
+   exit 1
+fi
 
 TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
@@ -391,7 +412,6 @@ fi
 debug "INFO: Killing Tor Browser if it is still running..."
 #################################
 
-
 killall firefox || true
 
 #################################
@@ -451,14 +471,34 @@ TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG"
 TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
 debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK"
+--tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
+
+# Check if curl failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   KDIALOG_TYPE="--error"
+   ZENITY_TYPE="--error"
+   output "Failed to download: "$TBB_PACKAGE_LINK"
+
+$DOWNLOAD_FAIL_HELP"
+   exit 1
+fi
 
 debug "INFO: Downloading GPG signature..."
 TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
 TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
 debug "INFO: Downloading: "$TBB_SIG_LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
---tlsv1 --proto =https --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK"
+--tlsv1 --proto =https --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK" || NETWORK_DOWN="1"
+
+# Check if curl failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   KDIALOG_TYPE="--error"
+   ZENITY_TYPE="--error"
+   output "Failed to download: "$TBB_SIG_LINK"
+
+$DOWNLOAD_FAIL_HELP"
+   exit 1
+fi
 
 debug "INFO:
 ## Verifying GPG signature.
