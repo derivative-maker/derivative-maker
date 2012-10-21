@@ -172,9 +172,27 @@ output() {
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
-          kdialog --title="Tor Browser Update Check" "$KDIALOG_TYPE" "$*"
+      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then   
+          ## kdialog only creates a windows which needs to be scrolled down,
+          ## even though there is still space on the desktop
+          ## --geometry is ignored
+          ## https://bugs.kde.org/show_bug.cgi?id=87389
+          #kdialog --title="Tor Browser Update Check" --icon /usr/local/share/whonix/whonix.ico "$KDIALOG_TYPE" "$*"
+
           #debug: zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
+   
+          if [ "$KDIALOG_TYPE" = "--error" ]; then
+             ## workaround
+             local tempfile="`mktemp`"
+             echo "$*" > "$tempfile"
+             KDIALOG_TYPE="--textbox"
+             kdialog --title "$TITLE" --icon /usr/local/share/whonix/whonix.ico "$KDIALOG_TYPE" "$tempfile" 800 600
+             ## --force in case the temporary file got deleted in meanwhile to prevent an exception.
+             rm --force "$tempfile"
+          else
+             kdialog --title="Tor Browser Update Check" --icon /usr/local/share/whonix/whonix.ico "$KDIALOG_TYPE" "$*"
+          fi
+          
       else
           zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
       fi
@@ -196,7 +214,18 @@ Please check: Start menu -> System -> Whonix Check
 
 Run whonixcheck on Whonix-Gatway as well.
 
-If whonixcheck reports no problems with internet activity and this still fails, please report a bug!"
+If whonixcheck reports no problems with internet activity and this still fails, please report a bug!
+
+As last resort you can also manually update Tor Browser.
+
+Check Whonix News:
+https://sourceforge.net/p/whonix/wiki/Readme/#project-news
+
+Check for latest version Tor Browser Bundle version:
+https://blog.torproject.org
+
+Manually update:
+https://sourceforge.net/p/whonix/wiki/ManualTBupdate/"
 
 
 
