@@ -184,6 +184,9 @@ output() {
 
 
 USERNAME="`whoami`"
+
+KEYSERVER="hkp://2eghzlv2wwcq7u7y.onion"
+
 DOWNLOAD_FAIL_HELP="Possible reasons:
 - no internet connectivity
 
@@ -439,7 +442,19 @@ ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
 debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
 debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
 $UWT_VAR /usr/bin/gpg \
---homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$ERINN_FINGERPRINT"
+--homedir gpgtmpdir --keyserver "$KEYSERVER" --recv "$ERINN_FINGERPRINT" || NETWORK_DOWN="1"
+
+# Check if gpg failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   KDIALOG_TYPE="--error"
+   ZENITY_TYPE="--error"
+   output "Failed to fetch gpg key: "$ERINN_FINGERPRINT"
+from keyserver: "$KEYSERVER"
+Maybe the keyserver is down.
+
+$DOWNLOAD_FAIL_HELP"
+   exit 1
+fi
 
 ## !!!VERIFY!!!
 debug "INFO: Getting Sebastian Hahn's GPG key..."
@@ -447,7 +462,19 @@ SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
 debug "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
 debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
 $UWT_VAR /usr/bin/gpg \
---homedir gpgtmpdir --keyserver hkp://2eghzlv2wwcq7u7y.onion --recv "$SEBASTIAN_FINGERPRINT"
+--homedir gpgtmpdir --keyserver "$KEYSERVER" --recv "$SEBASTIAN_FINGERPRINT" || NETWORK_DOWN="1"
+
+# Check if gpg failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   KDIALOG_TYPE="--error"
+   ZENITY_TYPE="--error"
+   output "Failed to fetch gpg key: "$SEBASTIAN_FINGERPRINT"
+from keyserver: "$KEYSERVER"
+Maybe the keyserver is down.
+
+$DOWNLOAD_FAIL_HELP"
+   exit 1
+fi
 
 ## !!!VERIFY!!!
 debug "INFO: Verifying Erinn Clark's GPG key..."
