@@ -417,9 +417,6 @@ check_network() {
 
    # Ensuring normal curl activity can not be linked to whonixcheck,
    # by using a SocksPort, which is solely used by whonixcheck.
-
-   # uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
-
    /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
    if [ "$NETWORK_DOWN" = "1" ]; then
@@ -467,9 +464,6 @@ check_torbrowser() {
    echo "Checking Tor Browser version..."
 
    # Getting latest version number
-   # uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIXCHECK" \
-   # /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
-
    /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
@@ -544,9 +538,6 @@ check_tor() {
    elif [ "$1" = "TransPort" ]; then
       # Using curl binary to ensure the curl wrapper /usr/local/bin/curl does not get used.
       echo "Testing Tor's TransPort..."
-      
-      ## Old:
-      #/usr/bin/wget $WHONIXCHECK_VERBOSE --output-document index.html https://check.torproject.org || NETWORK_DOWN="1"
 
       ## For production:
       /usr/bin/curl $WHONIXCHECK_VERBOSE --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
@@ -697,10 +688,6 @@ download_whonix_news() {
 
    DOWNLOAD_NEWS_SUCCESS="1"
    echo "Checking for Whonix news and updates..."
-
-   # uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS" \
-   # /usr/bin/wget $WHONIXCHECK_VERBOSE --output-document \
-   # whonix_news.asc $WHONIX_HOMEPAGE/whonix_news.asc || DOWNLOAD_NEWS_SUCCESS="0"
 
    # sf.net does not yet support ssl for project web.
    # --location is required since sf.net uses redirects.
