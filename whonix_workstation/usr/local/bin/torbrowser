@@ -119,7 +119,6 @@ root_check() {
        #echo "INFO: torbrowser script running as user."
        true
   else
-       KDIALOG_TYPE="--error"
        ZENITY_TYPE="--error"
        output "FATAL ERROR: do not run this script as root! Please run it as user."
        exit 1
@@ -145,7 +144,6 @@ tb_error_handler() {
 #########################################################\
 "
    echo "$MSG"
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "$MSG"
    exit 1
@@ -164,38 +162,16 @@ debug() {
 output() {
    echo "$*"
 
-   echo "KDIALOG_TYPE: $KDIALOG_TYPE"
    echo "ZENITY_TYPE= $ZENITY_TYPE"
-
-   echo "kdialog --title="Tor Browser Update Check" "$KDIALOG_TYPE" "$*""
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then   
-          ## kdialog only creates a windows which needs to be scrolled down,
-          ## even though there is still space on the desktop
-          ## --geometry is ignored
-          ## https://bugs.kde.org/show_bug.cgi?id=87389
-          #kdialog --title="Tor Browser Update Check" --icon /usr/local/share/whonix/tbupdate.ico "$KDIALOG_TYPE" "$*"
+      zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "
+Tor Browser Update Check:
+----------------------------------------------------------------------
 
-          #debug: zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
-   
-          if [ "$KDIALOG_TYPE" = "--error" ]; then
-             ## workaround
-             local tempfile="`mktemp`"
-             echo "$*" > "$tempfile"
-             KDIALOG_TYPE="--textbox"
-             kdialog --title "$TITLE" --icon /usr/local/share/whonix/tbupdate.ico "$KDIALOG_TYPE" "$tempfile" 800 600
-             ## --force in case the temporary file got deleted in meanwhile to prevent an exception.
-             rm --force "$tempfile"
-          else
-             kdialog --title="Tor Browser Update Check" --icon /usr/local/share/whonix/tbupdate.ico "$KDIALOG_TYPE" "$*"
-          fi
-          
-      else
-          zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "$*"
-      fi
+$*"
    fi
 }
 
@@ -275,7 +251,6 @@ fi
 gpg_key_verification_error() {
 trap "tb_error_handler" ERR
 
-KDIALOG_TYPE="--error"
 ZENITY_TYPE="--error"
 output "\
 ERROR: Could not verify GPG key.
@@ -289,7 +264,6 @@ exit 1
 gpg_download_verification_error() {
 trap "tb_error_handler" ERR
 
-KDIALOG_TYPE="--error"
 ZENITY_TYPE="--error"
 output "\
 ERROR: GPG download signature could NOT be verified.
@@ -344,7 +318,6 @@ debug "INFO: Downloading: "$LINK""
 
 # Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "Failed to download: "$LINK"
 
@@ -395,7 +368,6 @@ answer="1"
 ## no will throw an error.
 trap "" ERR
 
-KDIALOG_TYPE="--yesno"
 ZENITY_TYPE="--question"
 output "\
 "$VERSION_CHECK_RESULT"
@@ -417,7 +389,6 @@ It is a good idea to delete old TBB backups once in a while if you are running l
 "
 
 ## zenity return codes
-## kdialog has same return codes
 ## no 1
 ## yes 0
 answer="$?"
@@ -475,7 +446,6 @@ $UWT_VAR /usr/bin/gpg \
 
 # Check if gpg failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "Failed to fetch gpg key: "$ERINN_FINGERPRINT"
 from keyserver: "$KEYSERVER"
@@ -495,7 +465,6 @@ $UWT_VAR /usr/bin/gpg \
 
 # Check if gpg failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "Failed to fetch gpg key: "$SEBASTIAN_FINGERPRINT"
 from keyserver: "$KEYSERVER"
@@ -531,7 +500,6 @@ debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
 
 # Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "Failed to download: "$TBB_PACKAGE_LINK"
 
@@ -548,7 +516,6 @@ debug "INFO: Downloading: "$TBB_SIG_LINK""
 
 # Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
-   KDIALOG_TYPE="--error"
    ZENITY_TYPE="--error"
    output "Failed to download: "$TBB_SIG_LINK"
 
@@ -573,7 +540,6 @@ if [ -f tor-browser-gnu-linux-*.tar.gz ]; then
 	debug "INFO: Unpacking..."
 	 tar -xzvf tor-browser-gnu-linux-*.tar.gz
 else
-        KDIALOG_TYPE="--error"
         ZENITY_TYPE="--error"
 	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
@@ -597,7 +563,6 @@ debug "INFO: Moving temporary folder tbbdownload/tor-browser_"$TB_LANG" to /home
 mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
 debug "INFO: Deleting temporary folder tbbdownload..."
 rm --force --recursive "/home/"$USERNAME"/tbbdownload"
-KDIALOG_TYPE="--msgbox"
 ZENITY_TYPE="--info"
 output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
 }
