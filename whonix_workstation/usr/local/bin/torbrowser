@@ -146,6 +146,7 @@ tb_error_handler() {
    echo "$MSG"
    ZENITY_TYPE="--error"
    output "$MSG"
+   progress_bar 100
    exit 1
 }
 
@@ -244,6 +245,16 @@ fi
 
 
 
+progress_bar() {
+   if [ "$DISPLAY" ]; then
+      # zenity
+      echo "$1" >&3
+   else
+      echo "progress: $1"
+   fi
+}
+
+
 #########################################################################
 ## gpg_key_verification_error                                           #
 #########################################################################
@@ -256,6 +267,7 @@ output "\
 ERROR: Could not verify GPG key.
 ERROR: Tor Browser update failed! Try again later.\
 "
+progress_bar 100
 exit 1
 }
 
@@ -278,6 +290,7 @@ ERROR: Tor Browser update failed! Try again later.\
 cd "/home/"$USERNAME""
 ## Tell about failure.
 touch TorBrowser_installation_FAILED
+progress_bar 100
 exit 1
 }
 
@@ -293,16 +306,26 @@ trap "tb_error_handler" ERR
 #################################
 ## preparation
 #################################
+## progress bar for update check
+exec 3> >(zenity --timeout 86400 --no-markup \
+--window-icon /usr/local/share/whonix/tbupdate.ico \
+--title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Checking Tor Browser version... Will take a moment...")
+
+progress_bar 5
 ## Get into correct directory is required for relative paths.
 cd "/home/"$USERNAME""
 
+progress_bar 6
 ## Delete old tbbdownload folder.
 rm --force --recursive "tbbdownload/"
+progress_bar 7
 rm --force TorBrowser_installation_FAILED
 
+progress_bar 8
 ## Create new tbbdownload folder.
 mkdir -p "tbbdownload"
 
+progress_bar 9
 ## Get into the tbbdownload folder.
 cd "tbbdownload"
 
@@ -310,11 +333,14 @@ cd "tbbdownload"
 ## Getting latest version number
 #################################
 
+progress_bar 10
 debug "INFO: Find out latest version..."
 LINK="https://check.torproject.org/RecommendedTBBVersions"
 debug "INFO: Downloading: "$LINK""
 /usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
 --tlsv1 --proto =https --output RecommendedTBBVersions "$LINK" || NETWORK_DOWN="1"
+
+progress_bar 95
 
 # Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
@@ -322,8 +348,11 @@ if [ "$NETWORK_DOWN" = "1" ]; then
    output "Failed to download: "$LINK"
 
 $DOWNLOAD_FAIL_HELP"
+   progress_bar 100
    exit 1
 fi
+
+progress_bar 96
 
 TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
@@ -332,15 +361,21 @@ TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
 TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
+progress_bar 97
+
 #################################
 ## Getting currently installed version number
 #################################
+
+progress_bar 98
 
 ## Will fail if the file does not exist, i.e. Tor Browser not installed.
 ## Will not break the script.
 TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$TB_LANG"/Docs/changelog`" || true
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
 TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
+
+progress_bar 100
 
 if [ "$TBBINSTALLEDVERSION" != "" ]; then
    #debug "INFO: Successfully detected Tor Browser version."
@@ -410,17 +445,24 @@ else
 	fi
 fi
 
+## progress bar for download
+exec 3> >(zenity --timeout 86400 --no-markup \
+--window-icon /usr/local/share/whonix/tbupdate.ico \
+--title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Downloading Tor Browser... Will take a while...")
+
 
 #################################
 debug "INFO: Killing Tor Browser if it is still running..."
 #################################
 
+progress_bar 5
 killall firefox || true
 
 #################################
 debug "INFO: Installing Tor Browser..."
 #################################
 
+progress_bar 10
 ## Importing GPG keys...
 debug "\
 INFO: Importing GPG keys to the temporary directory gpgtmpdir...
@@ -436,6 +478,7 @@ https://www.torproject.org/docs/signing-keys.html.en
 http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en\
 "
 
+progress_bar 20
 ## !!!VERIFY!!!
 debug "INFO: Getting Erinn Clark's GPG key..."
 ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
@@ -443,6 +486,8 @@ debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
 debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
 $UWT_VAR /usr/bin/gpg \
 --homedir gpgtmpdir --keyserver "$KEYSERVER" --recv "$ERINN_FINGERPRINT" || NETWORK_DOWN="1"
+
+progress_bar 25
 
 # Check if gpg failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
@@ -452,8 +497,11 @@ from keyserver: "$KEYSERVER"
 Maybe the keyserver is down.
 
 $DOWNLOAD_FAIL_HELP"
+   progress_bar 100
    exit 1
 fi
+
+progress_bar 30
 
 ## !!!VERIFY!!!
 debug "INFO: Getting Sebastian Hahn's GPG key..."
@@ -471,8 +519,11 @@ from keyserver: "$KEYSERVER"
 Maybe the keyserver is down.
 
 $DOWNLOAD_FAIL_HELP"
+   progress_bar 100
    exit 1
 fi
+
+progress_bar 45
 
 ## !!!VERIFY!!!
 debug "INFO: Verifying Erinn Clark's GPG key..."
@@ -491,6 +542,8 @@ trap "tb_error_handler" ERR
 TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
 #TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
 
+progress_bar 50
+
 debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
 TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
 TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
@@ -504,8 +557,11 @@ if [ "$NETWORK_DOWN" = "1" ]; then
    output "Failed to download: "$TBB_PACKAGE_LINK"
 
 $DOWNLOAD_FAIL_HELP"
+   progress_bar 100
    exit 1
 fi
+
+progress_bar 80
 
 debug "INFO: Downloading GPG signature..."
 TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
@@ -520,8 +576,11 @@ if [ "$NETWORK_DOWN" = "1" ]; then
    output "Failed to download: "$TBB_SIG_LINK"
 
 $DOWNLOAD_FAIL_HELP"
+   progress_bar 100
    exit 1
 fi
+
+progress_bar 90
 
 debug "INFO:
 ## Verifying GPG signature.
@@ -544,26 +603,35 @@ else
 	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
 fi
 
+progress_bar 91
 # The tor-browser_"$TB_LANG"/Docs folder should already exist.
 # Just to make sure the script will not break in case the get changed by upstream.
 mkdir -p tor-browser_"$TB_LANG"/Docs
 
+progress_bar 92
 debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
 mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
 
+progress_bar 93
 debug "INFO: Creating Unbundled Tor Browser startup script..."
 tb_create_startup_script
 
+progress_bar 94
 debug "INFO: Calling the function tb_create_user_js()..."
 tb_create_user_js
 
+progress_bar 95
 debug "INFO: Moving old folder tor-browser_"$TB_LANG"..."
 mv /home/"$USERNAME"/tor-browser_"$TB_LANG" /home/"$USERNAME"/tor-browser_"$TB_LANG".old."`date '+%F-%H:%M:%S'`" || true
+progress_bar 96
 debug "INFO: Moving temporary folder tbbdownload/tor-browser_"$TB_LANG" to /home/"$USERNAME"/tor-browser_"$TB_LANG""
 mv "/home/"$USERNAME"/tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
+progress_bar 97
 debug "INFO: Deleting temporary folder tbbdownload..."
+progress_bar 98
 rm --force --recursive "/home/"$USERNAME"/tbbdownload"
 ZENITY_TYPE="--info"
+progress_bar 100
 output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
 }
 
