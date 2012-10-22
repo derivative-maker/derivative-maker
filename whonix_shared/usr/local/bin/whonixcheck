@@ -208,6 +208,10 @@ preparation() {
    #   }
    #fi
 
+   ## Currently hardcoded. Will change if we start offering 64 bit builds.
+   ## ARCH="x86_64"
+   ARCH="i686"
+
    TIME_START="$(date +%s)"
 }
 
@@ -474,12 +478,17 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
       return
    fi
 
-   TBBVERSION="`grep Linux-i686 RecommendedTBBVersions |egrep -v 'alpha|x86_64'|awk '{sub(/^"/,"")}1'|awk '{sub(/-Linux-i686",/,"")}1'|tail -1`" 
+   TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
+   TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
+   TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
+   TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
+   TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
+   TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
 
    # Getting currently installed version number
-   # Will fail if the file does not exist.
-   # TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$TB_LANG"/Docs/changelog|awk -F '[()]' '{print $2}'`"
-   TBBINSTALLEDVERSION="`head -1 /home/"$USERNAME"/tor-browser_"$TB_LANG"/Docs/changelog|awk -F '[()]' '{print $2}'`"
+   TBBINSTALLEDVERSION="`head -1 /home/"$USERNAME"/tor-browser_"$TB_LANG"/Docs/changelog`" || true
+   TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
+   TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
       # echo "Successfully detected TorBrowser version. TB_LANG: $TB_LANG"
