@@ -163,17 +163,18 @@ debug() {
 output() {
    echo "$*"
 
-   echo "ZENITY_TYPE= $ZENITY_TYPE"
+   #echo "ZENITY_TYPE= $ZENITY_TYPE"
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
-      true
-   else
-      zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "
+      return
+   fi
+
+   zenity --title="Tor Browser Update Check" "$ZENITY_TYPE" --text "
 Tor Browser Update Check:
 ----------------------------------------------------------------------
 
 $*"
-   fi
+
 }
 
 
@@ -246,6 +247,9 @@ fi
 
 
 progress_bar() {
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      return
+   fi
    if [ "$DISPLAY" ]; then
       # zenity
       echo "$1" >&3
@@ -307,9 +311,13 @@ trap "tb_error_handler" ERR
 ## preparation
 #################################
 ## progress bar for update check
-exec 3> >(zenity --timeout 86400 --no-markup \
---window-icon /usr/local/share/whonix/tbupdate.ico \
---title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Checking Tor Browser version... Will take a moment...")
+if [ "$TB_FORCE_INSTALL" = "1" ]; then
+   true
+else
+   exec 3> >(zenity --timeout 86400 --no-markup \
+   --window-icon /usr/local/share/whonix/tbupdate.ico \
+   --title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Checking Tor Browser version... Will take a moment...")
+fi
 
 progress_bar 5
 ## Get into correct directory is required for relative paths.
@@ -447,9 +455,13 @@ else
 fi
 
 ## progress bar for download
-exec 3> >(zenity --timeout 86400 --no-markup \
---window-icon /usr/local/share/whonix/tbupdate.ico \
---title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Downloading Tor Browser... Will take a while...")
+if [ "$TB_FORCE_INSTALL" = "1" ]; then
+   true
+else
+   exec 3> >(zenity --timeout 86400 --no-markup \
+   --window-icon /usr/local/share/whonix/tbupdate.ico \
+   --title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Downloading Tor Browser... Will take a while...")
+fi
 
 
 #################################
