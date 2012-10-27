@@ -1,0 +1,115 @@
+#!/bin/sh
+
+set -e
+set -x
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+DAEMON=/usr/bin/polipo
+test -x $DAEMON || exit 0
+
+CONFIG_FILE=/usr/local/share/whonix/config_rss
+##FORBIDDEN_FILE=/etc/polipo/forbidden
+
+NAME=wpolipo
+
+PIDFILE=/var/run/$NAME/$NAME.pid
+
+LOGFILE=/var/log/$NAME/$NAME.log
+USER=proxy
+GROUP=proxy
+
+mkdir -p /var/run/$NAME/
+chown proxy /var/run/$NAME/
+
+mkdir -p /var/log/$NAME/
+chown proxy /var/log/$NAME/
+
+DAEMON_OPTS="-c $CONFIG_FILE pidFile=$PIDFILE daemonise=true logFile=$LOGFILE"
+
+forbiddenFile() {
+        if [ -f $FORBIDDEN_FILE ] || [ -d $FORBIDDEN_FILE ]; then
+                echo -n $FORBIDDEN_FILE
+        else
+                echo -n /dev/null
+        fi
+}
+
+waitForPIDRemove() {
+        T=30
+        for i in `seq 1 $T`; do
+                if [ ! -f $PIDFILE ]; then return; fi
+                sleep 1
+        done
+        echo "Waited $T seconds and $PIDFILE did not disappear.  Giving up." 2>&1
+}
+
+# Outputs the binary name of the process with PID $1, e.g. /usr/sbin/polipo
+nameOfPID() {
+	ps -o command= -p $1 | cut -f1 '-d '
+}
+
+# Returns true if the pidfile exists, and there is a polipo process running
+# with the PID therein.  False otherwise.
+alreadyRunning() {
+	if [ -r $PIDFILE ]; then
+		PID=`cat $PIDFILE`
+		if [ "`nameOfPID $PID`" = $DAEMON ]; then
+			return 0 # TRUE
+		fi
+	fi
+	return 1 # FALSE
+}
+
+# Deletes polipo's pidfile if it exists
+# This is designed to remove the pidfile from a crashed polipo before
+# starting a new one
+removePIDFile() {
+	if [ -e $PIDFILE ]; then
+		echo -n "Removing stale pidfile"
+		rm $PIDFILE
+		echo "."
+	fi
+}
+
+DAEMON_OPTS="$DAEMON_OPTS forbiddenFile=`forbiddenFile`"
+
+polipo_start() {
+
+	if alreadyRunning; then
+		echo "$DAEMON already running -- doing nothing"
+		exit
+	fi	
+
+	removePIDFile
+
+        start-stop-daemon --start --quiet --pidfile $PIDFILE \
+                --chuid $USER:$GROUP --exec $DAEMON -- $DAEMON_OPTS
+}
+
+polipo_stop() {
+        start-stop-daemon --stop --quiet --pidfile $PIDFILE \
+                --oknodo --exec $DAEMON
+}
+
+case "$1" in
+  start)
+        polipo_start
+        ;;
+  stop)
+        polipo_stop
+        ;;
+  restart)
+        polipo_stop
+        waitForPIDRemove
+        polipo_start
+        ;;
+  *)
+        N=polipo-control
+        echo "Usage: $N {start|stop}" >&2
+        exit 1         
+esac
+
+exit 0
+ 
+ 

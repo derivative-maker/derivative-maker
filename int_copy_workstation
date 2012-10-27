@@ -4,6 +4,17 @@
 set -x
 
 copy_workstation_pre() {
+   ############
+   ## restore #
+   ############
+
+   cp "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/config.backup "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/config || true
+
+   ###########
+   ## backup #
+   ###########
+
+   cp -n "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/config "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/config.backup
 
    ###############################
    # Whonix-Workstation Copy Pre #
@@ -40,6 +51,22 @@ copy_workstation_pre() {
 
    # cron for user user_crontab
    cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/user_crontab "$CHROOT_FOLDER"/usr/local/share/whonix/
+
+   # polipo
+   mkdir -p "$CHROOT_FOLDER"/whonix_workstation/etc/
+   mkdir -p "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/polipo/config "$CHROOT_FOLDER"/etc/polipo/
+
+   # polipo rss config
+   mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/config_rss "$CHROOT_FOLDER"/usr/local/share/whonix/
+
+   # wpolipo whonix polipo wrapper for multiple http listen ports and multiple socks parent proxies
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/init.d/wpolipo "$CHROOT_FOLDER"/etc/init.d/wpolipo
+   chmod +x "$CHROOT_FOLDER"/etc/init.d/wpolipo
+
+   cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/wpolipo-control "$CHROOT_FOLDER"/usr/local/share/whonix/wpolipo-control
+   chmod +x "$CHROOT_FOLDER"/usr/local/share/whonix/wpolipo-control
 
       ########
       # skel #
