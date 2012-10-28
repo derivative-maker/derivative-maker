@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          wpolipo
 # Required-Start:    $remote_fs
@@ -12,71 +12,320 @@
 # Author wpolipo for Whonix: adrelanos <adrelanos at riseup do net>
 #
 
+#set -x
 set -e
-set -x
 
+## supports multple ports: PORTS=("9104" "9118" "9119")
+PORTS=("9104")
+
+prepareation() {
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/polipo
+USER=proxy
+GROUP=proxy
 
-PPCTL=/usr/local/share/whonix/wpolipo-control
-test -x $PPCTL  || exit 0
-
-NAME=wpolipo
+NAME=wpolipo_$PORT
 DESC=wpolipo
+PIDFILE=/var/run/$NAME/$NAME.pid
+LOGFILE=/var/log/$NAME/$NAME.log
 
-# Include polipo defaults if available
-#if [ -f /etc/default/polipo ] ; then
-#	. /etc/default/polipo
-#fi
+test -x $DAEMON || exit 0
 
-# Make sure /var/run/polipo exists.
-if [ ! -e /var/run/$NAME ] ; then
+# Make sure /var/run/wpolipo exists.
+#if [ ! -e /var/run/$NAME ] ; then
 	mkdir -p /var/run/$NAME
 	chown proxy:proxy /var/run/$NAME
 	chmod 755 /var/run/$NAME
-fi
+#fi
+
+# Make sure /var/log/wpolipo exists.
+#if [ ! -e /var/log/$NAME/ ] ; then
+        mkdir -p /var/log/$NAME/
+        chown proxy:proxy /var/log/$NAME/
+        chmod 755 /var/log/$NAME/
+#fi
+}
+
+waitForPIDRemove() {
+        T=30
+        for i in `seq 1 $T`; do
+                if [ ! -f $PIDFILE ]; then return; fi
+                sleep 1
+        done
+        echo "Waited $T seconds and $PIDFILE did not disappear.  Giving up. PORT: $PORT" 2>&1
+}
+
+# Outputs the binary name of the process with PID $1, e.g. /usr/sbin/polipo
+nameOfPID() {
+	ps -o command= -p $1 | cut -f1 '-d '
+}
+
+# Returns true if the pidfile exists, and there is a polipo process running
+# with the PID therein.  False otherwise.
+alreadyRunning() {
+	if [ -r $PIDFILE ]; then
+		PID=`cat $PIDFILE`
+		if [ "`nameOfPID $PID`" = $DAEMON ]; then
+			return 0 # TRUE
+		fi
+	fi
+	return 1 # FALSE
+}
+
+# Deletes polipo's pidfile if it exists
+# This is designed to remove the pidfile from a crashed polipo before
+# starting a new one
+removePIDFile() {
+	if [ -e $PIDFILE ]; then
+		echo "Removing stale pidfile PORT: $PORT"
+		rm $PIDFILE
+		echo "."
+	fi
+}
+
+polipo_start() {
+
+   tLen=${#PORTS[@]}
+
+   for (( i=0; i<${tLen}; i++ ));
+   do
+        PORT=${PORTS[$i]}
+        #echo "PORT: $PORT"
+
+        prepareation
+        polipo_config_create
+
+	if alreadyRunning; then
+		echo "$DAEMON already running -- doing nothing PORT: $PORT"
+		continue
+	fi	
+
+	removePIDFile
+
+        DAEMON_OPTS="-c $CONFIG_FILE pidFile=$PIDFILE forbiddenFile=/dev/null daemonise=true logFile=$LOGFILE"
+
+        start-stop-daemon --start --quiet --pidfile $PIDFILE \
+                --chuid $USER:$GROUP --exec $DAEMON -- $DAEMON_OPTS
+
+   done
+}
+
+polipo_stop() {
+   tLen=${#PORTS[@]}
+   for (( i=0; i<${tLen}; i++ ));
+   do
+        PORT=${PORTS[$i]}
+        #echo "PORT: $PORT"
+        prepareation
+        start-stop-daemon --stop --quiet --pidfile $PIDFILE \
+                --oknodo --exec $DAEMON
+   done
+}
+
+polipo_config_create() {
+CONFIG_FILE="`mktemp`"
+
+echo "
+# created by wpolipo polipo manager
+
+# original source:
+# https://www.torproject.org/docs/faq#TBBPolipo
+# https://gitweb.torproject.org/torbrowser.git/blob_plain/1ffcd9dafb9dd76c3a29dd686e05a71a95599fb5:/build-scripts/config/polipo.conf
+
+# adjusted for Whonix - RSS
+
+### Basic configuration
+### *******************
+
+# Uncomment one of these if you want to allow remote clients to
+# connect:
+
+# proxyAddress = "::0"        # both IPv4 and IPv6
+# proxyAddress = "0.0.0.0"    # IPv4 only
+
+proxyAddress = "127.0.0.1"
+proxyPort = $PORT
+
+# If you do that, you'll want to restrict the set of hosts allowed to
+# connect:
+
+# allowedClients = "127.0.0.1, 134.157.168.57"
+# allowedClients = "127.0.0.1, 134.157.168.0/24"
+
+allowedClients = 127.0.0.1
+allowedPorts = 1-65535
+
+# Uncomment this if you want your Polipo to identify itself by
+# something else than the host name:
+
+proxyName = "localhost"
+
+# Uncomment this if there's only one user using this instance of Polipo:
+
+cacheIsShared = false
+
+# Uncomment this if you want to use a parent proxy:
+
+# parentProxy = "squid.example.org:3128"
+
+# Uncomment this if you want to use a parent SOCKS proxy:
+
+#socksParentProxy = "localhost:9050"
+#socksProxyType = socks5
+
+socksParentProxy = "192.168.0.10:$PORT"
+socksProxyType = socks5
+
+### Memory
+### ******
+
+# Uncomment this if you want Polipo to use a ridiculously small amount
+# of memory (a hundred C-64 worth or so):
+
+# chunkHighMark = 819200
+# objectHighMark = 128
+
+# Uncomment this if you've got plenty of memory:
+
+# chunkHighMark = 50331648
+# objectHighMark = 16384
+
+chunkHighMark = 67108864
+
+### On-disk data
+### ************
+
+# Uncomment this if you want to disable the on-disk cache:
+
+diskCacheRoot = ""
+
+# Uncomment this if you want to put the on-disk cache in a
+# non-standard location:
+
+# diskCacheRoot = "~/.polipo-cache/"
+
+# Uncomment this if you want to disable the local web server:
+
+localDocumentRoot = ""
+
+# Uncomment this if you want to enable the pages under /polipo/index?
+# and /polipo/servers?.  This is a serious privacy leak if your proxy
+# is shared.
+
+# disableIndexing = false
+# disableServersList = false
+
+disableLocalInterface = true
+disableConfiguration = true
+
+### Domain Name System
+### ******************
+
+# Uncomment this if you want to contact IPv4 hosts only (and make DNS
+# queries somewhat faster):
+#
+# dnsQueryIPv6 = no
+
+# Uncomment this if you want Polipo to prefer IPv4 to IPv6 for
+# double-stack hosts:
+#
+# dnsQueryIPv6 = reluctantly
+
+# Uncomment this to disable Polipo's DNS resolver and use the system's
+# default resolver instead.  If you do that, Polipo will freeze during
+# every DNS query:
+
+dnsUseGethostbyname = yes
+
+### HTTP
+### ****
+
+# Uncomment this if you want to enable detection of proxy loops.
+# This will cause your hostname (or whatever you put into proxyName
+# above) to be included in every request:
+
+disableVia = true
+
+# Uncomment this if you want to slightly reduce the amount of
+# information that you leak about yourself:
+
+# censoredHeaders = from, accept-language
+# censorReferer = maybe
+
+censoredHeaders = from,accept-language,x-pad,link
+censorReferer = maybe
+
+# Uncomment this if you're paranoid.  This will break a lot of sites,
+# though:
+
+# censoredHeaders = set-cookie, cookie, cookie2, from, accept-language
+# censorReferer = true
+
+# Uncomment this if you want to use Poor Man's Multiplexing; increase
+# the sizes if you're on a fast line.  They should each amount to a few
+# seconds' worth of transfer; if pmmSize is small, you'll want
+# pmmFirstSize to be larger.
+
+# Note that PMM is somewhat unreliable.
+
+# pmmFirstSize = 16384
+# pmmSize = 8192
+
+# Uncomment this if your user-agent does something reasonable with
+# Warning headers (most don't):
+
+# relaxTransparency = maybe
+
+# Uncomment this if you never want to revalidate instances for which
+# data is available (this is not a good idea):
+
+# relaxTransparency = yes
+
+# Uncomment this if you have no network:
+
+# proxyOffline = yes
+
+# Uncomment this if you want to avoid revalidating instances with a
+# Vary header (this is not a good idea):
+
+# mindlesslyCacheVary = true
+
+# Suggestions from Incognito configuration
+maxConnectionAge = 5m
+maxConnectionRequests = 120
+serverMaxSlots = 8
+serverSlots = 2
+tunnelAllowedPorts = 1-65535 
+" | sh -c "cat > $CONFIG_FILE"
+
+chown proxy:proxy $CONFIG_FILE
+chmod 755 $CONFIG_FILE
+}
 
 case "$1" in
   start)
-	echo -n "Starting $DESC: "
-        $PPCTL start
-	echo "$NAME."
+	echo "Starting $DESC: "
+        polipo_start
+	echo "$DESC."
 	;;
   stop)
-	echo -n "Stopping $DESC: "
-        $PPCTL stop
-	echo "$NAME."
+	echo "Stopping $DESC: "
+        polipo_stop
+	echo "$DESC."
 	;;
-  #reload)
-	#
-	#	If the daemon can reload its config files on the fly
-	#	for example by sending it SIGHUP, do it here.
-	#
-	#	If the daemon responds to changes in its config file
-	#	directly anyway, make this a do-nothing entry.
-	#
-	# echo "Reloading $DESC configuration files."
-	# start-stop-daemon --stop --signal 1 --quiet --pidfile \
-	#	/var/run/$NAME.pid --exec $DAEMON
-  #;;
   restart|force-reload)
-	#
-	#	If the "reload" option is implemented, move the "force-reload"
-	#	option to the "reload" entry above. If not, "force-reload" is
-	#	just the same as "restart".
-	#
-	echo -n "Restarting $DESC: "
-        $PPCTL stop
+	echo "Restarting $DESC: "
+        polipo_stop
 	sleep 1
-        $PPCTL start
-	echo "$NAME."
+        waitForPIDRemove
+        polipo_start
+	echo "$DESC."
 	;;
   *)
 	N=/etc/init.d/$NAME
-	# echo "Usage: $N {start|stop|restart|reload|force-reload}" >&2
 	echo "Usage: $N {start|stop|restart|force-reload}" >&2
 	exit 1
 	;;
 esac
 
 exit 0
- 
