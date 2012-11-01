@@ -15,12 +15,13 @@
 #set -x
 set -e
 
-## You may want to search for socksParentProxy and to change
-## socksParentProxy = "192.168.0.10:$PORT" to
-## socksParentProxy = "127.0.0.1:$PORT".
-
 ## supports multple ports: PORTS=("9104" "9118" "9119")
 PORTS=("9104")
+
+## IP on which polipo will open a http proxy listner
+## You only have to change this if Tor is listening on
+## a different machine.
+socksParentProxyIP="127.0.0.1"
 
 prepareation() {
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
@@ -32,6 +33,11 @@ NAME=wpolipo_$PORT
 DESC=wpolipo
 PIDFILE=/var/run/$NAME/$NAME.pid
 LOGFILE=/var/log/$NAME/$NAME.log
+
+## On Whonix-Workstation Tor will listen on 192.168.0.10.
+if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+	socksParentProxyIP="192.168.0.10"
+fi
 
 test -x $DAEMON || exit 0
 
@@ -136,8 +142,6 @@ echo "
 # https://www.torproject.org/docs/faq#TBBPolipo
 # https://gitweb.torproject.org/torbrowser.git/blob_plain/1ffcd9dafb9dd76c3a29dd686e05a71a95599fb5:/build-scripts/config/polipo.conf
 
-# adjusted for Whonix - RSS
-
 ### Basic configuration
 ### *******************
 
@@ -177,7 +181,7 @@ cacheIsShared = false
 #socksParentProxy = "localhost:9050"
 #socksProxyType = socks5
 
-socksParentProxy = "192.168.0.10:$PORT"
+socksParentProxy = "$socksParentProxyIP:$PORT"
 socksProxyType = socks5
 
 ### Memory
