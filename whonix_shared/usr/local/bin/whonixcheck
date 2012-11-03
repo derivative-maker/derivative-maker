@@ -673,20 +673,25 @@ check_operating_system() {
    read -r CHECK_OS_RESULT < update_check
 
    local FIRST_CHAR="${CHECK_OS_RESULT:0:1}"
-      
-   if [ "$FIRST_CHAR" != "0" ]; then
-      local MSG="$CHECK_OS_RESULT
-Please update Whonix-Gateway and Whonix-Workstation:
-sudo apt-get update && sudo apt-get dist-upgrade"
+
+   if [ "$FIRST_CHAR" = "0" ]; then
+      local MSG="Operating system is up to date.
+$CHECK_OS_RESULT"
       echo "$MSG"
-      output "--error" "WARNING" "$MSG"
+      output "--info" "Info" "$MSG"
       return
    fi
-   
-   local MSG="Operating system is up to date.
-$CHECK_OS_RESULT"
+
+   local MSG="$CHECK_OS_RESULT
+Please update Whonix-Gateway and Whonix-Workstation:
+sudo apt-get update && sudo apt-get dist-upgrade"
    echo "$MSG"
-   output "--info" "Info" "$MSG"
+   output "--error" "WARNING" "$MSG"
+
+   # Check if apper is installed and use it.
+   if [ -f "`which apper`" ]; then
+      apper --updates 2>/dev/null 
+   fi
 }
 
 
