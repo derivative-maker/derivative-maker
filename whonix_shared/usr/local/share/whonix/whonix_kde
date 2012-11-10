@@ -1,0 +1,128 @@
+#!/bin/bash
+
+## Internally used whonix_workstation scripts.
+
+set -x
+
+whonix_kde() {
+###################
+## Switch to user #
+###################
+su "$USERNAME"
+
+##################
+## kgpg settings #
+##################
+
+kwriteconfig --file kgpgrc \
+             --group "General Options" \
+             --key "First run" \
+             --type bool \
+             false
+
+kwriteconfig --file kgpgrc \
+             --group "Servers" \
+             --key "Server_List" \
+             --type string \
+             hkp://2eghzlv2wwcq7u7y.onion,hkp://keys.gnupg.net,hkp://pgp.dtype.org,hkp://search.keyserver.net,hkp://subkeys.pgp.net,hkp://wwwkeys.pgp.net,hkp://wwwkeys.pgp.net,hkp://wwwkeys.us.pgp.net
+
+kwriteconfig --file kgpgrc \
+             --group "TipOfDay" \
+             --key "RunOnStart" \
+             --type bool \
+             false
+
+temp='$HOME/.gnupg/gpg.conf'
+
+kwriteconfig --file kgpgrc \
+             --group "GPG Settings" \
+             --key gpg_config_path \
+             --type string \
+             $temp
+
+###################
+## kgpg tray icon #
+###################
+
+kwriteconfig --file plasma-desktop-appletsrc \
+             --group Containments --group 1 --group Applets --group 6 --group Configuration \
+             --key 'alwaysShown' \
+             --type string \
+             KGpg
+
+#################
+## Double Click #
+#################
+
+kwriteconfig --file kdeglobals \
+             --group KDE \
+             --key SingleClick \
+             --type bool \
+             false
+
+#############################
+## plasma-desktop-appletsrc #
+#############################
+
+## TODO: KDE
+
+## Could be used to disable the clock. Would it be safe?
+#kwriteconfig --file plasma-desktop-appletsrc \
+#            --group Containments --group 1 --group Applets --group 7 \
+#             --key plugin \
+#             --type string \
+#            ""
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key dateStyle \
+#             --type string \
+#            0
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key defaultTimezone \
+#             --type string \
+#            UTC
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key showSeconds \
+#             --type bool \
+#            true
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key showTimezone \
+#             --type bool \
+#            true
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key timeZones \
+#             --type string \
+#            UTC
+
+#kwriteconfig --file plasma-desktop-appletsrc \
+#             --group Containments --group 1 --group Applets --group 7 --group Configuration \
+#             --key timezone \
+#             --type string \
+#            UTC
+
+#################
+## Back to root #
+#################
+
+exit
+
+#######
+# END #
+#######
+
+## Only for developing/testing.
+#kquitapp plasma-desktop
+#sleep 1
+#plasma-desktop
+ 
+}
+
