@@ -289,11 +289,24 @@ $BITCOIN_ADDRESS"
       fi
    fi
 
+   local TITLE=" $ZENITY_TITLE - whonixcheck $VM $INSTALLED_WHONIX_VERSION `date`"
+
+   ## If whonixcheck was run by cron on Whonix-Gateway, echos were not shown.
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
+      if [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+         ## Allow messages to tty
+         mesg y
+         ## Display message to logged in user.
+         ## This needs an exception in /etc/sudoers.
+         echo "$TITLE
+
+$ZENITY_MESSAGE" | sudo wall --nobanner
+      fi
+   fi
+
    if [ ! "$DISPLAY" ]; then
       return
    fi
-
-   local TITLE=" $ZENITY_TITLE - whonixcheck $VM $INSTALLED_WHONIX_VERSION `date`"
 
    zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
    --window-icon /usr/local/share/whonix/whonix.ico \
