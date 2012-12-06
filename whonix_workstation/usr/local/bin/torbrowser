@@ -189,7 +189,7 @@ $*"
 
 USERNAME="`whoami`"
 
-KEYSERVER="hkp://2eghzlv2wwcq7u7y.onion"
+KEYSERVER="x-hkp://pool.sks-keyservers.net"
 
 DOWNLOAD_FAIL_HELP="Possible reasons:
 - no internet connectivity
@@ -369,9 +369,7 @@ progress_bar 98
 
 ## Will fail if the file does not exist, i.e. Tor Browser not installed.
 ## Will not break the script.
-TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$TB_LANG"/Docs/changelog`" || true
-TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/Tor Browser Bundle (//g'`"
-TBBINSTALLEDVERSION="`echo "$TBBINSTALLEDVERSION" | sed 's/); suite=linux//g'`"
+TBBINSTALLEDVERSION="`head -1 ../tor-browser_"$TB_LANG"/Docs/version`" || true
 
 progress_bar 100
 
@@ -600,7 +598,7 @@ debug "INFO: Signature valid."
 if [ -f tor-browser-gnu-linux-*.tar.gz ]; then
 	debug "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
 	debug "INFO: Unpacking..."
-	 tar -xzvf tor-browser-gnu-linux-*.tar.gz
+	tar -xzvf tor-browser-gnu-linux-*.tar.gz
 else
         ZENITY_TYPE="--error"
 	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
@@ -614,6 +612,13 @@ mkdir -p tor-browser_"$TB_LANG"/Docs
 progress_bar 92
 debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
 mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
+
+## Tor Browser changelog has been forgotten to update.
+## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
+## To play it safe and having a chance of finding out the installed version,
+## we create a file ourselves to remember it.
+debug "Creating version file tor-browser_"$TB_LANG"/Docs/version."
+echo ""$TBBVERSION"" > "tor-browser_"$TB_LANG"/Docs/version"
 
 progress_bar 93
 debug "INFO: Creating Unbundled Tor Browser startup script..."
