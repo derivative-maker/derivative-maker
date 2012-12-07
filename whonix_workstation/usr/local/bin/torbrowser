@@ -189,8 +189,6 @@ $*"
 
 USERNAME="`whoami`"
 
-KEYSERVER="x-hkp://pool.sks-keyservers.net"
-
 DOWNLOAD_FAIL_HELP="Possible reasons:
 - no internet connectivity
 
@@ -217,10 +215,10 @@ https://sourceforge.net/p/whonix/wiki/ManualTBupdate/"
 
 GATEWAY_IP="192.168.0.10"
 SOCKS_PORT_TBB_DOWNLOAD="9115"
-SOCKS_PORT_TBB_GPG="9116"
 README_LINK="https://sourceforge.net/p/whonix/wiki/Documentation/"
 ICON="--window-icon /usr/local/share/whonix/tbupdate.ico"
-UWT_VAR="/usr/local/bin/uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_TBB_GPG""
+
+
 
 
 
@@ -246,23 +244,6 @@ progress_bar() {
    else
       echo "progress: $1"
    fi
-}
-
-
-#########################################################################
-## gpg_key_verification_error                                           #
-#########################################################################
-
-gpg_key_verification_error() {
-trap "tb_error_handler" ERR
-
-ZENITY_TYPE="--error"
-output "\
-ERROR: Could not verify GPG key.
-ERROR: Tor Browser update failed! Try again later.\
-"
-progress_bar 100
-exit 1
 }
 
 
@@ -462,81 +443,6 @@ killall firefox || true
 #################################
 debug "INFO: Installing Tor Browser..."
 #################################
-
-progress_bar 10
-## Importing GPG keys...
-debug "\
-INFO: Importing GPG keys to the temporary directory gpgtmpdir...
-INFO: The GPG keys will not be permanently added to your keyring.\
-"
-mkdir "gpgtmpdir"
-chmod 700 "gpgtmpdir/"
-
-## !!!VERIFY!!!
-debug "\
-INFO: Getting the GPG keys... Verify the fingerprints.
-https://www.torproject.org/docs/signing-keys.html.en
-http://idnxcnkne4qt76tg.onion/docs/signing-keys.html.en\
-"
-
-progress_bar 20
-## !!!VERIFY!!!
-debug "INFO: Getting Erinn Clark's GPG key..."
-ERINN_FINGERPRINT="8738A680B84B3031A630F2DB416F061063FEE659"
-debug "INFO: ERINN_FINGERPRINT: $ERINN_FINGERPRINT"
-debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
-$UWT_VAR /usr/bin/gpg \
---homedir gpgtmpdir --keyserver "$KEYSERVER" --recv "$ERINN_FINGERPRINT" || NETWORK_DOWN="1"
-
-progress_bar 25
-
-# Check if gpg failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to fetch gpg key: "$ERINN_FINGERPRINT"
-from keyserver: "$KEYSERVER"
-Maybe the keyserver is down.
-
-$DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
-fi
-
-progress_bar 30
-
-## !!!VERIFY!!!
-debug "INFO: Getting Sebastian Hahn's GPG key..."
-SEBASTIAN_FINGERPRINT="261C5FBE77285F88FB0C343266C8C2D7C5AA446D"
-debug "INFO: SEBASTIAN_FINGERPRINT: $SEBASTIAN_FINGERPRINT"
-debug "INFO: You can ignore the libtorsocks warning about the DNS leak. See Design. There can be no DNS leaks."
-$UWT_VAR /usr/bin/gpg \
---homedir gpgtmpdir --keyserver "$KEYSERVER" --recv "$SEBASTIAN_FINGERPRINT" || NETWORK_DOWN="1"
-
-# Check if gpg failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to fetch gpg key: "$SEBASTIAN_FINGERPRINT"
-from keyserver: "$KEYSERVER"
-Maybe the keyserver is down.
-
-$DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
-fi
-
-progress_bar 45
-
-## !!!VERIFY!!!
-debug "INFO: Verifying Erinn Clark's GPG key..."
-trap "gpg_key_verification_error" ERR
-gpg --homedir "gpgtmpdir" --fingerprint "$ERINN_FINGERPRINT"
-debug "INFO: Successfully verified Erinn Clark's GPG key."
-
-## !!!VERIFY!!!
-debug "INFO: Verifying Sebastian Hahn's GPG key..."
-trap "gpg_key_verification_error" ERR
-gpg --homedir "gpgtmpdir" --fingerprint "$SEBASTIAN_FINGERPRINT"
-debug "INFO: Successfully verified Sebastian Hahn's GPG key."
 
 trap "tb_error_handler" ERR
 
