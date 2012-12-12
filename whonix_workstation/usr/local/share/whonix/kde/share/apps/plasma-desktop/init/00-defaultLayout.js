@@ -3,7 +3,11 @@ loadTemplate("org.kde.plasma-desktop.defaultPanel")
 for (var i = 0; i < screenCount; ++i) {
     // Whonix changes to 00-defaultLayout.js
     //var activity = new Activity
-    var activity = new Activity("folderview");
+    var activity = new Activity("folderview")
+    activity.wallpaperPlugin = "image"
+    activity.wallpaperMode = "SingleImage"
+    activity.currentConfigGroup = Array("Wallpaper", "image")
+    activity.writeConfig("wallpaper", "/usr/share/wallpapers/stripes.png")
     // End of Whonix changes to 00-defaultLayout.js
     desktop.name = i18n("Desktop")
     desktop.screen = i
