@@ -31,13 +31,12 @@ echo "
 ## Opens a new tab or starts Tor Browser and
 ## opens a new tab.
 ##
-## -readme
+## -doc
 ## Starts Tor Browser and opens the
-## online Readme.
+## Online Documentation.
 ##
-## -noreadme
-## Starts Tor Browser without opening
-## the online Readme.
+## -start
+## Starts Tor Browser.
 ##
 ## -help
 ## Show this help.
@@ -95,7 +94,7 @@ and so on.
 ##   https://trac.torproject.org/projects/tor/ticket/3994
 ## - There is no way to keep Tor Browser updated.
 ##   (Thandy doesn't exist yet.)
-## - There is no way to add the Whonix Readme well visible to Tor Browser:
+## - There is no way to add the Whonix Documentation well visible to Tor Browser:
 ##   https://trac.torproject.org/projects/tor/ticket/6025
 ##   https://trac.torproject.org/projects/tor/ticket/6053
 ## - Tor Browsers support for Isolating and Transparent Proxies is very limited:
@@ -211,7 +210,7 @@ https://sourceforge.net/p/whonix/wiki/ManualTBupdate/"
 
 GATEWAY_IP="192.168.0.10"
 SOCKS_PORT_TBB_DOWNLOAD="9115"
-README_LINK="https://sourceforge.net/p/whonix/wiki/Documentation/"
+DOC_LINK="https://sourceforge.net/p/whonix/wiki/Documentation/"
 ICON="--window-icon /usr/local/share/whonix/tbupdate.ico"
 
 
@@ -657,10 +656,10 @@ tb_start_new_tab() {
 
 
 ################################################################
-## tb_start_without_readme                                     #
+## tb_start                                                    #
 ################################################################
 
-tb_start_without_readme() {
+tb_start() {
    trap "tb_error_handler" ERR
 
    cd ~/tor-browser_"$TB_LANG"/
@@ -711,20 +710,45 @@ fi
 ################################################################ 
 ## -noreadme                                                   #
 ################################################################ 
+## for compatibility
 if [[ "$1" = "-noreadme" ]]; then
 root_check
-tb_start_without_readme
+tb_start
 exit 0
 fi
 
 
 
 ################################################################ 
+## -start                                                      #
+################################################################ 
+if [[ "$1" = "-start" ]]; then
+root_check
+tb_start
+exit 0
+fi
+
+
+################################################################ 
 ## -readme                                                     #
 ################################################################ 
+## for compatibility
 if [[ "$1" = "-readme" ]]; then
 root_check
-LINK="$README_LINK"
+LINK="$DOC_LINK"
+debug "INFO: Setting link to $LINK"
+tb_start_new_tab
+exit 0
+fi
+
+
+
+################################################################ 
+## -doc                                                        #
+################################################################ 
+if [[ "$1" = "-doc" ]]; then
+root_check
+LINK="$DOC_LINK"
 debug "INFO: Setting link to $LINK"
 tb_start_new_tab
 exit 0
