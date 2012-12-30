@@ -369,6 +369,51 @@ inside_chroot() {
    ## (Which got copied into the image by copyinto-pre.)
    chroot "$CHROOT_FOLDER" "/usr/local/share/whonix/whonix_internal_install_script" -install
    sync
+
+   ###########
+   # damngpl #
+   ###########
+
+   ## Create folder.
+   mkdir -p /usr/local/share/whonix/
+   mkdir -p /usr/local/share/whonix/gpl/
+
+   ## Outputs format "package=1:1.0-1"
+   /usr/local/share/whonix/damngpl --source > /usr/local/share/whonix/gpl/damngpl_source
+
+   ## Outputs format "package_1.0-1"
+   /usr/local/share/whonix/damngpl --dget > /usr/local/share/whonix/gpl/damngpl_dget
+
+   ## Outputs snapshot.debian.net deb-src lines
+   /usr/local/share/whonix/damngpl --snapshot > /usr/local/share/whonix/gpl/damngpl_snapshot
+
+   sync
+}
+
+
+
+download_sources() {
+   ## Create folder.
+   mkdir -p /usr/local/share/whonix/
+   mkdir -p /usr/local/share/whonix/sources/
+
+   cd /usr/local/share/whonix/sources/
+
+   for i in `damngpl -s /var/lib/dpkg/status`; do
+      apt-get --download-only source $i;
+   done
+}
+
+
+
+move_sources() {
+   mkdir -p "$HOMEVAR/whonix_binary/"
+   mkdir -p "$HOMEVAR/whonix_binary/sources"
+   mkdir -p "$HOMEVAR/whonix_binary/sources/"$VMNAME""
+
+   mv "$CHROOT_FOLDER/usr/local/share/whonix/sources/*" "$HOMEVAR/whonix_binary/sources/"$VMNAME"/"
+
+   # rm -r "$CHROOT_FOLDER/usr/local/share/whonix/sources/"
 }
 
 
