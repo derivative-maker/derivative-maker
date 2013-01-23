@@ -215,8 +215,6 @@ ICON="--window-icon /usr/local/share/whonix/tbupdate.ico"
 
 
 
-
-
 #debug "TB_LANG: $TB_LANG"
 
 # Check if TB_LANG exists and is not empty.
@@ -286,6 +284,12 @@ else
    --title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Checking Tor Browser version... Will take a moment...")
 fi
 
+if [ "$DEV_PASSTHROUGH" = "1" ]; then
+   CURL_PROXY=""
+else
+   CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
+fi
+
 progress_bar 5
 ## Get into correct directory is required for relative paths.
 cd "/home/"$USERNAME""
@@ -312,7 +316,7 @@ progress_bar 10
 debug "INFO: Find out latest version..."
 LINK="https://check.torproject.org/RecommendedTBBVersions"
 debug "INFO: Downloading: "$LINK""
-/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+/usr/bin/curl $CURL_PROXY \
 --tlsv1 --proto =https --output RecommendedTBBVersions "$LINK" || NETWORK_DOWN="1"
 
 progress_bar 95
@@ -456,7 +460,7 @@ debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
 TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
 TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
 debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
-/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+/usr/bin/curl $CURL_PROXY \
 --tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
 
 # Check if curl failed.
@@ -475,7 +479,7 @@ debug "INFO: Downloading GPG signature..."
 TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
 TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
 debug "INFO: Downloading: "$TBB_SIG_LINK""
-/usr/bin/curl --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/ \
+/usr/bin/curl $CURL_PROXY \
 --tlsv1 --proto =https --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK" || NETWORK_DOWN="1"
 
 # Check if curl failed.
@@ -699,9 +703,11 @@ if [[ "$1" = "-force-install-dev-passthrough" ]]; then
 root_check
 export TB_FORCE_INSTALL="1"
 export UWT_DEV_PASSTHROUGH="1"
+export DEV_PASSTHROUGH="1"
 tb_update_check
-export UWT_DEV_PASSTHROUGH="0"
 export TB_FORCE_INSTALL="0"
+export UWT_DEV_PASSTHROUGH="0"
+export DEV_PASSTHROUGH="0"
 exit 0
 fi
 
