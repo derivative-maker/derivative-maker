@@ -22,10 +22,9 @@ echo "
 ## Installs without asking. Will create
 ## a backup.
 ##
-## -force-install-dev-passthrough
+## -dev-build-passthrough
 ## For developers only! Do not use!
-## Downloads while circumventing uwt,
-## thus through TransPort when using Whonix.
+## Internally used by the build scripts.
 ##
 ## -new-tab url
 ## Opens a new tab or starts Tor Browser and
@@ -275,6 +274,15 @@ trap "tb_error_handler" ERR
 #################################
 ## preparation
 #################################
+## do not re-download Tor Browser if a previous build already did
+if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
+   if [ -d ~/tor-browser_"$TB_LANG"/ ]; then
+      echo "torbrowser: Not downloading Tor Browser again,
+because ~/tor-browser_"$TB_LANG"/ already exists."
+      exit 0
+   fi
+fi
+
 ## progress bar for update check
 if [ "$TB_FORCE_INSTALL" = "1" ]; then
    true
@@ -697,15 +705,17 @@ fi
 
 
 ################################################################ 
-## -force-install-dev-passthrough                              #
+## -dev-build-passthrough                                      #
 ################################################################ 
-if [[ "$1" = "-force-install-dev-passthrough" ]]; then
+if [[ "$1" = "-dev-build-passthrough" ]]; then
 root_check
-export TB_FORCE_INSTALL="1"
-export DEV_PASSTHROUGH="1"
+DEV_BUILD_PASSTHROUGH="1"
+DEV_PASSTHROUGH="1"
+TB_FORCE_INSTALL="1"
 tb_update_check
-export TB_FORCE_INSTALL="0"
-export DEV_PASSTHROUGH="0"
+DEV_BUILD_PASSTHROUGH="0"
+DEV_PASSTHROUGH="0"
+TB_FORCE_INSTALL="0"
 exit 0
 fi
 
