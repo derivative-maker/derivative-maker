@@ -7,6 +7,11 @@
 ## the bash maintainer.
 ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=675008
 
+## If not running interactively, don't do anything.
+if [ -z "$PS1" ]; then
+   return
+fi
+
 . /etc/bash_completion
 
 echo "`cat /etc/motd`"
