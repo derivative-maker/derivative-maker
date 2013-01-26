@@ -28,34 +28,6 @@ trap "error_handler" ERR INT TERM
 echo "OK: dev_clearnet..."
 
 ###########################
-## USERS
-###########################
-
-## Get Tor username, distro specific!
-TOR_USER="`id -u debian-tor`"
-
-## Get user uids.
-CLEARNET_USER="`id -u clearnet`"
-ROOT_USER="`id -u root`"
-
-echo "OK: TOR_USER: $TOR_USER"
-echo "OK: CLEARNET_USER: $CLEARNET_USER"
-echo "OK: ROOT_USER: $ROOT_USER"
-
-###########################
-## interfaces
-###########################
-
-## External interface
-EXT_IF="eth0"
-## Internal interface
-INT_IF="eth1"
-## Internal "tunnel" interface, usually the same as
-## the Internal interface unless using vpn tunnels
-## between workstations and gateway
-INT_TIF="eth1"
-
-###########################
 ## IPv4 DEFAULTS
 ###########################
 
@@ -64,7 +36,7 @@ iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 
 ###########################
-## IPv4 PREPARATIONS
+## IPv4
 ###########################
 
 ## Flush old rules.
@@ -76,28 +48,17 @@ iptables -t mangle -F
 iptables -t mangle -X
 
 ###########################
-##
+## IPv6 DEFAULTS
 ###########################
 
-echo 1 > /proc/sys/net/ipv4/ip_forward
-
-chattr -i /etc/resolv.conf
-rm /etc/resolv.conf
-
-iptables -t nat -A POSTROUTING -o "$EXT_IF" -j MASQUERADE
-iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -m state --state RELATED,ESTABLISHED -j ACCEPT
-iptables -A FORWARD -i "$INT_IF" -o "$EXT_IF" -j ACCEPT
-
-/etc/init.d/networking restart
+## Policy DROP for all traffic as fallback.
+ip6tables -P INPUT ACCEPT
+ip6tables -P OUTPUT ACCEPT
+ip6tables -P FORWARD ACCEPT
 
 ###########################
 ## IPv6
 ###########################
-
-## Policy DROP for all traffic as fallback.
-#ip6tables -P INPUT DROP
-#ip6tables -P OUTPUT DROP
-#ip6tables -P FORWARD DROP
 
 ## Flush old rules.
 ip6tables -F
