@@ -20,224 +20,10 @@ error_handler() {
 trap "error_handler" ERR INT TERM
 
 ###########################
-## configuration
-###########################
-
-  ################################
-  ## Transparent Proxy Settings ##
-  ################################
-
-## Read first:
-## https://sourceforge.net/p/whonix/wiki/Stream%20Isolation/
-
-    #########################
-    ## For the Workstation ##
-    #########################
-
-## Enable (1) or disable (0) transparent TCP proxying for the Whonix-Workstation.
-## Any misc TCP traffic, for example /usr/bin/wget (circumventing uwt wrapper)
-## or any custom installed applications on the Whonix-Workstation will be
-## automatically routed through Tor.  In most cases you have to enable
-## WORKSTATION_TRANSPARENT_DNS as well.
-WORKSTATION_TRANSPARENT_TCP=1
-
-## Enable (1) or disable (0) transparent UDP proxying for the Whonix-Workstation.
-## This setting has really no effect.
-## The Tor network does not support UDP yet.
-## This is not a Whonix specific limitation.
-## There is a limited workarround for tunneling udp over Tor with Whonix:
-## http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#tunnel-udp-over-tor
-## Do not bother changing this setting, it will do nothing.
-WORKSTATION_TRANSPARENT_UDP=0
-
-## Enable (1) or disable (0) transparent DNS proxying for the Whonix-Workstation.
-## Any misc DNS traffic, for example nslookup, from the Whonix-Workstation will be
-## automatically routed through Tor.
-WORKSTATION_TRANSPARENT_DNS=1
-
-  #####################
-  ## For the Gateway ##
-  #####################
-
-## Enable (1) or disable (0) transparent TCP proxying for the Whonix-Gateway.
-## Experts only!
-## Any misc TCP traffic, for example /usr/bin/wget (circumventing uwt wrapper)
-## from the Whonix-Gateway will be automatically routed through Tor.
-## For example apt-get, wget and gpg are torified using uwt wrappers in
-## /usr/local/bin/.
-## In most cases you have to enable GATEWAY_TRANSPARENT_DNS as well.
-## DISABELD BY DEFAULT, because the Whonix-Gateway should only be used as a proxy.
-## There are currently no useful use cases recognized by Whonix developer adrelanos.
-## Enable this only if you know what you are doing!
-GATEWAY_TRANSPARENT_TCP=0
-
-## Enable (1) or disable (0) transparent UDP proxying for the Whonix-Gateway.
-## This setting has really no effect.
-## The Tor network does not support UDP yet.
-## This is not a Whonix specific limitation.
-## Do not bother changing this setting, it will do nothing.
-GATEWAY_TRANSPARENT_UDP=0
-
-## Enable (1) or disable (0) transparent DNS proxying for the Whonix-Gateway.
-## Experts only!
-## Any misc DNS traffic, for example nslookup, from the Whonix-Gateway will be
-## automatically routed through Tor.
-## DISABELD BY DEFAULT, because the Whonix-Gateway should only be used as a proxy.
-## There are currently no useful use cases recognized by Whonix developer adrelanos.
-## Enable this only if you know what you are doing!
-GATEWAY_TRANSPARENT_DNS=0
-
-  ################################################################
-  ## Torify Gateway / Hide the fact, that you are a Whonix user ##
-  ################################################################
-
-## For ensuring, that the Whonix-Workstation can only send traffic through Tor,
-## it would not be required to route Whonix-Gateways traffic through Tor as well.
-## Torifying the Whonix-Gateway prevents your ISP from knowing you are a Whonix user.
-##
-## This does NOT prevent your ISP from knowing you are a Tor user.
-##   If you want this, read:
-##   http://sourceforge.net/p/whonix/wiki/OptionalConfigurations/#hide-the-fact-that-you-are-using-torwhonix
-##
-## Torifying the Gateway has the disadvantage, that apt-get operating system updates
-## are slower. It also makes testing, developing and all kinds of special non-stock
-## configurations more complicated. You can optionally disable this feature.
-##
-## Experts only! There is also the user clearnet on the Whonix-Gateway, which
-## is allowed to to make non-Tor connections.
-##
-## Allow (1) or forbid (0) the root user on the Whonix-Gateway to make non-Tor connections.
-## Experts only!
-ALLOW_GATEWAY_ROOT_USER=0
-## Allow (1) or forbid (0) the user user on the Whonix-Gateway to make non-Tor connections.
-## Experts only!
-ALLOW_GATEWAY_USER_USER=0
-
-  #############################
-  ## SSH into Whonix-Gateway ##
-  #############################
-
-## This will simply open incomming port 22 in the Whonix-Gateway firewall.
-## A port forwarding from the host to the Whonix-Gateway has still to be created,
-## see Whonix build documentation.
-##   https://sourceforge.net/p/whonix/wiki/BuildDocumentation/
-## Experts only!
-GATEWAY_ALLOW_INCOMMING_SSH=0
-
-###########################
-## comments
-###########################
-
-## --reject-with
-## http://ubuntuforums.org/showthread.php?p=12011099
-
-## Set to icmp-admin-prohibited because icmp-port-unreachable caused
-## confusion. icmp-port-unreachable looks like a bug while
-## icmp-admin-prohibited hopefully makes clear it is by design.
-
-###########################
 ## /usr/local/bin/whonix_firewall
 ###########################
 
 echo "OK: Loading Whonix firewall..."
-
-###########################
-## USERS
-###########################
-
-## Get Tor username, distro specific!
-TOR_USER="`id -u debian-tor`"
-
-## Get user uids.
-CLEARNET_USER="`id -u clearnet`"
-USER_USER="`id -u user`"
-ROOT_USER="`id -u root`"
-
-echo "OK: TOR_USER: $TOR_USER"
-echo "OK: CLEARNET_USER: $CLEARNET_USER"
-echo "OK: USER_USER: $USER_USER"
-echo "OK: ROOT_USER: $ROOT_USER"
-
-###########################
-## interfaces
-###########################
-
-## External interface
-EXT_IF="eth0"
-## Internal interface
-INT_IF="eth1"
-## Internal "tunnel" interface, usually the same as
-## the Internal interface unless using vpn tunnels
-## between workstations and gateway
-INT_TIF="eth1"
-
-###########################
-## NON_TOR_WHONIXG
-###########################
-
-## Destinations you don not want routed through Tor, only for Whonix-Gateway!
-NON_TOR_WHONIXG="192.168.1.0/24 192.168.0.0/24 127.0.0.0/8"
-
-###########################
-## ports
-###########################
-
-## Ports used by Tor
-## (and used in /etc/torrc and /usr/local/bin/whonix_firewall)
-##
-## The following applications will be separated, preventing identity
-## correlation through circuit sharing. 
-
-## Transparent Proxy Ports for Whonix-Workstation
-TRANS_PORT_WHONIXW="9040"
-
-## DnsPort_WHONIXW
-DNS_PORT_WHONIXW="53"
-
-## Transparent Proxy Ports for Whonix-Gateway
-TRANS_PORT_WHONIXG="9041"
-DNS_PORT_WHONIXG="54"
-
-## Socks Ports for per application circuits.
-SOCKS_PORT_TB="9100"
-SOCKS_PORT_IRC="9101"
-SOCKS_PORT_TORBIRDY="9102"
-SOCKS_PORT_IM="9103"
-SOCKS_PORT_APT_GET="9104"
-SOCKS_PORT_GPG="9105"
-SOCKS_PORT_SSH="9106"
-SOCKS_PORT_GIT="9107"
-SOCKS_PORT_HTPDATE="9108"
-SOCKS_PORT_WGET="9109"
-SOCKS_PORT_WHONIXCHECK="9110"
-SOCKS_PORT_BITCOIN="9111"
-SOCKS_PORT_PRIVOXY="9112"
-SOCKS_PORT_POLIPO="9113"
-SOCKS_PORT_WHONIX_NEWS="9114"
-SOCKS_PORT_TBB_DOWNLOAD="9115"
-SOCKS_PORT_TBB_GPG="9116"
-SOCKS_PORT_CURL="9117"
-SOCKS_PORT_RSS="9118"
-SOCKS_PORT_TORCHAT="9119"
-
-##+# #OptionalFeatureNr.4# More Socks Ports.
-##
-## Adding more Socks Ports here should no longer be neccessary.
-## There are already lots of custom ports prepared. If you need more
-## anyway, read below.
-## Please read:
-## https://sourceforge.net/p/whonix/wiki/Stream%20Isolation/
-##
-##+# Additional Socks Ports for per application circuits.
-##+# You can add more here but,
-##+# you will have to edit:
-##+# - /etc/tor/torrc
-##+#   - And "sudo service tor reload" afterwards.
-##+# - /usr/local/bin/whonix_firewall
-##+#   - And issue "sudo /usr/local/bin/whonix_firewall" afterwards.
-##+# you will also have to edit Whonix-Workstation
-##+# - the line "extensions.torbutton.banned_ports" in users.js
-##+#   - You can NOT simply add it to about:config in TorBrowser, since users.js will overwrite it.
 
 ###########################
 ## IPv4 DEFAULTS
@@ -245,12 +31,10 @@ SOCKS_PORT_TORCHAT="9119"
 
 ## Set secure defaults.
 iptables -P INPUT DROP
-
-## FORWARD rules does not actually do anything if forwarding is disabled. Better be safe just in case.
 iptables -P FORWARD DROP
 
-## Only the Tor process is allowed to establish outgoing connections.
-iptables -P OUTPUT DROP
+## Not filtering outgoing traffic.
+#iptables -P OUTPUT DROP
 
 ###########################
 ## IPv4 PREPARATIONS
@@ -296,244 +80,26 @@ iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 ## Allow incoming SSH connections on the external interface.
-## DISABELD BY DEFAULT. Only for testing/debugging.
-if [ "$GATEWAY_ALLOW_INCOMMING_SSH" = "1" ]; then
-  iptables -A INPUT -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
-fi
-
-## OPTIONAL Allow incoming OpenVPN connections on the external interface.
-#iptables -A INPUT -i "$EXT_IF" -p tcp --dport 1194 -j ACCEPT
-
-## Allow DNS traffic to DnsPort.
-##+# SEE #OptionalFeatureNr.5#
-if [ "$WORKSTATION_TRANSPARENT_DNS" = "1" ]; then
-  iptables -A INPUT -i "$INT_TIF" -p udp --dport 53 -j ACCEPT
-fi
-
-## Allow TCP traffic TransPort.
-##+# SEE #OptionalFeatureNr.5#
-if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
-  iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_WHONIXW" -j ACCEPT
-fi
-
-## Allow socksified applications.
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TB" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_IRC" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_IM" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_APT_GET" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_GPG" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_SSH" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_GIT" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_HTPDATE" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_WGET" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_WHONIXCHECK" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_BITCOIN" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_PRIVOXY" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_POLIPO" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_WHONIX_NEWS" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TBB_DOWNLOAD" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TBB_GPG" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_CURL" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_RSS" -j ACCEPT
-iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TORCHAT" -j ACCEPT
-
-##+# #OptionalFeatureNr.4# Allow more Socks Ports.
-## See /etc/tor/torrc for more comments.
-## Custom Ports #1:
-iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9150:9159 -j ACCEPT
-## Custom Ports #2:
-iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9160:9169 -j ACCEPT
-## Custom Ports #3:
-iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9170:9179 -j ACCEPT
-## Custom Ports #4:
-iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9180:9189 -j ACCEPT
-
-## Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TB" -j REDIRECT --to-ports "$SOCKS_PORT_TB"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IRC" -j REDIRECT --to-ports "$SOCKS_PORT_IRC"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j REDIRECT --to-ports "$SOCKS_PORT_TORBIRDY"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IM" -j REDIRECT --to-ports "$SOCKS_PORT_IM"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_APT_GET" -j REDIRECT --to-ports "$SOCKS_PORT_APT_GET"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_GPG" -j REDIRECT --to-ports "$SOCKS_PORT_GPG"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_SSH" -j REDIRECT --to-ports "$SOCKS_PORT_SSH"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_GIT" -j REDIRECT --to-ports "$SOCKS_PORT_GIT"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_HTPDATE" -j REDIRECT --to-ports "$SOCKS_PORT_HTPDATE"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_WGET" -j REDIRECT --to-ports "$SOCKS_PORT_WGET"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_WHONIXCHECK" -j REDIRECT --to-ports "$SOCKS_PORT_WHONIXCHECK"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_BITCOIN" -j REDIRECT --to-ports "$SOCKS_PORT_BITCOIN"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_PRIVOXY" -j REDIRECT --to-ports "$SOCKS_PORT_PRIVOXY"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_POLIPO" -j REDIRECT --to-ports "$SOCKS_PORT_POLIPO"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_WHONIX_NEWS" -j REDIRECT --to-ports "$SOCKS_PORT_WHONIX_NEWS"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TBB_DOWNLOAD" -j REDIRECT --to-ports "$SOCKS_PORT_TBB_DOWNLOAD"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TBB_GPG" -j REDIRECT --to-ports "$SOCKS_PORT_TBB_GPG"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_CURL" -j REDIRECT --to-ports "$SOCKS_PORT_CURL"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_RSS" -j REDIRECT --to-ports "$SOCKS_PORT_RSS"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TORCHAT" -j REDIRECT --to-ports "$SOCKS_PORT_TORCHAT"
-
-##+# OptionalFeatureNr.4# More Socks Ports.
-##+# Redirection rules for additional SocksPorts.
-## See /etc/tor/torrc for more comments.
-## Custom Ports #1:
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9150" -j REDIRECT --to-ports "9150"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9151" -j REDIRECT --to-ports "9151"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9152" -j REDIRECT --to-ports "9152"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9153" -j REDIRECT --to-ports "9153"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9154" -j REDIRECT --to-ports "9154"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9155" -j REDIRECT --to-ports "9155"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9156" -j REDIRECT --to-ports "9156"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9157" -j REDIRECT --to-ports "9157"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9158" -j REDIRECT --to-ports "9158"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9159" -j REDIRECT --to-ports "9159"
-## Custom Ports #2:
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9160" -j REDIRECT --to-ports "9160"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9161" -j REDIRECT --to-ports "9161"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9162" -j REDIRECT --to-ports "9162"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9163" -j REDIRECT --to-ports "9163"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9164" -j REDIRECT --to-ports "9164"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9165" -j REDIRECT --to-ports "9165"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9166" -j REDIRECT --to-ports "9166"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9167" -j REDIRECT --to-ports "9167"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9168" -j REDIRECT --to-ports "9168"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9169" -j REDIRECT --to-ports "9169"
-## Custom Ports #3:
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9170" -j REDIRECT --to-ports "9170"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9171" -j REDIRECT --to-ports "9171"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9172" -j REDIRECT --to-ports "9172"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9173" -j REDIRECT --to-ports "9173"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9174" -j REDIRECT --to-ports "9174"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9175" -j REDIRECT --to-ports "9175"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9176" -j REDIRECT --to-ports "9176"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9177" -j REDIRECT --to-ports "9177"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9178" -j REDIRECT --to-ports "9178"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9179" -j REDIRECT --to-ports "9179"
-## Custom Ports #4:
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9180" -j REDIRECT --to-ports "9180"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9181" -j REDIRECT --to-ports "9181"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9182" -j REDIRECT --to-ports "9182"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9183" -j REDIRECT --to-ports "9183"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9184" -j REDIRECT --to-ports "9184"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9185" -j REDIRECT --to-ports "9185"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9186" -j REDIRECT --to-ports "9186"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9187" -j REDIRECT --to-ports "9187"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9188" -j REDIRECT --to-ports "9188"
-iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "9189" -j REDIRECT --to-ports "9189"
-
-## Redirect remaining DNS traffic to DNSPORT.
-## Only user installed applications not configured to use a SocksPort are affected.
-##+# SEE #OptionalFeatureNr.5#
-if [ "$WORKSTATION_TRANSPARENT_DNS" = "1" ]; then
-  iptables -t nat -A PREROUTING -i "$INT_IF" -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXW"
-fi
-
-## Catch all remaining TCP and redirect to TransPort.
-## Only user installed applications not configured to use a SocksPort are affected.
-##+# SEE #OptionalFeatureNr.5#
-if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
-  iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
-fi
-
-##+# #OptionalFeatureNr.3# Restrict TransPort.
-##+# Replace above rule with a more restrictive one, e.g.:
-#iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
+## DISABELD BY DEFAULT.
+#iptables -A INPUT -i "$EXT_IF" -p tcp --dport 22 -j ACCEPT
 
 ## Log.
-#iptables -A INPUT -j LOG --log-prefix "Whonix blocked input4: "
-
-## Reject anything not explicitly allowed above.
-## Drop is better than reject here, because we do not want to reveal its a Whonix-Gateway.
-## (In case someone running Whonix-Gateway on bare metall.)
-iptables -A INPUT -j DROP
+#iptables -A INPUT -j LOG --log-prefix "blocked input4: "
 
 ###########################
-## IPv4 FORWARD
+## IPv6 DEFAULTS
 ###########################
 
-## Log.
-#iptables -A INPUT -j LOG --log-prefix "Whonix blocked forward4: "
-
-## Reject everything.
-iptables -A FORWARD -j REJECT --reject-with icmp-admin-prohibited
-
-###########################
-## IPv4 OUTPUT
-###########################
-
-## No NAT for Tor itself.
-iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
-
-## No NAT for clearnet user.
-iptables -t nat -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j RETURN
-
-## No NAT for user user.
-## DISABELD BY DEFAULT. For testing/debugging only.
-if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
-  iptables -t nat -A OUTPUT -m owner --uid-owner "$USER_USER" -j RETURN
-fi
-
-## No NAT for root user.
-## DISABELD BY DEFAULT. For testing/debugging only.
-if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
-  iptables -t nat -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j RETURN
-fi
-
-## Redirect of T-G DNS traffic to DnsPort_WHONIXG.
-## DISABELD BY DEFAULT. default. Using SocksPort instead.
-if [ "$GATEWAY_TRANSPARENT_DNS" = "1" ]; then
-  iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXG"
-fi
-
-## Exclude connections to local network, Whonix-Workstation, Virtual Box from being redirected through Tor.
-for NET in $NON_TOR_WHONIXG; do
- iptables -t nat -A OUTPUT -d "$NET" -j RETURN
-done
-
-## Redirect all T-G TCP traffic to TransPort_WHONIXG.
-## DISABELD BY DEFAULT. Using SocksPort instead.
-if [ "$GATEWAY_TRANSPARENT_TCP" = "1" ]; then
-  iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXG"
-fi
-
-## Existing connections are accepted.
-iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-## Accept outgoing connections to local network, Whonix-Workstation and Virtual Box.
-for NET in $NON_TOR_WHONIXG; do
- iptables -A OUTPUT -d "$NET" -j ACCEPT
-done
-
-## Tor is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
-
-## clearnet user is allowed to connect any outside target.
-iptables -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j ACCEPT
-
-## user user is allowed to connect any outside target.
-## DISABELD BY DEFAULT. For testing/debugging only.
-if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
-  iptables -A OUTPUT -m owner --uid-owner "$USER_USER" -j ACCEPT
-fi
-
-## root user is allowed to connect any outside target.
-##  DISABELD BY DEFAULT. For testing/debugging only.
-if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
-  iptables -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j ACCEPT
-fi
-
-## Log.
-#iptables -A INPUT -j LOG --log-prefix "Whonix blocked output4: "
-
-## Reject all other outging traffic.
-iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
-
-###########################
-## IPv6
-###########################
-
-## Policy DROP for all traffic as fallback.
+## Policy DROP as fallback.
 ip6tables -P INPUT DROP
-ip6tables -P OUTPUT DROP
 ip6tables -P FORWARD DROP
+
+## Not filtering outgoing traffic.
+ip6tables -P OUTPUT DROP
+
+###########################
+## IPv6 PREPARATIONS
+###########################
 
 ## Flush old rules.
 ip6tables -F
@@ -543,20 +109,12 @@ ip6tables -t mangle -X
  
 ## Allow unlimited access on loopback.
 ## Not activated, since we do not need it.
-#ip6tables -A INPUT -i lo -j ACCEPT
-#ip6tables -A OUTPUT -o lo -j ACCEPT
+ip6tables -A INPUT -i lo -j ACCEPT
 
 ## Log.
-#ip6tables -A INPUT -j LOG --log-prefix "Whonix blocked input6: "
-#ip6tables -A INPUT -j LOG --log-prefix "Whonix blocked output6: "
-#ip6tables -A INPUT -j LOG --log-prefix "Whonix blocked forward6: "
-
-## Drop/reject all other traffic.
-ip6tables -A INPUT -j DROP
-## --reject-with icmp-admin-prohibited not supported by ip6tables
-ip6tables -A OUTPUT -j REJECT
-## --reject-with icmp-admin-prohibited not supported by ip6tables
-ip6tables -A FORWARD -j REJECT
+#ip6tables -A INPUT -j LOG --log-prefix "blocked input6: "
+#ip6tables -A INPUT -j LOG --log-prefix "blocked output6: "
+#ip6tables -A INPUT -j LOG --log-prefix "blocked forward6: "
 
 ###########################
 ## End
