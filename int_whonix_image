@@ -373,6 +373,44 @@ inside_chroot() {
 
 
 
+error_handler_interactive_chroot() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   echo "Exited (1) interactive shell."
+   sync
+}
+
+
+
+interactive_chroot() {
+   trap "error_handler_int_whonix_image" ERR INT TERM
+
+   sync
+
+   ## Just for testing.
+   chroot "$CHROOT_FOLDER" dir
+   chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
+   chroot "$CHROOT_FOLDER" mount
+   chroot "$CHROOT_FOLDER" update-grub -v
+   sync
+
+   ## Info.
+   echo "Entering interactive shell..."
+   echo "Recommendation: check /home/user if you are really inside the image and not on your host system."
+   echo "When you are done, do not forget to leave the shell using: exit 0"
+
+   ## Run interactive shell.
+   trap "error_handler_interactive_chroot" ERR INT TERM
+   chroot "$CHROOT_FOLDER" "/bin/bash/"
+
+   trap "error_handler_int_whonix_image" ERR INT TERM
+   echo "Exited (0) interactive shell."
+
+   sync
+}
+
+
+
 download_sources() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
