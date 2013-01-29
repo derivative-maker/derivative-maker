@@ -12,8 +12,6 @@ if [ -z "$PS1" ]; then
    return
 fi
 
-. /etc/bash_completion
-
 echo "`cat /etc/motd`"
 
 ## End of Whonix /home/user/.bashrc
