@@ -705,21 +705,24 @@ $CHECK_OS_RESULT"
       return
    fi
 
+   # Check, if we are not in CLI.
+   if [ "$DISPLAY" ]; then
+      # Check if apper is installed and use it.
+      if [ -f "`which apper`" ]; then
+         apper --updates --display "$DISPLAY" 2>/dev/null 
+         local MSG="$CHECK_OS_RESULT
+Please update Whonix-Gateway and Whonix-Workstation."
+         echo "$MSG"
+         output "--error" "WARNING" "$MSG"
+	     return
+      fi
+   fi
+
    local MSG="$CHECK_OS_RESULT
 Please update Whonix-Gateway and Whonix-Workstation:
 sudo apt-get update && sudo apt-get dist-upgrade"
    echo "$MSG"
    output "--error" "WARNING" "$MSG"
-
-   # Do not try to start apper from cli.
-   if [ ! "$DISPLAY" ]; then
-      return
-   fi
-
-   # Check if apper is installed and use it.
-   if [ -f "`which apper`" ]; then
-      apper --updates --display "$DISPLAY" 2>/dev/null 
-   fi
 }
 
 
