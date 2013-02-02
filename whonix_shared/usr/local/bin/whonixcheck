@@ -23,9 +23,9 @@
 # If we change to notification daemon later, when the timeout bug is fixed,
 # we have to ensure notify-send output is compatible with being started by cron.
 #
-# This script uses /usr/bin/curl directly. Otherwise the uwt wrapper /usr/local/bin/curl
+# This script uses /usr/bin/rawdog directly. Otherwise the uwt wrapper /usr/local/bin/rawdog
 # would be used. Using the uwt wrapper is not desired, since that is redirect through
-# curl's SocksPort.
+# rawdog's SocksPort.
 #
 # If anyone adds a VPN or something similar to Whonix-Workstation
 # (i.e. connection scheme: Whonix-Workstation -> Tor -> VPN), he would wonder
@@ -109,10 +109,12 @@ phrase_cmd_options() {
    # $1 will not exist.
    if [[ "$#" == "0" ]]; then
       WHONIXCHECK_VERBOSE="--silent"
+      WHONIXCHECK_RAWDOG_VERBOSE="--verbose"
    else
       if [[ "$1" = "-v" ]]; then
          set -x
          WHONIXCHECK_VERBOSE=""
+         WHONIXCHECK_RAWDOG_VERBOSE=""
          echo "Verbose output..."
          echo "Script running as $(whoami)"
       fi
@@ -864,11 +866,52 @@ $LINE"
 
 
 
-download_whonix_blog() {
-   ##TODO implement
-   #rawdog --config ~/.rawdog/importantblog.conf --verbose --update --write
-   #rawdog --config ~/.rawdog/featureblog.conf --verbose --update --write
-   true
+download_important_blog() {
+   trap "error_handler" ERR INT TERM
+
+   local SOCKS_PORT_WHONIX_NEWS="9114"
+
+   local DOWNLOAD_IMPORTANTBLOG_SUCCESS="1"
+   echo "Downloading Whonix Important Blog..."
+
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS"\
+   /usr/bin/rawdog --config ~/.rawdog/importantblog.conf "$WHONIXCHECK_RAWDOG_VERBOSE" --update --write || DOWNLOAD_IMPORTANTBLOG_SUCCESS="0"
+
+   if [ "$DOWNLOAD_IMPORTANTBLOG_SUCCESS" = "0" ]; then
+      local MSG="Could not download Whonix Important Blog."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   local MSG="Successfully downloaded Whonix Important Blog."
+   echo "$MSG"
+   output "--info" "Info" "$MSG"
+}
+
+
+
+download_feature_blog() {
+   trap "error_handler" ERR INT TERM
+
+   local SOCKS_PORT_WHONIX_NEWS="9114"
+
+   local DOWNLOAD_FEATUREBLOG_SUCCESS="1"
+   echo "Downloading Whonix Feature Blog..."
+
+   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS"\
+   /usr/bin/rawdog --config ~/.rawdog/featureblog.conf "$WHONIXCHECK_RAWDOG_VERBOSE" --update --write || DOWNLOAD_FEATUREBLOG_SUCCESS="0"
+
+   if [ "$DOWNLOAD_FEATUREBLOG_SUCCESS" = "0" ]; then
+      local MSG="Could not download Whonix Feature Blog."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   local MSG="Successfully downloaded Whonix Feature Blog."
+   echo "$MSG"
+   output "--info" "Info" "$MSG"
 }
 
 
@@ -899,34 +942,37 @@ whonixcheck_main() {
 
     # connection 1
     check_tor "SocksPort"
-    progress_bar 20
+    progress_bar 15
     
     # connection 2
     check_torbrowser
-    progress_bar 40
+    progress_bar 30
 
     # connection 3
     check_tor "TransPort"
-    progress_bar 60
+    progress_bar 45
     
     # no connection
     check_stream_isolation
 
     # connection 4
     check_operating_system
-    progress_bar 80
+    progress_bar 60
 
     # connection 5
     #download_whonix_news
     #verify_whonix_news
     #check_whonix_version
     #check_whonix_news
-    progress_bar 95
+    progress_bar 75
 
-    # TODO adapt progress bar percentages
     # connection 6
+    download_important_blog
+    progress_bar 90
+
     # connection 7
-    download_whonix_blog
+    download_feature_blog
+    progress_bar 99
   else
     # for Whonix-Gateway
     # connection 1
