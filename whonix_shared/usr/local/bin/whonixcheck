@@ -108,12 +108,12 @@ phrase_cmd_options() {
    # If whonixcheck is run without command line arguments,
    # $1 will not exist.
    if [[ "$#" == "0" ]]; then
-      WHONIXCHECK_VERBOSE="--silent"
+      WHONIXCHECK_CURL_VERBOSE="--silent"
       WHONIXCHECK_RAWDOG_VERBOSE="--verbose"
    else
       if [[ "$1" = "-v" ]]; then
          set -x
-         WHONIXCHECK_VERBOSE=""
+         WHONIXCHECK_CURL_VERBOSE=""
          WHONIXCHECK_RAWDOG_VERBOSE=""
          echo "Verbose output..."
          echo "Script running as $(whoami)"
@@ -468,7 +468,7 @@ check_torbrowser() {
    echo "Checking Tor Browser version..."
 
    # Getting latest version number
-   /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
+   /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed. Could now download: https://check.torproject.org/RecommendedTBBVersions
@@ -535,7 +535,7 @@ check_tor() {
       
       # Ensuring normal curl activity can not be linked to whonixcheck,
       # by using a SocksPort, which is solely used by whonixcheck.
-      /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
       if [ "$NETWORK_DOWN" = "1" ]; then
          local MSG="Your Internet connection appears to be down.
@@ -574,10 +574,10 @@ Run whonixcheck on Whonix-Gatway as well."
       echo "Testing Tor's TransPort..."
 
       ## For production:
-      /usr/bin/curl $WHONIXCHECK_VERBOSE --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
       ## For testing behind demo/test vpn from usaip. (They block SSL.)
-      #/usr/bin/curl $WHONIXCHECK_VERBOSE --output index.html http://check.torproject.org || NETWORK_DOWN="1"
+      #/usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --output index.html http://check.torproject.org || NETWORK_DOWN="1"
    else
      local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
      echo "$MSG"
@@ -739,7 +739,7 @@ download_whonix_news() {
 
    # sf.net does not yet support ssl for project web.
    # --location is required since sf.net uses redirects.
-   /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
+   /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
    --location --max-redirs 5 --output "whonix_news.asc" \
    "http://sourceforge.net/projects/whonix/files/news/whonix_news.asc/download" \
    || DOWNLOAD_NEWS_SUCCESS="0"
