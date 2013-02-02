@@ -450,44 +450,6 @@ Last resort: manually set the clock! (In UTC!):
 
 
 
-check_network() {
-   trap "error_handler" ERR INT TERM
-
-   echo "Checking network connection..."
-
-   # Ensuring normal curl activity can not be linked to whonixcheck,
-   # by using a SocksPort, which is solely used by whonixcheck.
-   /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
-
-   if [ "$NETWORK_DOWN" = "1" ]; then
-      local MSG="Your Internet connection appears to be down.
-
-Possible reasons:
-- Is your host internet connections functional?
-- Did you start Whonix-Gateway beforehand?
-- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
-- check.tpo is offline.
-  Check on the host, if you can reach https://check.torproject.org with the Tor Browser Bundle.
-
-Try again: Start menu -> Applications -> System -> Whonix Check
-           or in Terminal: whonixcheck
-           or in Terminal with debugging: whonixcheck -v
-
-Run whonixcheck on Whonix-Gatway as well."
-
-      echo "$MSG"
-      output "--error" "ERROR" "$MSG"
-      show_output
-      progress_bar 100
-      cleanup
-      exit 1
-   fi
-   
-   return
-}
-
-
-
 check_torbrowser() {
    trap "error_handler" ERR INT TERM
 
@@ -566,19 +528,46 @@ check_tor_grep_error() {
 check_tor() {
    trap "error_handler" ERR INT TERM
 
-   # Do not test for stream isolation if Tor detection failed.
-   # This variable may be set to 1, during the first run of this script.
-   if [ "$NOT_USING_TOR" = "1" ]; then
-      local MSG="SocksPort test: Could not detect Tor! Not testing Tor's TransPort."
-      echo "$MSG"
-      # no zenity output
-      return
-   fi
-
    if [ "$1" = "SocksPort" ]; then
-      # Do not download again. Done that already in check_network.
-      echo "Testing Tor's SocksPort..."
+      echo "Checking network connection... Testing Tor's SocksPort..."
+      
+      # Ensuring normal curl activity can not be linked to whonixcheck,
+      # by using a SocksPort, which is solely used by whonixcheck.
+      /usr/bin/curl $WHONIXCHECK_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+
+      if [ "$NETWORK_DOWN" = "1" ]; then
+         local MSG="Your Internet connection appears to be down.
+
+Possible reasons:
+- Is your host internet connections functional?
+- Did you start Whonix-Gateway beforehand?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+- check.tpo is offline.
+  Check on the host, if you can reach https://check.torproject.org with the Tor Browser Bundle.
+
+Try again: Start menu -> Applications -> System -> Whonix Check
+           or in Terminal: whonixcheck
+           or in Terminal with debugging: whonixcheck -v
+
+Run whonixcheck on Whonix-Gatway as well."
+
+         echo "$MSG"
+         output "--error" "ERROR" "$MSG"
+         show_output
+         progress_bar 100
+         cleanup
+         exit 1
+      fi
    elif [ "$1" = "TransPort" ]; then
+      # Do not test for stream isolation if Tor detection failed.
+      # This variable may be set to 1, during the first run of this script.
+      if [ "$NOT_USING_TOR" = "1" ]; then
+         local MSG="SocksPort test: Could not detect Tor! Not testing Tor's TransPort."
+         echo "$MSG"
+         # no zenity output
+         return
+      fi
+   
       # Using curl binary to ensure the curl wrapper /usr/local/bin/curl does not get used.
       echo "Testing Tor's TransPort..."
 
@@ -587,14 +576,6 @@ check_tor() {
 
       ## For testing behind demo/test vpn from usaip. (They block SSL.)
       #/usr/bin/curl $WHONIXCHECK_VERBOSE --output index.html http://check.torproject.org || NETWORK_DOWN="1"
-
-      # Check if curl failed.
-      if [ "$NETWORK_DOWN" = "1" ]; then
-         local MSG="TransPort Test: Failed! Can not test stream isolation!"
-         echo "$MSG"
-         output "--error" "ERROR" "$MSG"
-         return
-      fi
    else
      local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
      echo "$MSG"
@@ -644,24 +625,33 @@ $IP"
       output "--info" "Info" "$MSG"
    fi
 
-   # Function runs for the second time.
-   if [ "$1" = "TransPort" ]; then
-      # Test stream isolation.
-      # Lets compare TransPort with SocksPort.
-      if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
-         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
+}
+
+
+
+check_stream_isolation() {
+   # Check if curl failed.
+   if [ "$NETWORK_DOWN" = "1" ]; then
+      local MSG="TransPort Test: Failed! Can not test stream isolation!"
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   # Lets compare TransPort with SocksPort.
+   if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
+      local MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+   else
+      if [ "$NOT_USING_TOR" = "1" ]; then
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ, but Tor not detected!!!"
          echo "$MSG"
          output "--info" "Info" "$MSG"
       else
-         if [ "$NOT_USING_TOR" = "1" ]; then
-            local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ, but Tor not detected!!!"
-            echo "$MSG"
-            output "--info" "Info" "$MSG"
-         else
-            local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
-            echo "$MSG"
-            output "--info" "Info" "$MSG"
-         fi
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ. Stream isolation appears to be functional."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
       fi
    fi
 }
@@ -904,34 +894,29 @@ whonixcheck_main() {
   # The 5% indicate, that the check has begun.
   progress_bar 5
 
-  # connection 1
-  # (Download through curl's SocksPort.)
-  check_network
-  progress_bar 20
-
   if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
     # for Whonix-Workstation
-  
+
+    # connection 1
+    check_tor "SocksPort"
+    progress_bar 20
+    
     # connection 2
     check_torbrowser
     progress_bar 40
 
-    # no connection
-    check_tor "SocksPort"
-    # No need to show progress, already fetched before.
-
     # connection 3
     check_tor "TransPort"
     progress_bar 60
+    
+    # no connection
+    check_stream_isolation
 
     # connection 4
     check_operating_system
     progress_bar 80
 
     # connection 5
-
-xxxxxxxxxxxxxxxxxxxxxx
-
     #download_whonix_news
     #verify_whonix_news
     #check_whonix_version
@@ -955,6 +940,7 @@ xxxxxxxxxxxxxxxxxxxxxx
     check_whonix_news
   fi
 
+  # no connection
   check_htpdate
 
   progress_bar 100
