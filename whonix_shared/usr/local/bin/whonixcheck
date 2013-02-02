@@ -40,9 +40,7 @@
 error_handler() {
    BUG="1"
    show_output
-   
-   ZENITY_MESSAGE=""
-   
+  
    local MSG="\
 ###########################################################
 ## whonixcheck script bug.
@@ -285,8 +283,10 @@ $3"
 
 show_output() {
    trap "error_handler" ERR INT TERM
-   
+
+   ## Do not ask for donations if a bug occurred. More important things have to be sorted out.  
    if [ "$BUG" = "0" ]; then
+      ## Do not ask for donations if the user has something important to do.  
       if [ "$ZENITY_TYPE" = "--info" ]; then
          local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
          local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
@@ -298,7 +298,8 @@ $BITCOIN_ADDRESS"
 
    local TITLE=" $ZENITY_TITLE - whonixcheck $VM $INSTALLED_WHONIX_VERSION `date`"
 
-   ## If whonixcheck was run by cron on Whonix-Gateway, echos were not shown.
+   ## If whonixcheck was run by cron on Whonix-Gateway, echos were not shown,
+   ## because whonixcheck was run automatically by cron and not manually from a terminal.
    if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
       if [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
          ## Allow messages to tty
@@ -311,15 +312,18 @@ $ZENITY_MESSAGE" | sudo wall --nobanner
       fi
    fi
 
-   if [ ! "$DISPLAY" ]; then
-      return
-   fi
-
-   zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
-   --window-icon /usr/local/share/whonix/whonix.ico \
-   --title="$TITLE" "$ZENITY_TYPE" --text "
+   ## Only attempt a graphical notification if X is running.
+   if [ "$DISPLAY" ]; then
+      zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
+      --window-icon /usr/local/share/whonix/whonix.ico \
+      --title="$TITLE" "$ZENITY_TYPE" --text "
 Whonix Check:
 ----------------------------------------------------------------------$ZENITY_MESSAGE" & 2>/dev/null
+   fi
+
+   ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+   ## should go into a new queue.
+   ZENITY_MESSAGE=""
 }
 
 
