@@ -110,6 +110,7 @@ phrase_cmd_options() {
    if [[ "$#" == "0" ]]; then
       WHONIXCHECK_CURL_VERBOSE="--silent"
       WHONIXCHECK_RAWDOG_VERBOSE=""
+      WHONIXCHECK_AUTOSTARTED="0"
    else
       if [[ "$1" = "-v" ]]; then
          set -x
@@ -122,6 +123,10 @@ phrase_cmd_options() {
          whonixcheck_help
          exit 0
       fi
+      if [[ "$1" = "-autostart" ]]; then
+         WHONIXCHECK_AUTOSTARTED="1"
+
+      fi
    fi
 }
 
@@ -132,29 +137,6 @@ preparation() {
 
    if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
       DISPLAY=":0.0"
-   fi
-
-   # Check if zenity is installed.
-   # - This is not the case for cli users.
-   # - This is also not the case on Whonix-Gateway.
-   if [ "`which zenity`" = "" ]; then
-      # zenity is not installed.
-      zenity() {
-         #dummy
-         true
-      }
-      progress_bar() {
-         #dummy
-         true
-      }
-   else
-      # zenity is installed.
-      progress_bar() {
-         if [ "$DISPLAY" ]; then
-            # zenity
-            echo "$1" >&3
-         fi
-      }
    fi
 
    # Initialize the variables.
@@ -335,8 +317,7 @@ welcome() {
 
    echo "whonixcheck by Whonix
 $WHONIX_HOMEPAGE
--help for help.
-Running checks..."
+-help for help."
 
    # Non-intrusive notification, that the checks are running in background.
    # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
@@ -344,6 +325,53 @@ Running checks..."
    local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, Whonix version, Whonix news...
 This will happen in background and will take approximately 60 seconds."
 
+   # If whonixcheck was autostarted and recently run,
+   # no checks have to be performed. Therefore also no
+   # progress bar is required.
+   if [ "$WHONIXCHECK_AUTOSTARTED" = 1 ]; then
+      if [ "$WHONIXCHECK_RECENTLY_RUN" = 0 ]; then
+         progress_bar() {
+            #dummy
+            true
+         }
+         return
+      fi
+   fi
+
+   # Check if zenity is installed.
+   # - This is not the case for cli users.
+   # - This is also not the case on Whonix-Gateway.
+   if [ "`which zenity`" = "" ]; then
+      # zenity is not installed.
+      zenity() {
+         #dummy
+         true
+      }
+      progress_bar() {
+         #dummy
+         true
+      }
+   else
+      # zenity is installed.
+      progress_bar() {
+         # Only use progress meter if we are running in X.
+         if [ "$DISPLAY" ]; then
+            # zenity
+            echo "$1" >&3
+         fi
+      }
+   fi
+
+   # No progress meter if whonixcheck is run by cron.
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
+      progress_bar() {
+         #dummy
+         true
+      }
+      return
+   fi
+
+   # Only use zenity if we are in X.
    if [ "$DISPLAY" ]; then
       local TITLE="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`"
 
@@ -365,6 +393,79 @@ $WHONIX_HOMEPAGE"
 
    echo "$MSG"
    output "--info" "Info" "$MSG"   
+}
+
+
+
+check_whonixcheck_lastrun() {
+   trap "error_handler" ERR INT TERM
+
+   if [ -f "/home/user/.whonixcheck/lastrun" ]; then
+      local i="0"
+      while read LINE; do
+         let i "i=i+1"
+         #echo "$i: $LINE"
+         if [ "$i" = "1" ]; then
+            local LASTRUN="$LINE"
+         fi
+      done < "/home/user/.whonixcheck/lastrun"
+   else
+      # the whonixcheck_completed function does the same
+      local LASTRUN="`date +%s`"
+      mkdir -p /home/user/.whonixcheck/
+      echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
+   fi
+
+   local CURRENTTIME="`date +%s`"
+
+   let DIFFERENCE="$CURRENTTIME"-"$LASTRUN"
+
+   echo "Whonixcheck was run $DIFFERENCE seconds ago."
+
+   ## One hour has 3600 seconds.
+   ## A day has 86400 seconds.
+   local MAX="86400"
+
+   ## If difference is less than or equal to to one day.
+   if [ "$DIFFERENCE" -le "$MAX" ]; then
+      WHONIXCHECK_RECENTLY_RUN="0"
+   else
+      WHONIXCHECK_RECENTLY_RUN="1"
+
+      local MSG="Whonixcheck was not run for more than one day. Running checks again..."
+      echo "$MSG"
+      ## no zenity output.
+   fi
+}
+
+
+
+not_again() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
+      return
+   fi
+
+   echo "whonixcheck was run $DIFFERENCE seconds ago. No need to run again."
+
+   if [ -f "/home/user/whonixcheck_info" ]; then
+      local MSG="Whonixcheck was recently run. No need to run all checks again already.
+
+whonixcheck is no longer run on every (re)boot.
+Instead it is run once every day Whonix is being used.
+
+You could still start it manually. (Start menu -> Applications -> System -> Whonixcheck)
+
+To get ride of this message delete whonixcheck_info in your home folder."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+         show_output
+      fi
+
+   progress_bar 100
+   cleanup
+   exit 0
 }
 
 
@@ -920,6 +1021,16 @@ download_feature_blog() {
 
 
 
+whonixcheck_completed() {
+   trap "error_handler" ERR INT TERM
+
+   local LASTRUN="`date +%s`"
+   mkdir -p /home/user/.whonixcheck/
+   echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
+}
+
+
+
 cleanup() {
    trap "error_handler" ERR INT TERM
 
@@ -935,8 +1046,10 @@ whonixcheck_main() {
   preparation  
   phrase_cmd_options $1
   kill_old_instances
+  check_whonixcheck_lastrun
   welcome
   disclaimer
+  not_again
 
   # The 5% indicate, that the check has begun.
   progress_bar 5
@@ -992,6 +1105,8 @@ whonixcheck_main() {
 
   # no connection
   check_htpdate
+
+  whonixcheck_completed
 
   progress_bar 100
   show_output
