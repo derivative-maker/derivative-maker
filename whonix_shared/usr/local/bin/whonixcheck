@@ -420,7 +420,7 @@ check_whonixcheck_lastrun() {
 
    let DIFFERENCE="$CURRENTTIME"-"$LASTRUN"
 
-   echo "Whonixcheck was run $DIFFERENCE seconds ago."
+   #echo "whonixcheck checks completed $DIFFERENCE seconds ago."
 
    ## One hour has 3600 seconds.
    ## A day has 86400 seconds.
@@ -443,16 +443,27 @@ check_whonixcheck_lastrun() {
 not_again() {
    trap "error_handler" ERR INT TERM
 
+   ## If it was not autostarted the user is free to re-run the checks.
    if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
       return
    fi
 
+   ## If it was run by cron and there is nothing to tell, say nothing.
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
+      echo "whonixcheck started by cron."
+      echo "whonixcheck checks completed $DIFFERENCE seconds ago. No need to run again."
+      progress_bar 100
+      cleanup
+      exit 0
+   fi
+
    echo "whonixcheck was run $DIFFERENCE seconds ago. No need to run again."
 
+   ## Only show the useless screen if the /home/user/whonixcheck_info file exists.
    if [ -f "/home/user/whonixcheck_info" ]; then
-      local MSG="Whonixcheck was recently run. No need to run all checks again already.
+      local MSG="Whonixcheck checks were recently completed. No need to run all checks again already.
 
-whonixcheck is no longer run on every (re)boot.
+whonixcheck checks are no longer run on every (re)boot.
 Instead it is run once every day Whonix is being used.
 
 You could still start it manually. (Start menu -> Applications -> System -> Whonixcheck)
