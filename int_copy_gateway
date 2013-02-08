@@ -91,15 +91,15 @@ copy_gateway_post() {
    # trying to set -i on /etc/resolv.conf.
    # Override trap function, if /etc/resolv.conf does not
    # exist or is write protected (+i).
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
+   rm --verbose "$CHROOT_FOLDER"/etc/resolv.conf || true
 
    # Remove write protection from resolv.conf.
    # Override trap function, if /etc/resolv.conf does not exist.
-   chattr -i "$CHROOT_FOLDER"/etc/resolv.conf || true
+   chattr -V -i "$CHROOT_FOLDER"/etc/resolv.conf || true
 
    # Delete file to keep care of potential leaks.
    # Override trap function, if /etc/resolv.conf does not exist.
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
+   rm --verbose "$CHROOT_FOLDER"/etc/resolv.conf || true
 
    # Set nameserver to localhost.
    # iptables redirects any of Whonix-Gateways DNS requests to DNS_PORT_WHONIXG
@@ -110,7 +110,7 @@ copy_gateway_post() {
    # Add write protection to resolv.conf to prevent DNS leaks by getting
    # edited by DHCP.
    # Do not override trap function, this step is essential.
-   chattr +i "$CHROOT_FOLDER"/etc/resolv.conf
+   chattr -V +i "$CHROOT_FOLDER"/etc/resolv.conf
 
    # copy skel to clearnet home
    cp --verbose --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
