@@ -406,6 +406,10 @@ $WHONIX_HOMEPAGE"
 check_whonixcheck_lastrun() {
    trap "error_handler" ERR INT TERM
 
+   ## One hour has 3600 seconds.
+   ## A day has 86400 seconds.
+   local MAX="86400"
+   
    if [ -f "/home/user/.whonixcheck/lastrun" ]; then
       local i="0"
       while read LINE; do
@@ -416,8 +420,8 @@ check_whonixcheck_lastrun() {
          fi
       done < "/home/user/.whonixcheck/lastrun"
    else
-      # the whonixcheck_completed function does the same
-      local LASTRUN="`date +%s`"
+      # the whonixcheck_completed function does almost the same
+      local LASTRUN="$MAX"
       mkdir -p /home/user/.whonixcheck/
       echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
    fi
@@ -427,10 +431,6 @@ check_whonixcheck_lastrun() {
    let DIFFERENCE="$CURRENTTIME"-"$LASTRUN" || true
 
    #echo "whonixcheck checks completed $DIFFERENCE seconds ago."
-
-   ## One hour has 3600 seconds.
-   ## A day has 86400 seconds.
-   local MAX="86400"
 
    ## If difference is less than or equal to to one day.
    #echo "DIFFERENCE: $DIFFERENCE MAX: $MAX"
