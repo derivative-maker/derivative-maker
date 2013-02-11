@@ -126,4 +126,17 @@ debug "INFO: Successfully verified Sebastian Hahn's GPG key."
 # Not needed when using debootstrap.
 #apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge $(dpkg -l|egrep '^ii  linux-(im|he)'|awk '{print $2}'|grep -v `uname -r`) || true
 
+config_home() {
+trap "error_handler" ERR INT TERM
 
+# Thanks to:
+# https://bbs.archlinux.org/viewtopic.php?id=116451
+# http://askubuntu.com/questions/98135/gnome-terminal-ignores-gtk-theme
+
+# Fixing black on black for gnome-terminal.
+# Thanks to: http://ubuntuforums.org/showthread.php?t=1513791
+# Thanks to: https://gist.github.com/1397104
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
+sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/foreground_color" --type string "#FFFFFFFFFFFF"
+}
