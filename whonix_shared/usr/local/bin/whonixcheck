@@ -587,6 +587,54 @@ Last resort: manually set the clock! (In UTC!):
 
 
 
+tbbversion() {
+   # code shared between torbrowser and whonixcheck
+
+   #trap "tb_error_handler" ERR
+
+   # fallback
+   TBBVERSION="UNKNOWN"
+
+   if [ -f "RecommendedTBBVersions" ]; then
+      local i="0"
+      while read LINE; do
+         let i "i=i+1" ||  true
+
+         echo "$LINE" | grep -q -i -s "alpha"
+         if [ $? -eq 0 ]; then            
+            continue
+         fi 
+         echo "$LINE" | grep -q -i -s "MacOS"
+         if [ $? -eq 0 ]; then            
+            continue
+         fi 
+         echo "$LINE" | grep -q -i -s "Windows"
+         if [ $? -eq 0 ]; then            
+            continue
+         fi 
+
+         LINE="`echo "$LINE" | sed 's/"//g'`"
+         LINE="`echo "$LINE" | sed 's/,//g'`"
+
+         echo "$LINE" | grep -q -i -s "Linux-"$ARCH""
+         if [ $? -eq 0 ]; then            
+            TBBVERSION="$LINE"
+            TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
+            TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
+            TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
+         fi 
+
+      done < "RecommendedTBBVersions"
+   else
+      trap "tb_error_handler" ERR
+      error "RecommendedTBBVersions does not exist."
+   fi
+
+   #echo "TBBVERSION: $TBBVERSION"
+}
+
+
+
 check_torbrowser() {
    trap "error_handler" ERR INT TERM
 
@@ -613,12 +661,7 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
       return
    fi
 
-   TBBVERSION="`grep Linux-"$ARCH" RecommendedTBBVersions`"
-   TBBVERSION="`echo "$TBBVERSION" | sed 's/"//g'`"
-   TBBVERSION="`echo "$TBBVERSION" | sed 's/,//g'`"
-   TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
-   TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
-   TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
+   tbbversion
 
    # Getting currently installed version number
    TBBINSTALLEDVERSION="`head -1 /home/"$USERNAME"/tor-browser_"$TB_LANG"/Docs/version`" || true
