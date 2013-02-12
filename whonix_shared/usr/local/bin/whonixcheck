@@ -322,20 +322,7 @@ Whonix Check:
 
 
 
-zenibar() {
-   # If whonixcheck was autostarted and recently run,
-   # no checks have to be performed. Therefore also no
-   # progress bar is required.
-   if [ "$WHONIXCHECK_AUTOSTARTED" = 1 ]; then
-      if [ "$WHONIXCHECK_RECENTLY_RUN" = "0" ]; then
-         progress_bar() {
-            #dummy
-            true
-         }
-         return
-      fi
-   fi
-
+progress_bar() {
    # Check if zenity is installed.
    # - This is not the case for cli users.
    # - This is also not the case on Whonix-Gateway.
@@ -345,31 +332,29 @@ zenibar() {
          #dummy
          true
       }
-      progress_bar() {
-         #dummy
-         true
-      }
-   else
-      # zenity is installed.
-      progress_bar() {
-         # Only use progress meter if we are running in X.
-         if [ "$DISPLAY" ]; then
-            # zenity
-            if [ "$STARTED_ZENITY_BAR" = "1" ]; then
-               echo "$1" >&3
-            fi
-         fi
-      }
+      return
+   fi
+
+   # Only use progress meter if we are running in X.
+   if [ ! "$DISPLAY" ]; then
+      return
+   fi
+
+   if [ "$STARTED_ZENITY_BAR" = "0" ]; then
+      return
    fi
 
    # No progress meter if whonixcheck is run by cron.
    if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
-      progress_bar() {
-         #dummy
-         true
-      }
+      return
+   fi            
+
+   # If run without parameter. (inizialisation)
+   if [ "$1" = "" ]; then
       return
    fi
+
+   echo "$1" >&3
 }
 
 
@@ -1125,7 +1110,7 @@ whonixcheck_main() {
   phrase_cmd_options $1
   kill_old_instances
   check_whonixcheck_lastrun
-  zenibar
+  progress_bar
   not_again
   welcome
   disclaimer
