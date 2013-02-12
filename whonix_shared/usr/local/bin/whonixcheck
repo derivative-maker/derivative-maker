@@ -337,19 +337,18 @@ progress_bar() {
 
    # Only use progress meter if we are running in X.
    if [ ! "$DISPLAY" ]; then
+      zenity() {
+         #dummy
+         true
+      }
       return
    fi
 
    if [ "$STARTED_ZENITY_BAR" = "0" ]; then
       return
-   fi
+   fi  
 
-   # No progress meter if whonixcheck is run by cron.
-   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
-      return
-   fi            
-
-   # If run without parameter. (inizialisation)
+   # If run without parameter. (initialization)
    if [ "$1" = "" ]; then
       return
    fi
@@ -372,16 +371,13 @@ $WHONIX_HOMEPAGE
    local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, Whonix version, Whonix news...
 This will happen in background and will take approximately 60 seconds."
 
-   # Only use zenity if we are in X.
-   if [ "$DISPLAY" ]; then
-      STARTED_ZENITY_BAR="1"
-      local TITLE="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`"
+   STARTED_ZENITY_BAR="1"
+   local TITLE="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`"
 
-      # The progress window will close automatically after 100% progress.
-      exec 3> >(zenity --display="$DISPLAY" --timeout 86400 --no-markup \
-      --window-icon /usr/local/share/whonix/whonix.ico \
-      --title="$TITLE" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
-   fi
+   # The progress window will close automatically after 100% progress.
+   exec 3> >(zenity --display="$DISPLAY" --timeout 86400 --no-markup \
+   --window-icon /usr/local/share/whonix/whonix.ico \
+   --title="$TITLE" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
 }
 
 
@@ -452,6 +448,10 @@ not_again() {
       return
    fi
 
+   if [ "$WHONIXCHECK_RECENTLY_RUN" = "0" ]; then
+      return
+   fi
+
    ## If it was run by cron and there is nothing to tell, say nothing.
    if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
       echo "whonixcheck started by cron."
@@ -459,10 +459,6 @@ not_again() {
       progress_bar 100
       cleanup
       exit 0
-   fi
-
-   if [ "$WHONIXCHECK_RECENTLY_RUN" = "0" ]; then
-      return
    fi
 
    echo "whonixcheck was run $DIFFERENCE seconds ago. No need to run again."
