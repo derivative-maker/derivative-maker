@@ -465,7 +465,12 @@ not_again() {
 
    ## Only show the useless screen if the /home/user/whonixcheck_info file exists.
    if [ -f "/home/user/whonixcheck_info" ]; then
-      local MSG="Whonixcheck checks were recently completed. No need to run all checks again already.
+      ## No info, that nothing has to be done, when invoked by /etc/profile.d/whonixcheck.sh.
+      if [ "$WHONIXCHECK_RUN_BY_PROFILE_D" = 1 ]; then
+         # nothing
+         true
+      else
+         local MSG="Whonixcheck checks were recently completed. No need to run all checks again already.
 
 whonixcheck checks are no longer run on every (re)boot.
 Instead it is run once every day Whonix is being used.
@@ -476,6 +481,7 @@ To get ride of this message delete whonixcheck_info in your home folder."
          echo "$MSG"
          output "--info" "Info" "$MSG"
          show_output
+      fi
    fi
 
    progress_bar 100
