@@ -28,10 +28,6 @@ copy_workstation_pre() {
    # Whonix-Workstation Copy Pre #
    ###############################
 
-   # Copy VM script into VM image and make it executable.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script \
-"$CHROOT_FOLDER"/usr/local/share/whonix/whonix_internal_install_script
-
    # Copy Whonix helpfile into VM.
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/bin/whonix "$CHROOT_FOLDER"/usr/local/bin/whonix
 
@@ -42,9 +38,6 @@ copy_workstation_pre() {
 
    # Copy the torbrowser update script.
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/bin/torbrowser "$CHROOT_FOLDER"/usr/local/bin/torbrowser
-
-   # Just a marker that it is a whonix_workstation. Used by whonixcheck script.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_workstation "$CHROOT_FOLDER"/usr/local/share/whonix/whonix_workstation
 
    # /etc/network/interfaces
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
@@ -64,16 +57,26 @@ copy_workstation_pre() {
    mkdir -p /etc/apt/apt.conf.d
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/apt/apt.conf.d/99whonix "$CHROOT_FOLDER"/etc/apt/apt.conf.d/
 
+   # /etc/environment
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/environment "$CHROOT_FOLDER"/etc/
+
    # start-tor-browser
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/start-tor-browser \
 "$CHROOT_FOLDER"/usr/local/share/whonix/start-tor-browser
 
-   # /etc/environment
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/environment "$CHROOT_FOLDER"/etc/
+   # Just a marker that it is a whonix_workstation. Used by whonixcheck script.
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_workstation "$CHROOT_FOLDER"/usr/local/share/whonix/whonix_workstation
 
-      ############
-      # leaktest #
-      ############
+   # kde settings files
+   mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix/
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/kde "$CHROOT_FOLDER"/usr/local/share/whonix/
+
+   # symlinks is created by
+   # "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
+
+   # Copy VM script into VM image and make it executable.
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script \
+"$CHROOT_FOLDER"/usr/local/share/whonix/whonix_internal_install_script
 
    # Create the leaktest folder.
    mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix/leaktest
@@ -94,14 +97,6 @@ copy_workstation_pre() {
    cp "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/leaktest/udp_test.py \
 "$CHROOT_FOLDER"/usr/local/share/whonix/leaktest/udp_test.py
 
-   # /usr/local/bin/leaktest
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/bin/leaktest \
-"$CHROOT_FOLDER"/usr/local/bin/leaktest
-
-      #########
-      # xchat #
-      #########
-
    # Prepare /usr/local/share/whonix/xchat2 folder.
    mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix/
    chown --recursive user:user "$CHROOT_FOLDER"/usr/local/share/whonix/
@@ -110,6 +105,10 @@ copy_workstation_pre() {
 
    # Copy xchat configuration files.
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/xchat2 "$CHROOT_FOLDER"/usr/local/share/whonix/
+
+   # /usr/local/bin/leaktest
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/bin/leaktest \
+"$CHROOT_FOLDER"/usr/local/bin/leaktest
 
    # /usr/local/bin/xchat-reset
    # TODO: Needs documentation, warning, gui, menu integration.
@@ -140,10 +139,6 @@ copy_workstation_pre() {
    mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
    chown --recursive user:user "$CHROOT_FOLDER"/home/user/.config/autostart
 
-   # kde settings files
-   mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix/
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/kde "$CHROOT_FOLDER"/usr/local/share/whonix/
-
       #########################
       # whonixcheck autostart #
       #########################
@@ -156,13 +151,6 @@ copy_workstation_pre() {
    chown --recursive user:user "$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
 
    cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/whonixcheck_info "$CHROOT_FOLDER"/home/user/whonixcheck_info
-
-      #################
-      # Desktop Icons #
-      #################
-
-   # symlinks is created by
-   # "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
 
       ######################
       # mixmaster remailer #
