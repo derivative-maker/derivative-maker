@@ -15,6 +15,17 @@ copy_gateway_pre() {
    # Whonix-Gateway Copy Pre  #
    ############################
 
+   # /etc/resolv.conf
+   chattr -V -i "$CHROOT_FOLDER"/etc/resolv.conf
+
+   # /etc/resolv.conf
+   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+
+   # Add write protection to resolv.conf to prevent DNS leaks by getting
+   # edited by DHCP.
+   # Do not override trap function, this step is essential.
+   chattr -V +i "$CHROOT_FOLDER"/etc/resolv.conf
+
    # /etc/apt/sources.list.d/torproject.list
    mkdir -p "$CHROOT_FOLDER"/etc/apt
    mkdir -p "$CHROOT_FOLDER"/etc/apt/sources.list.d
@@ -68,7 +79,11 @@ append_gateway_pre() {
    # Whonix-Gateway Append Pre #
    #############################
 
-   true
+   # Append to sysctl.conf.
+   # IPv6 off, Forwarding off, fs.file-max to 100000, vm.swappiness to 0.
+   while read LINE; do
+      echo $LINE >> "$CHROOT_FOLDER"/etc/sysctl.conf
+   done < "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/appendto_sysctl.conf
 }
 
 copy_gateway_post() {
@@ -78,35 +93,7 @@ copy_gateway_post() {
    # Whonix-Gateway Copy Post #
    ############################
 
-       ####################
-       # /etc/resolv.conf #
-       ####################
 
-   # Delete /etc/resolv.conf to work around some strange bug
-   # "Operation not supported While reading flags on" while
-   # trying to set -i on /etc/resolv.conf.
-   # Override trap function, if /etc/resolv.conf does not
-   # exist or is write protected (+i).
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Remove write protection from resolv.conf.
-   # Override trap function, if /etc/resolv.conf does not exist.
-   chattr -V -i "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Delete file to keep care of potential leaks.
-   # Override trap function, if /etc/resolv.conf does not exist.
-   rm "$CHROOT_FOLDER"/etc/resolv.conf || true
-
-   # Set nameserver to localhost.
-   # iptables redirects any of Whonix-Gateways DNS requests to DNS_PORT_WHONIXG
-   # Do not override trap function, this step is essential.
-   # resolv.conf
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
-
-   # Add write protection to resolv.conf to prevent DNS leaks by getting
-   # edited by DHCP.
-   # Do not override trap function, this step is essential.
-   chattr -V +i "$CHROOT_FOLDER"/etc/resolv.conf
 
    # copy skel to clearnet home
    cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
