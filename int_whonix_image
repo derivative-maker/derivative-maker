@@ -276,6 +276,13 @@ do_chroot() {
 
 # REVIEW: not sure if we better mount more or less of them.
 
+###############
+# policy-rc.d #
+###############
+
+echo "int_whonix_image: copy policy-rc.d into /usr/sbin/ to prevent deamons from starting."
+cp --preserve --verbose "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/share/whonix/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+
 ########
 # /dev #
 ########
@@ -428,6 +435,8 @@ move_sources() {
 
 do_unchroot() {
    trap "error_handler_int_whonix_image" ERR INT TERM
+
+   rm --verbose "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
 
    #umount "$CHROOT_FOLDER"/dev/pts || true
    umount "$CHROOT_FOLDER"/dev || true
