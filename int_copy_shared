@@ -10,10 +10,10 @@ copy_backup_shared() {
    chmod --recursive 0440 "$CHROOT_FOLDER"/etc/sudoers.backup
    chown --recursive root:root "$CHROOT_FOLDER"/etc/sudoers.backup
 
-   # Better no backup of localtime.
+   ## Better no backup of localtime.
    #cp --no-clobber "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
 
-   # Better no backup of dbusmachineid.
+   ## Better no backup of dbusmachineid.
 
    cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local.backup
    cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
@@ -34,83 +34,28 @@ copy_backup_shared() {
 copy_into_shared() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   # Delete old swapfile, only in case the script has run before. (Debugging only.)
+   ## Delete old swapfile, only in case the script has run before. (Debugging only.)
    rm "$CHROOT_FOLDER"/swapfile1 || true
 
-   # copy skel to user home
-   cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/user
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user
-
-   # Ensure timezone is UTC.
-   cp --recursive --preserve "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
-
-   # This is required because debootstrap will mess up /etc/apt/sources.list.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
-
-   # Create folder.
-   mkdir -p "$CHROOT_FOLDER"/usr/local/share/whonix/
-
-   # dbus machine-id is shared among all Whonix users.
-   # We must create the folder, because that file does not exist at this point.
-   mkdir -p "$CHROOT_FOLDER"/var
-   mkdir -p "$CHROOT_FOLDER"/var/lib
-   mkdir -p "$CHROOT_FOLDER"/var/lib/dbus
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id
-
-   # copy tails_htpdate binary
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/sbin/htpdate "$CHROOT_FOLDER"/usr/local/sbin/htpdate
-
-   # copy hptdate init script
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/init.d/htpdate "$CHROOT_FOLDER"/etc/init.d/htpdate
-
-   # tails_htp configuration file
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/default/htpdate "$CHROOT_FOLDER"/etc/default/htpdate
-
-   # htp anachron script to run it hourly
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/cron.hourly/htpdate "$CHROOT_FOLDER"/etc/cron.hourly/htpdate
-
-   # /usr/local/bin
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/bin/* "$CHROOT_FOLDER"/usr/local/bin/
-
-   # /etc/fstab
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/fstab "$CHROOT_FOLDER"/etc/fstab
-
-   # Tor Browser signing GPG public key
-   # https://www.torproject.org/docs/verifying-signatures.html.en
-
-   # /etc/rc.local
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local
-
-   # /etc/motd
-   # rm to get ride of the symlink, in case there is any.
-   # http://wiki.debian.org/motd
+   ## /etc/motd
+   ## rm to get ride of the symlink, in case there is any.
+   ## http://wiki.debian.org/motd
    rm "$CHROOT_FOLDER"/etc/motd || true
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/motd "$CHROOT_FOLDER"/etc/motd
 
-   # /etc/apt/apt.conf.d/20noperiodic
-   mkdir -p /etc/apt/
-   mkdir -p /etc/apt/apt.conf.d/
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/apt.conf.d/20noperiodic "$CHROOT_FOLDER"/etc/apt/apt.conf.d/20noperiodic
-
-   # /etc/inittab
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/inittab "$CHROOT_FOLDER"/etc/inittab
-
-   # /usr/local/share/whonix/
-   cp --preserve --recursive "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/share/whonix/* "$CHROOT_FOLDER"/usr/local/share/whonix/
-
-   # /etc/profile.d/whonixcheck.sh
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/profile.d/whonixcheck.sh "$CHROOT_FOLDER"/etc/profile.d/
-
-      ##############
-      # Base Files #
-      ##############
-
-   # delete default symlink to "$CHROOT_FOLDER"/etc/dpkg/origins/debian
+   ## delete default symlink to "$CHROOT_FOLDER"/etc/dpkg/origins/debian
    rm "$CHROOT_FOLDER"/etc/dpkg/origins/default || true
 
-   # dpkg origins file
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/dpkg/origins/whonix "$CHROOT_FOLDER"/etc/dpkg/origins/
-   
-   # /etc/dpkg/origins/default
-   # symlink is created by whonix_internal_install_script
+   ## copy skel to user home
+   cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/user
+
+   ## Ensure timezone is UTC.
+   cp --recursive --preserve "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
+
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_shared/ "$CHROOT_FOLDER"/
+
+   ## /etc/dpkg/origins/default
+   ## symlink is created by whonix_internal_install_script
+
+   ## Permissions for /home/user get fixed by int_copy_gateway or int_copy_workstation.
 }

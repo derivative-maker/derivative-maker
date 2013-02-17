@@ -18,97 +18,19 @@ copy_backup_workstation() {
 copy_into_workstation() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   # /etc/kde4/kdm/kdmrc
+   ## /etc/resolv.conf
+   ## We do not need chattr +i for Whonix-W resolv.conf, because
+   ## DHCP is never used and resolvconf was uninstalled.
 
-   # /etc/resolv.conf
-   # We do not need chattr +i for Whonix-W resolv.conf, because
-   # dhcp is never used and resolvconf was uninstalled.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+   ## /home/user/Desktop symlinks get created by
+   ## "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
 
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/bin/* "$CHROOT_FOLDER"/usr/local/bin/
+   ## copy skel to user home is done in int_copy_shared
 
-   # /etc/network/interfaces
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_workstation/ "$CHROOT_FOLDER"/
 
-   # polipo
-   mkdir -p "$CHROOT_FOLDER"/whonix_workstation/etc/
-   mkdir -p "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/polipo/config "$CHROOT_FOLDER"/etc/polipo/
-
-   # wpolipo whonix polipo wrapper for multiple http listen ports and multiple socks parent proxies
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/init.d/wpolipo "$CHROOT_FOLDER"/etc/init.d/wpolipo
-
-   # apt conf 99whonix
-   mkdir -p /etc/apt/apt.conf.d
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/apt/apt.conf.d/99whonix "$CHROOT_FOLDER"/etc/apt/apt.conf.d/
-
-   # /etc/environment
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/etc/environment "$CHROOT_FOLDER"/etc/
-
-   # /usr/local/share/whonix/
-   cp --preserve --recursive "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/* "$CHROOT_FOLDER"/usr/local/share/whonix/
-
-   # symlinks is created by
-   # "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
-
-      ###########
-      # desktop #
-      ###########
-
-   mkdir -p "$CHROOT_FOLDER"/home/
-   # no chown...
-
+   ## Fix permissions for /home/user/.
    mkdir -p "$CHROOT_FOLDER"/home/user/
    chown --recursive user:user "$CHROOT_FOLDER"/home/user/
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/.local/share/
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.local/share/
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/Desktop
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/Desktop
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/.config/autostart
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.config/autostart
-
-      #########################
-      # whonixcheck autostart #
-      #########################
-
-   # .config/autostart/whonixcheck.desktop
-   # ~/.config/autostart is a freedesktop.org standard and should work cross desktop.
-   # Create whonixcheck autostart.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.config/autostart/whonixcheck.desktop \
-"$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.config/autostart/whonixcheck.desktop
-
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/whonixcheck_info "$CHROOT_FOLDER"/home/user/whonixcheck_info
-
-      ######################
-      # mixmaster remailer #
-      ######################
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/.Mix
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.Mix
-
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.Mix/mix.cfg "$CHROOT_FOLDER"/home/user/.Mix/mix.cfg
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.Mix/mix.cfg
-
-      ##########
-      # rawdog #
-      ##########
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/.rawdog
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.rawdog
-
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.rawdog/* "$CHROOT_FOLDER"/home/user/.rawdog/
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.rawdog
-
-      ###########
-      # TorChat #
-      ###########
-
-   mkdir -p "$CHROOT_FOLDER"/home/user/.torchat
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.torchat
-
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_workstation/home/user/.torchat/* "$CHROOT_FOLDER"/home/user/.torchat/
 }

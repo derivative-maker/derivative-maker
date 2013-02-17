@@ -1,12 +1,12 @@
 #!/bin/bash
-# internally used by whonix_createvm
+## internally used by whonix_createvm
 
 set -x
 
 copy_backup_gateway() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   # Backup torrc inside VM before replacing it with Whonix version.
+   ## Backup torrc inside VM before replacing it with Whonix version.
    cp --no-clobber "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
 }
 
@@ -15,63 +15,25 @@ copy_backup_gateway() {
 copy_into_gateway() {
    trap "error_handler_int_whonix_image" ERR INT TERM
 
-   # copy skel to clearnet home
+   ## copy skel to clearnet home
    cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
-   chown --recursive clearnet:clearnet "$CHROOT_FOLDER"/home/clearnet
 
-   # /etc/resolv.conf
+   ## copy skel to user home is done in int_copy_shared
+
+   ## Remove write protection from /etc/resolv.conf
    chattr -V -i "$CHROOT_FOLDER"/etc/resolv.conf
 
-   # /etc/resolv.conf
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_gateway/ "$CHROOT_FOLDER"/
 
-   # Add write protection to resolv.conf to prevent DNS leaks by getting
-   # edited by DHCP.
-   # Do not override trap function, this step is essential.
+   ## Add write protection to resolv.conf to prevent DNS leaks by getting
+   ## edited by DHCP.
+   ## Do not override trap function, this step is essential.
    chattr -V +i "$CHROOT_FOLDER"/etc/resolv.conf
 
-   # /etc/apt/sources.list.d/torproject.list
-   mkdir -p "$CHROOT_FOLDER"/etc/apt
-   mkdir -p "$CHROOT_FOLDER"/etc/apt/sources.list.d
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/apt/sources.list.d/torproject.list "$CHROOT_FOLDER"/etc/apt/sources.list.d/
+   ## Fix /home/clearnet permissions.
+   chown --recursive clearnet:clearnet "$CHROOT_FOLDER"/home/clearnet
 
-   # Copy Whonix torrc into VM.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc
-
-   # Copy Whonix firewall script into VM.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/whonix_firewall "$CHROOT_FOLDER"/usr/local/bin/whonix_firewall
-
-   # Copy interfaces into VM.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces
-
-   # Copy VM script into VM image and make it executable.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/share/whonix/whonix_internal_install_script \
-"$CHROOT_FOLDER"/usr/local/share/whonix/whonix_internal_install_script
-
-   # Copy arm wrapper script to start arm into VM.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/arm "$CHROOT_FOLDER"/usr/local/bin/arm
-
-   # Copy Whonix helpfile into VM.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/whonix "$CHROOT_FOLDER"/usr/local/bin/whonix
-
-   # Create folder for vidalia.
-   mkdir -p "$CHROOT_FOLDER"/home/
-   # no chown...
-   mkdir -p "$CHROOT_FOLDER"/home/user/
+   ## Fix /home/user permissions.
    chown --recursive user:user "$CHROOT_FOLDER"/home/user
-   mkdir -p "$CHROOT_FOLDER"/home/user/.vidalia
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.vidalia
-
-   # Setup Vidalia to use Cookie Authentication.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/home/user/.vidalia/vidalia.conf "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
-   chown --recursive user:user "$CHROOT_FOLDER"/home/user/.vidalia/vidalia.conf
-
-   # Copy the developers-only clearnet traffic passthrough script.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/dev_clearnet "$CHROOT_FOLDER"/usr/local/bin/dev_clearnet
-
-   # Copy Whonix-Gateway leaktest script into VM and make it executable.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/bin/leaktest "$CHROOT_FOLDER"/usr/local/bin/leaktest
-
-   # Just a marker that it is a whonix_gateway. Used by whonixcheck script.
-   cp --recursive --preserve "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/local/share/whonix/whonix_gateway "$CHROOT_FOLDER"/usr/local/share/whonix/whonix_gateway
 }
