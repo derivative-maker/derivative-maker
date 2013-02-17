@@ -1,43 +1,48 @@
-# for more information see interfaces(5)
+## for more information see interfaces(5)
 
-# Whonix /etc/network/interfaces
+## Whonix /etc/network/interfaces
 
-# You can find a backup of the original interfaces under /etc/network/interfaces.backup.
+## You can find a backup of the original interfaces under /etc/network/interfaces.backup.
 
-# Loopback.
+## Unfortunately, we can not use /etc/network/if-pre-up.d,
+## because of a Debian upstream bug.
+## interface comes up even if a script in /etc/network/if-pre-up.d/ fails:
+## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=700811
+
+## Loopback.
 auto lo
 iface lo inet loopback
 
-# NAT interface to communicate with Virtual Box. DHCP
+## NAT interface to communicate with Virtual Box. DHCP
 auto eth0
 iface eth0 inet dhcp 
        pre-up /usr/local/bin/whonix_firewall
 
-# NAT interface to communicate with Virtual Box. STATIC
-#
-# Not sure if we should use static network for the NAT
-# adapter.
-# https://forums.virtualbox.org/viewtopic.php?f=1&t=49066
-# Might conflict with other virtual machines.
-# Open for input.
-#
-# apt-get --yes remove --purge dhcp*
-#
+## NAT interface to communicate with Virtual Box. STATIC
+##
+## Not sure if we should use static network for the NAT
+## adapter.
+## https://forums.virtualbox.org/viewtopic.php?f=1&t=49066
+## Might conflict with other virtual machines.
+## Open for input.
+##
+## apt-get --yes remove --purge dhcp*
+##
 #auto eth0
 #iface eth0 inet static
 #       address 10.0.2.15
 #       netmask 255.255.255.0
 #       gateway 10.0.2.2
-# broadcast required?
+## broadcast required?
 #       broadcast 10.0.2.255
 #       pre-up /usr/local/bin/whonix_firewall
 
-# Internal, isolated network "Whonix". Soeley used to
-# communicate # with Whonix-Workstation. Has no access
-# to the host.
+## Internal, isolated network "Whonix". Soeley used to
+## communicate # with Whonix-Workstation. Has no access
+## to the host.
 auto eth1
 iface eth1 inet static
-       # INT_IP
+       ## INT_IP
        address 192.168.0.10
        netmask 255.255.255.0
        # Out commented.
@@ -45,4 +50,4 @@ iface eth1 inet static
        #network 192.168.0.0
        #broadcast 192.168.0.255
 
-# end of Whonix /etc/network/interfaces
+## end of Whonix /etc/network/interfaces
