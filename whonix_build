@@ -7,19 +7,19 @@ script_help() {
 # creates separate build folder
 # FLAGS:
 # -all
-# (untested)
 # build both Virtual machines
 #
+# -fast
+# skips the -createimg step
+#
 # -tg
-# (untested)
 # Builds Whonix-Gateway VBox machine.
 #
 # -tw
-# (untested)
 # Builds Whonix-Workstation VBox machine.
 #
 # -clean
-# deletes the whole content of the whonix_binary folder
+# deletes .img and Virtual Box vms
 "
 }
 
@@ -38,6 +38,7 @@ build_error_handler() {
 
 USERNAME="user"
 WHONIX_SOURCE_FOLDER="/home/$USERNAME/Whonix"
+FAST=0
 
 
 
@@ -68,9 +69,11 @@ whonix_build_machine() {
       "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-vboxdelete
       if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
 
-      trap "build_error_handler" ERR
-      "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-createimg
-      if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+      if [ "$FAST" = "0" ]; then
+         trap "build_error_handler" ERR
+         "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-createimg
+         if [ -f /home/$USERNAME/whonix_binary/WHONIX_BUILD_FAILED ]; then echo "BUILD SCRIPT ERROR: Failed!"; exit 0; fi
+      fi
 
       trap "build_error_handler" ERR
       "$WHONIX_SOURCE_FOLDER"/whonix_createvm -t"$MACHINE"-copyimg
@@ -159,6 +162,18 @@ fi
 # -all                                                         #
 ################################################################ 
 if [[ "$1" = "-all" ]]; then
+	MACHINE="g"
+	whonix_build_machine
+	MACHINE="w"
+	whonix_build_machine
+	exit 0
+fi
+
+################################################################ 
+# -fast                                                        #
+################################################################ 
+if [[ "$1" = "-fast" ]]; then
+        FAST=1
 	MACHINE="g"
 	whonix_build_machine
 	MACHINE="w"

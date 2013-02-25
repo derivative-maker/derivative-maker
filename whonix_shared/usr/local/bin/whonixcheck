@@ -369,7 +369,7 @@ welcome() {
    # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
    #notify-send --urgency low --expire-time 0 --app-name "Whonix" "$NOTIFY_MSG"
    local NOTIFY_MSG="Checking time synchronization, Tor connection, Tor Browser version, operating system updates, Whonix version, Whonix news...
-This will happen in background and will take approximately 60 seconds."
+This will happen in background and will take approximately three minutes."
 
    STARTED_ZENITY_BAR="1"
    local TITLE="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`"
@@ -604,7 +604,7 @@ tbbversion() {
          LINE="`echo "$LINE" | sed 's/"//g'`"
          LINE="`echo "$LINE" | sed 's/,//g'`"
 
-         echo "$LINE" | grep -q -i -s "Linux-"$ARCH""
+         echo "$LINE" | grep -q -i -s "Linux"
          if [ $? -eq 0 ]; then            
             TBBVERSION="$LINE"
             TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
@@ -639,7 +639,7 @@ check_torbrowser() {
    echo "Checking Tor Browser version..."
 
    # Getting latest version number
-   /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
+   /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --max-time 300 --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
 
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed. Could now download: https://check.torproject.org/RecommendedTBBVersions
@@ -701,13 +701,13 @@ check_tor() {
       
       # Ensuring normal curl activity can not be linked to whonixcheck,
       # by using a SocksPort, which is solely used by whonixcheck.
-      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
       if [ "$NETWORK_DOWN" = "1" ]; then
          local MSG="Your Internet connection appears to be down.
 
 Possible reasons:
-- Is your host internet connections functional?
+- Is your host internet connection functional?
 - Did you start Whonix-Gateway beforehand?
 - Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
 - check.tpo is offline.
@@ -717,7 +717,9 @@ Try again: Start menu -> Applications -> System -> Whonix Check
            or in Terminal: whonixcheck
            or in Terminal with debugging: whonixcheck -v
 
-Run whonixcheck on Whonix-Gatway as well."
+Run whonixcheck on Whonix-Gatway as well.
+
+Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
 
          echo "$MSG"
          output "--error" "ERROR" "$MSG"
@@ -740,10 +742,10 @@ Run whonixcheck on Whonix-Gatway as well."
       echo "Testing Tor's TransPort..."
 
       ## For production:
-      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --tlsv1 --proto =https --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
 
       ## For testing behind demo/test vpn from usaip. (They block SSL.)
-      #/usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --output index.html http://check.torproject.org || NETWORK_DOWN="1"
+      #/usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --max-time 300 --output index.html http://check.torproject.org || NETWORK_DOWN="1"
    else
      local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
      echo "$MSG"
@@ -844,8 +846,8 @@ error_handler_check_operating_system() {
 
       local MSG="Could not check for operating system updates.
 Please check by manually running:
-sudo apt-get update
-sudo apt-get dist-upgrade"
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+sudo apt-get update && sudo apt-get dist-upgrade"
       echo "$MSG"
       output "--error" "WARNING" "$MSG"
 }
@@ -888,18 +890,24 @@ $CHECK_OS_RESULT"
    if [ "$DISPLAY" ]; then
       # Check if apper is installed and use it.
       if [ -f "`which apper`" ]; then
-         apper --updates --display "$DISPLAY" 2>/dev/null 
+
+         ## The Apper line below worked, but Apper has
+         ## too many bugs. Needs more testing and bugreports.
+         #apper --updates --display "$DISPLAY" 2>/dev/null 
+
          local MSG="$CHECK_OS_RESULT
-Please update Whonix-Gateway and Whonix-Workstation.
-apt-get update && apt-get dist-upgrade"
+Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+sudo apt-get update && sudo apt-get dist-upgrade"
          echo "$MSG"
          output "--error" "WARNING" "$MSG"
-	     return
+         return
       fi
    fi
 
    local MSG="$CHECK_OS_RESULT
 Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
 sudo apt-get update && sudo apt-get dist-upgrade"
    echo "$MSG"
    output "--error" "WARNING" "$MSG"
@@ -918,7 +926,7 @@ download_whonix_news() {
    # sf.net does not yet support ssl for project web.
    # --location is required since sf.net uses redirects.
    /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
-   --location --max-redirs 5 --output "whonix_news.asc" \
+   --location --max-time 300 --output "whonix_news.asc" \
    "http://sourceforge.net/projects/whonix/files/news/whonix_news.asc/download" \
    || DOWNLOAD_NEWS_SUCCESS="0"
 

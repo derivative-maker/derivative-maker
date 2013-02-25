@@ -132,7 +132,7 @@ root_check() {
 ## ARCH="x86_64"
 ## ARCH="i686"
 ARCH="`uname --machine`"
-echo "$ARCH detected."
+echo "INFO: $ARCH detected."
 
 
 
@@ -315,7 +315,7 @@ tbbversion() {
          LINE="`echo "$LINE" | sed 's/"//g'`"
          LINE="`echo "$LINE" | sed 's/,//g'`"
 
-         echo "$LINE" | grep -q -i -s "Linux-"$ARCH""
+         echo "$LINE" | grep -q -i -s "Linux"
          if [ $? -eq 0 ]; then            
             TBBVERSION="$LINE"
             TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
@@ -395,7 +395,7 @@ debug "INFO: Find out latest version..."
 LINK="https://check.torproject.org/RecommendedTBBVersions"
 debug "INFO: Downloading: "$LINK""
 /usr/bin/curl $CURL_PROXY \
---tlsv1 --proto =https --output RecommendedTBBVersions "$LINK" || NETWORK_DOWN="1"
+--tlsv1 --proto =https --max-time 300 --output RecommendedTBBVersions "$LINK" || NETWORK_DOWN="1"
 
 progress_bar 95
 
@@ -711,19 +711,17 @@ tb_start_new_tab() {
       debug "INFO: Starting Tor Browser..."
       cd ~/tor-browser_"$TB_LANG"/
       ~/tor-browser_"$TB_LANG"/start-tor-browser &
+      ## Unfortunately, we must hard code the time to wait before
+      ## we try open extra tabs. Just waiting for the pid to exists
+      ## does not do the trick. I do not know a way to ask Firefox,
+      ## if it is only partially or fully load. When trying to open
+      ## a new tab before it is fully load, a popup "profile not found"
+      ## will be shown, which is confusing.
+      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
+      sleep 30
    else
       debug "INFO: Tor Browser is already running"
    fi
-
-   while [ "$PID" = "" ]
-   do
-      debug "INFO: Waiting 10 seconds for Tor Browser to start..."
-      sleep 10
-      PID="`pidof firefox`" || true
-   done
-
-   debug "INFO: Sleep 5 seconds..."
-   sleep 5
 
    debug "INFO: Opening link..."
 
