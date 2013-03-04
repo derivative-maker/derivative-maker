@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Internally used by whonix_gateway and whonix_workstation scripts.
+## Internally used by whonix_gateway and whonix_workstation scripts.
 
 
 
@@ -13,126 +13,126 @@ whonix_chroot_misc() {
 
 
 whonix_bannned_packages() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-## Removing conflicting software. Should not be installed, but just in case.
-apt-get --yes remove --purge \
-popularity-contest \
-canonical-census \
-unity-lens-shopping \
-unity-scope-video-remote \
-unity-scope-musicstores \
-geoclue-ubuntu-geoip \
-geoclue \
-resolvconf \
-ufw \
-|| true
+   ## Removing conflicting software. Should not be installed, but just in case.
+   apt-get --yes remove --purge \
+      popularity-contest \
+      canonical-census \
+      unity-lens-shopping \
+      unity-scope-video-remote \
+      unity-scope-musicstores \
+      geoclue-ubuntu-geoip \
+      geoclue \
+      resolvconf \
+      ufw \
+   || true
 
-## Tor is handled in
-## /home/user/Whonix/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
-## in function dummytor.
+   ## Tor is handled in
+   ## /home/user/Whonix/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
+   ## in function dummytor.
 
-## NTP does not work over Tor because it uses UDP.
-## If it were to work, it would not be secure, because
-## it is by default not encrypted. Whonix has its own
-## safe network time synchronization mechanism. See
-## Whonix design.
-echo "ntpdate hold" | dpkg --set-selections
+   ## NTP does not work over Tor because it uses UDP.
+   ## If it were to work, it would not be secure, because
+   ## it is by default not encrypted. Whonix has its own
+   ## safe network time synchronization mechanism. See
+   ## Whonix design.
+   echo "ntpdate hold" | dpkg --set-selections
 
-## Not installing Debian popularity contest do to privacy concerns.
-echo "popularity-contest hold" | dpkg --set-selections
+   ## Not installing Debian popularity contest do to privacy concerns.
+   echo "popularity-contest hold" | dpkg --set-selections
 
-## Not installing resolvconf as it can modify DNS settings,
-## resulting in not using Tor as DNS resolver. Advanced users
-## should knowingly install resolvconf or edit /etc/resolv.conf
-## manually.
-echo "resolvconf hold" | dpkg --set-selections
+   ## Not installing resolvconf as it can modify DNS settings,
+   ## resulting in not using Tor as DNS resolver. Advanced users
+   ## should knowingly install resolvconf or edit /etc/resolv.conf
+   ## manually.
+   echo "resolvconf hold" | dpkg --set-selections
 
-## Not installing the Ubuntu version of popularity-contest.
-## Only interesting for custom builds.
-echo "canonical-census hold" | dpkg --set-selections
+   ## Not installing the Ubuntu version of popularity-contest.
+   ## Only interesting for custom builds.
+   echo "canonical-census hold" | dpkg --set-selections
 
-## Not installing Ubuntu packages with privacy concerns.
-## Only interesting for custom builds.
-echo "unity-lens-shopping hold" | dpkg --set-selections
-echo "unity-scope-video-remote hold" | dpkg --set-selections
-echo "unity-scope-musicstores hold" | dpkg --set-selections
-echo "geoclue-ubuntu-geoip hold" | dpkg --set-selections
-echo "geoclue hold" | dpkg --set-selections
+   ## Not installing Ubuntu packages with privacy concerns.
+   ## Only interesting for custom builds.
+   echo "unity-lens-shopping hold" | dpkg --set-selections
+   echo "unity-scope-video-remote hold" | dpkg --set-selections
+   echo "unity-scope-musicstores hold" | dpkg --set-selections
+   echo "geoclue-ubuntu-geoip hold" | dpkg --set-selections
+   echo "geoclue hold" | dpkg --set-selections
 
-## Not installing uncomplicated firewall, because it
-## conflicts with Whonix own firewall started by
-## /etc/network/interfaces pre-up.
-## Only interesting for custom builds.
-echo "ufw hold" | dpkg --set-selections
+   ## Not installing uncomplicated firewall, because it
+   ## conflicts with Whonix own firewall started by
+   ## /etc/network/interfaces pre-up.
+   ## Only interesting for custom builds.
+   echo "ufw hold" | dpkg --set-selections
 }
 
 
 
 whonix_slim_down() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-echo "
+   echo "
 ######################################################
 Slim down the system.
 ######################################################
 "
 
-echo "INFO: Cleaning up..."
+   echo "INFO: Cleaning up..."
 
-# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
-killall dhclient3 || true
-# There are .leases.
-rm /var/lib/dhcp/*.leases || true
-# And there are .lease.
-rm /var/lib/dhcp/*.lease || true
-# We are best of deleting the whole folder.
-rm -r /var/lib/dhcp/* || true
+   ## Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
+   killall dhclient3 || true
+   ## There are .leases.
+   rm /var/lib/dhcp/*.leases || true
+   ## And there are .lease.
+   rm /var/lib/dhcp/*.lease || true
+   ## We are best of deleting the whole folder.
+   rm -r /var/lib/dhcp/* || true
 
-# Cleanup.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes autoremove --purge || true
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes clean || true
+   ## Cleanup.
+   apt-get --config-file /usr/local/share/whonix/apt.conf --yes autoremove --purge || true
+   apt-get --config-file /usr/local/share/whonix/apt.conf --yes clean || true
 
-# No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
-# Therefore /var/lib/tor should be empty.
-# Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
-# rm -r /var/lib/tor/* || true
+   ## No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
+   ## Therefore /var/lib/tor should be empty.
+   ## Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
+   ## rm -r /var/lib/tor/* || true
 
-# Delete logs and other stuff.
-rm -r /tmp/* || true
-rm /var/log/installer/* || true
-rm -r /var/cache/apt/* || true
-rm -r /var/lib/apt/lists/* || true
-rm -r /var/log/installer || true
-rm /var/lib/dpkg/*-old || true
-rm /var/cache/debconf/*-old || true
-# Erase rotated logs (usually wont appear unless you left your VM running for several days).
-rm /var/log/*.[0-9] || true
-rm /var/log/*.[0-9].gz || true
+   ## Delete logs and other stuff.
+   rm -r /tmp/* || true
+   rm /var/log/installer/* || true
+   rm -r /var/cache/apt/* || true
+   rm -r /var/lib/apt/lists/* || true
+   rm -r /var/log/installer || true
+   rm /var/lib/dpkg/*-old || true
+   rm /var/cache/debconf/*-old || true
+   ## Erase rotated logs (usually wont appear unless you left your VM running for several days).
+   rm /var/log/*.[0-9] || true
+   rm /var/log/*.[0-9].gz || true
 
-# Truncate all log files, keeping user group and perms.
-find /var/log -type f -exec cp /dev/null {} \;
+   ## Truncate all log files, keeping user group and perms.
+   find /var/log -type f -exec cp /dev/null {} \;
 
-# This will not work in chroot.
-# Take care of development leaks and make resulting ova image smaller.
-# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
-# This also ensure that possible leaks we deleted before are really deleted.
-#echo "INFO: Wiping free space. This can take a while."
-# TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
+   ## This will not work in chroot.
+   ## Take care of development leaks and make resulting ova image smaller.
+   ## Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
+   ## This also ensure that possible leaks we deleted before are really deleted.
+   #echo "INFO: Wiping free space. This can take a while."
+   ## TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
 
-# Flush the zero-file to disk before removing it.
-sync
+   ## Flush the zero-file to disk before removing it.
+   sync
 
-# Delete the zero-file.
-rm /zerofile || true
+   ## Delete the zero-file.
+   rm /zerofile || true
 
-# Flush again after rm.
-sync
+   ## Flush again after rm.
+   sync
 
-# Delete bash history.
-rm /home/$USERNAME/.bash_history || true
-history -c || true
+   ## Delete bash history.
+   rm /home/$USERNAME/.bash_history || true
+   history -c || true
 
-sync
+   sync
 } 
 
