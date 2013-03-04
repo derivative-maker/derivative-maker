@@ -1,54 +1,54 @@
 #!/bin/bash
-# Needs to be bash because we use "trap ERR".
-# Will be copied into whonix_gateway: /usr/local/bin/whonix_gateway
-# by whonix_image copyinto. Will be run inside VM.
+## Needs to be bash because we use "trap ERR".
+## Will be copied into whonix_gateway: /usr/local/bin/whonix_gateway
+## by whonix_image copyinto. Will be run inside VM.
 
-# Version: Whonix 0.3.0-developers-only
+## Version: Whonix 0.3.0-developers-only
 
-# See LICENSE in root of Whonix source for copyright, license and authors.
+## See LICENSE in root of Whonix source for copyright, license and authors.
 
 script_help() {
 echo "
-# -install
+## -install
 
-# Note for debugging:
-# If you start the script without command line options, it will do nothing
-# important. You can also check for some syntax errors,
-# such as unbalanced apostrophes etc. And if you want for testing purposes,
-# simply to run only one module and not the whole script, that is also
-# possible. Scroll down the the bottom of the script, one one the last things
-# will be "INFO: No option chosen.". Make space there and add the name of the
-# function, you want to test, for example create_swap_file. Leave the "exit 0"
-# and fi below intact.
+## Note for debugging:
+## If you start the script without command line options, it will do nothing
+## important. You can also check for some syntax errors,
+## such as unbalanced apostrophes etc. And if you want for testing purposes,
+## simply to run only one module and not the whole script, that is also
+## possible. Scroll down the the bottom of the script, one one the last things
+## will be "INFO: No option chosen.". Make space there and add the name of the
+## function, you want to test, for example create_swap_file. Leave the "exit 0"
+## and fi below intact.
 
-# For extensive debugging use:
-# sudo bash -x 2>/tmp/log whonix_internal_install_script
-# This will set -x and redirect everything bash does to /tmp/log.
-# nano /tmp/log
+## For extensive debugging use:
+## sudo bash -x 2>/tmp/log whonix_internal_install_script
+## This will set -x and redirect everything bash does to /tmp/log.
+## nano /tmp/log
 "
 }
 
 ############################################################################
-# SCRIPT STARTS HERE
+## SCRIPT STARTS HERE
 ############################################################################
 
-# Enable debugging.
+## Enable debugging.
 set -x
 
 ######################################################
-# Variables
+## Variables
 ######################################################
-# Set the linux username.
-# "export USERNAME=$(whoami)" will not work, since the
-# script gets, in most cases, started as root.
+## Set the linux username.
+## "export USERNAME=$(whoami)" will not work, since the
+## script gets, in most cases, started as root.
 USERNAME="user"
 
-# Unattended (un)installation of packages.
-# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+## Unattended (un)installation of packages.
+## Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
 export DEBIAN_FRONTEND=noninteractive
 
 ######################################################
-# Checking script environment
+## Checking script environment
 ######################################################
 
 root_check() {
@@ -61,18 +61,19 @@ root_check() {
 }
 
 ######################################################
-# error_handler
+## error_handler
 ######################################################
 
 error_handler() {
-echo "
-#####################
-ERROR: Script failed!
-#####################
+   echo "
+##########################
+## ERROR: Script failed! #
+##########################
 "
-echo "ERROR: Script failed!" >&2
-sleep 5
-exit 1
+   echo "ERROR: Script failed!" >&2
+
+   sleep 5
+   exit 1
 }
 
 
@@ -92,15 +93,15 @@ adduser_user() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating user user..."
-   # setting password of user user to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user user to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --password aTayYxVyw5kDo --user-group --create-home  --home-dir /home/user --shell /bin/bash user || true
    usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
    chown --recursive user:user /home/user
@@ -119,17 +120,18 @@ add_crontab_for_user() {
 
 
 config_gpg() {
-trap "error_handler" ERR INT TERM
-# Run gpg at least once to create the GPG default files
-# gpg.conf, pubring.gpg and trustdb.gpg.
-# The --fingerprint option will do nothing and has been
-# added to let GPG terminate itself after creating the
-# configuration files. GPG run with no options would
-# result in GPG running interactively.
-# old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
-# new:
-sudo -u "$USERNAME" gpg --fingerprint
-# gpg.conf gets appened by whonix_image append post.
+   trap "error_handler" ERR INT TERM
+
+   ## Run gpg at least once to create the GPG default files
+   ## gpg.conf, pubring.gpg and trustdb.gpg.
+   ## The --fingerprint option will do nothing and has been
+   ## added to let GPG terminate itself after creating the
+   ## configuration files. GPG run with no options would
+   ## result in GPG running interactively.
+   ## old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+   ## new:
+   sudo -u "$USERNAME" gpg --fingerprint
+   ## gpg.conf gets appened by whonix_image append post.
 }
 
 
@@ -149,15 +151,15 @@ adduser_clearnet() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating clearnet user..."
-   # setting password of user clearnet to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user clearnet to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet || true
    chown --recursive clearnet:clearnet /home/clearnet
 }
@@ -166,15 +168,15 @@ adduser_clearnet() {
 
 config_symlinks() {
    trap "error_handler" ERR INT TERM
-   # /etc/dpkg/origins/default
-   # || true to support re-running the script
+   ## /etc/dpkg/origins/default
+   ## || true to support re-running the script
    ln -s /etc/dpkg/origins/whonix /etc/dpkg/origins/default || true
 }
 
 
 
 ################################################################
-# -install
+## -install
 ################################################################
 if [[ "$1" = "-install" ]]; then
    root_check                ## Depends on nothing.
@@ -207,23 +209,25 @@ fi
 
 
 ################################################################
-# Help                                                         #
+## Help                                                        #
 ################################################################
 if [[ "$1" = "-help" ]]; then
-script_help
-exit 0
+   script_help
+   exit 0
 fi
 
 
 
 ################################################################
-# No option chosen.                                            #
+## No option chosen.                                           #
 ################################################################
 if [[ "$1" = "" ]]; then
-echo "
+
+   echo "
 INFO: No option chosen.
 
 Please run Whonix-Gateway -help to find out more.
 "
-exit 0
+   exit 0
+
 fi

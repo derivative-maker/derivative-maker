@@ -1,44 +1,45 @@
 #!/bin/bash
-# Needs to be bash because we use "trap ERR".
-# Will be copied into whonix_workstation: /usr/local/bin/whonix_workstation
-# by whonix_image copyinto. Will run inside VM.
+## Needs to be bash because we use "trap ERR".
+## Will be copied into whonix_workstation: /usr/local/bin/whonix_workstation
+## by whonix_image copyinto. Will run inside VM.
 
-# See LICENSE in root of Whonix source for copyright, license and authors.
+## See LICENSE in root of Whonix source for copyright, license and authors.
 
 script_help() {
-echo \
+   echo \
 "
-# -install
+## -install
 "
 }
 
 ############################################################################
-# SCRIPT STARTS HERE
+## SCRIPT STARTS HERE
 ############################################################################
 
 set -x
 
 ######################################################
-# Variables
+## Variables
 ######################################################
-# Set the linux username.
-# "export USERNAME=$(whoami)" will not work, since the
-# script gets, in most cases, started as root.
+## Set the linux username.
+## "export USERNAME=$(whoami)" will not work, since the
+## script gets, in most cases, started as root.
 USERNAME="user"
 
-# Unattended (un)installation of packages.
-# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+## Unattended (un)installation of packages.
+## Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
 export DEBIAN_FRONTEND=noninteractive
 
 
 
 error_handler() {
-echo "
-##################################################
-# whonix_workstation script: ERROR detected.
-##################################################
+   echo "
+###############################################
+## whonix_workstation script: ERROR detected. #
+###############################################
 "
-exit 1
+
+   exit 1
 }
 
 
@@ -55,13 +56,13 @@ root_check() {
 
 
 workstation_source() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-source /usr/local/share/whonix/whonix_internal_checks
-source /usr/local/share/whonix/whonix_create_swap_file
-source /usr/local/share/whonix/whonix_config_uuids
-source /usr/local/share/whonix/whonix_kde
-source /usr/local/share/whonix/whonix_chroot_shared
+   source /usr/local/share/whonix/whonix_internal_checks
+   source /usr/local/share/whonix/whonix_create_swap_file
+   source /usr/local/share/whonix/whonix_config_uuids
+   source /usr/local/share/whonix/whonix_kde
+   source /usr/local/share/whonix/whonix_chroot_shared
 }
 
 
@@ -70,15 +71,15 @@ adduser_user() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating user user..."
-   # setting password of user user to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user user to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user || true
    usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
    chown --recursive user:user /home/user
@@ -97,33 +98,34 @@ add_crontab_for_user() {
 
 
 config_audio() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-echo "
+   echo "
 ######################################################
-# Set up audio
+## Set up audio
 ######################################################
 "
 
-usermod -a -G audio "$USERNAME"
-sudo -u "$USERNAME" amixer
-sudo -u "$USERNAME" amixer set Master 70 unmute
-sudo -u "$USERNAME" amixer set PCM 70 unmute
+   usermod -a -G audio "$USERNAME"
+   sudo -u "$USERNAME" amixer
+   sudo -u "$USERNAME" amixer set Master 70 unmute
+   sudo -u "$USERNAME" amixer set PCM 70 unmute
 }
 
 
 
 config_gpg() {
-trap "error_handler" ERR INT TERM
-# Run gpg at least once to create the GPG default files
-# gpg.conf, pubring.gpg and trustdb.gpg.
-# The --fingerprint option will do nothing and has been
-# added to let GPG terminate itself after creating the
-# configuration files. GPG run with no options would
-# result in GPG running interactively.
-# old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
-# new:
-sudo -u "$USERNAME" gpg --fingerprint
+   trap "error_handler" ERR INT TERM
+
+   ## Run gpg at least once to create the GPG default files
+   ## gpg.conf, pubring.gpg and trustdb.gpg.
+   ## The --fingerprint option will do nothing and has been
+   ## added to let GPG terminate itself after creating the
+   ## configuration files. GPG run with no options would
+   ## result in GPG running interactively.
+   ## old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+   ## new:
+   sudo -u "$USERNAME" gpg --fingerprint
 }
 
 
@@ -170,34 +172,34 @@ config_irc_xchat() {
 config_symlinks() {
    trap "error_handler" ERR INT TERM
 
-   # /etc/dpkg/origins/default
-   # || true to support re-running the script
+   ## /etc/dpkg/origins/default
+   ## || true to support re-running the script
    ln -s /etc/dpkg/origins/whonix /etc/dpkg/origins/default || true
 
-      #################
-      # Desktop Icons #
-      #################
+      ##################
+      ## Desktop Icons #
+      ##################
 
    mkdir -p /home/user/Desktop/
 
-   # Adding konsole icon on Desktop.
+   ## Adding konsole icon on Desktop.
    ln -s /usr/share/applications/kde4/konsole.desktop /home/user/Desktop/ || true
 
-   # Adding kgpg icon on Desktop.
+   ## Adding kgpg icon on Desktop.
    ln -s /usr/share/applications/kde4/kgpg.desktop /home/user/Desktop/ || true
 
-   # Adding synaptic icon on Desktop.
+   ## Adding synaptic icon on Desktop.
    ln -s /usr/share/applications/synaptic-kde.desktop /home/user/Desktop/ || true
 
-   # Adding Apper icon on Desktop.
+   ## Adding Apper icon on Desktop.
    ln -s /usr/share/applications/kde4/apper.desktop /home/user/Desktop/ || true
 
-   # Adding xchat icon on Desktop.
-   # Symlink xchat starter to Desktop.
-   # TODO: override with true in case xchat gets removed from package selection.
+   ## Adding xchat icon on Desktop.
+   ## Symlink xchat starter to Desktop.
+   ## TODO: override with true in case xchat gets removed from package selection.
    ln -s /usr/share/applications/xchat.desktop /home/user/Desktop/ || true
 
-   # symlink .desktop files to Desktop folder
+   ## symlink .desktop files to Desktop folder
    ln -s /usr/local/share/whonix/kde/share/applications/* /home/user/Desktop || true
 
    chmod --recursive +x /home/user/Desktop/*
@@ -221,7 +223,7 @@ dummytor() {
 
 
 ######################################################
-# -install
+## -install
 ######################################################
 if [[ "$1" = "-install" ]]; then
    root_check                ## Depends on nothing.
@@ -262,24 +264,24 @@ fi
 
 
 ################################################################ 
-# -help                                                        #
+## -help                                                       #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
-script_help
-exit 0
+   script_help
+   exit 0
 fi
 
 
 
 ################################################################ 
-# no option chosen                                             # 
+## no option chosen                                            # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
-echo "
+   echo "
 INFO: No option chosen.
 
 Please run whonix_workstation -help to find out more.
 "
 
-exit 0
+   exit 0
 fi
