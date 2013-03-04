@@ -10,6 +10,61 @@ whonix_chroot_misc() {
 
 
 
+whonix_bannned_packages() {
+## Removing conflicting software. Should not be installed, but just in case.
+apt-get --yes remove --purge \
+popularity-contest \
+canonical-census \
+unity-lens-shopping \
+unity-scope-video-remote \
+unity-scope-musicstores \
+geoclue-ubuntu-geoip \
+geoclue \
+resolvconf \
+ufw \
+|| true
+
+## Tor is handled in
+## /home/user/Whonix/whonix_workstation/usr/local/share/whonix/whonix_internal_install_script
+## in function dummytor.
+
+## NTP does not work over Tor because it uses UDP.
+## If it were to work, it would not be secure, because
+## it is by default not encrypted. Whonix has its own
+## safe network time synchronization mechanism. See
+## Whonix design.
+echo "ntpdate hold" | dpkg --set-selections
+
+## Not installing Debian popularity contest do to privacy concerns.
+echo "popularity-contest hold" | dpkg --set-selections
+
+## Not installing resolvconf as it can modify DNS settings,
+## resulting in not using Tor as DNS resolver. Advanced users
+## should knowingly install resolvconf or edit /etc/resolv.conf
+## manually.
+echo "resolvconf hold" | dpkg --set-selections
+
+## Not installing the Ubuntu version of popularity-contest.
+## Only interesting for custom builds.
+echo "canonical-census hold" | dpkg --set-selections
+
+## Not installing Ubuntu packages with privacy concerns.
+## Only interesting for custom builds.
+echo "unity-lens-shopping hold" | dpkg --set-selections
+echo "unity-scope-video-remote hold" | dpkg --set-selections
+echo "unity-scope-musicstores hold" | dpkg --set-selections
+echo "geoclue-ubuntu-geoip hold" | dpkg --set-selections
+echo "geoclue hold" | dpkg --set-selections
+
+## Not installing uncomplicated firewall, because it
+## conflicts with Whonix own firewall started by
+## /etc/network/interfaces pre-up.
+## Only interesting for custom builds.
+echo "ufw hold" | dpkg --set-selections
+}
+
+
+
 whonix_slim_down() {
 trap "error_handler" ERR INT TERM
 
@@ -18,10 +73,6 @@ echo "
 Slim down the system.
 ######################################################
 "
-
-# Removing conflicting software. Should not be installed, but just in case.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge \
-ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
 
 echo "INFO: Cleaning up..."
 
