@@ -189,80 +189,6 @@ config_symlinks() {
 
 
 
-whonix_slim_down() {
-trap "error_handler" ERR INT TERM
-
-echo "
-######################################################
-Slim down the system.
-######################################################
-"
-
-# Removing conflicting software. Should not be installed, but just in case.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge \
-ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
-
-echo "INFO: Cleaning up..."
-
-# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
-killall dhclient3 || true
-# There are .leases.
-rm /var/lib/dhcp/*.leases || true
-# And there are .lease.
-rm /var/lib/dhcp/*.lease || true
-# We are best of deleting the whole folder.
-rm -r /var/lib/dhcp/* || true
-
-# Cleanup.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes autoremove --purge || true
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes clean || true
-
-# No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
-# Therefore /var/lib/tor should be empty.
-# Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
-# rm -r /var/lib/tor/* || true
-
-# Delete logs and other stuff.
-rm -r /tmp/* || true
-rm /var/log/installer/* || true
-rm -r /var/cache/apt/* || true
-rm -r /var/lib/apt/lists/* || true
-rm -r /var/log/installer || true
-rm /var/lib/dpkg/*-old || true
-rm /var/cache/debconf/*-old || true
-# Erase rotated logs (usually wont appear unless you left your VM running for several days).
-rm /var/log/*.[0-9] || true
-rm /var/log/*.[0-9].gz || true
-
-# Truncate all log files, keeping user group and perms.
-find /var/log -type f -exec cp /dev/null {} \;
-
-
-# This will not work in chroot.
-# Take care of development leaks and make resulting ova image smaller.
-# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
-# This also ensure that possible leaks we deleted before are really deleted.
-#echo "INFO: Wiping free space. This can take a while."
-# TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
-
-# Flush the zero-file to disk before removing it.
-sync
-
-# Delete the zero-file.
-rm /zerofile || true
-
-# Flush again after rm.
-sync
-
-# Delete bash history.
-rm /home/$USERNAME/.bash_history || true
-history -c || true
-
-sync
-}
-
-
-
 ################################################################
 # -install
 ################################################################
@@ -272,7 +198,7 @@ root_check                # Depends on nothing.
 . /usr/local/share/whonix/whonix_internal_checks
 . /usr/local/share/whonix/whonix_create_swap_file
 . /usr/local/share/whonix/whonix_config_uuids
-. /usr/local/share/whonix/whonix_slim_down
+. /usr/local/share/whonix/whonix_chroot_shared
 
 whonix_internal_checks    # Depends on nothing.
 whonix_create_swap_file   # Depends on root_check, not being run again when in use.
