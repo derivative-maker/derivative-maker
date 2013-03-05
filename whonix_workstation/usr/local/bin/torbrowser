@@ -234,7 +234,7 @@ FEATUREBLOG_OFFLINE_LINK="file:///home/user/.rawdog/featureblog.html"
 
 #debug "TB_LANG: $TB_LANG"
 
-# Check if TB_LANG exists and is not empty.
+## Check if TB_LANG exists and is not empty.
 if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
    #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
    true
@@ -374,7 +374,7 @@ cd "/home/"$USERNAME""
 
 progress_bar 6
 ## Delete old .tbbdownload folder.
-rm --force --recursive ".tbbdownload/"
+#rm --force --recursive ".tbbdownload/"
 progress_bar 7
 rm --force TorBrowser_installation_FAILED
 
@@ -399,7 +399,7 @@ debug "INFO: Downloading: "$LINK""
 
 progress_bar 95
 
-# Check if curl failed.
+## Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
    ZENITY_TYPE="--error"
    output "Failed to download: "$LINK"
@@ -488,8 +488,8 @@ if [ "$TB_FORCE_INSTALL" = "1" ]; then
 else
 	if [ "$answer" = "1" ]; then 
 		cd "/home/"$USERNAME""
-		debug "INFO: Deleting temporary folder .tbbdownload."
-		rm --force --recursive ".tbbdownload" || true
+		#debug "INFO: Deleting temporary folder .tbbdownload."
+		#rm --force --recursive ".tbbdownload" || true
 		## Exit this function.
 		exit 0
 	fi
@@ -505,29 +505,32 @@ else
 fi
 
 
-#################################
+###########################################################
 debug "INFO: Killing Tor Browser if it is still running..."
-#################################
+###########################################################
 
 progress_bar 5
 killall firefox || true
 
-#################################
+#######################################
 debug "INFO: Installing Tor Browser..."
-#################################
+#######################################
 
 trap "tb_error_handler" ERR
 
-mkdir -p "gpgtmpdir"
-chmod 700 "gpgtmpdir/"
+mkdir -p "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/"
+chmod 700 "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/"
 
-gpg --homedir gpgtmpdir --import /usr/local/share/whonix/sebastian.asc
-gpg --homedir gpgtmpdir --import /usr/local/share/whonix/erinn.asc
+gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/local/share/whonix/sebastian.asc
+gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/local/share/whonix/erinn.asc
 
 TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
 #TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
 
 progress_bar 50
+
+mkdir -p "$TBBVERSION"
+cd "$TBBVERSION"
 
 debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
 TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
@@ -574,23 +577,16 @@ debug "INFO:
 ## users keyring will be ignored.
 "
 trap "gpg_download_verification_error" ERR
-gpg --homedir "gpgtmpdir" --verify tor-browser*.asc
+gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --verify "tor-browser*.asc"
 
 trap "tb_error_handler" ERR
 debug "INFO: Signature valid."
 
-if [ -f tor-browser-gnu-linux-*.tar.gz ]; then
-	debug "INFO: Regular file tor-browser-gnu-linux-*.tar.gz exists."
-	debug "INFO: Unpacking..."
-	tar -xzvf tor-browser-gnu-linux-*.tar.gz
-else
-        ZENITY_TYPE="--error"
-	output "FATAL ERROR: Regular file tor-browser-gnu-linux-*.tar.gz exists. Please report this bug!"
-fi
+tar -xzvf tor-browser-gnu-linux-*.tar.gz
 
 progress_bar 91
-# The tor-browser_"$TB_LANG"/Docs folder should already exist.
-# Just to make sure the script will not break in case the get changed by upstream.
+## The tor-browser_"$TB_LANG"/Docs folder should already exist.
+## Just to make sure the script will not break in case the get changed by upstream.
 mkdir -p tor-browser_"$TB_LANG"/Docs
 
 progress_bar 92
@@ -614,8 +610,8 @@ debug "INFO: Creating Unbundled Tor Browser startup script..."
 ## be proposed.
 ##
 ## Has been copied into Whonix-Workstation at build time.
-cp /usr/local/share/whonix/start-tor-browser /home/"$USERNAME"/.tbbdownload/tor-browser_"$TB_LANG"/start-tor-browser
-chmod +x /home/"$USERNAME"/.tbbdownload/tor-browser_"$TB_LANG"/start-tor-browser
+cp /usr/local/share/whonix/start-tor-browser tor-browser_"$TB_LANG"/start-tor-browser
+chmod +x tor-browser_"$TB_LANG"/start-tor-browser
 
 progress_bar 94
 debug "INFO: Calling the function tb_create_user_js()..."
@@ -626,11 +622,11 @@ debug "INFO: Moving old folder tor-browser_"$TB_LANG"..."
 mv /home/"$USERNAME"/tor-browser_"$TB_LANG" /home/"$USERNAME"/tor-browser_"$TB_LANG".old."`date '+%F-%H:%M:%S'`" || true
 progress_bar 96
 debug "INFO: Moving temporary folder .tbbdownload/tor-browser_"$TB_LANG" to /home/"$USERNAME"/tor-browser_"$TB_LANG""
-mv "/home/"$USERNAME"/.tbbdownload/tor-browser_"$TB_LANG"" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
+mv tor-browser_"$TB_LANG" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
 progress_bar 97
 debug "INFO: Deleting temporary folder .tbbdownload..."
 progress_bar 98
-rm --force --recursive "/home/"$USERNAME"/.tbbdownload"
+#rm --force --recursive "/home/"$USERNAME"/.tbbdownload"
 ZENITY_TYPE="--info"
 progress_bar 100
 output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
@@ -693,7 +689,7 @@ user_pref\
 9190,9191,9192,9193,9194,9195,9196,9197,9198,9199,\
 ");
 ## End of Whonix user.js.
-' >> /home/"$USERNAME"/.tbbdownload/tor-browser_"$TB_LANG"/Data/profile/user.js
+' >> tor-browser_"$TB_LANG"/Data/profile/user.js
 
 }
 
