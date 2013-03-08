@@ -67,36 +67,6 @@ workstation_source() {
 
 
 
-adduser_user() {
-   trap "error_handler" ERR INT TERM
-
-   echo "Creating user user..."
-   ## setting password of user user to changeme
-   ##
-   ## How this password was created:
-   ## sudo apt-get install whois
-   ## mkpasswd
-   ## changeme
-   ## Resulted in: aTayYxVyw5kDo
-   ##
-   ## True in case script gets run again. (Debugging.)
-   useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user || true
-   usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
-   chown --recursive user:user /home/user
-}
-
-
-
-add_crontab_for_user() {
-   trap "error_handler" ERR INT TERM
-
-   sudo -u user crontab -l || true
-   sudo -u user crontab /usr/local/share/whonix/user_crontab
-   sudo -u user crontab -l
-}
-
-
-
 config_audio() {
    trap "error_handler" ERR INT TERM
 
@@ -126,17 +96,6 @@ config_gpg() {
    ## old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
    ## new:
    sudo -u "$USERNAME" gpg --fingerprint
-}
-
-
-
-config_htp() {
-   trap "error_handler" ERR INT TERM
-
-   echo "Creating the htp user..."
-   adduser --system --quiet --group --no-create-home htp || :
-   echo "Adding htpdate init script..."
-   update-rc.d htpdate defaults
 }
 
 
@@ -232,7 +191,7 @@ if [[ "$1" = "-install" ]]; then
    whonix_internal_checks    ## Depends on nothing.
    whonix_create_swap_file   ## Depends on root_check, not being run again when in use.
    whonix_config_uuids_fstab ## Depends on root_check, not being run again after adding new hdds.
-   adduser_user              ## Depends on root_check.
+   adduser_user              ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
    add_crontab_for_user      ## Depends on nothing.
 
    ## Building in the clear and behind a transparent Tor proxy is supported.
@@ -244,7 +203,7 @@ if [[ "$1" = "-install" ]]; then
    config_symlinks           ## Depends on root_check.
    config_audio              ## Depends on root_check.
    config_gpg                ## Depends on nothing.
-   config_htp                ## Depends on root_check.
+   config_htp                ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
    config_wpolipo            ## Depends on root_check.
    config_misc	             ## Depends on root_check.
    whonix_kde                ## Depends on nothing.
