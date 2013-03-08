@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+echo "Creating clearnet user..."
+## setting password of user clearnet to changeme
+##
+## How this password was created:
+## sudo apt-get install whois
+## mkpasswd
+## changeme
+## Resulted in: aTayYxVyw5kDo
+##
+## True in case script gets run again. (Debugging.)
+useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet || true
+chown --recursive clearnet:clearnet /home/clearnet
+
