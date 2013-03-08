@@ -1,57 +1,55 @@
 #!/bin/bash
-# Needs to be bash because we use "trap ERR".
-# Will be copied into whonix_gateway: /usr/local/bin/whonix_gateway
-# by whonix_image copyinto. Will be run inside VM.
+## Needs to be bash because we use "trap ERR".
+## Will be copied into whonix_gateway: /usr/local/bin/whonix_gateway
+## by whonix_image copyinto. Will be run inside VM.
 
-# Version: Whonix 0.3.0-developers-only
+## Version: Whonix 0.3.0-developers-only
 
-# See LICENSE in root of Whonix source for copyright, license and authors.
+## See LICENSE in root of Whonix source for copyright, license and authors.
 
 script_help() {
 echo "
-# -install
+## -install
 
-# Note for debugging:
-# If you start the script without command line options, it will do nothing
-# important. You can also check for some syntax errors,
-# such as unbalanced apostrophes etc. And if you want for testing purposes,
-# simply to run only one module and not the whole script, that is also
-# possible. Scroll down the the bottom of the script, one one the last things
-# will be "INFO: No option chosen.". Make space there and add the name of the
-# function, you want to test, for example create_swap_file. Leave the "exit 0"
-# and fi below intact.
+## Note for debugging:
+## If you start the script without command line options, it will do nothing
+## important. You can also check for some syntax errors,
+## such as unbalanced apostrophes etc. And if you want for testing purposes,
+## simply to run only one module and not the whole script, that is also
+## possible. Scroll down the the bottom of the script, one one the last things
+## will be "INFO: No option chosen.". Make space there and add the name of the
+## function, you want to test, for example create_swap_file. Leave the "exit 0"
+## and fi below intact.
 
-# For extensive debugging use:
-# sudo bash -x 2>/tmp/log whonix_internal_install_script
-# This will set -x and redirect everything bash does to /tmp/log.
-# nano /tmp/log
+## For extensive debugging use:
+## sudo bash -x 2>/tmp/log whonix_internal_install_script
+## This will set -x and redirect everything bash does to /tmp/log.
+## nano /tmp/log
 "
 }
 
 ############################################################################
-# SCRIPT STARTS HERE
+## SCRIPT STARTS HERE
 ############################################################################
 
-# Enable debugging.
+## Enable debugging.
 set -x
 
 ######################################################
-# Variables
+## Variables
 ######################################################
-# Set the linux username.
-# "export USERNAME=$(whoami)" will not work, since the
-# script gets, in most cases, started as root.
+## Set the linux username.
+## "export USERNAME=$(whoami)" will not work, since the
+## script gets, in most cases, started as root.
 USERNAME="user"
 
-# Unattended (un)installation of packages.
-# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+## Unattended (un)installation of packages.
+## Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
 export DEBIAN_FRONTEND=noninteractive
 
 ######################################################
-# Checking script environment
+## Checking script environment
 ######################################################
-
-cd /home/$USERNAME
 
 root_check() {
    if [ "$(id -u)" != "0" ]; then
@@ -63,18 +61,30 @@ root_check() {
 }
 
 ######################################################
-# error_handler
+## error_handler
 ######################################################
 
 error_handler() {
-echo "
-#####################
-ERROR: Script failed!
-#####################
+   echo "
+##########################
+## ERROR: Script failed! #
+##########################
 "
-echo "ERROR: Script failed!" >&2
-sleep 5
-exit 1
+   echo "ERROR: Script failed!" >&2
+
+   sleep 5
+   exit 1
+}
+
+
+
+gateway_source() {
+   trap "error_handler" ERR INT TERM
+
+   source /usr/local/share/whonix/whonix_internal_checks
+   source /usr/local/share/whonix/whonix_create_swap_file
+   source /usr/local/share/whonix/whonix_config_uuids
+   source /usr/local/share/whonix/whonix_chroot_shared
 }
 
 
@@ -83,15 +93,15 @@ adduser_user() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating user user..."
-   # setting password of user user to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user user to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --password aTayYxVyw5kDo --user-group --create-home  --home-dir /home/user --shell /bin/bash user || true
    usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
    chown --recursive user:user /home/user
@@ -110,42 +120,18 @@ add_crontab_for_user() {
 
 
 config_gpg() {
-trap "error_handler" ERR INT TERM
-# Run gpg at least once to create the GPG default files
-# gpg.conf, pubring.gpg and trustdb.gpg.
-# The --fingerprint option will do nothing and has been
-# added to let GPG terminate itself after creating the
-# configuration files. GPG run with no options would
-# result in GPG running interactively.
-# old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
-# new:
-sudo -u "$USERNAME" gpg --fingerprint
-# gpg.conf gets appened by whonix_image append post.
-}
+   trap "error_handler" ERR INT TERM
 
-
-
-config_vidalia() {
-trap "error_handler" ERR INT TERM
-
-# Not in use yet.
-# Waiting for Vialia 0.3.
-
-echo "
-######################################################
-config_vidalia
-######################################################
-"
-
-# Vidalia config file gets copied by copyinto.
-
-# Lift permissions to edit torrc to allow Vidalia editing torrc.
-# There should be no security implications, since Whonix-Gateway is
-# not a multi user environment, its solely used to host Tor. On the
-# other hand, for the Tor Browser Bundle, Tor, Vidalia and Tor Browser
-# run under the very same user account.
-chmod --recursive g+rw /etc/tor/torrc
-chmod --recursive o+rw /etc/tor/torrc
+   ## Run gpg at least once to create the GPG default files
+   ## gpg.conf, pubring.gpg and trustdb.gpg.
+   ## The --fingerprint option will do nothing and has been
+   ## added to let GPG terminate itself after creating the
+   ## configuration files. GPG run with no options would
+   ## result in GPG running interactively.
+   ## old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+   ## new:
+   sudo -u "$USERNAME" gpg --fingerprint
+   ## gpg.conf gets appened by whonix_image append post.
 }
 
 
@@ -165,15 +151,15 @@ adduser_clearnet() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating clearnet user..."
-   # setting password of user clearnet to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user clearnet to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet || true
    chown --recursive clearnet:clearnet /home/clearnet
 }
@@ -182,161 +168,66 @@ adduser_clearnet() {
 
 config_symlinks() {
    trap "error_handler" ERR INT TERM
-   # /etc/dpkg/origins/default
-   # || true to support re-running the script
+   ## /etc/dpkg/origins/default
+   ## || true to support re-running the script
    ln -s /etc/dpkg/origins/whonix /etc/dpkg/origins/default || true
 }
 
 
 
-whonix_slim_down() {
-trap "error_handler" ERR INT TERM
-
-echo "
-######################################################
-Slim down the system.
-######################################################
-"
-
-# Removing conflicting software. Should not be installed, but just in case.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge \
-ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
-
-# Remove unnecessary packages to slim down the system.
-# This list contains only packages, which waste space and are not required.
-#apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge \
-#vim vim-tiny vim-common ufw telnet tcpdump tasksel* strace ppp pppconfig \
-#pppoeconf pciutils ntfs-3g mtr-tiny mlocate man-db manpages lshw libpci3 fuse-utils iso-codes \
-#dosfstools logrotate aptitude || true
-
-# No longer removing friendly-recovery. Quite useful in case disk got filled up
-# and also errors on virtual disks happen sometimes.
-
-echo "INFO: Cleaning up..."
-# Tell bash-completion about missing man package because apt-get is not doing its job...
-rm -r /etc/bash_completion.d/man/* || true
-
-# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
-killall dhclient3 || true
-# There are .leases.
-rm /var/lib/dhcp/*.leases || true
-# And there are .lease.
-rm /var/lib/dhcp/*.lease || true
-# We are best of deleting the whole folder.
-rm -r /var/lib/dhcp/* || true
-
-# Cleanup.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes autoremove --purge || true
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes clean || true
-
-# No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
-# Therefore /var/lib/tor should be empty.
-# Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
-# rm -r /var/lib/tor/* || true
-
-# Killing rsyslog so we can remove logs.
-stop rsyslog || true
-
-# Delete logs and other stuff.
-rm -r /tmp/* || true
-rm /var/log/installer/* || true
-rm -r /var/cache/apt/* || true
-rm -r /var/lib/apt/lists/* || true
-rm -r /var/log/installer || true
-rm /var/lib/dpkg/*-old || true
-rm /var/cache/debconf/*-old || true
-# Erase rotated logs (usually wont appear unless you left your VM running for several days).
-rm /var/log/*.[0-9] || true
-rm /var/log/*.[0-9].gz || true
-
-# Truncate all log files, keeping user group and perms.
-find /var/log -type f -exec cp /dev/null {} \;
-
-
-# This will not work in chroot.
-# Take care of development leaks and make resulting ova image smaller.
-# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
-# This also ensure that possible leaks we deleted before are really deleted.
-#echo "INFO: Wiping free space. This can take a while."
-# TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
-
-# Flush the zero-file to disk before removing it.
-sync
-
-# Delete the zero-file.
-rm /zerofile || true
-
-# Flush again after rm.
-sync
-
-# Delete bash history.
-rm /home/$USERNAME/.bash_history || true
-history -c || true
-
-sync
-}
-
-
-
 ################################################################
-# -install
+## -install
 ################################################################
 if [[ "$1" = "-install" ]]; then
-root_check                # Depends on nothing.
+   root_check                ## Depends on nothing.
 
-. /usr/local/share/whonix/whonix_internal_checks
-. /usr/local/share/whonix/whonix_create_swap_file
-. /usr/local/share/whonix/whonix_config_uuids
-. /usr/local/share/whonix/whonix_slim_down
+   gateway_source            ## Depends on nothing.
 
-whonix_internal_checks    # Depends on nothing.
-whonix_create_swap_file   # Depends on root_check, not being run again when in use.
+   whonix_internal_checks    ## Depends on nothing.
+   whonix_create_swap_file   ## Depends on root_check, not being run again when in use.
 
-whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
-adduser_user              # Depends on root_check.
-add_crontab_for_user      # Depends on nothing.
-config_gpg                # Depends on nothing.
+   whonix_config_uuids_fstab ## Depends on root_check, not being run again after adding new hdds.
+   adduser_user              ## Depends on root_check.
+   add_crontab_for_user      ## Depends on nothing.
+   config_gpg                ## Depends on nothing.
 
-                          # The following provides a graphical gateway interface (Vidalia)
-                          # and can be commented out to increase security.
-                          # Currently disabled by default because its not finished yet.
-#config_vidalia           # Depends on root_check.
+   config_htp                ## Depends on root_check.
+   adduser_clearnet          ## Depends on root_check.
+   config_symlinks           ## Depends on root_check.
 
-config_htp                # Depends on root_check.
-adduser_clearnet          # Depends on root_check.
-config_symlinks           # Depends on root_check.
-whonix_slim_down          # Must be run last.
-sync                      # Ensure changes get written to disk.
+   whonix_chroot_misc        ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
+   whonix_bannned_packages   ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
+   whonix_slim_down          ## Must be run last. (/usr/local/share/whonix/whonix_chroot_shared)
 
-# Inform about end.
-echo 'INFO: Script completed.' >&2
+   sync                      ## Ensure changes get written to disk.
 
-# Sleep few seconds before going back to old rc.local.
-sleep 5
+   echo 'INFO: Script completed.' >&2
+   exit 0
 
-exit 0
 fi
 
 
 
 ################################################################
-# Help                                                         #
+## Help                                                        #
 ################################################################
 if [[ "$1" = "-help" ]]; then
-script_help
-exit 0
+   script_help
+   exit 0
 fi
 
 
 
 ################################################################
-# No option chosen.                                            #
+## No option chosen.                                           #
 ################################################################
 if [[ "$1" = "" ]]; then
-echo "
+
+   echo "
 INFO: No option chosen.
 
 Please run Whonix-Gateway -help to find out more.
 "
-exit 0
+   exit 0
+
 fi

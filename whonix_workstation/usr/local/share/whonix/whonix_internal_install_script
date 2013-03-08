@@ -1,47 +1,45 @@
 #!/bin/bash
-# Needs to be bash because we use "trap ERR".
-# Will be copied into whonix_workstation: /usr/local/bin/whonix_workstation
-# by whonix_image copyinto. Will run inside VM.
+## Needs to be bash because we use "trap ERR".
+## Will be copied into whonix_workstation: /usr/local/bin/whonix_workstation
+## by whonix_image copyinto. Will run inside VM.
 
-# See LICENSE in root of Whonix source for copyright, license and authors.
+## See LICENSE in root of Whonix source for copyright, license and authors.
 
 script_help() {
-echo \
+   echo \
 "
-# -install
+## -install
 "
 }
 
 ############################################################################
-# SCRIPT STARTS HERE
+## SCRIPT STARTS HERE
 ############################################################################
 
 set -x
 
 ######################################################
-# Variables
+## Variables
 ######################################################
-# Set the linux username.
-# "export USERNAME=$(whoami)" will not work, since the
-# script gets, in most cases, started as root.
+## Set the linux username.
+## "export USERNAME=$(whoami)" will not work, since the
+## script gets, in most cases, started as root.
 USERNAME="user"
 
-# change to home dir so relative paths work correctly
-cd /home/$USERNAME
-
-# Unattended (un)installation of packages.
-# Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
+## Unattended (un)installation of packages.
+## Thanks to http://snowulf.com/2008/12/04/truly-non-interactive-unattended-apt-get-install/
 export DEBIAN_FRONTEND=noninteractive
 
 
 
 error_handler() {
-echo "
-##################################################
-# whonix_workstation script: ERROR detected.
-##################################################
+   echo "
+###############################################
+## whonix_workstation script: ERROR detected. #
+###############################################
 "
-exit 1
+
+   exit 1
 }
 
 
@@ -58,13 +56,13 @@ root_check() {
 
 
 workstation_source() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-source /usr/local/share/whonix/whonix_internal_checks
-source /usr/local/share/whonix/whonix_create_swap_file
-source /usr/local/share/whonix/whonix_config_uuids
-source /usr/local/share/whonix/whonix_slim_down
-source /usr/local/share/whonix/whonix_kde
+   source /usr/local/share/whonix/whonix_internal_checks
+   source /usr/local/share/whonix/whonix_create_swap_file
+   source /usr/local/share/whonix/whonix_config_uuids
+   source /usr/local/share/whonix/whonix_kde
+   source /usr/local/share/whonix/whonix_chroot_shared
 }
 
 
@@ -73,15 +71,15 @@ adduser_user() {
    trap "error_handler" ERR INT TERM
 
    echo "Creating user user..."
-   # setting password of user user to changeme
-   #
-   # How this password was created:
-   # sudo apt-get install whois
-   # mkpasswd
-   # changeme
-   # Resulted in: aTayYxVyw5kDo
-   #
-   # True in case script gets run again. (Debugging.)
+   ## setting password of user user to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
    useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user || true
    usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
    chown --recursive user:user /home/user
@@ -100,34 +98,34 @@ add_crontab_for_user() {
 
 
 config_audio() {
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-echo "
+   echo "
 ######################################################
-# Set up audio
+## Set up audio
 ######################################################
 "
 
-usermod -a -G audio "$USERNAME"
-sudo -u "$USERNAME" amixer
-sudo -u "$USERNAME" amixer set Master 70 unmute
-sudo -u "$USERNAME" amixer set PCM 70 unmute
+   usermod -a -G audio "$USERNAME"
+   sudo -u "$USERNAME" amixer
+   sudo -u "$USERNAME" amixer set Master 70 unmute
+   sudo -u "$USERNAME" amixer set PCM 70 unmute
 }
 
 
 
 config_gpg() {
-trap "error_handler" ERR INT TERM
-# Run gpg at least once to create the GPG default files
-# gpg.conf, pubring.gpg and trustdb.gpg.
-# The --fingerprint option will do nothing and has been
-# added to let GPG terminate itself after creating the
-# configuration files. GPG run with no options would
-# result in GPG running interactively.
-# old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
-# new:
-sudo -u "$USERNAME" gpg --fingerprint
-# gpg.conf gets appened by whonix_image append post.
+   trap "error_handler" ERR INT TERM
+
+   ## Run gpg at least once to create the GPG default files
+   ## gpg.conf, pubring.gpg and trustdb.gpg.
+   ## The --fingerprint option will do nothing and has been
+   ## added to let GPG terminate itself after creating the
+   ## configuration files. GPG run with no options would
+   ## result in GPG running interactively.
+   ## old: sudo -u $USERNAME gpg --fingerprint --homedir /home/"$USERNAME"/.gnupg
+   ## new:
+   sudo -u "$USERNAME" gpg --fingerprint
 }
 
 
@@ -174,34 +172,34 @@ config_irc_xchat() {
 config_symlinks() {
    trap "error_handler" ERR INT TERM
 
-   # /etc/dpkg/origins/default
-   # || true to support re-running the script
+   ## /etc/dpkg/origins/default
+   ## || true to support re-running the script
    ln -s /etc/dpkg/origins/whonix /etc/dpkg/origins/default || true
 
-      #################
-      # Desktop Icons #
-      #################
+      ##################
+      ## Desktop Icons #
+      ##################
 
    mkdir -p /home/user/Desktop/
 
-   # Adding konsole icon on Desktop.
+   ## Adding konsole icon on Desktop.
    ln -s /usr/share/applications/kde4/konsole.desktop /home/user/Desktop/ || true
 
-   # Adding kgpg icon on Desktop.
+   ## Adding kgpg icon on Desktop.
    ln -s /usr/share/applications/kde4/kgpg.desktop /home/user/Desktop/ || true
 
-   # Adding synaptic icon on Desktop.
+   ## Adding synaptic icon on Desktop.
    ln -s /usr/share/applications/synaptic-kde.desktop /home/user/Desktop/ || true
 
-   # Adding Apper icon on Desktop.
+   ## Adding Apper icon on Desktop.
    ln -s /usr/share/applications/kde4/apper.desktop /home/user/Desktop/ || true
 
-   # Adding xchat icon on Desktop.
-   # Symlink xchat starter to Desktop.
-   # TODO: override with true in case xchat gets removed from package selection.
+   ## Adding xchat icon on Desktop.
+   ## Symlink xchat starter to Desktop.
+   ## TODO: override with true in case xchat gets removed from package selection.
    ln -s /usr/share/applications/xchat.desktop /home/user/Desktop/ || true
 
-   # symlink .desktop files to Desktop folder
+   ## symlink .desktop files to Desktop folder
    ln -s /usr/local/share/whonix/kde/share/applications/* /home/user/Desktop || true
 
    chmod --recursive +x /home/user/Desktop/*
@@ -214,154 +212,76 @@ config_symlinks() {
 dummytor() {
    trap "error_handler" ERR INT TERM
 
-   dpkg -i /usr/local/share/whonix/dummytor/tor_1.0_all.deb
+   cd /usr/local/share/whonix/dummytor/
+   equivs-build tor
+
+   dpkg -i tor_1.0_all.deb
+
    echo "tor hold" | dpkg --set-selections
 }
 
 
 
-whonix_slim_down() {
-trap "error_handler" ERR INT TERM
-
-echo "
 ######################################################
-Slim down the system.
-######################################################
-"
-
-# Removing conflicting software. Should not be installed, but just in case.
-apt-get --config-file /usr/local/share/whonix/apt.conf --yes remove --purge \
-ntpdate popularity-contest resolvconf ufw network-manager network-manager-gnome || true
-
-# Remove unnecessary packages to slim down the system.
-# This list contains only packages, which waste space and are not required.
-#apt-get --yes remove --purge xserver-xorg-video-all xserver-xorg-video-ati xserver-xorg-video-fbdev \
-#xserver-xorg-video-geode xserver-xorg-video-intel xserver-xorg-video-mach64 xserver-xorg-video-mga \
-#xserver-xorg-video-neomagic xserver-xorg-video-nouveau xserver-xorg-video-openchrome \
-#xserver-xorg-video-qxl xserver-xorg-video-r128  xserver-xorg-video-radeon xserver-xorg-video-s3 \
-#xserver-xorg-video-savage xserver-xorg-video-siliconmotion xserver-xorg-video-sis xserver-xorg-video-sisusb \
-#xserver-xorg-video-tdfx xserver-xorg-video-trident xserver-xorg-video-vmware fuse \
-#geoip-database sound-theme-freedesktop fuse-utils aptitude pciutils hdparm lshw ftp parted telnet \
-#mlocate ppp pppconfig pppoeconf bind9-host dosfstools strace mtr-tiny
-
-echo "Cleaning up..."
-
-# Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
-killall dhclient3 || true
-# There are .leases.
-rm /var/lib/dhcp/*.leases || true
-# And there are .lease.
-rm /var/lib/dhcp/*.lease || true
-# We are best of deleting the whole folder.
-rm -r /var/lib/dhcp/* || true
-
-# Cleanup.
-apt-get --yes autoremove --purge || true
-apt-get --yes clean || true
-
-# Killing rsyslog so we can remove logs.
-stop rsyslog || true
-
-# Delete logs and other stuff.
-rm -r /tmp/* || true
-rm /var/log/installer/* || true
-rm -r /var/cache/apt/* || true
-rm -r /var/lib/apt/lists/* || true
-rm -r /var/log/installer || true
-rm /var/lib/dpkg/*-old || true
-rm /var/cache/debconf/*-old || true
-# Erase rotated logs (usually wont appear unless you left your VM running for several days).
-rm /var/log/*.[0-9] || true
-rm /var/log/*.[0-9].gz || true
-
-# Truncate all log files, keeping user group and perms.
-find /var/log -type f -exec cp /dev/null {} \;
-
-# TODO
-# Which are safe?
-# rm /usr/share/icons/nuoveXT2/icon-theme.cache
-# cd /usr/share/locale &&  ls | grep -v en | xargs rm -r && cd /home/$USERNAME
-# rm -r /usr/share/doc/* #(are we even allowed to do that, see licenses?)
-
-# This will not work in chroot.
-# Take care of development leaks and make resulting ova image smaller.
-# Since VBox export works below the FS level it will keep deleted files (and the ova will stay large). 
-# This also ensure that possible leaks we deleted before are really deleted.
-#echo "INFO: Wiping free space. This can take a while."
-# TODO CHROOT #dd if=/dev/zero of=/zerofile bs=1024 || true
-
-# Flush the zero-file to disk before removing it.
-sync
-
-# Delete the zero-file.
-rm /zerofile || true
-
-# Flush again after rm.
-sync
-
-# Delete bash history.
-rm /home/$USERNAME/.bash_history || true
-history -c || true
-
-sync
-}
-
-
-
-######################################################
-# -install
+## -install
 ######################################################
 if [[ "$1" = "-install" ]]; then
-root_check                # Depends on nothing.
+   root_check                ## Depends on nothing.
 
-workstation_source        # Depends on nothing.
-whonix_internal_checks    # Depends on nothing.
-whonix_create_swap_file   # Depends on root_check, not being run again when in use.
-whonix_config_uuids_fstab # Depends on root_check, not being run again after adding new hdds.
-adduser_user              # Depends on root_check.
-add_crontab_for_user      # Depends on nothing.
+   workstation_source        ## Depends on nothing.
+   whonix_internal_checks    ## Depends on nothing.
+   whonix_create_swap_file   ## Depends on root_check, not being run again when in use.
+   whonix_config_uuids_fstab ## Depends on root_check, not being run again after adding new hdds.
+   adduser_user              ## Depends on root_check.
+   add_crontab_for_user      ## Depends on nothing.
 
-# Building in the clear and behind a transparent Tor proxy is supported.
-# In case we are not behind a Whonix-Gateway with dedicated ports for
-# Tor Browser download, use TransPort or clear download instead of SocksPort.
-sudo -u user /usr/local/bin/torbrowser -dev-build-passthrough # Depends on working internet connection.
+   ## Building in the clear and behind a transparent Tor proxy is supported.
+   ## In case we are not behind a Whonix-Gateway with dedicated ports for
+   ## Tor Browser download, use TransPort or clear download instead of SocksPort.
+   sudo -u user /usr/local/bin/torbrowser -dev-build-passthrough ## Depends on working internet connection.
 
-config_irc_xchat          # Depends on root_check.
-config_symlinks           # Depends on root_check.
-config_audio              # Depends on root_check.
-config_gpg                # Depends on nothing.
-config_htp                # Depends on root_check.
-config_wpolipo            # Depends on root_check.
-config_misc	          # Depends on root_check.
-whonix_kde                # Depends on nothing.
-dummytor                  # Depends on root_check.
-whonix_slim_down          # Depends on root_check, being last function.
+   config_irc_xchat          ## Depends on root_check.
+   config_symlinks           ## Depends on root_check.
+   config_audio              ## Depends on root_check.
+   config_gpg                ## Depends on nothing.
+   config_htp                ## Depends on root_check.
+   config_wpolipo            ## Depends on root_check.
+   config_misc	             ## Depends on root_check.
+   whonix_kde                ## Depends on nothing.
+   dummytor                  ## Depends on root_check.
 
-echo "Script completed, this indicates neither success nor failure." >&2
-exit 0
+   whonix_chroot_misc        ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
+   whonix_bannned_packages   ## Depends on root_check. (/usr/local/share/whonix/whonix_chroot_shared)
+   whonix_slim_down          ## Depends on root_check, being last function. (/usr/local/share/whonix/whonix_chroot_shared)
+
+   sync                      ## Ensure changes get written to disk.
+
+   echo "Script completed, this indicates neither success nor failure." >&2
+   exit 0
+
 fi
 
 
 
 ################################################################ 
-# -help                                                        #
+## -help                                                       #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
-script_help
-exit 0
+   script_help
+   exit 0
 fi
 
 
 
 ################################################################ 
-# no option chosen                                             # 
+## no option chosen                                            # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
-echo "
+   echo "
 INFO: No option chosen.
 
 Please run whonix_workstation -help to find out more.
 "
 
-exit 0
+   exit 0
 fi
