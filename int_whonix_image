@@ -357,9 +357,13 @@ inside_chroot() {
    tune2fs /dev/mapper/loop0p1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
    sync
 
-   ## Run the whonix_internal_install_script.
-   ## (Which got copied into the image by copyinto-pre.)
-   chroot "$CHROOT_FOLDER" "/usr/local/share/whonix/whonix_internal_install_script" -install
+   ## Check which chroot scripts we got.
+   chroot "$CHROOT_FOLDER" run-parts --verbose --test "/usr/local/share/whonix/chroot-scripts/"
+
+   ## Run the chroot scripts.
+   ## (Which got copied into the image by copyinto.)
+   chroot "$CHROOT_FOLDER" run-parts --verbose --exit-on-error "/usr/local/share/whonix/chroot-scripts/"
+
    sync
 }
 
