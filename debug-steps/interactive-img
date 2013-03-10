@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+error_handler_interactive-chroot() {
+   trap "error_handler_interactive-img" ERR INT TERM
+
+   echo "Exited (1) interactive shell."
+   sync
+}
+
+interactive_chroot() {
+   ## uses the error_handler_general
+
+   "$MYDIR"/mount-img
+   "$MYDIR"/chroot-img
+
+   sync
+
+   ## Just for testing.
+   chroot "$CHROOT_FOLDER" dir
+   chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
+   chroot "$CHROOT_FOLDER" mount
+   chroot "$CHROOT_FOLDER" update-grub -v
+   sync
+
+   ## Info.
+   echo "Entering interactive shell..."
+   echo "Recommendation: check /home/user if you are really inside the image and not on your host system."
+   echo "When you are done, do not forget to leave the shell using: exit 0"
+
+   ## Run interactive shell.
+   trap "error_handler_interactive-chroot" ERR INT TERM
+   chroot "$CHROOT_FOLDER" "/bin/bash"
+
+   echo "Exited (0) interactive shell."
+
+   "$MYDIR"/unchroot-img
+   "$MYDIR"/unmount-img
+
+   sync
+}
+
+interactive_chroot
+

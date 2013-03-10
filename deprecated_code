@@ -201,3 +201,440 @@ usermod -a -G audio "$USERNAME"
 sudo -u "$USERNAME" amixer
 sudo -u "$USERNAME" amixer set Master 70 unmute
 sudo -u "$USERNAME" amixer set PCM 70 unmute
+
+start_vm() {
+   trap "error_handler" ERR INT TERM
+
+   : echo "whonix_createvm: $VMNAME starting..."
+
+   sudo -u "$USERNAME" VBoxSDL --startvm "$VMNAME"
+
+   : echo "whonix_createvm: Virtual Box terminated without error messages."
+   : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
+}
+
+
+
+################################################################ 
+# no option chosen                                             #
+################################################################ 
+if [[ $# == 0 ]]; then
+   : echo "No option chosen. Use -help for help."
+   touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED || true
+   exit 1
+fi
+
+################################################################ 
+# -help                                                        #
+################################################################ 
+if [[ "$1" = "-help" ]]; then
+   script_help
+   exit 0
+fi
+
+################################################################ 
+# -tg-createimg                                                #
+################################################################ 
+if [[ "$1" = "-tg-createimg" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   VMSIZE="2G"
+   create_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-copyimg                                                  #
+################################################################ 
+if [[ "$1" = "-tg-copyimg" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   copy_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-converttovdi                                             #
+################################################################ 
+if [[ "$1" = "-tg-converttovdi" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   convert_to_vdi
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-createvboxvm                                             #
+################################################################ 
+if [[ "$1" = "-tg-createvboxvm" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   VMRAM="128"
+   general_setup
+   gateway_specific
+   hardware_modifications
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-copyinto                                                 #
+################################################################ 
+if [[ "$1" = "-tg-copyinto" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   copy_into_vm_image_whonix_gateway
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-chroot                                                   #
+################################################################ 
+if [[ "$1" = "-tg-chroot" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   inside_chroot
+   do_unchroot
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-interactive                                              #
+################################################################ 
+if [[ "$1" = "-tg-interactive" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   interactive_chroot
+   do_unchroot
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-source                                                   #
+################################################################ 
+if [[ "$1" = "-tg-source" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   download_sources
+   do_unchroot
+   move_sources
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-export                                                   #
+################################################################ 
+if [[ "$1" = "-tg-export" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   ## TODO: Snapshot not included in exported ova.
+   #: echo "whonix_createvm: Creating snapshot..."
+   #sudo -u "$USERNAME" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   sudo -u "$USERNAME" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
+   : echo "BUILD INFO: Done."
+   exit 0
+fi
+
+################################################################ 
+# -tg-vboxdelete                                               #
+################################################################ 
+if [[ "$1" = "-tg-vboxdelete" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   delete_vm
+   exit 0
+fi
+
+################################################################ 
+# -tg-bare-metal                                               #
+################################################################ 
+if [[ "$1" = "-tg-bare-metal" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_whonix_gateway
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-createimg                                                #
+################################################################ 
+if [[ "$1" = "-tw-createimg" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   VMSIZE="50G"
+   create_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-copyimg                                                  #
+################################################################ 
+if [[ "$1" = "-tw-copyimg" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   copy_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-converttovdi                                             #
+################################################################ 
+if [[ "$1" = "-tw-converttovdi" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   convert_to_vdi
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-createvboxvm                                             #
+################################################################ 
+if [[ "$1" = "-tw-createvboxvm" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   VMRAM="768"
+   general_setup
+   workstation_specific
+   hardware_modifications
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-copyinto                                                 #
+################################################################ 
+if [[ "$1" = "-tw-copyinto" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   copy_into_vm_image_whonix_workstation
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-chroot                                                   #
+################################################################ 
+if [[ "$1" = "-tw-chroot" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   inside_chroot
+   do_unchroot
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-interactive                                              #
+################################################################ 
+if [[ "$1" = "-tw-interactive" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   interactive_chroot
+   do_unchroot
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-source                                                   #
+################################################################ 
+if [[ "$1" = "-tw-source" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   do_chroot
+   download_sources
+   do_unchroot
+   move_sources
+   unmount_img
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tw-export                                                   #
+################################################################ 
+if [[ "$1" = "-tw-export" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   ## TODO: Snapshot not included in exported ova.
+   #: echo "whonix_createvm: Creating snapshot..."
+   #sudo -u "$USERNAME" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   sudo -u "$USERNAME" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
+   : echo "BUILD INFO: Done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-vboxdelete                                               #
+################################################################ 
+if [[ "$1" = "-tw-vboxdelete" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   delete_vm
+   exit 0
+fi
+
+################################################################ 
+# -tw-bare-metal                                               #
+################################################################ 
+if [[ "$1" = "-tw-bare-metal" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=""
+   copy_into_vm_image_whonix_workstation
+   : echo "BUILD INFO: Done, if success, next step should be: see sudo ./whonix_createvm -help"
+   exit 0
+fi
+
+################################################################ 
+# -tg-mountimg                                                 #
+################################################################ 
+if [[ "$1" = "-tg-mountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmountimg"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tg-unmountimg                                               #
+################################################################ 
+if [[ "$1" = "-tg-unmountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_img
+   : echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mountimg                                                 #
+################################################################ 
+if [[ "$1" = "-tw-mountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_img
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmountimg"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmountimg                                               #
+################################################################ 
+if [[ "$1" = "-tw-unmountimg" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_img
+   echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tg-mountvdi                                                 #
+################################################################ 
+if [[ "$1" = "-tg-mountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vdi
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tg-unmountvdi"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tg-unmountvdi                                               #
+################################################################ 
+if [[ "$1" = "-tg-unmountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Gateway"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_vdi
+   : echo "INFO: unmount done."
+   exit 0
+fi
+
+################################################################ 
+# -tw-mountvdi                                                 #
+################################################################ 
+if [[ "$1" = "-tw-mountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   mount_vdi
+   : echo "INFO: mount done."
+   : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
+   : echo "- Leave the folder after you are done!!! cd ~"
+   : echo "- Do not forget to run: sudo ./whonix_createvm -tw-unmountvdi"
+   : echo "- Otherwise strange bugs may occur."
+   exit 0
+fi
+
+################################################################ 
+# -tw-unmountvdi                                               #
+################################################################ 
+if [[ "$1" = "-tw-unmountvdi" ]]; then
+   root_check
+   VMNAME="Whonix-Workstation"
+   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   unmount_vdi
+   echo "INFO: unmount done."
+   exit 0
+fi
+

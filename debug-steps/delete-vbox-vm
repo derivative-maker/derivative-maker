@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+delete_vm() {
+   ## uses the error_handler_general
+
+   ## Turning off the VM without saving.
+   sudo -u "$USERNAME" VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+
+   ## Delete old Whonix-Gateway.
+   sudo -u "$USERNAME" VBoxManage unregistervm "$VMNAME" --delete || true
+   sync
+
+   ## The "VBoxManage unregistervm  --delete" does not do its job,
+   ## we have to manually delete the VM folder.
+   sudo -u "$USERNAME" rm -r "$HOMEVAR/VirtualBox VMs/$VMNAME" || true
+   sync
+
+   ## Delete old ova.
+   rm "$HOMEVAR/whonix_binary/$VMNAME".ova || true
+   sync
+} 
+
+delete_vm
+
+

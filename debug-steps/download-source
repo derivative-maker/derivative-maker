@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+download_sources() {
+   ## uses the error_handler_general
+
+   "$MYDIR"/mount-img
+   "$MYDIR"/chroot-img
+
+   chroot "$CHROOT_FOLDER" "/usr/local/share/whonix/whonix_download_sources"
+   sync
+
+   "$MYDIR"/unchroot-img
+   "$MYDIR"/unmount-img
+}
+
+move_sources() {
+   ## uses the error_handler_general
+
+   "$MYDIR"/mount-img
+   "$MYDIR"/chroot-img
+
+   mkdir -p "$HOMEVAR/whonix_binary/"
+   mkdir -p "$HOMEVAR/whonix_binary/sources"
+   mkdir -p "$HOMEVAR/whonix_binary/sources/"$VMNAME""
+
+   mv "$CHROOT_FOLDER/usr/local/share/whonix/sources/*" "$HOMEVAR/whonix_binary/sources/"$VMNAME"/"
+
+   #rm -r "$CHROOT_FOLDER/usr/local/share/whonix/sources/"
+
+   "$MYDIR"/unchroot-img
+   "$MYDIR"/unmount-img
+} 
+
+download_sources
+move_sources
+

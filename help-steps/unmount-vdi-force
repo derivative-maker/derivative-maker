@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_unmount-vdi-force() {
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+exit 1
+}
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+unmount_vdi_force() {
+   trap "error_handler_unmount-vdi-force" ERR INT TERM
+
+   do_unchroot || true
+
+   ## Will be called if there is an error.
+   ## || true to avoid more errors and to ensure
+   ## clean unmount.
+
+   sync || true
+
+   ## Shutdown the ndb.
+   qemu-nbd -d /dev/nbd0 || true
+   sync
+
+   ## In the end unmount.
+   umount "$CHROOT_FOLDER" || true
+   sync
+
+   ## Delete temporary folder.
+   ## It did not contain anything. It was only a mount point.
+   rm -r "$CHROOT_FOLDER" || true
+   sync || true
+}
+ 

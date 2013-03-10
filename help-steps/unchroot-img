@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_unchroot-img() {
+echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+echo "unmount_img..."
+unmount_img_force
+echo "unmount_vdi..."
+unmount_vdi_force
+echo "Done."
+
+exit 1
+}
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+do_unchroot() {
+   trap "error_handler_unchroot-img" ERR INT TERM
+
+   rm --verbose --force "$CHROOT_FOLDER"/usr/sbin/policy-rc.d || true
+
+   #umount "$CHROOT_FOLDER"/dev/pts || true
+   umount "$CHROOT_FOLDER"/dev || true
+   umount "$CHROOT_FOLDER"/proc || true
+   #umount "$CHROOT_FOLDER"/sys || true
+   umount "$CHROOT_FOLDER"/etc/resolv.conf || true
+}
+
+ 

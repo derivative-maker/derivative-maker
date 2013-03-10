@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+run-chroot-scripts-img() {
+   ## error_handler_general
+
+   sync
+
+   source "$MYDIR"/mount-img
+   source "$MYDIR"/chroot-img
+
+   sync
+
+   ## No longer neccessary.
+   ## Lets keep it in case we need it again.
+   ## locale-gen en_US.UTF-8
+   ## dpkg-reconfigure locales 
+   ## echo 'LANG="en_US.UTF-8"' > /etc/default/locale
+
+   ## Just for testing.
+   chroot "$CHROOT_FOLDER" dir
+   chroot "$CHROOT_FOLDER" ls -l "/usr/local/bin/"
+   chroot "$CHROOT_FOLDER" mount
+   chroot "$CHROOT_FOLDER" update-grub -v
+   sync
+
+   ## Changeing partition uuid.
+   tune2fs /dev/mapper/loop0p1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+   sync
+
+   ## Check which chroot scripts we got.
+   chroot "$CHROOT_FOLDER" run-parts --verbose --test "/usr/local/share/whonix/chroot-scripts/"
+
+   ## Run the chroot scripts.
+   ## (Which got copied into the image by copyinto.)
+   chroot "$CHROOT_FOLDER" run-parts --verbose --exit-on-error "/usr/local/share/whonix/chroot-scripts/"
+
+   sync
+
+   source "$MYDIR"/unchroot-img
+   source "$MYDIR"/unmount-img
+
+   sync
+}
+
+run-chroot-scripts-img
+
+
+

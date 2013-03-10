@@ -1,0 +1,248 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+
+general_setup() {
+   ## error_handler_general
+
+   ## Create a new VM. Name: $VMNAME
+   sudo -u "$USERNAME" VBoxManage createvm --name "$VMNAME" --register
+
+   ## Debian
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --ostype Debian
+
+   ## Add SATA Controller.
+   sudo -u "$USERNAME" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
+
+   ## HDD gets added in specific_setup.
+
+   ## Only 4 sata ports instead of 30. Speeds up booting.
+   sudo -u "$USERNAME" VBoxManage storagectl "$VMNAME" --name "$VMNAME" --sataportcount 4
+
+   ## Add CD-ROM
+   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+
+   ## RAM
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+
+   ## Enable PAE.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --pae on
+
+   ## Hide hosts CPU info. This does not have a GUI option.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --synthcpu on
+
+   ## REVIEW
+   ## ACPI boots up the VM boot process. It has not been reviewed if this is good or bad for security.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --acpi on
+
+   ## REVIEW
+   ## ACPI boots up the VM boot process. It has not been reviewed if this is good or bad for security.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --ioapic on
+
+   ## Set system clock of VM to UTC.
+   ## When Virtual Box starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
+   ## and sets the VM clock to that date and time. The following option translates the date
+   ## and time to UTC, thus hiding the hosts timezone from the guest.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+
+   ## Deactivate time synchronization between host and VMs.
+   ## This is documented in Whonix Design on TimeSync page
+   ## Thanks to
+   ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+
+   ## Disable clipboard sharing. Only matters if guest additions are installed which is recommend against.
+   ## Just in case.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --clipboard disabled
+}
+
+
+
+gateway_specific() {
+   ## error_handler_general
+
+   ## VM UUID
+   ## Thanks to:
+   ## http://www.windowstablettv.com/windows-tips/190-virtualbox-clone-windows-activation/
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --hardwareuuid "dbc5316a-2600-4d6e-8964-a07f3de5ded8"
+
+   ## HD UUID
+   ## Thanks to:
+   ## http://michail.flouris.net/2011/11/virtualbox-vm-disk-clone-uuid-problem/
+   sudo -u "$USERNAME" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "0156199f-6e83-4cd6-97b7-c9e24d9cd26d"
+
+   ## Attach the HDD.
+   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   ## Leave Adapter 1 as NAT.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic1 nat
+
+   ## REVIEW
+   ## NAT adapter also gets fixed MAC shared among all Whonix users.
+   ## Use cases:
+   ## - Whonix-Workstation can see it.
+   ## - See Whonix Security page about Whonix in public networks / MAC address
+   ## - In case the Gateway gets broken, this one can not be used as identifier.
+   ##   Gets interesting in future with multiple gateways.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress1 0800273A77FC
+
+   ## Prevents leaking DNS info from the host into the guest.
+   ## Also useful in other cases.
+   ## https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+
+   ## Prevents leaking DNS info from the host into the guest.
+   ## Also useful in other cases.
+   ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+
+   ## Do not pass the domain name for network name resolution to the VM.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+
+   ## Enable Adapter 2, set to "Internal Network".
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic2 intnet
+
+   ## Change the internal network to "Whonix", IMPORTANT!
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+
+   ## Enter following MAC address: 0800272FCF44
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress2 0800272FCF44
+}
+
+
+
+workstation_specific() {
+   ## error_handler_general
+
+   ## VM UUID
+   ## Thanks to:
+   ## https://forums.virtualbox.org/viewtopic.php?f=2&t=22653&start=75
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --hardwareuuid "05f2222c-9697-485b-b105-267a36c401fc"
+
+   ## HD UUID
+   ## Thanks to:
+   ## http://mixeduperic.com/ubuntu/how-to-copy-a-virtualbox-virtual-machine-in-ubuntu.html
+   sudo -u "$USERNAME" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "77d55d86-800c-4667-9e60-678f81a50913"
+
+   ## Attach the HDD.
+   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   ## 128 MB Video RAM.
+   ## Settings->Display->Video Memory->128 MB.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --vram 128
+
+   ## Add Adapter 1 (will be eth0), an internal network, IMPORTANT!
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic1 intnet
+
+   ## Remove the virtual network cable. Same reason like gateway_specific.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+
+   ## Change the internal network to "Whonix", IMPORTANT!
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+
+   ## Enter following MAC address: 080027070B08
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress1 080027070B08
+
+   ## Enable audio controller ac97.
+   ## sb16 should be obsolete.
+   ## ac97 is hopefully better supported than intel hda.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+
+   ## Host audio driver can be oss, alsa or pulse.
+   ## Unfortunately, no auto detection available.
+   ## Depends on host driver.
+   ## Ubuntu host uses pulse audio.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --audio pulse
+}
+
+
+
+hardware_modifications() {
+   ## error_handler_general
+
+   ## Thanks to:
+   ## - http://www.dedmeet.com/software-projects-mainmenu-12/asus-recovery-cd-with-virtualbox.html
+   ## - https://www.virtualbox.org/ticket/7325
+   ## Hiding BIOS information.
+   ##
+   ##
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
+   ##
+   ##
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
+
+   ## TODO VBOX: Wait for next Virtual Box version.
+   ## Not yet available.
+   ## http://wiki.ubuntuusers.de/Dualboot-Windows_virtualisieren
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisAssetTag" "<EMPTY>"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisSerial" "<EMPTY>"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVendor" "string:Medion"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVersion" "string:N/A"
+   ## https://forums.virtualbox.org/viewtopic.php?f=2&t=43678
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardProduct""D2560-A2"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardVendor" "FUJITSU SIEMENS"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct" "ESPRIMO P"
+   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor" "FUJITSU SIEMENS"
+
+   ## Configuring the hard disk vendor product data (VPD)
+   ## http://www.virtualbox.org/manual/ch09.html#changevpd
+
+   ## Port0 (hdd)
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
+
+   ## Port1 (cd-rom)
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
+   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
+
+   ## Show changes.
+   sudo -u "$USERNAME" VBoxManage getextradata "$VMNAME" enumerate
+} 
+

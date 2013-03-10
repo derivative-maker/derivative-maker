@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_mount-vdi() {
+echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+echo "unmount_img..."
+unmount_img_force
+echo "unmount_vdi..."
+unmount_vdi_force
+echo "Done."
+
+exit 1
+}
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+mount_vdi() {
+   trap "error_handler_mount-vdi" ERR INT TERM
+
+   sync
+   ## Ensure powered is off. Otherwise disk corruption is at high risk.
+   sudo -u "$USERNAME" VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+
+   ## Find name of .vdi file. New:
+   local VDI="`find  "/home/"$USERNAME"/VirtualBox VMs/""$VMNAME"/*.vdi`"
+   ## example result: /home/"$USERNAME"/VirtualBox VMs/whonix-Gateway/whonix-Gateway-disk1.vdi
+   ## For debugging its useful to clone a VM, where only the operating system has been installed,
+   ## before running the script or before copying into it.
+   ## When restoring the VMClone to VM, the VDI may have another name.
+
+   ## Make sure required module to mount vdi images is installed.
+   #modprobe nbd
+   ## Working around a bug.
+   #    sudo mount -o noatime,noexec /dev/nbd0p1 /tmp/vdi/
+   #    mount: special device /dev/nbd0p1 does not exist
+   ## https://bugs.launchpad.net/ubuntu/+source/linux/+bug/342563
+   ## Also present in Debian Wheezy.
+   modprobe nbd max_part=15
+
+   ## Create loopback dev for the image. New:
+   qemu-nbd -c /dev/nbd0 "$VDI"
+
+   ## Folder has to exist to mount the image.
+   mkdir -p "$CHROOT_FOLDER"
+
+   sync
+   ## Mount the partitions, that are exposed as /dev/nbd0pXXX.
+   mount -o noatime /dev/nbd0p1 "$CHROOT_FOLDER"
+   sync
+}
+
+ 

@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_mount-img() {
+echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+echo "unmount_img..."
+unmount_img_force
+echo "unmount_vdi..."
+unmount_vdi_force
+echo "Done."
+
+exit 1
+}
+
+trap "error_handler" ERR INT TERM
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+mount_img() {
+   trap "error_handler_mount-img" ERR INT TERM
+
+   sync
+   kpartx -av /home/"$USERNAME"/whonix_binary/"$VMNAME"_copy.img
+   sync
+   mkdir -p "$CHROOT_FOLDER"
+   sync
+   mount /dev/mapper/loop0p1 "$CHROOT_FOLDER"
+   sync
+} 

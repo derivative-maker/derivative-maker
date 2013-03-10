@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_unmount-vdi() {
+echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+echo "unmount_img..."
+"$MYDIR"/unmount-img-force
+echo "unmount_vdi..."
+"$MYDIR"/unmount-vdi-force
+echo "Done."
+
+exit 1
+}
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+unmount_vdi() {
+   trap "unmount_vdi_force" ERR INT TERM
+
+   ## Called after copying into vm.
+   ## Should not trow any errors.
+
+   sync
+
+   ## Shutdown the ndb.
+   qemu-nbd -d /dev/nbd0
+   sync
+
+   ## In the end unmount.
+   umount "$CHROOT_FOLDER"
+   sync
+
+   ## Delete temporary folder.
+   ## It did not contain anything. It was only a mount point.
+   rm -r "$CHROOT_FOLDER"
+   sync
+}
+
+
+
+
+ 

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+create_img() {
+   ## error_handler_general
+
+   sudo -u "$USERNAME" mkdir -p /home/"$USERNAME"/whonix_binary/
+
+   grml-debootstrap \
+      --arch i386 \
+      --filesystem ext4 \
+      --force \
+      --hostname host \
+      --mirror http://127.0.0.1:3142/debian \
+      --keep_src_list \
+      --password changeme \
+      --release wheezy \
+      --verbose \
+      --vmfile \
+      --vmsize "$VMSIZE" \
+      --config ""$WHONIX_SOURCE_FOLDER"/grml_config" \
+      --packages ""$WHONIX_SOURCE_FOLDER"/"$VMNAME"_packages" \
+      --target /home/"$USERNAME"/whonix_binary/"$VMNAME".img
+} 
+
+create_img
+

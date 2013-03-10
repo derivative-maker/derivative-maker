@@ -1,0 +1,173 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+
+copy_into_vm_image_whonix_gateway() {
+   ## error_handler_general
+
+   copy_backup_shared
+   copy_into_shared
+
+   copy_backup_gateway
+   copy_into_gateway
+
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+copy_into_vm_image_whonix_workstation() {
+   ## error_handler_general
+
+   copy_backup_shared
+   copy_into_shared
+
+   copy_backup_workstation
+   copy_into_workstation
+
+   # Ensure changes get written before unmounting.
+   sync
+}
+
+
+
+copy_backup_shared() {
+   ## error_handler_general
+
+   ## Better no backup of localtime.
+   #cp --no-clobber "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
+
+   ## Better no backup of dbusmachineid.
+   #cp --no-clobber "$CHROOT_FOLDER"/var/lib/dbus/machine-id "$CHROOT_FOLDER"/var/lib/dbus/machine-id.backup
+
+   touch "$CHROOT_FOLDER"/etc/motd
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/motd "$CHROOT_FOLDER"/etc/motd.backup || true
+
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/rc.local "$CHROOT_FOLDER"/etc/rc.local.backup
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/hosts "$CHROOT_FOLDER"/etc/hosts.backup || true
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/issue "$CHROOT_FOLDER"/etc/issue.backup || true
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/inittab "$CHROOT_FOLDER"/etc/inittab.backup || true
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
+}
+
+
+
+copy_into_shared() {
+   ## error_handler_general
+
+   ## Delete old swapfile, only in case the script has run before. (Debugging only.)
+   rm "$CHROOT_FOLDER"/swapfile1 || true
+
+   ## /etc/motd
+   ## rm to get ride of the symlink, in case there is any.
+   ## http://wiki.debian.org/motd
+   rm "$CHROOT_FOLDER"/etc/motd || true
+
+   ## delete default symlink to "$CHROOT_FOLDER"/etc/dpkg/origins/debian
+   rm "$CHROOT_FOLDER"/etc/dpkg/origins/default || true
+
+   ## copy skel to user home
+   cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/user
+
+   ## Ensure timezone is UTC.
+   cp --recursive --preserve "$CHROOT_FOLDER"/usr/share/zoneinfo/UTC "$CHROOT_FOLDER"/etc/localtime
+
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_shared/ "$CHROOT_FOLDER"/
+
+   ## /etc/dpkg/origins/default
+   ## symlink is created by /home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_symlinks
+
+   ## Permissions for /home/user get fixed by int_copy_gateway or int_copy_workstation.
+}
+
+
+ 
+
+copy_backup_gateway() {
+   ## error_handler_general
+
+   ## Backup torrc inside VM before replacing it with Whonix version.
+   cp --no-clobber "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
+}
+
+copy_into_gateway() {
+   ## error_handler_general
+
+   ## copy skel to clearnet home
+   cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
+
+   ## copy skel to user home is done in int_copy_shared
+
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_gateway/ "$CHROOT_FOLDER"/
+
+   ## This is required for chown --recursive clearnet:clearnet...
+   echo "Creating clearnet user..."
+   ## setting password of user clearnet to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo
+   ##
+   ## True in case script gets run again. (Debugging.)
+   useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet || true
+
+   ## Fix /home/clearnet permissions.
+   chown --recursive clearnet:clearnet "$CHROOT_FOLDER"/home/clearnet
+
+   ## Fix /home/user permissions.
+   chown --recursive user:user "$CHROOT_FOLDER"/home/user
+}
+
+
+
+copy_backup_workstation() {
+   ## error_handler_general
+
+   ## /etc/polipo/config
+   ## not installing polipo by default
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/whonix_workstation/etc/polipo/config "$CHROOT_FOLDER"/etc/polipo/config.backup || true
+
+   ## /etc/kde4/kdm/kdmrc
+   ## Overriding with true because its only for kde autologin for the case kde does not get installed in custom builds.
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/kde4/kdm/kdmrc "$CHROOT_FOLDER"/etc/kde4/kdm/kdmrc.backup || true
+}
+
+copy_into_workstation() {
+   ## error_handler_general
+
+   ## /etc/resolv.conf
+   ## We do not need chattr +i for Whonix-W resolv.conf, because
+   ## DHCP is never used and resolvconf was uninstalled.
+
+   ## /home/user/Desktop symlinks get created by
+   ## /home/user/Whonix/whonix_workstation/usr/local/share/whonix/chroot-scripts/70_desktop-icons
+
+   ## copy skel to user home is done in int_copy_shared
+
+   ## Copy
+   rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_workstation/ "$CHROOT_FOLDER"/
+
+   ## Fix permissions for /home/user/.
+   mkdir -p "$CHROOT_FOLDER"/home/user/
+   chown --recursive user:user "$CHROOT_FOLDER"/home/user/
+}
+
+

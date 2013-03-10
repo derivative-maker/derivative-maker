@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_general() {
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+}
+
+trap "error_handler_general" ERR INT TERM
+
+if [ "$(id -u)" != "0" ]; then
+    : echo "ERROR: This must be run as root (sudo)!"
+    exit 1
+else
+    : echo "INFO: Script running as root."
+fi
+
+ionice -c3 -p$$
+ionice
+renice +19 -p $$
+nice 
+

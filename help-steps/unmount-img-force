@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -x
+
+true "$0"
+
+error_handler_unmount-img-force() {
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+exit 1
+}
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/variables
+source "$MYDIR"/pre
+
+unmount_img_force() {
+   trap "error_handler_unmount-img-force" ERR INT TERM
+
+   do_unchroot || true
+
+   # Will be called if there is an error.
+   # || true to avoid more errors and to ensure
+   # clean unmount.
+
+   sync || true
+
+   umount "$CHROOT_FOLDER" || true
+   sync || true
+
+   # Delete temporary folder.
+   # It did not contain anything. It was only a mount point.
+   rm -r "$CHROOT_FOLDER" || true
+   sync || true
+} 
