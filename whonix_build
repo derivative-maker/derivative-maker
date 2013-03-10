@@ -14,23 +14,26 @@ source pre
 cd ..
 
 script_help() {
-: "
-# creates separate build folder
-# FLAGS:
-# -all
-# build both Virtual machines
-#
-# -fast
-# skips the -createimg step
-#
-# -tg
-# Builds Whonix-Gateway VBox machine.
-#
-# -tw
-# Builds Whonix-Workstation VBox machine.
-#
-# -clean
-# deletes .img and Virtual Box vms
+echo "
+## creates separate build folder
+## "$HOMEVAR"/whonix_binary
+##
+## FLAGS:
+## -all
+## build both Virtual machines
+##
+## -fast
+## skips the -createimg step
+##
+## -tg
+## Builds Whonix-Gateway VBox machine.
+##
+## -tw
+## Builds Whonix-Workstation VBox machine.
+##
+## -clean
+## deletes .img and Virtual Box vms
+##
 "
 }
 
@@ -49,41 +52,47 @@ error_handler_build-machine() {
 
 chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
 
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
 exit 1
 }
 
 
 
 whonix_build_machine() {
-	trap "error_handler_build-machine" ERR INT TERM
+   trap "error_handler_build-machine" ERR INT TERM
 
-	if [ "$FAST" = 1 ]; then
-		sudo chmod -x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
-	fi
+   if [ "$FAST" = 1 ]; then
+      sudo chmod -x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+   fi
 
-	run-parts --verbose --test ./build-steps
-	run-parts --verbose --exit-on-error --arg "$MACHINE" ./build-steps
+   run-parts --verbose --test ./build-steps
+   run-parts --verbose --exit-on-error --arg "$MACHINE" ./build-steps
 
-	if [ "$FAST" = 1 ]; then
-		sudo chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
-	fi
+   if [ "$FAST" = 1 ]; then
+      sudo chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+   fi
 }
 
 
 
 whonix_build_all() {
-	trap "error_handler_general" ERR INT TERM
-	whonix_build_machine
+   trap "error_handler_general" ERR INT TERM
+   whonix_build_machine
 }
 
 
 
 whonix_build_clean() {
-	trap "error_handler_general" ERR INT TERM
-	MACHINE="-tg"
-	./debug-steps/delete-vbox-vm "$MACHINE"
-	MACHINE="-tw"
-	./debug-steps/delete-vbox-vm "$MACHINE"
+   trap "error_handler_general" ERR INT TERM
+   MACHINE="-tg"
+   ./debug-steps/delete-vbox-vm "$MACHINE"
+   MACHINE="-tw"
+   ./debug-steps/delete-vbox-vm "$MACHINE"
 }
 
 
@@ -92,29 +101,29 @@ whonix_build_clean() {
 # -tg                                                          #
 ################################################################ 
 if [ "$1" = "-tg" ]; then
-	MACHINE="-tg"
-	whonix_build_machine "$MACHINE"
-	exit 0
+   MACHINE="-tg"
+   whonix_build_machine "$MACHINE"
+   exit 0
 fi
 
 ################################################################ 
 # -tw                                                          #
 ################################################################ 
 if [[ "$1" = "-tw" ]]; then
-	MACHINE="-tw"
-	whonix_build_machine "$MACHINE"
-	exit 0
+   MACHINE="-tw"
+   whonix_build_machine "$MACHINE"
+   exit 0
 fi
 
 ################################################################ 
 # -all                                                         #
 ################################################################ 
 if [[ "$1" = "-all" ]]; then
-	MACHINE="-tg"
-	whonix_build_machine "$MACHINE"
-	MACHINE="-tw"
-	whonix_build_machine "$MACHINE"
-	exit 0
+   MACHINE="-tg"
+   whonix_build_machine "$MACHINE"
+   MACHINE="-tw"
+   whonix_build_machine "$MACHINE"
+   exit 0
 fi
 
 ################################################################ 
@@ -122,27 +131,27 @@ fi
 ################################################################ 
 if [[ "$1" = "-fast" ]]; then
         FAST=1
-	MACHINE="-tg"
-	whonix_build_machine "$MACHINE"
-	MACHINE="-tw"
-	whonix_build_machine "$MACHINE"
-	exit 0
+   MACHINE="-tg"
+   whonix_build_machine "$MACHINE"
+   MACHINE="-tw"
+   whonix_build_machine "$MACHINE"
+   exit 0
 fi
 
 ################################################################ 
 # -clean                                                       #
 ################################################################ 
 if [[ "$1" = "-clean" ]]; then
-	whonix_build_clean
-	exit 0
+   whonix_build_clean
+   exit 0
 fi
 
 ################################################################ 
 # -help                                                        #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
-	script_help
-	exit 0
+   script_help
+   exit 0
 fi
 
 ################################################################ 
