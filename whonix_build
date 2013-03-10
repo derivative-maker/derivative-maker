@@ -34,11 +34,39 @@ script_help() {
 "
 }
 
-whonix_build_machine() {
-	trap "error_handler_general" ERR INT TERM
 
-	run-parts --verbose --test ./build-steps/
-	run-parts --verbose --exit-on-error --arg "$1" ./build-steps/
+
+chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+
+
+
+error_handler_build-machine() {
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+
+exit 1
+}
+
+
+
+whonix_build_machine() {
+	trap "error_handler_build-machine" ERR INT TERM
+
+	if [ "$FAST" = 1 ]; then
+		sudo chmod -x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+	fi
+
+	run-parts --verbose --test ./build-steps
+	run-parts --verbose --exit-on-error --arg "$MACHINE" ./build-steps
+
+	if [ "$FAST" = 1 ]; then
+		sudo chmod +x "$WHONIX_SOURCE_FOLDER"/build-steps/20_create-debian-img
+	fi
 }
 
 

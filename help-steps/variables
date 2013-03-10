@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set +x
+#set +x
 
 true "$0"
 
@@ -13,34 +13,45 @@ export SNAPSHOT_DESCRIPTION="
    All changes, all installed packages, all data you created will be lost!
 " 
 
-VMNAME="unknown"
+export VMNAME="unknown"
 
-if [[ "$1" = "-tg" ]]; then
+echo "variables \$1: $1"
+echo "variables MACHINE: $MACHINE"
+
+if [[ "$1" = "-tg" ]] || [[ "$MACHINE" = "-tg" ]]; then
    export MACHINE="-tg"
    export VMNAME="Whonix-Gateway"
    export VMRAM="128"
    export CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
 fi
 
-if [[ "$1" = "-tg-bare-metal" ]]; then
+if [[ "$1" = "-tg-bare-metal" ]] || [[ "$MACHINE" = "-tg-bare-metal" ]]; then
    export MACHINE="-tg-bare-metal"
    export VMNAME="Whonix-Gateway"
    export VMRAM="128"
    export CHROOT_FOLDER=""
 fi
 
-if [[ "$1" = "-tw" ]]; then
+if [[ "$1" = "-tw" ]] || [[ "$MACHINE" = "-tw" ]]; then
    export MACHINE="-tw"
    export VMNAME="Whonix-Workstation"
    export VMRAM="768"
    export CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
 fi
 
-if [[ "$1" = "-tw-bare-metal" ]]; then
+if [[ "$1" = "-tw-bare-metal" ]] || [[ "$MACHINE" = "-tw-bare-metal" ]]; then
    export MACHINE="-tw-bare-metal"
    export VMNAME="Whonix-Workstation"
    export VMRAM="768"
    export CHROOT_FOLDER=""
+fi
+
+if [ "$1" = "-fast" ]; then
+   export VMNAME="-fast"
+fi
+
+if [ "$1" = "-all" ]; then
+   export VMNAME="-all"
 fi
 
 if [ -z $MACHINE ]; then
@@ -57,6 +68,10 @@ if [ -z $MACHINE ]; then
       : "-tg-bare-metal for Whonix-Gateway Bare Metal"
       : "-tw-bare-metal for Whonix-Workstation Bare Metal"
       exit 1
+   elif [ "$1" = "-fast" ]; then
+      : "Internal run for whonix_build: $MACHINE"
+   elif [ "$1" = "-all" ]; then
+      : "Internal run for whonix_build: $MACHINE"
    else
       set -x
       : "ERROR: Please report this BUG variables A!"
@@ -67,4 +82,9 @@ else
 fi
 
 set -x
+
+if [ "$VMNAME" = "unknown" ]; then
+   bug "variabels: VMNAME is still unknown. Something went wrong. Please report this BUG."
+   exit 1
+fi
 

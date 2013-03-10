@@ -15,8 +15,26 @@ source pre
 
 trap "error_handler_general" ERR INT TERM
 
+error_handler_copy-into-img() {
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+   ./unmount-img
+
+: echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+   exit 1
+}
+
 copy_into_vm_image_whonix_gateway() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    copy_backup_shared
    copy_into_shared
@@ -29,7 +47,7 @@ copy_into_vm_image_whonix_gateway() {
 }
 
 copy_into_vm_image_whonix_workstation() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    copy_backup_shared
    copy_into_shared
@@ -42,7 +60,7 @@ copy_into_vm_image_whonix_workstation() {
 }
 
 copy_backup_shared() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## Better no backup of localtime.
    #cp --no-clobber "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
@@ -62,7 +80,7 @@ copy_backup_shared() {
 }
 
 copy_into_shared() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## Delete old swapfile, only in case the script has run before. (Debugging only.)
    rm "$CHROOT_FOLDER"/swapfile1 || true
@@ -91,14 +109,14 @@ copy_into_shared() {
 }
 
 copy_backup_gateway() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## Backup torrc inside VM before replacing it with Whonix version.
    cp --no-clobber "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
 }
 
 copy_into_gateway() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## copy skel to clearnet home
    cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
@@ -129,7 +147,7 @@ copy_into_gateway() {
 }
 
 copy_backup_workstation() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## /etc/polipo/config
    ## not installing polipo by default
@@ -141,7 +159,7 @@ copy_backup_workstation() {
 }
 
 copy_into_workstation() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## /etc/resolv.conf
    ## We do not need chattr +i for Whonix-W resolv.conf, because
@@ -161,7 +179,6 @@ copy_into_workstation() {
 }
 
 ./mount-img
-./chroot-img
 
 if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
    copy_into_vm_image_whonix_gateway
@@ -172,6 +189,4 @@ else
 fi
 
 ./unmount-img
-./unchroot-img
-
 
