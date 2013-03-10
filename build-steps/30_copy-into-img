@@ -10,14 +10,13 @@ cd "$MYDIR"
 cd ..
 cd help-steps
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source variables
+source pre
 
-source "$MYDIR"/variables
-source "$MYDIR"/pre
-
+trap "error_handler_general" ERR INT TERM
 
 copy_into_vm_image_whonix_gateway() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    copy_backup_shared
    copy_into_shared
@@ -25,12 +24,12 @@ copy_into_vm_image_whonix_gateway() {
    copy_backup_gateway
    copy_into_gateway
 
-   # Ensure changes get written before unmounting.
+   ## Ensure changes get written before unmounting.
    sync
 }
 
 copy_into_vm_image_whonix_workstation() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    copy_backup_shared
    copy_into_shared
@@ -38,14 +37,12 @@ copy_into_vm_image_whonix_workstation() {
    copy_backup_workstation
    copy_into_workstation
 
-   # Ensure changes get written before unmounting.
+   ## Ensure changes get written before unmounting.
    sync
 }
 
-
-
 copy_backup_shared() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## Better no backup of localtime.
    #cp --no-clobber "$CHROOT_FOLDER"/etc/localtime "$CHROOT_FOLDER"/etc/localtime.backup
@@ -64,10 +61,8 @@ copy_backup_shared() {
    cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
 }
 
-
-
 copy_into_shared() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## Delete old swapfile, only in case the script has run before. (Debugging only.)
    rm "$CHROOT_FOLDER"/swapfile1 || true
@@ -95,18 +90,15 @@ copy_into_shared() {
    ## Permissions for /home/user get fixed by int_copy_gateway or int_copy_workstation.
 }
 
-
- 
-
 copy_backup_gateway() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## Backup torrc inside VM before replacing it with Whonix version.
    cp --no-clobber "$CHROOT_FOLDER"/etc/tor/torrc "$CHROOT_FOLDER"/etc/tor/torrc.backup
 }
 
 copy_into_gateway() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## copy skel to clearnet home
    cp --recursive --preserve "$CHROOT_FOLDER"/etc/skel/. "$CHROOT_FOLDER"/home/clearnet
@@ -136,10 +128,8 @@ copy_into_gateway() {
    chown --recursive user:user "$CHROOT_FOLDER"/home/user
 }
 
-
-
 copy_backup_workstation() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## /etc/polipo/config
    ## not installing polipo by default
@@ -151,7 +141,7 @@ copy_backup_workstation() {
 }
 
 copy_into_workstation() {
-   ## error_handler_general
+   trap "error_handler_general" ERR INT TERM
 
    ## /etc/resolv.conf
    ## We do not need chattr +i for Whonix-W resolv.conf, because
@@ -169,5 +159,19 @@ copy_into_workstation() {
    mkdir -p "$CHROOT_FOLDER"/home/user/
    chown --recursive user:user "$CHROOT_FOLDER"/home/user/
 }
+
+./mount-img
+./chroot-img
+
+if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
+   copy_into_vm_image_whonix_gateway
+elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+   copy_into_vm_image_whonix_workstation
+else
+   bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
+fi
+
+./unmount-img
+./unchroot-img
 
 

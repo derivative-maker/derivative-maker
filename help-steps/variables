@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set +x
 
 true "$0"
 
@@ -13,7 +13,58 @@ export SNAPSHOT_DESCRIPTION="
    All changes, all installed packages, all data you created will be lost!
 " 
 
-## Variables are set in -tw/g parameters at the bottom
-## of this script.
-# - VMNAME
-# - VMRAM
+VMNAME="unknown"
+
+if [[ "$1" = "-tg" ]]; then
+   export MACHINE="-tg"
+   export VMNAME="Whonix-Gateway"
+   export VMRAM="128"
+   export CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+fi
+
+if [[ "$1" = "-tg-bare-metal" ]]; then
+   export MACHINE="-tg-bare-metal"
+   export VMNAME="Whonix-Gateway"
+   export VMRAM="128"
+   export CHROOT_FOLDER=""
+fi
+
+if [[ "$1" = "-tw" ]]; then
+   export MACHINE="-tw"
+   export VMNAME="Whonix-Workstation"
+   export VMRAM="768"
+   export CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+fi
+
+if [[ "$1" = "-tw-bare-metal" ]]; then
+   export MACHINE="-tw-bare-metal"
+   export VMNAME="Whonix-Workstation"
+   export VMRAM="768"
+   export CHROOT_FOLDER=""
+fi
+
+if [ -z $MACHINE ]; then
+   if [ "$VMNAME" = "unknown" ]; then
+      set -x
+      : "ERROR:"
+      : " "
+      : "Read Build Documentation or"
+      : "Physical Isolation Documentation (Bare Metal)"
+      : " "
+      : "Please add"
+      : "-tg for Whonix-Gateway VM or,"
+      : "-tw for Whonix-Workstation VM or,"
+      : "-tg-bare-metal for Whonix-Gateway Bare Metal"
+      : "-tw-bare-metal for Whonix-Workstation Bare Metal"
+      exit 1
+   else
+      set -x
+      : "ERROR: Please report this BUG variables A!"
+      exit 1
+   fi
+else
+   : "Internal run for: $MACHINE"
+fi
+
+set -x
+
