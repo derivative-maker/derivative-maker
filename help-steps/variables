@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #set +x
+set -x
 
 true "$0"
 
@@ -13,7 +14,11 @@ export SNAPSHOT_DESCRIPTION="
    All changes, all installed packages, all data you created will be lost!
 " 
 
-export VMNAME="unknown"
+if [ -z $VMNAME ]; then
+   export VMNAME="unknown"
+else
+   true
+fi
 
 echo "variables \$1: $1"
 echo "variables MACHINE: $MACHINE"
@@ -64,7 +69,7 @@ fi
 
 if [ -z $MACHINE ]; then
    if [ "$VMNAME" = "unknown" ]; then
-      set -x
+      echo '
       : "ERROR:"
       : " "
       : "Read Build Documentation or"
@@ -75,28 +80,22 @@ if [ -z $MACHINE ]; then
       : "-tw for Whonix-Workstation VM or,"
       : "-tg-bare-metal for Whonix-Gateway Bare Metal"
       : "-tw-bare-metal for Whonix-Workstation Bare Metal"
+      '
       exit 1
-   elif [ "$1" = "-all" ]; then
-      : "Internal run for whonix_build: $MACHINE"
-   elif [ "$1" = "-fast" ]; then
-      : "Internal run for whonix_build: $MACHINE"
-   elif [ "$1" = "-clean" ]; then
-      : "Internal run for whonix_build: $MACHINE"
-   elif [ "$1" = "-help" ]; then
-      : "Internal run for whonix_build: $MACHINE"
+   elif [ "$1" = "-buildscript" ]; then
+      echo "Internal run for whonix_build -buildscript: $MACHINE"
    else
-      set -x
-      : "ERROR: Please report this BUG variables A!"
+      echo "ERROR: Please report this BUG variables A!"
       exit 1
    fi
 else
-   : "Internal run for: $MACHINE"
-fi
+   set -x
 
-set -x
-
-if [ "$VMNAME" = "unknown" ]; then
-   bug "variabels: VMNAME is still unknown. Something went wrong. Please report this BUG."
-   exit 1
+   if [ "$VMNAME" = "unknown" ]; then
+      bug "variabels: VMNAME is still unknown. Something went wrong. Please report this BUG."
+      exit 1
+   else
+      echo "Internal run for: $MACHINE"
+   fi
 fi
 
