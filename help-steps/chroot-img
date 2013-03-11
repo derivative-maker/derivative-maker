@@ -65,21 +65,21 @@ run-chroot-script-img() {
 
    ## /etc/resolv.conf controversy:
    ## When we are inside chroot, we need a functional /etc/resolv.conf,
-   ## otherwise dns lookups and subsequently apt-get and wget would be defunct.
-   ##
+   ## otherwise DNS lookups and subsequently apt-get and curl would be defunct.
    ## On the other hand, we do not want to copy /etc/resolv.conf from the
    ## build machine into chroot, to prevent leaking personal data into chroot.
-   ##
-   ## Finally we also require to rewrite /etc/resolv.conf, so that after
-   ## booting the Virtual Machine, localhost (Tor) gets used for dns lookups.
+   ## Therefore we use /etc/resolv.conf from the host inside chroot,
+   ## without ever writing it. (Mounting)
 
-   ## We need two commands to remount an existing file read only.
-   ## Thanks to
-   ## https://lwn.net/Articles/281157/
+   ## We need two commands to remount an existing file as read only.
+   ## Thanks to: https://lwn.net/Articles/281157/
+
+   ## Mount...
    mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
 
+   ## Remount as read only...
    ## Does not work on Debian Wheezy.
-   ## Not required anymore. We are not starting any services, dhcp or
+   ## Not required anymore. We are not starting any services, DHCP or
    ## networking inside the chroot, so the file should remain untouched.
    #mount -o remount,ro,noload "$CHROOT_FOLDER"/etc/resolv.conf
 }
