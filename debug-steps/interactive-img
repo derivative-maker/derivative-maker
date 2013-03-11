@@ -13,15 +13,34 @@ cd help-steps
 source variables
 source pre
 
-error_handler_interactive-chroot() {
+error_handler_interactive-chroot-img-shell() {
    trap "error_handler_interactive-img" ERR INT TERM
 
    echo "Exited (1) interactive shell."
    sync
 }
 
-interactive_chroot() {
-   trap "error_handler_general" ERR INT TERM
+error_handler_interactive-chroot-img() {
+   echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+   ./unchroot-img
+   ./unmount-img
+   
+   echo "
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+#!!! ERROR in `caller` !!!#
+"
+
+   exit 1
+}
+
+interactive-chroot-img() {
+   trap "error_handler_interactive-chroot-img" ERR INT TERM
 
    ./mount-img
    ./chroot-img
@@ -41,7 +60,7 @@ interactive_chroot() {
    echo "When you are done, do not forget to leave the shell using: exit 0"
 
    ## Run interactive shell.
-   trap "error_handler_interactive-chroot" ERR INT TERM
+   trap "error_handler_interactive-chroot-img-shell" ERR INT TERM
    chroot "$CHROOT_FOLDER" "/bin/bash"
 
    echo "Exited (0) interactive shell."
@@ -52,5 +71,5 @@ interactive_chroot() {
    sync
 }
 
-interactive_chroot
+interactive-chroot-img
 
