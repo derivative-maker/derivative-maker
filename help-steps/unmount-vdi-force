@@ -20,6 +20,8 @@ source "$MYDIR"/pre
 
 unmount_vdi_force() {
    trap "error_handler_unmount-vdi-force" ERR INT TERM
+   
+   sync || true
 
    "$MYDIR"/unchroot-img || true
 
@@ -31,11 +33,11 @@ unmount_vdi_force() {
 
    ## Shutdown the ndb.
    qemu-nbd -d /dev/nbd0 || true
-   sync
+   sync || true
 
    ## In the end unmount.
    umount "$CHROOT_FOLDER" || true
-   sync
+   sync || true
 
    ## Delete temporary folder.
    ## It did not contain anything. It was only a mount point.

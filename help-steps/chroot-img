@@ -4,7 +4,7 @@ set -x
 
 true "$0"
 
-error_handler_run-chroot-script-img() {
+error_handler_chroot-img() {
 : echo "
 #!!! ERROR in `caller` !!!#
 #!!! ERROR in `caller` !!!#
@@ -29,15 +29,18 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$MYDIR"/variables
 source "$MYDIR"/pre
 
-run-chroot-script-img() {
-   trap "error_handler_run-chroot-script-img" ERR INT TERM
+chroot-img() {
+   trap "error_handler_chroot-img" ERR INT TERM
 
+   sync
+   
    ################
    ## policy-rc.d #
    ################
 
-   echo "int_whonix_image: copy policy-rc.d into /usr/sbin/ to prevent deamons from starting."
+   echo "chroot-img: copy policy-rc.d into /usr/sbin/ to prevent deamons from starting."
    cp --preserve --verbose "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/local/share/whonix/policy-rc.d "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   sync
 
    #########
    ## /dev #
@@ -82,7 +85,9 @@ run-chroot-script-img() {
    ## Not required anymore. We are not starting any services, DHCP or
    ## networking inside the chroot, so the file should remain untouched.
    #mount -o remount,ro,noload "$CHROOT_FOLDER"/etc/resolv.conf
+
+   sync
 }
 
-run-chroot-script-img
+chroot-img
 
