@@ -162,6 +162,8 @@ tb_error_handler() {
    exit 1
 }
 
+trap "tb_error_handler" ERR
+
 
 
 debug() {
@@ -233,6 +235,13 @@ FEATUREBLOG_OFFLINE_LINK="file:///home/user/.rawdog/featureblog.html"
 
 
 
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "source \"$MYDIR\"/whonixcheck-scripts/help_tbbversion"
+source "$MYDIR"/whonixcheck-scripts/help_tbbversion
+
+
+
 #debug "TB_LANG: $TB_LANG"
 
 ## Check if TB_LANG exists and is not empty.
@@ -280,60 +289,6 @@ touch TorBrowser_installation_FAILED
 progress_bar 100
 exit 1
 }
-
-
-
-#########################################################################
-## tbbversion                                                           #
-#########################################################################
-
-tbbversion() {
-   ## code shared between torbrowser and whonixcheck
-
-   #trap "tb_error_handler" ERR
-
-   ## fallback
-   TBBVERSION="UNKNOWN"
-
-   if [ -f "RecommendedTBBVersions" ]; then
-      local i="0"
-      while read LINE; do
-         let i "i=i+1" ||  true
-
-         echo "$LINE" | grep -q -i -s "alpha"
-         if [ $? -eq 0 ]; then            
-            continue
-         fi 
-         echo "$LINE" | grep -q -i -s "MacOS"
-         if [ $? -eq 0 ]; then            
-            continue
-         fi 
-         echo "$LINE" | grep -q -i -s "Windows"
-         if [ $? -eq 0 ]; then            
-            continue
-         fi 
-
-         LINE="`echo "$LINE" | sed 's/"//g'`"
-         LINE="`echo "$LINE" | sed 's/,//g'`"
-
-         echo "$LINE" | grep -q -i -s "Linux"
-         if [ $? -eq 0 ]; then            
-            TBBVERSION="$LINE"
-            TBBVERSION="`echo "$TBBVERSION" | sed 's/-i686//g'`"
-            TBBVERSION="`echo "$TBBVERSION" | sed 's/-x86_64//g'`"
-            TBBVERSION="`echo "$TBBVERSION" | sed 's/-Linux//g'`"
-         fi 
-
-      done < "RecommendedTBBVersions"
-   else
-      trap "tb_error_handler" ERR
-      error "RecommendedTBBVersions does not exist."
-   fi
-
-   #echo "TBBVERSION: $TBBVERSION"
-}
-
-
 
 #########################################################################
 ## tb_update_check                                                      #
