@@ -1,11 +1,4 @@
 #!/bin/bash
-# Will be copied into whonix_g/w: /usr/local/bin/timesync
-
-# See LICENSE in root of Whonix source for copyright, license and authors.
-
-#set -o errtrace
-#set -o nounset
-#set -o errexit
 
 error_handler() {
    BUG="1"
@@ -43,8 +36,8 @@ Available arguments,
 phrase_cmd_options() {
    trap "error_handler" ERR INT TERM
 
-   # If timesync is run without command line arguments,
-   # $1 will not exist.
+   ## If timesync is run without command line arguments,
+   ## $1 will not exist.
    if [[ "$#" == "0" ]]; then
       TIMESYNC_VERBOSE="--output-file /dev/null"
    else
@@ -66,12 +59,12 @@ phrase_cmd_options() {
 preparation() {
    trap "error_handler" ERR INT TERM
 
-   # Initialize the variables.
+   ## Initialize the variables.
    USERNAME="user"
    WHONIX_HOMEPAGE="http://whonix.sf.net"
    BUG="0"
 
-   # Initialize more variables.
+   ## Initialize more variables.
    COUNTER="0"
    PROGRESS="0"
    ZENITY_TYPE=""
@@ -89,13 +82,13 @@ preparation() {
       GATEWAY_IP="192.168.0.10"
    fi
 
-   # Check if zenity is installed.
-   # - This is not the case for cli users.
-   # - This is also not the case on Whonix-Gateway.
+   ## Check if zenity is installed.
+   ## - This is not the case for cli users.
+   ## - This is also not the case on Whonix-Gateway.
    if [ "`which zenity`" = "" ]; then
-      # zenity is not installed.
+      ## zenity is not installed.
       zenity() {
-         #dummy
+         ## dummy
          true
       }
       zenity_progress() {
@@ -103,7 +96,7 @@ preparation() {
          true
       }
    else
-      # zenity is installed.
+      ## zenity is installed.
       zenity_progress() {
          echo "progress: $PROGRESS"
          if [ "$DISPLAY" ]; then
@@ -118,12 +111,12 @@ preparation() {
    #   /usr/lib/notification-daemon/notification-daemon &
    #fi
 
-   # check if notify-send is installed
-   # that is not the case for cli users
-   # this is also not the case on Whonix-Gateway
+   ## check if notify-send is installed
+   ## that is not the case for cli users
+   ## this is also not the case on Whonix-Gateway
    #if [ `which notify-send` = "" ]; then
    #   notify-send() {
-   #      #dummy
+   #      ## dummy
    #      true
    #   }
    #fi
@@ -148,23 +141,23 @@ kill_old_instances() {
 
 
 output() {
-   # (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
+   ## (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
    #echo "output: $1 ||| $2 ||| $3 |||"
    
    trap "error_handler" ERR INT TERM
 
    if [ "$ZENITY_TYPE" = "--error" ]; then
-      # Do not overwrite. Do nothing to the variables.
+      ## Do not overwrite. Do nothing to the variables.
       true
    else
       ZENITY_TYPE="$1"
    fi
 
    if [ "$ZENITY_TITLE" = "ERROR" ]; then
-      # Do not overwrite. Do nothing to the variables.
+      ## Do not overwrite. Do nothing to the variables.
       true
    elif [ "$ZENITY_TITLE" = "WARNING" ]; then
-      # Do not overwrite. Do nothing to the variables.
+      ## Do not overwrite. Do nothing to the variables.
       true
    else
       ZENITY_TITLE="$2"
@@ -204,14 +197,14 @@ $WHONIX_HOMEPAGE
 -help for help.
 Running checks..."
 
-   # Non-intrusive notification, that the checks are running in background.
-   # TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+   ## Non-intrusive notification, that the checks are running in background.
+   ## TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
    #notify-send --urgency low --expire-time 0 --app-name "Whonix" "$NOTIFY_MSG"
    local NOTIFY_MSG="Running Secure Network Time Synchronization...
 This will happen in background and will take approximately 60 seconds."
 
    if [ "$DISPLAY" ]; then
-      # The progress window will close automatically after 100% progress.
+      ## The progress window will close automatically after 100% progress.
       exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
       --window-icon /usr/local/share/whonix/icons/timesync.ico \
       --title="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
@@ -237,7 +230,7 @@ run_htpdate() {
   trap "error_handler" ERR INT TERM
 
   let "PROGRESS=$PROGRESS+5" || true
-  # The 5% indicate, that the check has begun.
+  ## The 5% indicate, that the check has begun.
   zenity_progress $PROGRESS
 
   sudo /etc/init.d/htpdate restart
@@ -345,4 +338,4 @@ timesync_main() {
 
 timesync_main $1
 
-# End of timesync script.
+## End of timesync script.
