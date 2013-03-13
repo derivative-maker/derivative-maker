@@ -1,0 +1,133 @@
+## zenity --timeout in seconds.
+## A day has 86400 seconds. Removes old messages before posting
+## new ones in case the user was away for more than one day.
+##
+## The & at the end of a zenity line ensures, that the
+## script will not wait until zenity will be closed.
+## It also prevents zenity throwing an error, if zenity is installed,
+## but no x server is started. (That is the case on Whonix-Workstation in text mode.)
+##
+## zenity --display=:0.0 is required to make it compatible with cron
+## see http://promberger.info/linux/2009/01/02/running-x-apps-like-zenity-from-crontab-solving-cannot-open-display-problem/
+## --no-markup to allow showing "&" see https://bugzilla.gnome.org/show_bug.cgi?id=621907
+## WHONIXCHECK_RUN_BY_CRON gets set by user cron
+##
+## We would prefer a popup free solution. As soon as the timeout bug in
+## notify-send is fixed, we switch to notify-send.
+## https://bugs.launchpad.net/bugs/390508
+## If we change to notification daemon later, when the timeout bug is fixed,
+## we have to ensure notify-send output is compatible with being started by cron.
+
+output() {
+   ## (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
+   #echo "output: $1 ||| $2 ||| $3 |||"
+   
+   trap "error_handler" ERR INT TERM
+
+   if [ "$ZENITY_TYPE" = "--error" ]; then
+      # Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TYPE="$1"
+   fi
+
+   if [ "$ZENITY_TITLE" = "ERROR" ]; then
+      ## Do not overwrite. Do nothing to the variables.
+      true
+   elif [ "$ZENITY_TITLE" = "WARNING" ]; then
+      ## Do not overwrite. Do nothing to the variables.
+      true
+   else
+      ZENITY_TITLE="$2"
+   fi
+
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
+      ## No empty lines if writing output to terminal on Whonix-Gateway.
+      ZENITY_MESSAGE="$ZENITY_MESSAGE
+$3"
+   else
+      ZENITY_MESSAGE="$ZENITY_MESSAGE
+
+$3"
+  fi
+}
+
+show_output() {
+   trap "error_handler" ERR INT TERM
+
+   ## Do not ask for donations if a bug occurred. More important things have to be sorted out.  
+   if [ "$BUG" = "0" ]; then
+      ## Do not ask for donations if the user has something important to do.  
+      if [ "$ZENITY_TYPE" = "--info" ]; then
+         local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+         local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
+$BITCOIN_ADDRESS"
+         echo "$MSG"
+         output "--info" "Info" "$MSG"  
+      fi
+   fi
+
+   local TITLE=" $ZENITY_TITLE - whonixcheck $VM $INSTALLED_WHONIX_VERSION `date`"
+
+   ## If whonixcheck was run by cron on Whonix-Gateway, echos were not shown,
+   ## because whonixcheck was run automatically by cron and not manually from a terminal.
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
+      if [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+         ## The required "mesg y" gets set in /etc/profile.d/whonixcheck.sh.
+
+         ## Display message to logged in user.
+         ## This needs an exception in /etc/sudoers.
+         echo "$TITLE
+
+$ZENITY_MESSAGE" | sudo wall --nobanner
+      fi
+   fi
+
+   ## Only attempt a graphical notification if X is running.
+   if [ "$DISPLAY" ]; then
+      zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
+      --window-icon /usr/local/share/whonix/icons/whonix.ico \
+      --title="$TITLE" "$ZENITY_TYPE" --text "
+Whonix Check:
+----------------------------------------------------------------------$ZENITY_MESSAGE" & 2>/dev/null
+   fi
+
+   ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+   ## should go into a new queue.
+   ZENITY_MESSAGE=""
+} 
+
+progress_bar() {
+   ## Check if zenity is installed.
+   ## - This is not the case for cli users.
+   ## - This is also not the case on Whonix-Gateway.
+   if [ "`which zenity`" = "" ]; then
+      ## zenity is not installed.
+      zenity() {
+         ## dummy
+         true
+      }
+      return
+   fi
+
+   ## Only use progress meter if we are running in X.
+   if [ ! "$DISPLAY" ]; then
+      zenity() {
+         ## dummy
+         true
+      }
+      return
+   fi
+
+   if [ "$STARTED_ZENITY_BAR" = "0" ]; then
+      return
+   fi  
+
+   ## If run without parameter. (initialization)
+   if [ "$1" = "" ]; then
+      return
+   fi
+
+   echo "$1" >&3
+}
+

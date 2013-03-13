@@ -1,0 +1,80 @@
+preparation() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
+      DISPLAY=":0.0"
+   fi
+
+   ## Initialize the variables.
+   USERNAME="user"
+   WHONIX_HOMEPAGE="http://whonix.sf.net"
+   BUG="0"
+   VERIFY_TEMPDIR="`mktemp --directory`"
+   ## Find out installed Whonix version.
+   ## Read only FIRST line.
+   INSTALLED_WHONIX_VERSION="Could not read Whonix version file. Please report this bug!"
+   read -r INSTALLED_WHONIX_VERSION < /usr/local/share/whonix/version || true
+   ## Remove ALL spaces.
+   ## Thanks to
+   ## http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
+   INSTALLED_WHONIX_VERSION="${INSTALLED_WHONIX_VERSION//[[:space:]]}"
+
+   ## Initialize more variables.
+   NETWORK_DOWN="0"
+   NOT_USING_TOR="0"
+   DOWNLOAD_NEWS_SUCCESS="0"
+   WHONIX_NEWS_VERIFY_ERROR="0"
+   APT_GET_SUCCESS="1"
+   STARTED_ZENITY_BAR="0"
+   ZENITY_TYPE=""
+   ZENITY_TITLE=""
+   ZENITY_MESSAGE=""
+
+   ## Prepare temporary directory.
+   #rm -r "$VERIFY_TEMPDIR" 2>/dev/null || true
+   mkdir --parents "$VERIFY_TEMPDIR"
+   chmod 700 "$VERIFY_TEMPDIR"
+   cd "$VERIFY_TEMPDIR"
+   
+   ## SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
+   
+   ## SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_WHONIXCHECK="9110"
+   SOCKS_PORT_APT_GET="9104"
+   
+   if [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+      VM="Whonix-Gateway"
+      GATEWAY_IP="127.0.0.1"
+   elif [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+      VM="Whonix-Workstation"
+      GATEWAY_IP="192.168.0.10"
+   else
+      VM="whonixcheck script could not determine if this is whonix_Gateway or whonix_Workstation. Please report this bug."
+      GATEWAY_IP="192.168.0.10"
+   fi
+   
+   ## this is not the most stable daemon...
+   ## Not used as we switched from notify-send to zenity
+   #if [ "$(pgrep -f notification-daemon)" = "" ]; then
+   #   /usr/lib/notification-daemon/notification-daemon &
+   #fi
+
+   ## check if notify-send is installed
+   ## that is not the case for cli users
+   ## this is also not the case on Whonix-Gateway
+   #if [ `which notify-send` = "" ]; then
+   #   notify-send() {
+   #      ## dummy
+   #      true
+   #   }
+   #fi
+
+   ## Currently hardcoded. Will change if we start offering 64 bit builds.
+   ## ARCH="x86_64"
+   ARCH="i686"
+
+   TIME_START="`date +%s`"
+}
+ 

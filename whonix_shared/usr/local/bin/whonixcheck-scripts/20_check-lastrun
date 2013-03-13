@@ -1,0 +1,100 @@
+check_whonixcheck_lastrun() {
+   trap "error_handler" ERR INT TERM
+
+   ## One hour has 3600 seconds.
+   ## A day has 86400 seconds.
+   local MAX="86400"
+   
+   if [ -f "/home/user/.whonixcheck/lastrun" ]; then
+      local i="0"
+      while read LINE; do
+         let i "i=i+1" ||  true
+         #echo "$i: $LINE"
+         if [ "$i" = "1" ]; then
+            local LASTRUN="$LINE"
+         fi
+      done < "/home/user/.whonixcheck/lastrun"
+   else
+      ## the whonixcheck_completed function does almost the same
+      local LASTRUN="$MAX"
+      mkdir --parents /home/user/.whonixcheck/
+      echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
+   fi
+
+   local CURRENTTIME="`date +%s`"
+
+   let DIFFERENCE="$CURRENTTIME"-"$LASTRUN" || true
+
+   #echo "whonixcheck checks completed $DIFFERENCE seconds ago."
+
+   ## If difference is less than or equal to to one day.
+   #echo "DIFFERENCE: $DIFFERENCE MAX: $MAX"
+
+   if [ "$DIFFERENCE" -le "$MAX" ]; then
+      WHONIXCHECK_RECENTLY_RUN="1"
+   else
+      WHONIXCHECK_RECENTLY_RUN="0"
+
+      local MSG="Whonixcheck has not completed for more than one day. Running checks again..."
+      echo "$MSG"
+      ## no zenity output.
+   fi
+}
+
+not_again() {
+   trap "error_handler" ERR INT TERM
+
+   ## If it was not autostarted the user is free to re-run the checks.
+   if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
+      return
+   fi
+
+   if [ "$WHONIXCHECK_RECENTLY_RUN" = "0" ]; then
+      return
+   fi
+
+   ## If it was run by cron and there is nothing to tell, say nothing.
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
+      echo "whonixcheck started by cron."
+      echo "whonixcheck checks completed $DIFFERENCE seconds ago. No need to run again."
+      progress_bar 100
+      cleanup
+      exit 0
+   fi
+
+   echo "whonixcheck was run $DIFFERENCE seconds ago. No need to run again."
+
+   ## Only show the useless screen if the /home/user/whonixcheck_info file exists.
+   if [ -f "/home/user/whonixcheck_info" ]; then
+      ## No info, that nothing has to be done, when invoked by /etc/profile.d/whonixcheck.sh.
+      if [ "$WHONIXCHECK_RUN_BY_PROFILE_D" = 1 ]; then
+         ## nothing
+         true
+      else
+         local MSG="Whonixcheck checks were recently completed. No need to run all checks again already.
+
+whonixcheck checks are no longer run on every (re)boot.
+Instead it is run once every day Whonix is being used.
+
+You could still start it manually. (Start menu -> Applications -> System -> Whonixcheck)
+
+To get ride of this message delete whonixcheck_info in your home folder."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+         show_output
+      fi
+   fi
+
+   progress_bar 100
+   cleanup
+   exit 0
+} 
+
+whonixcheck_completed() {
+   trap "error_handler" ERR INT TERM
+
+   local LASTRUN="`date +%s`"
+   mkdir --parents /home/user/.whonixcheck/
+   echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
+}
+

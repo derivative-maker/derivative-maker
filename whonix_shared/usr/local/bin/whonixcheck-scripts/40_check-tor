@@ -1,0 +1,121 @@
+## Using /usr/bin/curl directly will result in Tor's TransPort being used.
+
+check_tor_grep_error() {
+   echo "check_tor_grep_error: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+   TOR_OR_NOT=""
+}
+ 
+check_tor() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$1" = "SocksPort" ]; then
+      echo "Checking network connection... Testing Tor's SocksPort..."
+      
+      ## Ensuring normal curl activity can not be linked to whonixcheck,
+      ## by using a SocksPort, which is solely used by whonixcheck.
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+
+      if [ "$NETWORK_DOWN" = "1" ]; then
+         local MSG="Your Internet connection appears to be down.
+
+Possible reasons:
+- Is your host internet connection functional?
+- Did you start Whonix-Gateway beforehand?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+- check.tpo is offline.
+  Check on the host, if you can reach https://check.torproject.org with the Tor Browser Bundle.
+
+Try again: Start menu -> Applications -> System -> Whonix Check
+           or in Terminal: whonixcheck
+           or in Terminal with debugging: whonixcheck -v
+
+Run whonixcheck on Whonix-Gatway as well.
+
+Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
+
+         echo "$MSG"
+         output "--error" "ERROR" "$MSG"
+         show_output
+         progress_bar 100
+         cleanup
+         exit 1
+      fi
+   elif [ "$1" = "TransPort" ]; then
+      ## Do not test for stream isolation if Tor detection failed.
+      ## This variable may be set to 1, during the first run of this script.
+      if [ "$NOT_USING_TOR" = "1" ]; then
+         local MSG="SocksPort test: Could not detect Tor! Not testing Tor's TransPort."
+         echo "$MSG"
+         ## no zenity output
+         return
+      fi
+   
+      ## Using curl binary to ensure the curl wrapper /usr/local/bin/curl does not get used.
+      echo "Testing Tor's TransPort..."
+
+      ## For production:
+      /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+
+      ## For testing behind demo/test vpn from usaip. (They block SSL.)
+      #/usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --max-time 300 --output index.html http://check.torproject.org || NETWORK_DOWN="1"
+   else
+     local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
+     echo "$MSG"
+     output "--error" "ERROR" "$MSG"
+     return
+   fi
+
+   trap "check_tor_grep_error" ERR INT TERM
+
+   TOR_OR_NOT="1"
+   TOR_OR_NOT="`grep "Congratulations" "index.html"`"
+   #echo "TOR_OR_NOT: $TOR_OR_NOT"
+
+   trap "check_tor_grep_error" ERR INT TERM
+
+   IP="error"
+   local IP="`grep "IP" "index.html" 2>&1`"
+   IP="`echo "$IP" | sed 's/<br>//g'`"
+   IP="`echo "$IP" | sed 's/<b>//g'`"
+   IP="`echo "$IP" | sed 's/<\\/b>//g'`"
+
+   trap "error_handler" ERR INT TERM
+
+   ## Store IP for later use in memory.
+   if [ "$1" = "TransPort" ]; then
+      IP_TRANS_PORT="$IP"
+   elif [ "$1" = "SocksPort" ]; then
+      IP_SOCKS_PORT="$IP"
+   fi
+
+   ## Check if connected to Tor or not,
+   ## and choose which message to show.
+   if [ "$TOR_OR_NOT" = "" ]; then
+      NOT_USING_TOR="1"
+      local MSG="Tor's $1: Looks like you are not connected through Tor!
+Possible reasons:
+- There could be something wrong.
+- You added a VPN.
+- You added a transproxy.
+- It's a false positive. https://check.torproject.org fails in some cases to detect exit nodes.
+$IP"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+
+      #############################################
+      ## If you are a VPN user or have another    #
+      ## special setup, comment out the following #
+      ## four lines.                              #
+      show_output
+      progress_bar 100
+      cleanup
+      exit 1
+      #############################################
+
+   else
+      local MSG="Tor's $1: You are successfully using Tor. $IP"
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+   fi
+
+}

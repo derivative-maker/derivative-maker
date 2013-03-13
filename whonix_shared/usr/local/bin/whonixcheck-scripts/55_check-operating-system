@@ -1,0 +1,72 @@
+error_handler_check_operating_system() {
+      trap "error_handler" ERR INT TERM
+
+      APT_GET_SUCCESS="0"
+
+      local MSG="Could not check for operating system updates.
+Please check by manually running:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+sudo apt-get update && sudo apt-get dist-upgrade"
+      echo "$MSG"
+      output "--error" "WARNING" "$MSG"
+}
+
+check_operating_system() {
+   trap "error_handler_check_operating_system" ERR INT TERM
+   
+   ## Runing apt-get update as user (non-root).
+   ## Depends on exception set in /etc/sudoers.   
+   ## Minmal custom script.
+   echo "Checking for operating system updates..."
+   sudo /usr/local/bin/apt-get-update >/dev/null
+
+   trap "error_handler" ERR INT TERM
+
+   if [ "$APT_GET_SUCCESS" = "0" ]; then
+      return
+   fi
+
+   ## /etc/update-motd.d/90-updates-available
+   ## /usr/lib/update-notifier/update-motd-updates-available
+   ## /usr/lib/update-notifier/apt-check
+   NEED_UPDATE_CHECK=yes
+   /usr/lib/update-notifier/apt-check --human-readable > update_check
+   read -r CHECK_OS_RESULT < update_check
+
+   local FIRST_CHAR="${CHECK_OS_RESULT:0:1}"
+
+   if [ "$FIRST_CHAR" = "0" ]; then
+      local MSG="Operating system is up to date.
+$CHECK_OS_RESULT"
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+      return
+   fi
+
+   ## Check, if we are not in CLI.
+   if [ "$DISPLAY" ]; then
+      ## Check if apper is installed and use it.
+      if [ -f "`which apper`" ]; then
+
+         ## The Apper line below worked, but Apper has
+         ## too many bugs. Needs more testing and bugreports.
+         #apper --updates --display "$DISPLAY" 2>/dev/null 
+
+         local MSG="$CHECK_OS_RESULT
+Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+sudo apt-get update && sudo apt-get dist-upgrade"
+         echo "$MSG"
+         output "--error" "WARNING" "$MSG"
+         return
+      fi
+   fi
+
+   local MSG="$CHECK_OS_RESULT
+Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+sudo apt-get update && sudo apt-get dist-upgrade"
+   echo "$MSG"
+   output "--error" "WARNING" "$MSG"
+} 
+

@@ -1,0 +1,128 @@
+download_whonix_news() {
+   trap "error_handler" ERR INT TERM
+
+   SOCKS_PORT_WHONIX_NEWS="9114"
+
+   DOWNLOAD_NEWS_SUCCESS="1"
+   echo "Checking for Whonix news and updates..."
+
+   ## sf.net does not yet support ssl for project web.
+   ## --location is required since sf.net uses redirects.
+   /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
+   --location --max-time 300 --output "whonix_news.asc" \
+   "http://sourceforge.net/projects/whonix/files/news/whonix_news.asc/download" \
+   || DOWNLOAD_NEWS_SUCCESS="0"
+
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      local MSG="Could not download Whonix News."
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+   fi
+}
+
+whonix_news_verification_error() {
+   trap "error_handler" ERR INT TERM
+
+   WHONIX_NEWS_VERIFY_ERROR="1"
+}
+
+verify_whonix_news() {
+   trap "whonix_news_verification_error" ERR INT TERM
+   
+   ## If news could not be downloaded, do not try to verify it.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   WHONIX_NEWS_VERIFY_ERROR="0"
+
+   gpg --homedir "$VERIFY_TEMPDIR" --fingerprint 2>/dev/null
+   gpg --homedir "$VERIFY_TEMPDIR" --import /usr/local/share/whonix/gpg-pubkeys/adrelanos.asc 2>/dev/null
+   gpg --homedir "$VERIFY_TEMPDIR" --decrypt whonix_news.asc 2>/dev/null > whonix_news
+   
+   ## If verification fails, trap will run whonix_news_verification_error.
+
+   trap "error_handler" ERR INT TERM
+
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = "0" ]; then
+      #local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
+      #echo "$MSG"
+      #output "--info" "Info" "$MSG"
+      true
+   else
+      local MSG="Could not gpg verify authenticity of Whonix News!!! This is either a Whonix Bug or an attack on Whonix!!!"
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+   fi
+}
+
+check_whonix_version() {
+   trap "error_handler" ERR INT TERM
+   
+   ## If news could not be downloaded, do not check Whonix version.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   ## If news verification failed, do not check Whonix version.
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = 1 ]; then
+      return
+   fi
+
+   local i="0"
+   while read LINE; do
+      let i "i=i+1" || true
+      #echo "$i: $LINE"
+      if [ "$i" = "1" ]; then
+         LATEST_WHONIX_VERSION="$LINE"
+      fi
+   done < "$VERIFY_TEMPDIR/whonix_news"
+
+   if [ "$INSTALLED_WHONIX_VERSION" = "$LATEST_WHONIX_VERSION" ]; then
+      ## Up to date...
+      local MSG="Installed Whonix Version $INSTALLED_WHONIX_VERSION is up to date."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+      return
+   fi
+
+   ## Outdated...
+   local MSG="Installed Whonix version $INSTALLED_WHONIX_VERSION. Latest Whonix version $LATEST_WHONIX_VERSION. Please update Whonix!!!"
+   echo "$MSG"
+   output "--error" "WARNING" "$MSG"
+}
+
+check_whonix_news() {
+   trap "error_handler" ERR INT TERM
+   
+   ## If news could not be downloaded, do not check Whonix news.
+   if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
+      return
+   fi
+   
+   ## If news verification failed, do not check Whonix news.
+   if [ "$WHONIX_NEWS_VERIFY_ERROR" = 1 ]; then
+      return
+   fi
+
+   local MSG=""
+   local i="0"
+   while read LINE; do
+      let i "i=i+1" || true
+      #echo "pre i: $i"
+      [ "$i" -lt "3" ] && continue
+      #echo "post i: $i"
+      #echo "LINE: $LINE"
+
+      if [ "$i" = "3" ]; then
+         local MSG="$LINE"
+      else
+         local MSG="$MSG
+$LINE"
+      fi
+   done < "$VERIFY_TEMPDIR/whonix_news"
+
+   echo "$MSG"
+   output "--info" "Info" "$MSG"
+}
+

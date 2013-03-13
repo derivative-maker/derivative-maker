@@ -1,0 +1,27 @@
+check_stream_isolation() {
+   ## Check if curl failed.
+   if [ "$NETWORK_DOWN" = "1" ]; then
+      local MSG="TransPort Test: Failed! Can not test stream isolation!"
+      echo "$MSG"
+      output "--error" "ERROR" "$MSG"
+      return
+   fi
+
+   ## Lets compare TransPort with SocksPort.
+   if [ "$IP_TRANS_PORT" = "$IP_SOCKS_PORT" ]; then
+      local MSG="IP of Tor's TransPort and IP of Tor's SocksPort are equal. This is sometimes normal."
+      echo "$MSG"
+      output "--info" "Info" "$MSG"
+   else
+      if [ "$NOT_USING_TOR" = "1" ]; then
+         local MSG="IP of Tor's TransPort and IP of Tor's SocksPort differ, but Tor not detected!!!"
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+      else
+         local MSG="Stream isolation appears to be functional. IP of Tor's TransPort and IP of Tor's SocksPort differ."
+         echo "$MSG"
+         output "--info" "Info" "$MSG"
+      fi
+   fi
+}
+
