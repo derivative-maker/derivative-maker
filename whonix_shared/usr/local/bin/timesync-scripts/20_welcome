@@ -1,0 +1,23 @@
+welcome() {
+   trap "error_handler" ERR INT TERM
+
+   echo "timesync by Whonix
+$WHONIX_HOMEPAGE
+-help for help.
+Running checks..."
+
+   ## Non-intrusive notification, that the checks are running in background.
+   ## TODO: After the timeout bug has been fixed upstream, --expire-time has to be set to 30.
+   #notify-send --urgency low --expire-time 0 --app-name "Whonix" "$NOTIFY_MSG"
+   local NOTIFY_MSG="Running Secure Network Time Synchronization...
+This will happen in background and will take approximately 60 seconds."
+
+   if [ "$DISPLAY" ]; then
+      ## The progress window will close automatically after 100% progress.
+      exec 3> >(zenity --display=:0.0 --timeout 86400 --no-markup \
+      --window-icon /usr/local/share/whonix/icons/timesync.ico \
+      --title="whonixcheck $VM $INSTALLED_WHONIX_VERSION Info `date`" "--progress" --auto-close --auto-kill --text "$NOTIFY_MSG")
+   fi
+}
+
+ 
