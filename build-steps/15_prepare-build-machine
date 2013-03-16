@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+prepare-build-machine() {
+   trap "error_handler_general" ERR INT TERM
+
+   ## If whonix_build is run with -fast switch.
+   if [ "$FAST" = "1" ]; then
+      echo "prepare-build-machine: run with -fast switch. Skipping prepare-build-machine step."
+      exit 0
+   fi
+
+   apt-get update
+   apt-get --yes dist-upgrade
+
+   apt-get install virtualbox qemu apt-cacher-ng grml-debootstrap parted kpartx debootstrap mksh dialog git sudo rsync
+
+   addgroup "$USERNAME" sudo
+
+   ## || true in case not building inside Whonix
+   chmod -x /usr/local/bin/apt-get || true
+
+   echo 'Acquire::http { Proxy "http://127.0.0.1:3142"; };' > /etc/apt/apt.conf.d/99_apt-cacher-ng
+
+   service apt-cacher-ng restart
+
+   /usr/bin/apt-get update
+
+   ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
+   #sudo apt-get update
+   #sudo apt-get autoremove
+   #sudo apt-get dist-upgrade
+   #sudo apt-get clean
+   #sudo apt-get autoclean
+} 
+
+prepare-build-machine
+
