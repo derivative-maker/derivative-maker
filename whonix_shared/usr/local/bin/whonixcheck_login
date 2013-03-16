@@ -17,6 +17,27 @@ DELAY="`expr "$DELAY" + "60"`" || true
 
 echo "Starting whonixcheck in "$DELAY" seconds..."
 
+MSG="Whonixcheck checks were recently completed. No need to run all checks again already.
+
+You could still start it manually.
+(Start menu, Applications, System, Whonixcheck)"
+
+if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+   ## notify-send will fade out in max. 10 seconds due to an upstream bug:
+   ##    https://bugs.launchpad.net/ubuntu/+source/notify-osd/+bug/390508
+   ## Using || true in case notify-send is not installed.
+   ## --expire-time expects milliseconds, hence adding 000.
+
+   source /usr/local/bin/whonixcheck-scripts/20_check-lastrun
+   check_whonixcheck_lastrun
+   if [ "$WHONIXCHECK_RECENTLY_RUN" = 0 ]; then
+      notify-send --expire-time ""$DELAY"000" "whonixcheck" "Running whonixcheck in "$DELAY" seconds." || true
+   else
+      notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
+      exit 0
+   fi
+fi
+
 sleep "$DELAY"
 
 whonixcheck -autostart
