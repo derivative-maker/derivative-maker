@@ -480,8 +480,18 @@ chmod 700 "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/"
 gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/local/share/whonix/gpg-pubkeys/sebastian.asc
 gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/local/share/whonix/gpg-pubkeys/erinn.asc
 
-TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-#TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+## Download from the torproject.org hidden service, instead over clearnet,
+## thus not involving any Tor exist nodes.
+## $WHONIX is an environment variable only set in Whonix (by /etc/environment).
+if [ "$WHONIX" = 1 ]; then
+   TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+   ## Connections to hidden services are automatically encrypted end-to-end.
+   CURL_FORCE_SSL=""
+else
+   ## Should only be the case when building Whonix from source while not being inside Whonix.
+   TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+   CURL_FORCE_SSL="--tlsv1 --proto =https"
+fi
 
 progress_bar 10
 
@@ -493,7 +503,7 @@ TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar
 TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
 debug "INFO: Downloading: "$TBB_SIG_LINK""
 /usr/bin/curl $CURL_PROXY \
---tlsv1 --proto =https --max-time 300 --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK" || NETWORK_DOWN="1"
+$CURL_FORCE_SSL --max-time 300 --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK" || NETWORK_DOWN="1"
 
 ## Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
@@ -512,7 +522,7 @@ TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG"
 TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
 debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
 /usr/bin/curl $CURL_PROXY \
---tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
+$CURL_FORCE_SSL --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
 
 ## Check if curl failed.
 if [ "$NETWORK_DOWN" = "1" ]; then
