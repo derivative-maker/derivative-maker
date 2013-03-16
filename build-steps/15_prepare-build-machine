@@ -22,20 +22,39 @@ prepare-build-machine() {
       exit 0
    fi
 
+   ## Update package lists and upgrade.
    apt-get update
    apt-get --yes dist-upgrade
 
+   ## Install build dependencies.
    apt-get install virtualbox qemu apt-cacher-ng grml-debootstrap parted kpartx debootstrap mksh dialog git sudo rsync
 
+   ## Add user to sudo group.
    addgroup "$USERNAME" sudo
 
+   ## If you build inside Whonix-Workstation, disable the apt-get uwt wrapper.
    ## || true in case not building inside Whonix
    chmod -x /usr/local/bin/apt-get || true
 
+   ## Using an apt cache to speed up downloading
+   ## If you want to build multiple times (for debugging etc.),
+   ## it makes sense to install a local apt proxy on your build machine.
+   ## That safes download time and traffic.
+   ##
+   ## Minor: If you build Whonix on Whonix, apt-cacher-ng will go through Tor's TransPort.
+   ##
+   ## Thanks to source:
+   ##    https://linuxexpresso.wordpress.com/2011/02/13/howto-apt-cacher-ng-on-ubuntu/
+   ## It would be possible to download without an apt-cacher...
+   ## But why? If you do not want to use it, comment out the following line and
+   ## change the mirror settings in grml configuration file.
    echo 'Acquire::http { Proxy "http://127.0.0.1:3142"; };' > /etc/apt/apt.conf.d/99_apt-cacher-ng
 
+   ## Restart apt-cacher-ng.
+   ## Should not be required, but it was for me.
    service apt-cacher-ng restart
 
+   ## Test apt-cacher-ng is working.
    /usr/bin/apt-get update
 
    ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
