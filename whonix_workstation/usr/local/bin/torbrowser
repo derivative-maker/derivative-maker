@@ -483,29 +483,10 @@ gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/local/sh
 TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
 #TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
 
-progress_bar 50
+progress_bar 10
 
 mkdir --parents "$TBBVERSION"
 cd "$TBBVERSION"
-
-debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
-TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
-TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
-debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
-/usr/bin/curl $CURL_PROXY \
---tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
-
-## Check if curl failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to download: "$TBB_PACKAGE_LINK"
-
-$DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
-fi
-
-progress_bar 80
 
 debug "INFO: Downloading GPG signature..."
 TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
@@ -518,6 +499,25 @@ debug "INFO: Downloading: "$TBB_SIG_LINK""
 if [ "$NETWORK_DOWN" = "1" ]; then
    ZENITY_TYPE="--error"
    output "Failed to download: "$TBB_SIG_LINK"
+
+$DOWNLOAD_FAIL_HELP"
+   progress_bar 100
+   exit 1
+fi
+
+progress_bar 30
+
+debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
+TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
+TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
+debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
+/usr/bin/curl $CURL_PROXY \
+--tlsv1 --proto =https --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
+
+## Check if curl failed.
+if [ "$NETWORK_DOWN" = "1" ]; then
+   ZENITY_TYPE="--error"
+   output "Failed to download: "$TBB_PACKAGE_LINK"
 
 $DOWNLOAD_FAIL_HELP"
    progress_bar 100
