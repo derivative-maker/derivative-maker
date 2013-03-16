@@ -7,6 +7,13 @@
 ## Allow messages to tty
 mesg y
 
+## Not using on Whonix-Workstation,
+## because /home/user/.config/autostart/whonixcheck.desktop
+## does a better job.
+if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+   exit 0
+fi
+
 /usr/local/bin/whonixcheck_login &
 
 ## End of Whonix /etc/profile.d/whonixcheck.sh
