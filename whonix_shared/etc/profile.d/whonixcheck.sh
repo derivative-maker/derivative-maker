@@ -14,6 +14,6 @@ if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
    exit 0
 fi
 
-/usr/local/bin/whonixcheck_login &
+whonixcheck -autostart &
 
 ## End of Whonix /etc/profile.d/whonixcheck.sh

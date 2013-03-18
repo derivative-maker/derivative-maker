@@ -1,0 +1,61 @@
+check_autostart() {
+   ## This script gets run by:
+   ## - /etc/profile.d/whonixcheck.sh
+   ## - /home/user/.config/autostart/whonixcheck.desktop
+   ## - user cron
+
+   trap "error_handler" ERR INT TERM
+
+   ## If it was not autostarted the user is free to re-run the checks.
+   if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
+      return
+   fi
+
+   ## To prevent issuing leaving a clear network fingerprint,
+   ## we add a random delay.
+
+   ## Random delay between 0 and 500 seconds.
+   local DELAY="$(( 100+(`od -An -N2 -i /dev/random` )%(300-0+1) ))"
+
+   ## 60 seconds minimum delay.
+   local DELAY="`expr "$DELAY" + "60"`" || true
+
+   ## For debugging.
+   local DELAY="10"
+
+   MSG="whonixcheck checks were recently completed.
+($DIFFERENCE seconds ago.)
+No need to run all checks again already.
+
+You could still start whonixcheck manually."
+
+   if [ "$WHONIXCHECK_RECENTLY_RUN" = 0 ]; then
+      echo "Running whonixcheck in "$DELAY" seconds..."
+
+      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+         notify-send --expire-time ""$DELAY"000" "whonixcheck" "Running whonixcheck in "$DELAY" seconds." || true
+      fi
+
+      sleep "$DELAY"
+   else
+      ## If it was run by cron and there is nothing to tell, say nothing.
+      if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
+         echo "whonixcheck started by cron."
+         echo "whonixcheck checks completed $DIFFERENCE seconds ago. No need to run again."
+         exit 0
+      fi
+
+      echo "$MSG"
+
+      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
+         notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
+      fi
+
+      exit 0
+   fi
+
+   ## notify-send will fade out in max. 10 seconds due to an upstream bug:
+   ##    https://bugs.launchpad.net/ubuntu/+source/notify-osd/+bug/390508
+   ## Using || true in case notify-send is not installed.
+   ## --expire-time expects milliseconds, hence adding 000. 
+}

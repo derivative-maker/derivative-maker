@@ -45,34 +45,6 @@ check_whonixcheck_lastrun() {
    fi
 }
 
-not_again() {
-   trap "error_handler" ERR INT TERM
-
-   ## If it was not autostarted the user is free to re-run the checks.
-   if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
-      return
-   fi
-
-   if [ "$WHONIXCHECK_RECENTLY_RUN" = "0" ]; then
-      return
-   fi
-
-   ## If it was run by cron and there is nothing to tell, say nothing.
-   if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
-      echo "whonixcheck started by cron."
-      echo "whonixcheck checks completed $DIFFERENCE seconds ago. No need to run again."
-      progress_bar 100
-      cleanup
-      exit 0
-   fi
-
-   echo "whonixcheck was run $DIFFERENCE seconds ago. No need to run again."
-
-   progress_bar 100
-   cleanup
-   exit 0
-} 
-
 whonixcheck_completed() {
    trap "error_handler" ERR INT TERM
 

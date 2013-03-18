@@ -726,3 +726,25 @@ fi
 #mkswap /dev/sda5 -U 9159bf6e-e242-4510-b4c1-348db252feff || true
 
 ## /etc/fstab gets copied into VM by whonix_image copyinto.
+
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+sudo -u user crontab -l || true
+sudo -u user crontab /usr/local/share/whonix/user_crontab
+sudo -u user crontab -l
+
+
