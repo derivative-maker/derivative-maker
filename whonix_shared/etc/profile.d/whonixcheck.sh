@@ -11,7 +11,7 @@ mesg y
 ## because /home/user/.config/autostart/whonixcheck.desktop
 ## does a better job.
 if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
-   exit 0
+   return
 fi
 
 whonixcheck -autostart &
