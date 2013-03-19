@@ -14,6 +14,6 @@ if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
    return
 fi
 
-whonixcheck -autostart &
+delay whonixcheck -autostart &
 
 ## End of Whonix /etc/profile.d/whonixcheck.sh
