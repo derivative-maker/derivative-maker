@@ -24,12 +24,12 @@ check_autostart() {
    local DELAY="10"
 
    if [ "$WHONIXCHECK_RECENTLY_RUN" = 0 ]; then
-      echo "Running whonixcheck in "$DELAY" seconds..."
-
+      local MSG="Running whonixcheck in "$DELAY" seconds..."
+      echo "$MSG"
+      
       if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
-         MSG="Running whonixcheck in "$DELAY" seconds."
          #notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
-         kdialog --passivepopup "$MSG" "$DELAY" || true
+         kdialog --passivepopup "$MSG" "$DELAY" 2>/dev/null || true
       fi
 
       sleep "$DELAY"
@@ -41,16 +41,17 @@ check_autostart() {
          exit 0
       fi
 
-      echo "$MSG"
-
-      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
-         MSG="whonixcheck checks were recently completed.
+      local MSG="whonixcheck checks were recently completed.
 ($DIFFERENCE seconds ago.)
 No need to run all checks again already.
 
-You could still start whonixcheck manually."
+You could still start whonixcheck manually."      
+      
+      echo "$MSG"
+
+      if [ -f "/usr/local/share/whonix/whonix_workstation" ]; then
          #notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
-         kdialog --passivepopup "$MSG" "$DELAY" || true
+         kdialog --passivepopup "$MSG" "$DELAY" 2>/dev/null || true
       fi
 
       exit 0
