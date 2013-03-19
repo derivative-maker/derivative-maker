@@ -67,13 +67,16 @@ show_output() {
 
    ## Do not ask for donations if a bug occurred. More important things have to be sorted out.  
    if [ "$BUG" = "0" ]; then
-      ## Do not ask for donations if the user has something important to do.  
-      if [ "$ZENITY_TYPE" = "--info" ]; then
-         local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
-         local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
+      ## Only for whonixcheck, not for timesync.
+      if [ "$SCRIPTNAME" = "whonixcheck" ]; then
+         ## Do not ask for donations if the user has something important to do.  
+         if [ "$ZENITY_TYPE" = "--info" ]; then
+            local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
+            local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
 $BITCOIN_ADDRESS"
-         echo "$MSG"
-         output "--info" "Info" "$MSG"  
+            echo "$MSG"
+            output "--info" "Info" "$MSG"  
+         fi
       fi
    fi
 
@@ -95,13 +98,28 @@ $ZENITY_MESSAGE" | sudo wall --nobanner
 
    ## Only attempt a graphical notification if X is running.
    if [ "$DISPLAY" ]; then
+      if [ "$SCRIPTNAME" = "timesync" ]; then
+         if [ "$ZENITY_TYPE" = "--info" ]; then
+            kdialog --passivepopup "$ZENITY_MESSAGE" "20"
+            
+            ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+            ## should go into a new queue.
+            ZENITY_MESSAGE=""
+            
+            return
+         fi
+      fi
+   fi
+   
+   ## Only attempt a graphical notification if X is running.
+   if [ "$DISPLAY" ]; then
       zenity --display="$DISPLAY" --height=600 --width=800 --timeout 86400 --no-markup\
       --window-icon /usr/local/share/whonix/icons/whonix.ico \
       --title="$TITLE" "$ZENITY_TYPE" --text "
 $SCRIPTNAME
 ----------------------------------------------------------------------$ZENITY_MESSAGE" & 2>/dev/null
    fi
-
+   
    ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
    ## should go into a new queue.
    ZENITY_MESSAGE=""
