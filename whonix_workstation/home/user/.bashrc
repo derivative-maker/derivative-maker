@@ -121,6 +121,15 @@ if [ -z "$PS1" ]; then
    return
 fi
 
+shopt -q login_shell
+var="$?"
+
+if [ "$var" = "0" ]; then
+   ## Login shell is greeted by /etc/motd.
+   return
+fi
+
+## Konsole
 echo "`cat /etc/motd`"
 
 ## End of Whonix /home/user/.bashrc
