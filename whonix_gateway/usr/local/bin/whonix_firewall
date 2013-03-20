@@ -45,7 +45,7 @@ WORKSTATION_TRANSPARENT_TCP=1
 ## This setting has really no effect.
 ## The Tor network does not support UDP yet.
 ## This is not a Whonix specific limitation.
-## There is a limited workarround for tunneling udp over Tor with Whonix:
+## There is a limited workaround for tunneling udp over Tor with Whonix:
 ## https://sourceforge.net/p/whonix/wiki/TunnelUDPoverTor/
 ## Do not bother changing this setting, it will do nothing.
 WORKSTATION_TRANSPARENT_UDP=0
@@ -125,7 +125,7 @@ ALLOW_GATEWAY_USER_USER=0
   ## SSH into Whonix-Gateway ##
   #############################
 
-## This will simply open incomming port 22 in the Whonix-Gateway firewall.
+## This will simply open incoming port 22 in the Whonix-Gateway firewall.
 ## A port forwarding from the host to the Whonix-Gateway has still to be created,
 ## see SSH into Whonix-Gateway.
 ##   https://sourceforge.net/p/whonix/wiki/File%20Transfer/
@@ -240,7 +240,7 @@ SOCKS_PORT_MIXMASTER="9121"
 
 ##+# #OptionalFeatureNr.4# More Socks Ports.
 ##
-## Adding more Socks Ports here should no longer be neccessary.
+## Adding more Socks Ports here should no longer be necessary.
 ## There are already lots of custom ports prepared. If you need more
 ## anyway, read below.
 ## Please read:
@@ -461,7 +461,7 @@ fi
 
 ## Reject anything not explicitly allowed above.
 ## Drop is better than reject here, because we do not want to reveal its a Whonix-Gateway.
-## (In case someone running Whonix-Gateway on bare metall.)
+## (In case someone running Whonix-Gateway on bare metal.)
 iptables -A INPUT -j DROP
 
 ###########################
@@ -485,19 +485,19 @@ iptables -t nat -A OUTPUT -m owner --uid-owner "$TOR_USER" -j RETURN
 iptables -t nat -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j RETURN
 
 ## No NAT for user user.
-## DISABELD BY DEFAULT. For testing/debugging only.
+## DISABLED BY DEFAULT. For testing/debugging only.
 if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
   iptables -t nat -A OUTPUT -m owner --uid-owner "$USER_USER" -j RETURN
 fi
 
 ## No NAT for root user.
-## DISABELD BY DEFAULT. For testing/debugging only.
+## DISABLED BY DEFAULT. For testing/debugging only.
 if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
   iptables -t nat -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j RETURN
 fi
 
 ## Redirect of T-G DNS traffic to DnsPort_WHONIXG.
-## DISABELD BY DEFAULT. default. Using SocksPort instead.
+## DISABLED BY DEFAULT. default. Using SocksPort instead.
 if [ "$GATEWAY_TRANSPARENT_DNS" = "1" ]; then
   iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT_WHONIXG"
 fi
@@ -508,7 +508,7 @@ for NET in $NON_TOR_WHONIXG; do
 done
 
 ## Redirect all T-G TCP traffic to TransPort_WHONIXG.
-## DISABELD BY DEFAULT. Using SocksPort instead.
+## DISABLED BY DEFAULT. Using SocksPort instead.
 if [ "$GATEWAY_TRANSPARENT_TCP" = "1" ]; then
   iptables -t nat -A OUTPUT -p tcp --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXG"
 fi
@@ -528,13 +528,13 @@ iptables -A OUTPUT -m owner --uid-owner "$TOR_USER" -j ACCEPT
 iptables -A OUTPUT -m owner --uid-owner "$CLEARNET_USER" -j ACCEPT
 
 ## user user is allowed to connect any outside target.
-## DISABELD BY DEFAULT. For testing/debugging only.
+## DISABLED BY DEFAULT. For testing/debugging only.
 if [ "$ALLOW_GATEWAY_USER_USER" = "1" ]; then
   iptables -A OUTPUT -m owner --uid-owner "$USER_USER" -j ACCEPT
 fi
 
 ## root user is allowed to connect any outside target.
-##  DISABELD BY DEFAULT. For testing/debugging only.
+## DISABLED BY DEFAULT. For testing/debugging only.
 if [ "$ALLOW_GATEWAY_ROOT_USER" = "1" ]; then
   iptables -A OUTPUT -m owner --uid-owner "$ROOT_USER" -j ACCEPT
 fi
@@ -542,7 +542,7 @@ fi
 ## Log.
 #iptables -A INPUT -j LOG --log-prefix "Whonix blocked output4: "
 
-## Reject all other outging traffic.
+## Reject all other outgoing traffic.
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
 
 ###########################
