@@ -96,6 +96,30 @@ $ZENITY_MESSAGE" | sudo wall --nobanner
       fi
    fi
 
+   ## When timesync is run by cron (/usr/local/bin/htpdate_hourly),
+   ## and there is nothing important to tell, say nothing. Otherwise there
+   ## would be such a popup every hour.
+   ##
+   ## Only attempt a graphical notification if X is running.   
+   if [ "$DISPLAY" ]; then
+      if [ "$SCRIPTNAME" = "timesync" ]; then
+         if [ "$TIMESYNC_CRON" = "1" ]; then 
+            if [ "$ZENITY_TYPE" = "--info" ]; then
+               true ## Do nothing.
+               
+               ## Even if we wanted to use kdialog --passivepopup, we would have to
+               ## attach --display="$DISPLAY", because cron runs as root and timesync and X as user.
+            
+               ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+               ## should go into a new queue.
+               ZENITY_MESSAGE=""
+               
+               return
+            fi
+         fi
+      fi
+   fi   
+   
    ## When timesync is automatically started and nothing important has to be reported,
    ## use kdialog --passivepopup, because that is non-intrusive and will automatically fade out.
    ## When timesync is manually started, always use zenity.
@@ -124,11 +148,11 @@ $ZENITY_MESSAGE" | sudo wall --nobanner
       --title="$TITLE" "$ZENITY_TYPE" --text "
 $SCRIPTNAME
 ----------------------------------------------------------------------$ZENITY_MESSAGE" & 2>/dev/null
+
+      ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+      ## should go into a new queue.
+      ZENITY_MESSAGE=""
    fi
-   
-   ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
-   ## should go into a new queue.
-   ZENITY_MESSAGE=""
 } 
 
 progress_bar() {
