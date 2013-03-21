@@ -14,21 +14,24 @@ error_handler() {
 
 trap "error_handler" ERR INT TERM
 
-echo "Creating user user..."
-## setting password of user user to changeme
-##
-## How this password was created:
-## sudo apt-get install whois
-## mkpasswd
-## changeme
-## Resulted in: aTayYxVyw5kDo
-##
-## True in case script gets run again. (Debugging.)
-useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user || true
+trap "" ERR INT TERM
+
+## Check if user already exist.
+id user
+if [ ! "$?" = 0 ]; then
+   echo "Creating user user..."
+   ## setting password of user user to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo   
+   useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user
+else
+   echo "Not creating user user, because it user already exists."
+fi
+
 usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
 chown --recursive user:user /home/user
 
-
-
-
- 
