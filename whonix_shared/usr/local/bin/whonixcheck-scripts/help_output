@@ -96,17 +96,23 @@ $ZENITY_MESSAGE" | sudo wall --nobanner
       fi
    fi
 
+   ## When timesync is automatically started and nothing important has to be reported,
+   ## use kdialog --passivepopup, because that is non-intrusive and will automatically fade out.
+   ## When timesync is manually started, always use zenity.
+   ##
    ## Only attempt a graphical notification if X is running.
    if [ "$DISPLAY" ]; then
       if [ "$SCRIPTNAME" = "timesync" ]; then
-         if [ "$ZENITY_TYPE" = "--info" ]; then
-            kdialog --passivepopup "$ZENITY_MESSAGE" "20"
+         if [ "$TIMESYNC_AUTOSTART" = "1" ]; then 
+            if [ "$ZENITY_TYPE" = "--info" ]; then
+               kdialog --passivepopup "$ZENITY_MESSAGE" "20"
             
-            ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
-            ## should go into a new queue.
-            ZENITY_MESSAGE=""
+               ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+               ## should go into a new queue.
+               ZENITY_MESSAGE=""
             
-            return
+               return
+            fi
          fi
       fi
    fi
