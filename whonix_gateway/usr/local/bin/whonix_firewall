@@ -216,6 +216,7 @@ TRANS_PORT_WHONIXG="9041"
 DNS_PORT_WHONIXG="54"
 
 ## Socks Ports for per application circuits.
+SOCKS_PORT_TOR_DEFAULT="9050"
 SOCKS_PORT_TB="9100"
 SOCKS_PORT_IRC="9101"
 SOCKS_PORT_TORBIRDY="9102"
@@ -333,6 +334,7 @@ if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
 fi
 
 ## Allow socksified applications.
+iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TOR_DEFAULT" -j ACCEPT
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TB" -j ACCEPT
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_IRC" -j ACCEPT
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j ACCEPT
@@ -368,6 +370,7 @@ iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9170:9179 -j A
 iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9180:9189 -j ACCEPT
 
 ## Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
+iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TOR_DEFAULT" -j REDIRECT --to-ports "$SOCKS_PORT_TOR_DEFAULT"
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TB" -j REDIRECT --to-ports "$SOCKS_PORT_TB"
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_IRC" -j REDIRECT --to-ports "$SOCKS_PORT_IRC"
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TORBIRDY" -j REDIRECT --to-ports "$SOCKS_PORT_TORBIRDY"
