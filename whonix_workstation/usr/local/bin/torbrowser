@@ -590,10 +590,6 @@ debug "INFO: Creating Unbundled Tor Browser startup script..."
 cp /usr/local/share/whonix/start-tor-browser tor-browser_"$TB_LANG"/start-tor-browser
 chmod +x tor-browser_"$TB_LANG"/start-tor-browser
 
-progress_bar 94
-debug "INFO: Calling the function tb_create_user_js()..."
-tb_create_user_js
-
 progress_bar 95
 debug "INFO: Moving old folder tor-browser_"$TB_LANG"..."
 mv /home/"$USERNAME"/tor-browser_"$TB_LANG" /home/"$USERNAME"/tor-browser_"$TB_LANG".old."`date '+%F-%H:%M:%S'`" || true
@@ -607,48 +603,6 @@ progress_bar 98
 ZENITY_TYPE="--info"
 progress_bar 100
 output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
-}
-
-
-
-#########################################################################
-## tb_create_user_js                                                    #
-#########################################################################
-
-tb_create_user_js() {
-trap "tb_error_handler" ERR
-
-## Editing /home/"$USERNAME"/tor-browser_"$TB_LANG"/Data/profile/users.js
-## http://kb.mozillazine.org/User.js_file
-## Configuring Tor Button to use SOCKSPort
-
-echo '
-## Begin of patched user.js.
-## If you edit this file while Firefox is running, your changes will be
-## overwritten, when you close Firefox.
-
-## How to create the user.js network settings:
-## 1. Make a backup of prefs.js.
-## 1. Start Tor Browser with the patched start script.
-## 2. Apply proxy settings using the Tor Button settings dialog..
-## 3. Make a diff from the old and the new pref.js.
-## 4. Copy the relevant changes to user.js.
-
-## network settings
-## (Are now set in /etc/environment - or not...)
-## (See /etc/environment.)
-user_pref("extensions.torbutton.use_privoxy", false);
-user_pref("extensions.torbutton.settings_method", "custom");
-user_pref("extensions.torbutton.socks_host", "192.168.0.10");
-user_pref("extensions.torbutton.socks_port", 9100);
-user_pref("network.proxy.socks", "192.168.0.10");
-user_pref("network.proxy.socks_port", 9100);
-user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
-user_pref("extensions.torbutton.custom.socks_port", 9100);
-
-## End of Whonix user.js.
-' >> tor-browser_"$TB_LANG"/Data/profile/user.js
-
 }
 
 

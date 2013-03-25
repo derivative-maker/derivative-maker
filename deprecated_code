@@ -768,4 +768,43 @@ sudo -u user crontab -l
    #   }
    #fi
    
-   
+#########################################################################
+## tb_create_user_js                                                    #
+#########################################################################
+
+tb_create_user_js() {
+trap "tb_error_handler" ERR
+
+## Editing /home/"$USERNAME"/tor-browser_"$TB_LANG"/Data/profile/users.js
+## http://kb.mozillazine.org/User.js_file
+## Configuring Tor Button to use SOCKSPort
+
+echo '
+## Begin of patched user.js.
+## If you edit this file while Firefox is running, your changes will be
+## overwritten, when you close Firefox.
+
+## How to create the user.js network settings:
+## 1. Make a backup of prefs.js.
+## 1. Start Tor Browser with the patched start script.
+## 2. Apply proxy settings using the Tor Button settings dialog..
+## 3. Make a diff from the old and the new pref.js.
+## 4. Copy the relevant changes to user.js.
+
+## network settings
+## (Are now set in /etc/environment - or not...)
+## (See /etc/environment.)
+user_pref("extensions.torbutton.use_privoxy", false);
+user_pref("extensions.torbutton.settings_method", "custom");
+user_pref("extensions.torbutton.socks_host", "192.168.0.10");
+user_pref("extensions.torbutton.socks_port", 9100);
+user_pref("network.proxy.socks", "192.168.0.10");
+user_pref("network.proxy.socks_port", 9100);
+user_pref("extensions.torbutton.custom.socks_host", "192.168.0.10");
+user_pref("extensions.torbutton.custom.socks_port", 9100);
+
+## End of Whonix user.js.
+' >> tor-browser_"$TB_LANG"/Data/profile/user.js
+
+}
+
