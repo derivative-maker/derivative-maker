@@ -22,17 +22,23 @@ prepare-build-machine() {
       exit 0
    fi
 
-   true 'Creating user "user" with password "changeme", because some things have to be run as user.'
-   ## setting password of user user to changeme
-   ##
-   ## How this password was created:
-   ## sudo apt-get install whois
-   ## mkpasswd
-   ## changeme
-   ## Resulted in: aTayYxVyw5kDo
-   ##
-   ## True in case script gets run again. (Debugging.)
-   useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/"$USERNAME" --shell /bin/bash "$USERNAME" || true
+   ## Check if user "$USERNAME" already exist.
+   id "$USERNAME"
+   if [ ! "$?" = 0 ]; then
+      true 'INFO: Creating user "$USERNAME" with password "changeme", because some things have to be run as "$USERNAME".'
+      ## setting password of user "user" to changeme
+      ##
+      ## How this password was created:
+      ## sudo apt-get install whois
+      ## mkpasswd
+      ## changeme
+      ## Resulted in: aTayYxVyw5kDo
+      useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/"$USERNAME" --shell /bin/bash "$USERNAME"
+   else
+      true 'INFO: Not creating user "$USERNAME" with password "changeme", because it already exists.'
+   fi
+
+   ## Fix permissions, just in case.
    chown --recursive "$USERNAME":"$USERNAME" /home/"$USERNAME"
 
    ## Always keep old configuration file. Do not prompt to install new config files.
