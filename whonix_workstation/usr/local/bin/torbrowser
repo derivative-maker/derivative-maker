@@ -366,7 +366,11 @@ $DOWNLOAD_FAIL_HELP"
 fi
 
 progress_bar 96
+}
 
+
+
+tb_download() {
 tbbversion
 
 progress_bar 97
@@ -536,6 +540,9 @@ fi
 
 progress_bar 90
 
+}
+
+tb_verify() {
 debug "INFO:
 ## Verifying GPG signature.
 ## Not using the users GPG keyring also ensures, that the key can be only
@@ -547,7 +554,11 @@ gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --verify "tor-browser*
 
 trap "tb_error_handler" ERR
 debug "INFO: Signature valid."
+}
 
+
+
+tb_extract() {
 tar -xzvf tor-browser-gnu-linux-*.tar.gz
 
 progress_bar 91
@@ -696,6 +707,9 @@ tb_start() {
 if [[ "$1" = "-update" ]]; then
 root_check
 tb_update_check
+tb_download
+tb_verify
+tb_extract
 exit 0
 fi
 
@@ -708,6 +722,9 @@ if [[ "$1" = "-force-install" ]]; then
 root_check
 export TB_FORCE_INSTALL="1"
 tb_update_check
+tb_download
+tb_verify
+tb_extract
 export TB_FORCE_INSTALL="0"
 exit 0
 fi
@@ -723,6 +740,9 @@ DEV_BUILD_PASSTHROUGH="1"
 DEV_PASSTHROUGH="1"
 TB_FORCE_INSTALL="1"
 tb_update_check
+tb_download
+tb_verify
+tb_extract
 DEV_BUILD_PASSTHROUGH="0"
 DEV_PASSTHROUGH="0"
 TB_FORCE_INSTALL="0"
@@ -913,3 +933,4 @@ if [[ "$1" = "" ]]; then
 echo "torbrowser: No option chosen. Please run with -help to find out more."
 exit 0
 fi
+
