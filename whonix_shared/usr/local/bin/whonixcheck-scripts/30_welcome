@@ -2,13 +2,20 @@ welcome() {
    trap "error_handler" ERR INT TERM
 
    if [ "$SCRIPTNAME" = "timesync" ]; then
-      check_htpdate_status
-      ## No need for flashing a progress meter, if htpdate already succeeded.
-      if [ "$HTPDATE_STATUS" = "SUCCESS" ]; then
-         return
+      check_htpdate_status    
+      if [ "$TIMESYNC_AUTOSTART" = "1" ] || [ "$TIMESYNC_CRON" = "1" ]; then
+         ## No need for flashing a progress meter, if htpdate already succeeded.
+         if [ "$HTPDATE_STATUS" = "SUCCESS" ]; then
+            return
+         fi
       fi
    fi
 
+   ## No progress meter, if run by cron.
+   if [ "$TIMESYNC_CRON" = "1" ]; then
+      return
+   fi
+   
    #echo "whonixcheck by Whonix
 #$WHONIX_HOMEPAGE
 #-help for help.
