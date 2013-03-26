@@ -25,7 +25,19 @@ VERSION="${VERSION//[[:space:]]}"
 
 mkdir --parents "../whonix_binary"
 
-cp "./release/whonix_news" "../whonix_binary/"
+## Reading ./release/whonix_news, substitute the $VERSION variable in ./release/whonix_news
+## with the actual VERSION and storing it as ../whonix_binary/whonix_news.
+##
+## Thanks to:
+## http://superuser.com/questions/235738/how-do-i-substitute-environment-variables-when-i-ouput-a-file
+
+eval echo "\"$(cat <<EOF_$RANDOM
+$(<"./release/whonix_news")
+EOF_$RANDOM
+)\"" > "../whonix_binary/whonix_news"
+
+cat "../whonix_binary/whonix_news"
+
 rm --force "../whonix_binary/whonix_news.asc"
 
 gpg --clearsign "../whonix_binary/whonix_news"
