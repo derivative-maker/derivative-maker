@@ -2,5 +2,37 @@
 
 set -x
 
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+## Find out installed Whonix version.
+## Read only FIRST line.
+VERSION="Could not read local Whonix version file. Please report this bug!"
+read -r VERSION < "./whonix_shared/usr/local/share/whonix/version"
+## Remove ALL spaces.
+## Thanks to
+## http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
+VERSION="${VERSION//[[:space:]]}"
+
+mkdir --parents "../whonix_binary"
+
+cp "./release/whonix_news" "../whonix_binary/"
+rm --force "../whonix_binary/whonix_news.asc"
+
+gpg --clearsign "../whonix_binary/whonix_news"
+
+cat "../whonix_binary/whonix_news.asc"
+
+gpg --verify "../whonix_binary/whonix_news.asc"
+
 rsync --partial --progress --verbose --rsh ssh whonix_news.asc adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/news/
 
