@@ -129,8 +129,11 @@ copy_into_gateway() {
    rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_gateway/ "$CHROOT_FOLDER"/
 
    
+   trap "" ERR INT TERM
    id "clearnet"
    if [ ! "$?" = 0 ]; then
+      trap "error_handler_copy-into-img" ERR INT TERM
+
       ## This is required for chown --recursive clearnet:clearnet...
       
       echo 'INFO: Creating user "clearnet"...'
@@ -144,8 +147,11 @@ copy_into_gateway() {
       ##
       useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet
    else
+      trap "error_handler_copy-into-img" ERR INT TERM
       echo 'INFO: Not creating user "clearnet", because it already exists.'
    fi
+
+   trap "error_handler_copy-into-img" ERR INT TERM
 
    ## Fix /home/clearnet permissions.
    chown --recursive clearnet:clearnet "$CHROOT_FOLDER"/home/clearnet

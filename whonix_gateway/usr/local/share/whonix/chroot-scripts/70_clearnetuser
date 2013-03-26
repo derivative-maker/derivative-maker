@@ -14,8 +14,10 @@ error_handler() {
 
 trap "error_handler" ERR INT TERM
 
+trap "" ERR INT TERM
 id "clearnet"
 if [ ! "$?" = 0 ]; then
+   trap "error_handler" ERR INT TERM
    echo 'INFO: Creating user "clearnet"...'
    ## setting password of user clearnet to changeme
    ##
@@ -26,8 +28,11 @@ if [ ! "$?" = 0 ]; then
    ## Resulted in: aTayYxVyw5kDo
    useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet
 else
+   trap "error_handler" ERR INT TERM
    echo 'INFO: Not creating user "clearnet", because it already exists.'
 fi
+
+trap "error_handler" ERR INT TERM
 
 chown --recursive clearnet:clearnet /home/clearnet
 

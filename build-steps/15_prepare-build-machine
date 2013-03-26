@@ -23,8 +23,10 @@ prepare-build-machine() {
    fi
 
    ## Check if user "$USERNAME" already exist.
+   trap "" ERR INT TERM
    id "$USERNAME"
    if [ ! "$?" = 0 ]; then
+      trap "error_handler_general" ERR INT TERM
       true 'INFO: Creating user "$USERNAME" with password "changeme", because some things have to be run as "$USERNAME".'
       ## setting password of user "user" to changeme
       ##
@@ -35,8 +37,11 @@ prepare-build-machine() {
       ## Resulted in: aTayYxVyw5kDo
       useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/"$USERNAME" --shell /bin/bash "$USERNAME"
    else
+      trap "error_handler_general" ERR INT TERM
       true 'INFO: Not creating user "$USERNAME" with password "changeme", because it already exists.'
    fi
+
+   trap "error_handler_general" ERR INT TERM
 
    ## Fix permissions, just in case.
    chown --recursive "$USERNAME":"$USERNAME" /home/"$USERNAME"
