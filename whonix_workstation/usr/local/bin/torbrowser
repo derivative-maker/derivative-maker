@@ -614,6 +614,16 @@ output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-b
 tb_start_new_tab() {
    trap "tb_error_handler" ERR
 
+   if [ ! -d "~/tor-browser_"$TB_LANG"/" ]; then
+      ZENITY_TYPE="--error"
+      output "Tor Browser is not installed?
+The folder ~/tor-browser_"$TB_LANG"/ does not exist.
+
+Please run: Start Menu -> Applications -> System -> Tor Browser Updater
+            or in Terminal: torbrowser -update"
+      exit 1
+   fi
+
    PID="`pidof firefox`" || true
 
    if [ "$PID" = "" ]; then
