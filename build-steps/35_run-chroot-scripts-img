@@ -49,7 +49,25 @@ run-chroot-scripts-img() {
    sync
 }
 
-run-chroot-scripts-img
+run-chroot-scripts-bare-metal() {
+   trap "error_handler_general" ERR INT TERM
 
+   sync
 
+   ## Check which "chroot" scripts we got.
+   run-parts --verbose --test "/usr/local/share/whonix/chroot-scripts"
+
+   ## Run the "chroot" scripts.
+   ## (Which got copied into the image by copyinto.)
+   run-parts --verbose --exit-on-error "/usr/local/share/whonix/chroot-scripts"
+
+   sync
+
+}
+
+if [ "$BARE_METAL" = "1" ]; then
+   run-chroot-scripts-bare-metal
+else
+   run-chroot-scripts-img
+fi
 
