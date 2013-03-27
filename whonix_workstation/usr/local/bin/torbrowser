@@ -626,6 +626,10 @@ tb_start_new_tab() {
       ## if it is only partially or fully load. When trying to open
       ## a new tab before it is fully load, a popup "profile not found"
       ## will be shown, which is confusing.
+
+      if [ "$LINK" = "" ]; then
+         return
+      fi
       debug "INFO: Waiting 30 seconds for Tor Browser to start..."
       sleep 30
    else
@@ -638,19 +642,6 @@ tb_start_new_tab() {
 
    cd ~/tor-browser_"$TB_LANG"/
    ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
-}
-
-
-
-################################################################
-## tb_start                                                    #
-################################################################
-
-tb_start() {
-   trap "tb_error_handler" ERR
-
-   cd ~/tor-browser_"$TB_LANG"/
-   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile &
 }
 
 
@@ -711,7 +702,8 @@ fi
 ## for compatibility
 if [[ "$1" = "-noreadme" ]]; then
 root_check
-tb_start
+LINK=""
+tb_start_new_tab
 exit 0
 fi
 
@@ -722,7 +714,8 @@ fi
 ################################################################ 
 if [[ "$1" = "-start" ]]; then
 root_check
-tb_start
+LINK=""
+tb_start_new_tab
 exit 0
 fi
 
