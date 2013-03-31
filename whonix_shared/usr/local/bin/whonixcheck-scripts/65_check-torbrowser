@@ -11,7 +11,8 @@ check_torbrowser() {
    #echo "$MSG"
 
    GET_VERSION="1"
-   echo "Checking Tor Browser version..."
+   local MSG="Checking Tor Browser version..."
+   output "--info" "Info" "$MSG" "echo"
 
    ## Getting latest version number
    /usr/bin/curl $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --max-time 300 --output RecommendedTBBVersions https://check.torproject.org/RecommendedTBBVersions || GET_VERSION="0"
@@ -19,8 +20,7 @@ check_torbrowser() {
    if [ "$GET_VERSION" = "0" ]; then
       local MSG="Tor Browser Update check failed. Could now download: https://check.torproject.org/RecommendedTBBVersions
 Try: Start menu -> Applications -> System -> Tor Browser Updater"
-      echo "$MSG"
-      output "--error" "ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG" "both"
       return
    fi
 
@@ -38,8 +38,7 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
 This could be either because none is installed or because the version format changed.
 
 Try: Start menu -> Applications -> System -> Tor Browser Updater"
-      echo "$MSG"
-      output "--error" "ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG" "both"
       return
    fi
 
@@ -47,15 +46,13 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
    if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
       ## It is up to date...
       local MSG="Installed Tor Browser version $TBBINSTALLEDVERSION is up to date."
-      echo "$MSG"
-      output "--info" "Info" "$MSG"
+      output "--info" "Info" "$MSG" "both"
    else
       ## Outdated...
       local MSG="\
 Installed Tor Browser version: $TBBINSTALLEDVERSION. Latest Tor Browser version: $TBBVERSION.
 Please run: Start menu -> Applications -> System -> Tor Browser Updater"
-      echo "$MSG"
-      output "--error" "WARNING" "$MSG"
+      output "--error" "WARNING" "$MSG" "both"
    fi
 }
 

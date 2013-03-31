@@ -4,7 +4,8 @@ download_whonix_news() {
    SOCKS_PORT_WHONIX_NEWS="9114"
 
    DOWNLOAD_NEWS_SUCCESS="1"
-   echo "Checking for Whonix news and updates..."
+   local MSG="Checking for Whonix news and updates..."
+   output "--info" "Info" "$MSG" "echo"
 
    ## sf.net does not yet support ssl for project web.
    ## --location is required since sf.net uses redirects.
@@ -15,8 +16,7 @@ download_whonix_news() {
 
    if [ "$DOWNLOAD_NEWS_SUCCESS" = "0" ]; then
       local MSG="Could not download Whonix News."
-      echo "$MSG"
-      output "--error" "ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG" "both"
    fi
 }
 
@@ -45,14 +45,12 @@ verify_whonix_news() {
    trap "error_handler" ERR INT TERM
 
    if [ "$WHONIX_NEWS_VERIFY_ERROR" = "0" ]; then
-      #local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
-      #echo "$MSG"
-      #output "--info" "Info" "$MSG"
+      local MSG="Successfully verified whonix_news.asc with adrelanos's GPG key."
+      output "--info" "Info" "$MSG" "debug"
       true
    else
       local MSG="Could not gpg verify authenticity of Whonix News!!! This is either a Whonix Bug or an attack on Whonix!!!"
-      echo "$MSG"
-      output "--error" "ERROR" "$MSG"
+      output "--error" "ERROR" "$MSG" "both"
    fi
 }
 
@@ -81,15 +79,13 @@ check_whonix_version() {
    if [ "$INSTALLED_WHONIX_VERSION" = "$LATEST_WHONIX_VERSION" ]; then
       ## Up to date...
       local MSG="Installed Whonix Version $INSTALLED_WHONIX_VERSION is up to date."
-      echo "$MSG"
-      output "--info" "Info" "$MSG"
+      output "--info" "Info" "$MSG" "both"
       return
    fi
 
    ## Outdated...
    local MSG="Installed Whonix version $INSTALLED_WHONIX_VERSION. Latest Whonix version $LATEST_WHONIX_VERSION. Please update Whonix!!!"
-   echo "$MSG"
-   output "--error" "WARNING" "$MSG"
+   output "--error" "WARNING" "$MSG" "both"
 }
 
 check_whonix_news() {
@@ -122,7 +118,6 @@ $LINE"
       fi
    done < "$VERIFY_TEMPDIR/whonix_news"
 
-   echo "$MSG"
-   output "--info" "Info" "$MSG"
+   output "--info" "Info" "$MSG" "both"
 }
 

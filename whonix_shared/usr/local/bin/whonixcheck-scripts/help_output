@@ -30,8 +30,8 @@ if [ `which kdialog` = "" ]; then
 fi   
 
 output() {
-   ## (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE
-   #echo "output: $1 ||| $2 ||| $3 |||"
+   ## (1) ZENITY_TYPE, (2) ZENITY_TITLE, (3) APPEND_MESSAGE, (4) OUTPUT_CHANNEL
+   #echo "output: $1 ||| $2 ||| $3 ||| $4 |||"
    
    trap "error_handler" ERR INT TERM
 
@@ -41,7 +41,7 @@ output() {
    else
       ZENITY_TYPE="$1"
    fi
-
+  
    if [ "$ZENITY_TITLE" = "ERROR" ]; then
       ## Do not overwrite. Do nothing to the variables.
       true
@@ -50,17 +50,47 @@ output() {
       true
    else
       ZENITY_TITLE="$2"
-   fi
+   fi   
+  
+   ## If whonixcheck was run by cron on Whonix-Gateway, regular echos will not be shown,
+   ## because whonixcheck was run automatically by cron and not manually from a terminal.
+   ## Therefore using wall --nobanner.
+   ## The required "mesg y" gets set in /etc/profile.d/whonixcheck.sh.
+   ## The required exception for running wall without root is set in in /etc/sudoers.
+   ## wall displays message to logged in user.     
+   
+   if [ "$4" = "debug" ]; then
+      if [ "$WHONIXCHECK_VERBOSE" = "1" ]; then
+         if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+            echo "$3" | sudo wall --nobanner
+         else   
+            echo "$3"
+         fi
+      else
+         true "$3"      
+      fi
+   elif [ "$4" = "echo" ]; then
+      if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+         echo "$3" | sudo wall --nobanner
+      else   
+         echo "$3"
+      fi
+   elif [ "$4" = "both" ]; then
+      if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+         echo "$3" | sudo wall --nobanner
+      else   
+         echo "$3"
+         ZENITY_MESSAGE="$ZENITY_MESSAGE
 
-   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
-      ## No empty lines if writing output to terminal on Whonix-Gateway.
+$3"      
+      fi
+   elif [ "$4" = "x-only" ]; then
       ZENITY_MESSAGE="$ZENITY_MESSAGE
+
 $3"
    else
-      ZENITY_MESSAGE="$ZENITY_MESSAGE
-
-$3"
-  fi
+      error "output OUTPUT_CHANNEL: $4"
+   fi
 }
 
 show_output() {
@@ -75,27 +105,12 @@ show_output() {
             local BITCOIN_ADDRESS="1JgzCCSox56Sh4NnQJqRiwoxKi8oVSZBEd"  
             local MSG="Please support the Whonix's hosting and development, donate Bitcoin to:
 $BITCOIN_ADDRESS"
-            echo "$MSG"
-            output "--info" "Info" "$MSG"  
+            output "--info" "Info" "$MSG" "both"
          fi
       fi
    fi
 
    local TITLE=" $ZENITY_TITLE - $SCRIPTNAME $VM $INSTALLED_WHONIX_VERSION `date`"
-
-   ## If whonixcheck was run by cron on Whonix-Gateway, echos were not shown,
-   ## because whonixcheck was run automatically by cron and not manually from a terminal.
-   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
-      if [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
-         ## The required "mesg y" gets set in /etc/profile.d/whonixcheck.sh.
-
-         ## Display message to logged in user.
-         ## This needs an exception in /etc/sudoers.
-         echo "$TITLE
-
-$ZENITY_MESSAGE" | sudo wall --nobanner
-      fi
-   fi
 
    ## When timesync is run by cron (/usr/local/bin/htpdate_hourly),
    ## and there is nothing important to tell, say nothing. Otherwise there
