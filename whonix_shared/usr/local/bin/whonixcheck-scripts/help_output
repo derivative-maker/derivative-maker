@@ -77,9 +77,16 @@ output() {
       fi
    elif [ "$4" = "both" ]; then
       if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
-         echo "$3" | sudo wall --nobanner
+         ## Unfortunately not possible, because wall even with --nobanner adds an empty line
+         ## before and after the message and there is not enough space in the terminal.
+         #echo "$3" | sudo wall --nobanner
+         
+         ## Therefore collecting all messages and showing them at the end.
+         ZENITY_MESSAGE="$ZENITY_MESSAGE
+$3"
       else   
          echo "$3"
+         
          ZENITY_MESSAGE="$ZENITY_MESSAGE
 
 $3"      
@@ -111,6 +118,17 @@ $BITCOIN_ADDRESS"
    fi
 
    local TITLE=" $ZENITY_TITLE - $SCRIPTNAME $VM $INSTALLED_WHONIX_VERSION `date`"
+   
+   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ] && [ -f "/usr/local/share/whonix/whonix_gateway" ]; then
+      echo "$TITLE
+$ZENITY_MESSAGE
+" | sudo wall --nobanner
+
+      ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
+      ## should go into a new queue.
+      ZENITY_MESSAGE=""
+      return
+   fi
 
    ## When timesync is run by cron (/usr/local/bin/htpdate_hourly),
    ## and there is nothing important to tell, say nothing. Otherwise there
