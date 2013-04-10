@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## Whonix /etc/profile.d/20_whonixcheck.sh
+## Whonix /etc/profile.d/40_whonixcheck.sh
 
 ## Gets run with any login shell.
 
@@ -16,4 +16,4 @@ else
    delay whonixcheck -autostart &
 fi
 
-## End of Whonix /etc/profile.d/20_whonixcheck.sh
+## End of Whonix /etc/profile.d/40_whonixcheck.sh

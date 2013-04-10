@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## Whonix /etc/profile.d/10_timesync.sh
+## Whonix /etc/profile.d/30_timesync.sh
 
 ## Gets run with any login shell.
 
@@ -16,4 +16,4 @@ else
    delay timesync -autostart &
 fi
 
-## End of Whonix /etc/profile.d/10_timesync.sh
+## End of Whonix /etc/profile.d/30_timesync.sh
