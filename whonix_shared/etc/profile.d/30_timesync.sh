@@ -4,9 +4,6 @@
 
 ## Gets run with any login shell.
 
-## Allow messages to tty
-mesg y
-
 ## Not using on Whonix-Workstation,
 ## because /home/user/.config/autostart/whonixcheck.desktop
 ## does a better job.
