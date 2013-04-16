@@ -2,29 +2,29 @@
 
 set -x
 
-  if [ "$(id -u)" != "0" ]; then
-     echo "FATAL ERROR: This script must be run as root (sudo)"
-     exit 1
-  fi
+if [ "$(id -u)" != "0" ]; then
+   echo "FATAL ERROR: This script must be run as root (sudo)"
+   exit 1
+fi
 
 exit_function() {
-echo "INFO: Listing for leaks stopped."
+   echo "INFO: Listing for leaks stopped."
 
-echo "INFO: Reverting /etc/tor/torrc to original state."
-ed -s /etc/tor/torrc <<< $',s/ReachableDirAddresses \*:80/#ReachableDirAddresses *:80/g\nw'
-ed -s /etc/tor/torrc <<< $',s/ReachableORAddresses \*:443/#ReachableORAddresses *:443/g\nw'
+   echo "INFO: Reverting /etc/tor/torrc to original state."
+   ed -s /etc/tor/torrc <<< $',s/ReachableDirAddresses \*:80/#ReachableDirAddresses *:80/g\nw'
+   ed -s /etc/tor/torrc <<< $',s/ReachableORAddresses \*:443/#ReachableORAddresses *:443/g\nw'
 
-echo "INFO: Reloading Tor, using normal settings again"
-service tor reload
-echo "INFO: Done."
+   echo "INFO: Reloading Tor, using normal settings again"
+   service tor reload
+   echo "INFO: Done."
 
-# Exit instantly, to prevent running exit_function more than once.
+   ## Exit instantly, to prevent running exit_function more than once.
 exit 1
 }
 
 trap "exit_function" ERR INT TERM
 
-# Install wireshark to the Whonix-Gateway for Leak Testing
+## Install wireshark to the Whonix-Gateway for Leak Testing
 echo "INFO: Installing tshark if it is not installed yet"
 apt-get --yes install tshark
 
@@ -44,5 +44,5 @@ service tor reload
 echo "NOTE: You must be logged in as user and start this script with sudo leaktest"
 echo "NOTE: Otherwise you will see a lot tshark error messages."
 echo "INFO: Starting tshark as user... To stop press CTRL + C."
-# HARDCODED!
+## HARDCODED!
 sudo -u user tshark -i eth0 -S -f "ip and src host 10.0.2.15 and not (port 80 or port 443 or port 9001 or port 9030 or ssh)"
