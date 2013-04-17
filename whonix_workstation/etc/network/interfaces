@@ -10,9 +10,13 @@
 auto lo
 iface lo inet loopback
 
-## eth0 is a virtual, internal network,
-## only connected to Whonix-Gateway.
-
+## When using Virtual Machines (not Physical Isolation),
+## - eth0 is an internal, isolated, virtual network "Whonix"
+## - provided and only visible inside Virtual Machines
+## - solely used to communicate with Whonix-Gateway
+## - it has no access to the host.
+## - Thus, the following IP address can NOT cause conflicts
+##   with your LAN network or router.
 auto eth0
 iface eth0 inet static
        ## Increment last octet of address
@@ -20,6 +24,8 @@ iface eth0 inet static
        address 192.168.0.11
        netmask 255.255.255.0
        gateway 192.168.0.10
+       ## Whonix second, optional, extra firewall,
+       ## disabled by default. See the firewall script comments.
        pre-up /usr/local/bin/whonix_firewall
 
        ## Out commented.
@@ -28,7 +34,12 @@ iface eth0 inet static
        #network 192.168.0.0
        #broadcast 192.168.0.255
 
+## If we has a DHCP server running on Whonix-Gateways
+## network interface eth1, we could alternatively use DHCP.
+## It has not been researched yet, if that were safe, or if
+## DHCP has in context of the Whonix Concept any odd features,
+## such as "tell me the IP of your upstream router".
 #auto eth0
 #iface eth0 inet dhcp
 
-## end of Whonix /etc/network/interfaces
+## End of Whonix /etc/network/interfaces
