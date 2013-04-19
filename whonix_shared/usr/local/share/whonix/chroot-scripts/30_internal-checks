@@ -20,10 +20,37 @@ echo "
 ######################################################
 "
 
-echo "Checking if the system is functional and continuing apt-get if the script failed before,"
-echo "by running dpkg --configure -a. Can take a while."
+true "INFO: Checking if the system is functional and re-reunning apt-get,"
+true "      if the script failed before, by running dpkg --configure -a."
+true "      Can take a while..."
 dpkg --configure -a
 
-echo "Checking if sysctcl -p runs without an error."
+true "INFO: Checking if sysctcl -p runs without an error."
 sysctl -p
 
+true "INFO: Listing packages (or debs) which don't have an MD5 sums file..."
+
+debsums --list-missing
+
+true "INFO: Listed missing debs."
+
+true "INFO: Listing missing files..."
+true "      (Only an information, no check...)"
+true "      (Has to be reviewed manually by the builder.)"
+true "      Note:"
+true "      - /usr/share/applications/kde4/knetattach.desktop (from kde-runtime package)"
+true "      - /usr/lib/xchat/plugins/python.so (from xchat package)"
+true "      - /usr/lib/xchat/plugins/tcl.so (from xchat package)"
+true "      are expected to be missing (after running the later chroot-scripts at least once)."
+
+debsums --silent || true
+
+true "INFO: Listed missing debs."
+
+true "INFO: Listing changed configuration files..."
+true "      (Only an information, no check...)"
+true "      (Has to be reviewed manually by the builder.)"
+
+debsums --config --silent || true
+
+true "INFO: Listed changed configuration files."
