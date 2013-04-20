@@ -1,0 +1,136 @@
+#/bin/bash
+### BEGIN INIT INFO
+# Provides:          bootclockrandomization
+# Required-Start:    $local_fs $remote_fs $syslog
+# Required-Stop:     $local_fs $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Boot Clock Randomization
+# Description:       Change clock randomly between 5 and 180 seconds to past or future.
+### END INIT INFO
+
+DESC="Boot Clock Randomization"
+NAME=bootclockrandomization
+SCRIPTNAME=/etc/init.d/$NAME
+DIR=/var/run/$NAME
+PIDFILE=$DIR/pid
+DONE_FILE=$DIR/done
+SUCCESS_FILE=$DIR/success
+LOG=/var/log/$NAME.log
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+# Create status directory and log file
+install -o root -g root -m 0755 -d ${DIR}
+install -o htp -g nogroup -m 0644 /dev/null ${LOG}
+
+# Source configuration
+#. /etc/default/$NAME
+
+log() {
+	echo "$@" >> "${LOG}"
+}
+
+## Debugging
+#set -x
+
+do_start () {
+   if [ -e "$DONE_FILE" ]; then
+      rm -f "$DONE_FILE"
+   fi
+
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+
+   OLD_UNIXTIME="$(date +%s)"
+   OLD_TIME="$(date)"
+
+   ## Create a random number between 5 and 180.
+   ##
+   ## Thanks to
+   ## http://linux.byexamples.com/archives/128/generating-random-numbers/
+   DELAY="$(( 5+(`od -An -N2 -i /dev/random` )%(175-0+1) ))"
+
+   ## Get a random 0 or 1.
+   ## Will use this to decide to use plus or minus.
+   ZERO_OR_ONE="$(( 0+(`od -An -N2 -i /dev/random` )%(0+2) ))"
+
+   if [ "$ZERO_OR_ONE" = "0" ]; then
+      PLUS_OR_MINUS="-"
+   elif [ "$ZERO_OR_ONE" = "1" ]; then
+      PLUS_OR_MINUS="+"
+   else
+      touch "$DONE_FILE"
+      log "FATAL ERROR: ZERO_OR_ONE is neither 0 nor 1, its: $ZERO_OR_ONE"
+      exit 1
+   fi
+
+   log "$PLUS_OR_MINUS $DELAY"
+
+   NEW_TIME=$(expr "$OLD_UNIXTIME" "$PLUS_OR_MINUS" "$DELAY") || true
+
+   ## Set new time. Syntax: date --set @1098181096
+   date --set "@$NEW_TIME" > /dev/null
+
+   log "Changed time from $OLD_TIME"
+   log "               to $(date)."
+
+   touch "$DONE_FILE"
+   touch "$SUCCESS_FILE"
+
+   exit 0
+}
+
+do_stop() {
+   if [ -e "$DONE_FILE" ]; then
+      rm -f "$DONE_FILE"
+   fi
+
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+}
+
+do_status () {
+   if [ -e "$SUCCESS_FILE" ]; then
+      return 0
+   else
+      return 1
+   fi
+}
+
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "$DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  stop)
+	do_stop
+	;;
+  restart)
+	do_stop
+	do_start
+	;;
+  status)
+	do_status
+	exit $?
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME (start|stop|restart|status)" >&2
+	exit 3
+	;;
+esac
+
+:
