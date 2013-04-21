@@ -12,11 +12,14 @@ error_handler() {
    exit 1
 } 
 
-if [ "$SKIP_TORBROWSER_DOWNLOAD" = "1" ]; then
-   exit 0
-fi
-
 trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
 
 ## Building in the clear and behind a transparent Tor proxy is supported.
 ## In case we are not behind a Whonix-Gateway with dedicated ports for
