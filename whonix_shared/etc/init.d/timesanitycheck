@@ -1,0 +1,132 @@
+#/bin/bash
+### BEGIN INIT INFO
+# Provides:          timesanitycheck
+# Required-Start:    $local_fs $remote_fs $syslog
+# Required-Stop:     $local_fs $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Time Sanity Check
+# Description:       Checks if the system clock is between build timestamp and expiration date.
+### END INIT INFO
+
+DESC="Checks if the system clock is between build timestamp and expiration date."
+NAME=timesanitycheck
+SCRIPTNAME=/etc/init.d/$NAME
+DIR=/var/run/$NAME
+PIDFILE=$DIR/pid
+FAIL_FILE=$DIR/fail
+SUCCESS_FILE=$DIR/success
+LOG=/var/log/$NAME.log
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+# Create status directory and log file
+install -o root -g root -m 0755 -d ${DIR}
+install -o root -g root -m 0755 -d ${LOG}
+
+# Source configuration
+. /etc/default/$NAME
+
+log() {
+	echo "$@" >> "${LOG}"
+}
+
+## Debugging
+#set -x
+
+do_start () {
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
+   fi
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+
+   ## build timestamp
+   BUILD_UNIXTIME="$(date -r /usr/local/share/whonix/version +%s)"
+   BUILD_TIME="$(date -r /usr/local/share/whonix/version)"
+
+   ## time after boot
+   BOOT_UNIXTIME="$(date +%s)"
+   BOOT_TIME="$(date)"
+
+   ## expiration date
+   ## EXPIRATION_UNIXTIME variable gets sourced from /etc/default/$NAME
+   EXPIRATION_TIME="$(date --date=@$EXPIRATION_UNIXTIME)"
+
+   if [ $BOOT_UNIXTIME -lt $BUILD_UNIXTIME ]; then
+      log "The clock is slow."
+      log "      (Current time $BOOT_TIME ($BOOT_UNIXTIME) is less than"
+      log "the build timestamp $BUILD_TIME ($BOOT_UNIXTIME).)"
+      touch "$FAIL_FILE"
+      return 1
+   fi
+
+   if [ $BOOT_UNIXTIME -gt $EXPIRATION_UNIXTIME ]; then
+      log "The clock is fast."
+      log "      (Current time $BOOT_TIME ($BOOT_UNIXTIME) is greater than"
+      log "the build timestamp $EXPIRATION_TIME ($EXPIRATION_UNIXTIME).)"
+      touch "$FAIL_FILE"
+      return 1
+   fi
+
+   log "The clock is sane."
+   log "(Current time $BOOT_TIME ($BOOT_UNIXTIME).)"
+
+   touch "$SUCCESS_FILE"
+   return 0
+}
+
+do_stop() {
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
+   fi
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+   return 0
+}
+
+do_status () {
+   if [ -e "$FAIL_FILE" ]; then
+      return 1
+   elif [ -e "$SUCCESS_FILE" ]; then
+      return 0
+   else
+      return 1
+   fi
+}
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "$DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  stop)
+	do_stop
+	;;
+  restart)
+	do_stop
+	do_start
+	;;
+  status)
+	do_status
+	exit $?
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME (start|stop|restart|status)" >&2
+	exit 3
+	;;
+esac
+
+:
