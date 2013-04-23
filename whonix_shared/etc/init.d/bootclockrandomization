@@ -14,7 +14,7 @@ NAME=bootclockrandomization
 SCRIPTNAME=/etc/init.d/$NAME
 DIR=/var/run/$NAME
 PIDFILE=$DIR/pid
-DONE_FILE=$DIR/done
+FAIL_FILE=$DIR/fail
 SUCCESS_FILE=$DIR/success
 LOG=/var/log/$NAME.log
 
@@ -47,8 +47,8 @@ do_start () {
       return 0
    fi
 
-   if [ -e "$DONE_FILE" ]; then
-      rm -f "$DONE_FILE"
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
    fi
    if [ -e "$SUCCESS_FILE" ]; then
       rm -f "$SUCCESS_FILE"
@@ -72,7 +72,7 @@ do_start () {
    elif [ "$ZERO_OR_ONE" = "1" ]; then
       PLUS_OR_MINUS="+"
    else
-      touch "$DONE_FILE"
+      touch "$FAIL_FILE"
       log "FATAL ERROR: ZERO_OR_ONE is neither 0 nor 1, its: $ZERO_OR_ONE"
       return 1
    fi
@@ -87,14 +87,13 @@ do_start () {
    log "Changed time from $OLD_TIME"
    log "               to $(date)."
 
-   touch "$DONE_FILE"
    touch "$SUCCESS_FILE"
    return 0
 }
 
 do_stop() {
-   if [ -e "$DONE_FILE" ]; then
-      rm -f "$DONE_FILE"
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
    fi
    if [ -e "$SUCCESS_FILE" ]; then
       rm -f "$SUCCESS_FILE"
