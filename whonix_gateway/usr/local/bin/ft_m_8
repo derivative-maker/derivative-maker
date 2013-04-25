@@ -51,21 +51,21 @@ fi
 ## looking like ####DisableNetwork 1 (if the user chooses
 ## this option multiple times).
 while read LINE; do
-   if [ "$LINE" = "#DisableNetwork 1" ]; then
+   if [ "$LINE" = "DisableNetwork 1" ]; then
       service tor reload 
       dialog --title "Success!" --msgbox '"DisableNetwork 1" was already set in /etc/tor/torrc.
 So Tor should now be disabled.
 
-whonixsetup really only deactivates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc.
+whonixsetup really only deactivates Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.
 Running it multiple times in a row archives nothing.
 In case of network problems, this is probable not the cause.
-You can confirm that by manually checking if "DisableNetwork 1" has been out commented out /etc/tor/torrc.
+You can confirm that by manually checking if "DisableNetwork 1" has been in commented in /etc/tor/torrc.
 ' 640 480
       exit 0
    fi
 done < "/etc/tor/torrc"
 
-ed -s /etc/tor/torrc <<< $',s/\DisableNetwork 1/#DisableNetwork 1/g\nw'
+ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 1/DisableNetwork 1/g\nw'
 
 service tor reload
 
