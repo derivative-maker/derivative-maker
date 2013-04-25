@@ -4,12 +4,40 @@
 #set -x
 #export PATH=$PATH:/home/user/Whonix/whonix_gateway/usr/local/bin/
 
-./ft_main
+error_handler() {
+   local MSG="\
+###########################################################
+## Something went wrong. Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+###########################################################\
+"
+   echo "$MSG"
+   exit 1
+} 
 
-## get return code
+trap "error_handler" ERR INT TERM
+
+if [ "$(id -u)" != "0" ]; then
+    echo "ERROR: This must be run as root (sudo)!"
+    exit 1
+fi
+
+## sanity tests
+which ft_main
+
+trap "" ERR INT TERM
+ft_main
 returncode="$?"
+trap "error_handler" ERR INT TERM
 
 ## if the cancel button gets pressed, returncode will be 0
 
-./ft_m_$returncode
+trap "" ERR INT TERM
+ft_m_$returncode
+trap "error_handler" ERR INT TERM
+
+echo "You can always enter the setup again, by starting: whonixsetup"
+
+exit 0
 

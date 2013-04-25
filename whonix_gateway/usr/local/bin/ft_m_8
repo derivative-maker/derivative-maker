@@ -1,8 +1,70 @@
 #!/bin/bash
 
-MSG=""
+error_handler() {
+   local MSG="\
+###########################################################
+## Something went wrong. Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+###########################################################\
+"
+   echo "$MSG"
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+## root check
+if [ "$(id -u)" != "0" ]; then
+    echo "ERROR: This must be run as root (sudo)!"
+    exit 1
+fi
+
+## sanity checks
+which dialog
+which ed
+which service
+if [ ! -e "/etc/tor/torrc" ]; then
+   error "/etc/tor/torrc does not exist. Please report this bug!"
+   exit 1
+fi
+
+MSG="
+Do you want to disable Tor?
+"
 
 TITLE="Disable Tor."
 
-dialog --title "$TITLE" --msgbox "$MSG" 640 480
+trap "" ERR INT TERM
+dialog --title "$TITLE" --yesno "$MSG" 640 480
+returncode=$?
+trap "error_handler" ERR INT TERM
 
+if [ ! "$returncode" = "0" ]; then
+   ## Back to main menu.
+   whonixsetup
+   exit 0
+fi
+
+## Check if Tor was already disabled.
+## This is to prevent getting a /etc/tor/torrc with entry
+## looking like ####DisableNetwork 1 (if the user chooses
+## this option multiple times).
+while read LINE; do
+   if [ "$LINE" = "#DisableNetwork 1" ]; then
+      service tor reload 
+      dialog --title "Success!" --msgbox "\"DisableNetwork 1\" was already set in /etc/tor/torrc.
+So Tor should now be disabled." 640 480
+      exit 0
+   fi
+done < "/etc/tor/torrc"
+
+ed -s /etc/tor/torrc <<< $',s/\DisableNetwork 1/#DisableNetwork 1/g\nw'
+
+service tor reload
+
+trap "" ERR INT TERM
+dialog --title "Success!" --msgbox "Tor has been deactivated." 640 480
+trap "error_handler" ERR INT TERM
+
+exit 0
