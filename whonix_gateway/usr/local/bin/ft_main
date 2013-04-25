@@ -1,0 +1,43 @@
+#!/bin/bash
+
+## Debugging
+#set -x
+
+source /usr/local/bin/whonixcheck-scripts/10_preparation
+get_local_whonix_version
+
+MENU_TITLE="Whonix $INSTALLED_WHONIX_VERSION First Time Connection Wizard"
+
+MENU_TEXT="Its the first time you run Whonix-Gateway, you need to choose an option, before Tor can be started.
+
+Before we let Tor attempt to connect, we need to know some information about your Internet connection.
+Do any of the following options below apply to you?
+If so, check those out for further configuration. All options beside option 1 and option 8 will require MANUAL configuration.
+
+ISP stands for internet service provider.
+
+Whonix is produced independently from the Tor (r) anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+"
+
+exec 3>&1
+
+_return=$(\
+dialog \
+--title "$MENU_TITLE" \
+--menu "$MENU_TEXT" \
+100 120 20 \
+"1" "Connect to the public Tor network." \
+"2" "Tor (or other anonymity networks) are censored in my area." \
+"3" "Using Tor (or other anonymity networks) is dangerous in my area." \
+"4" "I want to hide Tor from my ISP." \
+"5" "I want to hide Whonix from my ISP." \
+"6" "I need a proxy to access the Internet." \
+"7" "My firewall only lets me connect to certain ports." \
+"8" "Disable Tor." \
+2>&1 1>&3)
+
+EXITCODE=$?
+
+exec 3>&-;
+
+exit $_return
