@@ -61,16 +61,21 @@ Running it multiple times in a row archives nothing.
 In case of network problems, this is probable not the cause.
 You can confirm that by manually checking if "DisableNetwork 1" has been in commented in /etc/tor/torrc.
 ' 640 480
-      exit 0
+      ## Signal for whonixsetup to break the while loop.
+      exit 1
    fi
 done < "/etc/tor/torrc"
 
 ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 1/DisableNetwork 1/g\nw'
+sync
 
 service tor reload
 
 trap "" ERR INT TERM
-dialog --title "Success!" --msgbox "Tor has been deactivated." 640 480
+dialog --title "Success!" --msgbox 'Tor has been deactivated.
+
+(Technically speaking, whonixsetup deactivated Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.)' 640 480
 trap "error_handler" ERR INT TERM
 
-exit 0
+## Signal for whonixsetup to break the while loop.
+exit 1
