@@ -1,0 +1,33 @@
+check_bootclockrandomization() {
+   if [ -e "/var/run/bootclockrandomization/fail" ]; then
+      ## fail
+      local MSG="bootclockrandomization failed. Please report this bug!
+$(cat /var/log/bootclockrandomization.log)"
+      output "--error" "ERROR" "$MSG" "both"      
+   else
+      ## ok
+      local MSG="bootclockrandomization success."
+      #output "--info" "Info" "$MSG" "both"
+      return      
+   fi
+}
+
+check_timesanitycheck() {
+   if [ -e "/var/run/timesanitycheck/success" ]; then
+      # ok
+      local MSG="timesanitycheck success."
+      #output "--info" "Info" "$MSG" "both"
+      return
+   else
+      ## fail
+      local MSG="timesanitycheck failed. Please report this bug!
+$(cat /var/log/timesanitycheck.log)"
+      output "--error" "ERROR" "$MSG" "both"  
+   fi
+}
+
+check_clock() {
+   check_bootclockrandomization
+   check_timesanitycheck
+}
+
