@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+trap "error_handler_general" ERR INT TERM
+
+verify_copied_files() {
+   trap "error_handler_general" ERR INT TERM
+
+   for i in $(find "$1"); do
+      if [ -d "$i" ]; then
+         continue
+      fi
+      local temp="${i#"$1"}"
+      local chroot_file="$CHROOT_FOLDER"/"$temp"
+      echo "Diffing "$i" with "$chroot_file"..."
+      diff "$i" "$chroot_file"
+   done
+}
+
+./mount-img
+## Setting +x because the for loops otherwise cause too much output.
+set +x
+
+if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
+   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_gateway/"
+   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_workstation/"
+   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+else
+   bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
+fi
+
+set -x
+./unmount-img
