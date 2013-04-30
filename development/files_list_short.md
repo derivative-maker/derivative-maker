@@ -1,1 +1,79 @@
- 
+# 
+
+Last checked git:
+
+    e74ad1eb564547fb9fc0dbb8d432545a76bea1d7
+
+Help file to create this list:
+    
+    /home/user/Whonix/release/list_source_files
+
+# Whonix-Gateway
+
+This will be a special case.
+
+/home/user/Whonix/whonix_gateway/etc/tor/torrc
+
+This will be a special case.
+
+/home/user/Whonix/whonix_gateway/usr/local/bin/whonix_firewall
+
+All files in /usr/local/share/whonix/chroot-scripts/* should become postinst files.
+(No one expected to edit it.)
+
+/home/user/Whonix/whonix_gateway/usr/local/share/whonix/chroot-scripts/70_clearnetuser
+/home/user/Whonix/whonix_gateway/usr/local/share/whonix/chroot-scripts/70_desktopicons
+
+# Whonix Shared
+
+This file must be disabled While updating Whonix configuration files, but not while updating package dependencies.
+
+/home/user/Whonix/whonix_shared/etc/apt/apt.conf.d/20oldconfig
+
+This will be a special case. I think /etc/apt/sources.list should include a comment and suggest to edit /etc/apt/sources.list.d/ instead.
+
+/home/user/Whonix/whonix_shared/etc/apt/sources.list
+
+Not sure about that one. Should not be replaced without asking, since it could break the system.
+
+/home/user/Whonix/whonix_shared/etc/fstab
+
+Editing not supported. (User has to edit that file again.)
+I am currently testing, converting this into a /etc/profile.d/20_setterm.sh file. If that works, we don't have to ship a /etc/rc.local and can get ride of this.
+
+/home/user/Whonix/whonix_shared/etc/rc.local
+
+All files in /usr/local/share/whonix/chroot-scripts/* should become postinst files.
+(No one expected to edit it.)
+
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/20_root_check
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/30_sanity_checks
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/40_variables
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/50_adduser_user
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_banned_packages
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_bootclockrandomization
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_create_swap_file
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_grub
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_htp
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_kde
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_knetattach
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_sources
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_symlinks
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_timesanitycheck
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/70_update_command_not_found
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/80_slimdown
+/home/user/Whonix/whonix_shared/usr/local/share/whonix/chroot-scripts/90_end
+
+# Whonix-Workstation
+
+This will be a special case.
+
+/home/user/Whonix/whonix_workstation/usr/local/bin/whonix_firewall
+
+All files in /usr/local/share/whonix/chroot-scripts/* should become postinst files.
+(No one expected to edit it.)
+
+/home/user/Whonix/whonix_workstation/usr/local/share/whonix/chroot-scripts/70_desktopicons
+/home/user/Whonix/whonix_workstation/usr/local/share/whonix/chroot-scripts/70_dummytor
+/home/user/Whonix/whonix_workstation/usr/local/share/whonix/chroot-scripts/70_torbrowser
+/home/user/Whonix/whonix_workstation/usr/local/share/whonix/chroot-scripts/70_xchat
