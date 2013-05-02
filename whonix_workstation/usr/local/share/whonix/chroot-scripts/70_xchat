@@ -21,12 +21,15 @@ case $skip_scripts in
                     ;;
 esac
 
-## 1) Prepare directory for the disabled plugins.
-mkdir --parents /usr/lib/xchat/plugins.disabled/
+## Disable plugins to reduce attack surface.
+## User documentation contains how to re-enable these plugins.
 
-## Disable unnecessary plugins (keep perl for sasl).
-#mv /usr/lib/xchat/plugins/{python.*,tcl.*} /usr/lib/xchat/plugins.disabled/ || true
+dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/python.so.real /usr/lib/xchat/plugins/python.so
 
-## 2) Move all plugins to plugins.disabled.
-mv /usr/lib/xchat/plugins/* /usr/lib/xchat/plugins.disabled/ || true
+dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/tcl.so.real /usr/lib/xchat/plugins/tcl.so
+
+## For custom builds perhaps keep perl.so for SASL.
+dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/perl.so.real /usr/lib/xchat/plugins/perl.so
+
+dpkg-divert --list
 
