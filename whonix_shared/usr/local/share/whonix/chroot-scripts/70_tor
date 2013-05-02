@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## The torproject archive key has been manually downloaded using the key fingerprint from
+## https://www.torproject.org/docs/debian.html.en and https://www.torproject.org/docs/signing-keys.html.en
+## using gpg:
+##    gpg --keyserver keys.gnupg.net --recv <long-key-id>
+## Verified using:
+##    gpg --list-sigs <long-key-id>
+##    gpg --check-sigs <long-key-id>
+## And added to Whonix source code using:
+##    gpg --export <long-key-id> > /home/user/Whonix/whonix_shared/usr/local/share/whonix/gpg-pubkeys/torprojectarchive.asc
+sudo apt-key add /usr/local/share/whonix/gpg-pubkeys/torprojectarchive.asc
+
+## Deactivate apt-get uwt stream isolation wrapper,
+## it can not work yet, because Tor is not yet installed and running.
+chmod -x /usr/local/bin/apt-get
+
+## Updating package lists, so Torprojects repository metadata gets fetched.
+apt-get --config-file /usr/local/share/whonix/apt.conf update
+
+## Installing Torprojects Debian package, which helps to keep Torprojects signing key current.
+apt-get --yes --config-file /usr/local/share/whonix/apt.conf install deb.torproject.org-keyring
+
+## Installing tor tor-geoipdb tor-arm torsocks obfsproxy from Torprojects repository,
+## in case that is more current than the Debian repository.
+##
+## At time of writing, there was only obfs2 in Debian Wheezy, while there was already
+## obfs3 in Torprojects repository.
+##
+## /help-steps/chroot-img in Whonix source code prevents daemons from getting started,
+## (using policy-rc.d).
+## So Tor will not be started while building Whonix, but when booting the image, just
+## as intended.
+apt-get --yes --config-file /usr/local/share/whonix/apt.conf install tor tor-geoipdb tor-arm torsocks obfsproxy
+
+## Reactivate apt-get uwt stream isolation wrapper.
+chmod +x /usr/local/bin/apt-get
