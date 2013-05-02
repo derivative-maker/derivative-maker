@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          timesanitycheck
 # Required-Start:    $local_fs $remote_fs $syslog bootclockrandomization
@@ -26,9 +26,19 @@ LOG=/var/log/$NAME.log
 # and status_of_proc is working.
 . /lib/lsb/init-functions
 
-# Create status directory and log file
-install -o root -g root -m 0755 -d ${DIR}
-install -o root -g root -m 0755 -d ${LOG}
+# Create status directory
+if [ ! -d ${DIR} ]; then
+   mkdir ${DIR}
+   chmod 0755 ${DIR}
+   chown root:root ${DIR}
+fi
+
+# Create log file
+if [ ! -e $LOG ]; then
+   touch $LOG
+   chmod 0655 $LOG
+   chown root:root $LOG
+fi
 
 # Source configuration
 . /etc/default/$NAME
@@ -65,7 +75,7 @@ do_start () {
       log "      (Current time $BOOT_TIME ($BOOT_UNIXTIME) is less than"
       log "the build timestamp $BUILD_TIME ($BOOT_UNIXTIME).)"
       touch "$FAIL_FILE"
-      return 1
+      return 2
    fi
 
    if [ $BOOT_UNIXTIME -gt $EXPIRATION_UNIXTIME ]; then
@@ -73,7 +83,7 @@ do_start () {
       log "      (Current time $BOOT_TIME ($BOOT_UNIXTIME) is greater than"
       log "the build timestamp $EXPIRATION_TIME ($EXPIRATION_UNIXTIME).)"
       touch "$FAIL_FILE"
-      return 1
+      return 2
    fi
 
    log "The clock is sane."

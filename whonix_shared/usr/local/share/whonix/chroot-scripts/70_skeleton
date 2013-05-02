@@ -1,0 +1,59 @@
+#!/bin/bash
+
+###########
+## Header #
+###########
+
+## - The header is not compulsory and does not have any other kind of high importance.
+## - If the skip_scripts variable includes the scripts own filename, the script will
+##   exit without running any code. This is useful for debugging purposes.
+## - It just enables debugging, so the builder can see each and every command.
+## - Enables a trap, which informs about eventual errors and exit 1. Since chroot-scripts
+##   are run /home/user/Whonix/build-steps/35_run-chroot-scripts-img using run-parts,
+##   any non-zero return values will break the build. This can be useful to catch
+##   unexpected issues.
+## - run-parts will run all executable files inside the chroot folder in lexical order,
+##   which means, 10_root_check will run before 70_skeleton. This is useful to easily
+##   (re-)order individual chroot-scripts, in case one chroot-script depends on another
+##   chroot-script having finished.
+## - There is no strict requirement for chroot-scripts to be bash scripts. In theory,
+##   any kind of script or application could be dropped inside the chroot folder.
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+###########
+## Script #
+###########
+
+## Remember, that uwt stream isolation wrappers are not available while building Whonix inside chroot.
+## Therefore disable them. Example:
+#chmod -x /usr/local/bin/curl
+
+## Code...
+
+## Use true for output instead of echo, because we already set -x.
+true "Skeleton does nothing."
+
+## More code...
+
+## Re-enable uwt stream isolation wrappers at the end. Example:
+#chmod +x /usr/local/bin/curl

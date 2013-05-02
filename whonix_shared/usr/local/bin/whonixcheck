@@ -9,7 +9,7 @@
 NOTIFY_MSG="Checking Tor Connection, Tor Browser Version, Operating System Updates, Whonix Version, Whonix News, Status of Time Synchronization...
 This will happen in background and will take approximately three minutes."
 
-SCRIPTNAME="`basename $0`"
+SCRIPTNAME="$(basename $0)"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -31,6 +31,7 @@ source "$MYDIR"/whonixcheck-scripts/55_check-operating-system
 source "$MYDIR"/whonixcheck-scripts/60_download-whonix-blog
 source "$MYDIR"/whonixcheck-scripts/help_tbbversion
 source "$MYDIR"/whonixcheck-scripts/65_check-torbrowser
+source "$MYDIR"/whonixcheck-scripts/67_check_clock
 source "$MYDIR"/whonixcheck-scripts/70_check-htpdate
 source "$MYDIR"/whonixcheck-scripts/75_cleanup
 
@@ -89,6 +90,13 @@ whonixcheck_main() {
     progress_bar 95
 
     ## no connection
+    check_bootclockrandomization
+
+    ## no connection
+    ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
+    check_timesanitycheck
+
+    ## no connection
     ## last, more time to finish
     check_htpdate ## 70_check-htpdate
 
@@ -111,6 +119,13 @@ whonixcheck_main() {
 
     ## connection 3
     check_operating_system
+
+    ## no connection
+    check_bootclockrandomization
+
+    ## no connection
+    ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
+    check_timesanitycheck
 
     ## no connection
     ## last, more time to finish

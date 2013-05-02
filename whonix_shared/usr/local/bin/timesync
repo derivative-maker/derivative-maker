@@ -2,10 +2,12 @@
 
 #set -x
 
-NOTIFY_MSG="Running Secure Network Time Synchronization...
-This will happen in background and will take approximately 60 seconds."
+NOTIFY_MSG="Running Secure Network Time Synchronization (timesync)...
+This will happen in background and will take approximately 60 seconds.
 
-SCRIPTNAME="`basename $0`"
+For better anonymity, please do use the internet in Whonix until timesync succeeded."
+
+SCRIPTNAME="$(basename $0)"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
@@ -21,6 +23,7 @@ source "$PARENTDIR"/whonixcheck-scripts/17_check_tor_enabled
 source "$PARENTDIR"/whonixcheck-scripts/30_welcome
 source "$PARENTDIR"/whonixcheck-scripts/35_disclaimer
 source "$PARENTDIR"/timesync-scripts/30_run-htpdate
+source "$PARENTDIR"/whonixcheck-scripts/67_check_clock
 source "$PARENTDIR"/whonixcheck-scripts/70_check-htpdate
 
 timesync_main() {
@@ -32,7 +35,16 @@ timesync_main() {
    welcome ## 20_welcome
    disclaimer ## 25_disclaimer
    check_tor_enabled ## 17_check_tor_enabled
+   check_bootclockrandomization ## 67_check_clock
+
+   ## Time Sanity Check before htpdate was executed
+   ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
+   check_timesanitycheck ## 67_check_clock
+
    run_htpdate # 30_run-htpdate
+
+   ## timesanitycheck
+   run_timesanitycheck ## 70_check-htpdate
    check_htpdate ## 70_check-htpdate
 
    progress_bar 100 ## whonixcheck-scripts/help_output

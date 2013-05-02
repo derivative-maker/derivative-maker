@@ -130,6 +130,6 @@ if [ "$var" = "0" ]; then
 fi
 
 ## Konsole
-echo "`cat /etc/motd`"
+echo "$(cat /etc/motd)"
 
 ## End of Whonix /home/user/.bashrc

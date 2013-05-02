@@ -825,3 +825,25 @@ if [ ! `which xhost` = "" ]; then
    ## Non-debugging. Hide non-important message from user.
    sudo -u user xhost +local:user > /dev/null || true
 fi
+
+## 1) Prepare directory for the disabled plugins.
+mkdir --parents /usr/lib/xchat/plugins.disabled/
+
+## Disable unnecessary plugins (keep perl for sasl).
+#mv /usr/lib/xchat/plugins/{python.*,tcl.*} /usr/lib/xchat/plugins.disabled/ || true
+
+## 2) Move all plugins to plugins.disabled.
+mv /usr/lib/xchat/plugins/* /usr/lib/xchat/plugins.disabled/ || true
+
+true "INFO: Listing missing files..."
+true "      (Only an information, no check...)"
+true "      (Has to be reviewed manually by the builder.)"
+true "      Note:"
+true "      - /usr/share/applications/kde4/knetattach.desktop (from kde-runtime package)"
+true "      - /usr/lib/xchat/plugins/python.so (from xchat package)"
+true "      - /usr/lib/xchat/plugins/tcl.so (from xchat package)"
+true "      are expected to be missing (after running the later chroot-scripts at least once)."
+
+debsums --silent || true
+
+true "INFO: Listed missing files."

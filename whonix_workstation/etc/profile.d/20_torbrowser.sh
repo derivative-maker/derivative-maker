@@ -1,33 +1,21 @@
-## Whonix /etc/environment
+#!/bin/bash
 
-###########
-## Whonix #
-###########
-
-WHONIX=1
-
-################
-## Tor Browser #
-################
-
-TB_STANDALONE=1
+export TB_STANDALONE=1
 
 ## Deactivate tor-launcher,
 ## a Vidalia replacement as browser extension,
 ## to prevent running Tor over Tor.
 ## https://trac.torproject.org/projects/tor/ticket/6009
 ## https://gitweb.torproject.org/tor-launcher.git
-TOR_SKIP_LAUNCH=1
+export TOR_SKIP_LAUNCH=1
 
 ## Still have to use
 ## /home/user/tor-browser_en-US/Data/profile/user.js
 ## due to an upstream bug in Tor Button:
 ## "TOR_SOCKS_HOST, TOR_SOCKS_PORT regression"
 ## https://trac.torproject.org/projects/tor/ticket/8336
-#TOR_SOCKS_HOST="192.168.0.10"
-#TOR_SOCKS_PORT="9100"
+#export TOR_SOCKS_HOST="192.168.0.10"
+#export TOR_SOCKS_PORT="9100"
 
-#TOR_TRANSPROXY=1
+#export TOR_TRANSPROXY=1
 
-## End of Whonix /etc/environment
- 

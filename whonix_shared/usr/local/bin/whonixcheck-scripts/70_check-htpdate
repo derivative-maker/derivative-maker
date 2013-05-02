@@ -1,3 +1,8 @@
+run_timesanitycheck() {
+   ## There is an exception in /etc/sudoers.d/timesanitycheck.
+   sudo service timesanitycheck restart
+}
+
 check_htpdate_status() {
    trap "error_handler" ERR INT TERM
 
@@ -25,12 +30,26 @@ check_htpdate_status() {
 
 check_htpdate() {
    trap "error_handler" ERR INT TERM
+   
+   local HELPTEXT="See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: Start menu -> Applications -> System -> Whonix Timesync
+           or in Terminal: timesync
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
+
+   trap "" ERR INT TERM
+   ## There is an exception in /etc/sudoers.d/timesanitycheck.
+   sudo service timesanitycheck status
+   local TIMESANITYCHECK_STATUS="$?"
+   trap "error_handler" ERR INT TERM
 
    let "PROGRESS=$PROGRESS+1" || true
    progress_bar $PROGRESS
 
-   TIME_END="`date +%s`"
-   TIME_DIFF="`expr "$TIME_END" - "$TIME_START"`" || true
+   TIME_END="$(date +%s)"
+   TIME_DIFF="$(expr "$TIME_END" - "$TIME_START")" || true
    
    ## htpdate uses a timeout of 180 seconds per curl connection.
    ## There are three curl connections in total, which would equal 540 seconds in total.
@@ -39,7 +58,7 @@ check_htpdate() {
    WAIT_MIN="580"
 
    #echo "check_htpdate debug info: expr $WAIT_MIN - $TIME_DIFF"
-   WAIT_RESULT="`expr "$WAIT_MIN" - "$TIME_DIFF"`" || true
+   WAIT_RESULT="$(expr "$WAIT_MIN" - "$TIME_DIFF")" || true
    #echo "check_htpdate debug info: WAIT_RESULT: $WAIT_RESULT"
 
    check_htpdate_status
@@ -47,44 +66,61 @@ check_htpdate() {
    
    if [ "$HTPDATE_STATUS" = "NO_PID" ]; then
       ## If there is no pid file after we restarted htpdate, it is a bug.
-      local MSG='Network Time Synchronization failed!!! pid_file does not exist. Please report this bug!
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+      local MSG="Network Time Synchronization (timesync) failed!!!
+TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS"
+pid_file does not exist. Please report this bug!
+
+$HELPTEXT"
       output "--error" "ERROR" "$MSG" "both"
       return
    fi
 
    if [ "$HTPDATE_STATUS" = "SUCCESS" ]; then
       local success_file="/var/run/htpdate/success"
-      local SUCCESS_TIME="`date -r "$success_file"`" 
-      local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) successful."
-      output "--info" "Info" "$MSG" "both"
-      return
+      local SUCCESS_TIME="$(date -r "$success_file")" 
+      
+      if [ "$TIMESANITYCHECK_STATUS" = 0 ]; then
+         ## Ok.
+         local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful."
+         output "--info" "Info" "$MSG" "both"
+         return
+      else
+         ## Something went wrong.
+         local MSG="The clock is not sane,
+although last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful.
+Please report this bug!
+
+Either timesync has a bug or this is an attack. Better manually set your clock!!!
+
+$HELPTEXT"
+         output "--error" "ERROR" "$MSG" "both"
+         return
+      fi
    fi
    
    if [ "$HTPDATE_STATUS" = "DONE" ]; then
-      ## Done, but no success. This should rarely happen,
-      ## only in case the internet connection was down at this point.
-      local MSG='Network Time Synchronization done but no success!!!
+      if [ "$TIMESANITYCHECK_STATUS" = 0 ]; then
+         ## Htpdate done, but no success. The clock is sane. This should rarely happen,
+         ## only in case the internet connection was down at this point.
+         local MSG="Network Time Synchronization (timesync) done, but no success!!!
 Is your internet connection down?
+
 Test your internet connection: Start menu -> Applications -> System -> Whonixcheck
                                or in Terminal: whonixcheck
                                or in Terminal with debugging: whonixcheck -v
 
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s "17 FEB 2012 24:00:00" && hwclock -w'
-      output "--error" "ERROR" "$MSG" "both"
-      return
+$HELPTEXT"
+         output "--error" "ERROR" "$MSG" "both"
+         return
+      else
+         local MSG="Network Time Synchronization (timesync) done, but no success!!!
+Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
+If your host clock is sane, please report a bug.
+
+$HELPTEXT"
+         output "--error" "ERROR" "$MSG" "both"
+         return      
+      fi
    fi
 
    #echo "check_htpdate debug info: WAIT_RESULT: $WAIT_RESULT"
@@ -98,21 +134,15 @@ Last resort: manually set the clock! (In UTC!):
 
    ## This following code should get rarely hit, only in case of a bug,
    ## only in case htpdate does return neither success nor failure.
-   ## Should not happen, because htpdate has its own timeout.
-   
-   local MSG="HTPDATE_STATUS: "$HTPDATE_STATUS""
-   output "--error" "ERROR" "$MSG" "echo"
-   
+   ## Should not happen, because htpdate has its own timeout.  
    local MSG="Network Time Synchronization failed!!!
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
+HTPDATE_STATUS: "$HTPDATE_STATUS"
+TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS"
+Please report this bug!
+
+$HELPTEXT"
    output "--error" "ERROR" "$MSG" "both"
    return
 }
 
- 
+

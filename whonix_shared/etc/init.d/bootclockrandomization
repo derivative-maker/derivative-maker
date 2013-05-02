@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          bootclockrandomization
 # Required-Start:    $local_fs $remote_fs $syslog
@@ -26,9 +26,19 @@ LOG=/var/log/$NAME.log
 # and status_of_proc is working.
 . /lib/lsb/init-functions
 
-# Create status directory and log file
-install -o root -g root -m 0755 -d ${DIR}
-install -o root -g root -m 0644 /dev/null ${LOG}
+# Create status directory
+if [ ! -d ${DIR} ]; then
+   mkdir ${DIR}
+   chmod 0755 ${DIR}
+   chown root:root ${DIR}
+fi
+
+# Create log file
+if [ ! -e $LOG ]; then
+   touch $LOG
+   chmod 0655 $LOG
+   chown root:root $LOG
+fi
 
 # Source configuration
 #. /etc/default/$NAME
@@ -42,8 +52,7 @@ log() {
 
 do_start () {
    if [ -e "/usr/local/share/whonix/whonix_gateway" ]; then
-      ## Not running bootclockrandomization on Whonxi-Gateway. Reasons
-      ## for that are explained in TimeSync design.
+      log "Not running bootclockrandomization on Whonxi-Gateway. Reasons for that are explained in TimeSync design."
       return 0
    fi
 
@@ -61,11 +70,11 @@ do_start () {
    ##
    ## Thanks to
    ## http://linux.byexamples.com/archives/128/generating-random-numbers/
-   DELAY="$(( 5+(`od -An -N2 -i /dev/random` )%(175-0+1) ))"
+   DELAY="$(( 5+($(od -An -N2 -i /dev/random) )%(175-0+1) ))"
 
    ## Get a random 0 or 1.
    ## Will use this to decide to use plus or minus.
-   ZERO_OR_ONE="$(( 0+(`od -An -N2 -i /dev/random` )%(0+2) ))"
+   ZERO_OR_ONE="$(( 0+($(od -An -N2 -i /dev/random) )%(0+2) ))"
 
    if [ "$ZERO_OR_ONE" = "0" ]; then
       PLUS_OR_MINUS="-"
@@ -74,7 +83,7 @@ do_start () {
    else
       touch "$FAIL_FILE"
       log "FATAL ERROR: ZERO_OR_ONE is neither 0 nor 1, its: $ZERO_OR_ONE"
-      return 1
+      return 2
    fi
 
    log "$PLUS_OR_MINUS $DELAY"
@@ -102,6 +111,13 @@ do_stop() {
 }
 
 do_status () {
+   ## Always return success on Whonix-Gateway.
+   if [ -e "/usr/local/share/whonix/whonix_gateway" ]; then
+      ## Not running bootclockrandomization on Whonxi-Gateway. Reasons
+      ## for that are explained in TimeSync design.
+      return 0
+   fi
+
    if [ -e "$SUCCESS_FILE" ]; then
       return 0
    else
