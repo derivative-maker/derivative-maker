@@ -30,6 +30,14 @@ check_htpdate_status() {
 
 check_htpdate() {
    trap "error_handler" ERR INT TERM
+   
+   local HELPTEXT="See logfile: tail -f -n 20 /var/log/htpdate.log
+See status files: cd /var/run/htpdate && dir
+Try again: Start menu -> Applications -> System -> Whonix Timesync
+           or in Terminal: timesync
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
 
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
    sudo service timesanitycheck status
@@ -56,14 +64,10 @@ check_htpdate() {
    
    if [ "$HTPDATE_STATUS" = "NO_PID" ]; then
       ## If there is no pid file after we restarted htpdate, it is a bug.
-      local MSG='Network Time Synchronization failed!!! pid_file does not exist. Please report this bug!
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+      local MSG="Network Time Synchronization (timesync) failed!!!
+pid_file does not exist. Please report this bug!
+
+$HELPTEXT"
       output "--error" "ERROR" "$MSG" "both"
       return
    fi
@@ -79,19 +83,13 @@ Last resort: manually set the clock! (In UTC!):
    if [ "$HTPDATE_STATUS" = "DONE" ]; then
       ## Done, but no success. This should rarely happen,
       ## only in case the internet connection was down at this point.
-      local MSG='Network Time Synchronization done but no success!!!
+      local MSG="Network Time Synchronization (timesync) done, but no success!!!
 Is your internet connection down?
 Test your internet connection: Start menu -> Applications -> System -> Whonixcheck
                                or in Terminal: whonixcheck
                                or in Terminal with debugging: whonixcheck -v
 
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s "17 FEB 2012 24:00:00" && hwclock -w'
+$HELPTEXT"
       output "--error" "ERROR" "$MSG" "both"
       return
    fi
@@ -107,21 +105,13 @@ Last resort: manually set the clock! (In UTC!):
 
    ## This following code should get rarely hit, only in case of a bug,
    ## only in case htpdate does return neither success nor failure.
-   ## Should not happen, because htpdate has its own timeout.
-   
-   local MSG="HTPDATE_STATUS: "$HTPDATE_STATUS""
-   output "--error" "ERROR" "$MSG" "echo"
-   
+   ## Should not happen, because htpdate has its own timeout.  
    local MSG="Network Time Synchronization failed!!!
-See logfile: tail -f -n 20 /var/log/htpdate.log
-See status files: cd /var/run/htpdate && dir
-Try again: Start menu -> Applications -> System -> Whonix Timesync
-           or in Terminal: timesync
-Last resort: manually set the clock! (In UTC!):
-             sudo su
-             date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
+HTPDATE_STATUS: "$HTPDATE_STATUS" Please report this bug!
+
+$HELPTEXT"
    output "--error" "ERROR" "$MSG" "both"
    return
 }
 
- 
+
