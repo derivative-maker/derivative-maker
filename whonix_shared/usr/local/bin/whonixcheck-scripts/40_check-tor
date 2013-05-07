@@ -7,7 +7,7 @@ check_tor_grep_error() {
 }
  
 check_tor() {
-   trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR
 
    if [ "$1" = "SocksPort" ]; then
       local MSG="Checking network connection... Testing Tor's SocksPort..."
@@ -72,14 +72,14 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
      return
    fi
 
-   trap "check_tor_grep_error" ERR INT TERM
+   trap "check_tor_grep_error" ERR
 
    TOR_OR_NOT="1"
    TOR_OR_NOT="$(grep "Congratulations" "index.html")"
    local MSG="TOR_OR_NOT: $TOR_OR_NOT"
    output "--info" "Info" "$MSG" "debug"
 
-   trap "check_tor_grep_error" ERR INT TERM
+   trap "check_tor_grep_error" ERR
 
    IP="error"
    local IP="$(grep "IP" "index.html" 2>&1)"
@@ -87,7 +87,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
    IP="$(echo "$IP" | sed 's/<b>//g')"
    IP="$(echo "$IP" | sed 's/<\/b>//g')"
 
-   trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR
 
    ## Store IP for later use in memory.
    if [ "$1" = "TransPort" ]; then
