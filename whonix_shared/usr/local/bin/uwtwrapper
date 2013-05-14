@@ -1,0 +1,60 @@
+#!/bin/bash
+
+## Whonix /usr/local/bin/$SCRIPTNAME uwt wrapper.
+
+#set -x
+
+SCRIPTNAME="$(basename $0)"
+
+## TODO
+port="9107"
+
+for i in /etc/whonix.d/*; do
+   if [ -f "$i" ]; then
+      source "$i"
+   fi
+done
+
+temp="timeprivacy_"$SCRIPTNAME""
+
+if [ "${!temp}" = "1" ]; then
+   fake_time="faketime"
+   privacy_time="$(timeprivacy -f /tmp/timeprivacy_"$SCRIPTNAME")"
+else
+   if [ "$timeprivacy_global" = "1" ]; then
+      fake_time="faketime"
+      privacy_time="$(timeprivacy)"
+   else
+      fake_time=""
+      privacy_time=""
+   fi
+fi
+
+if [ "$uwtwrapper_global" = "0" ]; then
+   if [ "$fake_time" = "faketime" ]; then
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   else
+      /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   fi
+   exit $?
+fi
+
+temp="uwtwrapper_"$SCRIPTNAME""
+
+if [ "${!temp}" = "0" ]; then
+   if [ "$fake_time" = "faketime" ]; then
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   else
+      /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   fi
+   exit $?
+fi
+
+if [ "$fake_time" = "faketime" ]; then
+   "$fake_time" "$privacy_time" /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+else
+   /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+fi
+exit $?
+
+## End of Whonix /usr/local/bin/$SCRIPTNAME uwt wrapper.
