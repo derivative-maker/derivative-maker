@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## || true to support re-running the script
+
+true "Linking uwt wrappers to /usr/local/bin/uwtwrapper master script."
+
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/apt-get || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/curl || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/git || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/gpg || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/mixmaster-update || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/rawdog || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/ssh || true
+ln -s /usr/local/bin/uwtwrapper /usr/local/bin/wget || true
+
