@@ -2,24 +2,45 @@
 
 ## Whonix /usr/local/bin/$SCRIPTNAME uwt wrapper.
 
-#set -x
+## Debugging.
+set -x
+
+trap "error_handler" ERR
 
 SCRIPTNAME="$(basename $0)"
 
-## TODO
-port="9107"
+error_handler() {
+echo "
+## uwtwrapper BUG.
+## SCRIPTNAME: $SCRIPTNAME
+## BASH_COMMAND: $BASH_COMMAND
+## Please report this BUG!
+"
+exit 1
+}
 
+## Files in /etc/whonix.d/* set variables such as
+## port_aptget, port_gpg, ... and variables such as
+## timeprivacy_aptget, timeprivacy_gpg, ... and variables such as
+## uwtwrapper_aptget, uwtwrapper_gpg, ... and ip.
 for i in /etc/whonix.d/*; do
    if [ -f "$i" ]; then
       source "$i"
    fi
 done
 
+## Since application names sometimes contains "-" and bash variables
+## may not include "-", we have to remove "-" from the script name.
+SCRIPTNAME_CLEANED="$(echo $SCRIPTNAME | sed 's/-//g')"
+
+temp="uwtport_"$SCRIPTNAME_CLEANED""
+port="${!temp}"
+
 temp="timeprivacy_"$SCRIPTNAME""
 
 if [ "${!temp}" = "1" ]; then
    fake_time="faketime"
-   privacy_time="$(timeprivacy -f /tmp/timeprivacy_"$SCRIPTNAME")"
+   privacy_time="$(timeprivacy -f /tmp/timeprivacy_"$SCRIPTNAME_CLEANED")"
 else
    if [ "$timeprivacy_global" = "1" ]; then
       fake_time="faketime"
@@ -30,31 +51,34 @@ else
    fi
 fi
 
+## Using "|| { ret=$? ; true; };" to prevent involking error_handler in case
+## the executed application retured a non-zero value.
+
 if [ "$uwtwrapper_global" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
-      /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+      /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
-   exit $?
+   exit $ret
 fi
 
-temp="uwtwrapper_"$SCRIPTNAME""
+temp="uwtwrapper_"$SCRIPTNAME_CLEANED""
 
 if [ "${!temp}" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
-      /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+      /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
-   exit $?
+   exit $ret
 fi
 
 if [ "$fake_time" = "faketime" ]; then
-   "$fake_time" "$privacy_time" /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   "$fake_time" "$privacy_time" /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 else
-   /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"}
+   /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 fi
-exit $?
+exit $ret
 
 ## End of Whonix /usr/local/bin/$SCRIPTNAME uwt wrapper.
