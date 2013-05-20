@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+
+build-arch: build
+
+build-indep: build
+	
+build:
+
+binary: binary-indep
+
+binary-arch:
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+	dh_gencontrol
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_md5sums
+	dh_builddeb
+	
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	
+	if [ ! -f $(CURDIR)/debian/copyright ]; then \
+		cp $(CURDIR)/LICENSE $(CURDIR)/debian/copyright; \
+	fi
+	
+.PHONY: build clean binary install
