@@ -2,7 +2,7 @@ Source: whonix
 Section: misc
 Priority: extra
 Maintainer: Heiko Schäfer <heiko@rangun.de>
-Build-Depends: debhelper (>= 8), equivs
+Build-Depends: debhelper (>= 8)
 Homepage: https://sourceforge.net/p/whonix/wiki/Home/
 Vcs-Browser: https://github.com/adrelanos/Whonix
 Vcs-Git: https://github.com/adrelanos/Whonix.git
@@ -11,13 +11,22 @@ Standards-Version: 3.9.3
 Package: whonix-shared
 Architecture: all
 Depends: console-common, initramfs-tools, grub-pc, os-prober, bzip2, file, lsof, most, pciutils, strace, 
- sysfsutils, zsh, acpi-support-base, keyboard-configuration, sudo, rungetty, mingetty, bash-completion, 
- less, command-not-found, ed, nano, wget, gnupg, gnupg-curl, dbus, dnsutils, ifupdown, iputils-ping, 
+ sysfsutils, acpi-support-base, keyboard-configuration, sudo, rungetty, mingetty, 
+ less, ed, gnupg, gnupg-curl, ifupdown, 
  netbase, net-tools, kbd, debsums, iptables, haveged, ca-certificates, curl, libdatetime-perl, 
  libdatetime-format-dateparse-perl, libgetopt-long-descriptive-perl, libtry-tiny-perl, update-notifier-common, 
  zenity, libnotify-bin, bc, ${misc:Depends}
-Description: add short description for whonix-shared here
- add long description for whonix-shared here
+Recommends: bash-completion, command-not-found, zsh, nano, wget, dnsutils, dbus, iputils-ping
+Description: A metapackage, which contains packages which both, whonix-gateway and whonix-workstation,
+ depend on and recommend packages.
+
+## TODO: dependency
+locales
+lsb-release
+util-linux
+bash
+bsdutils
+sysvinit-utils
 
 Package: whonix-host
 Architecture: all
@@ -28,69 +37,74 @@ Description: Whonix Host Additions are still in an early planing phase. Nothing 
 Package: whonix-gateway
 Architecture: all
 Pre-Depends: whonix-shared (= ${source:Version})
-Depends: tor, tor-geoipdb, tor-arm, torsocks, obfsproxy, dhcp3-client, isc-dhcp-client, ${misc:Depends}
-Description: add short description for whonix-gateway here
- add long description for whonix-gateway here
+Depends: tor, torsocks, dhcp3-client, isc-dhcp-client, ${misc:Depends}
+Recommends: tor-geoipdb, tor-arm, obfsproxy
+Description: A metapackage, which contains packages which Whonix-Gateway depends on and packages,
+ which are recommended for Whonix-Gateway, because they are useful for a Tor Gateway.
  
 Package: whonix-workstation
 Architecture: all
 Pre-Depends: whonix-shared (= ${source:Version})
-Depends: torsocks, rinetd, libasound2, alsa-base, alsa-utils, mat, python-hachoir-core, python-hachoir-parser, 
- python-pdfrw, python-cairo, python-poppler, python-mutagen, libimage-exiftool-perl, ${misc:Depends}
-Recommends: whonix-workstation-lite (= ${source:Version}) | whonix-workstation-plus (= ${source:Version})
-Description: add short description for whonix-workstation here
- add long description for whonix-workstation here
+Depends: torsocks, rawdog, equivs, ${misc:Depends}
+Recommends: rinetd, libasound2, alsa-base, alsa-utils, gtk2-engines-oxygen, gtk3-engines-oxygen
+ whonix-desktop (= ${source:Version})
+Suggests: whonix-workstation-extra-applications (= ${source:Version})
+Description: A metapackage, which contains packages which Whonix-Workstation depends on and packages,
+ which are recommended for Whonix-Workstation, because they are useful for a Tor Workstation.
 
-Package: whonix-workstation-desktop
+Package: whonix-desktop
 Architecture: all
-Depends: whonix-workstation (= ${source:Version}), rawdog, libgl1-mesa-dri, xdg-utils, xserver-xorg, 
- libupower-glib1, upower, ${misc:Depends}
-Recommends: whonix-workstation-kde (= ${source:Version})
-Description: add short description for whonix-workstation-desktop here
- add long description for whonix-workstation-desktop here
- 
-Package: whonix-workstation-lite
-Architecture: all
-Depends: whonix-workstation-desktop (= ${source:Version}), xchat, vlc, mixmaster, galternatives, apper, 
- jovie, ${misc:Depends}
-Suggests: whonix-workstation-plus (= ${source:Version})
-Description: add short description for whonix-workstation-lite here
- add long description for whonix-workstation-lite here
+Depends: libgl1-mesa-dri, xserver-xorg, libupower-glib1, upower, ${misc:Depends}
+Description: A metapackage, which contains dependencies for a desktop environments, such as KDE.
 
-Package: whonix-workstation-plus
+Package: whonix-desktop-kde
 Architecture: all
-Depends: whonix-workstation (= ${source:Version}), shutter, gtk-recordmydesktop, libreoffice, 
- iceweasel-l10n-all | firefox-l10n-all, ttf-dejavu, ttf-liberation, locales-all, ttf-kacst, ttf-farsiweb,
- scim-pinyin, scim-tables-zh, scim-uim, ttf-arphic-ukai, ttf-arphic-uming, culmus, libfribidi0, 
- ttf-indic-fonts, scim-anthy, ttf-khmeros, ttf-unfonts-core, ttf-lao, ttf-thai-tlwg, ${misc:Depends}
-Enhances: whonix-workstation-lite (= ${source:Version})
-Recommends: xfonts-intl-chinese, xfonts-wqy, xfonts-bolkhov-koi8r-75dpi, xfonts-bolkhov-koi8r-misc, 
- xfonts-cronyx-koi8r-100dpi
-Description: add short description for whonix-workstation-plus here
- add long description for whonix-workstation-plus here
- 
-Package: whonix-workstation-kde
-Architecture: all
-Depends: whonix-workstation-desktop (= ${source:Version}), kde-workspace, kdm, kdesudo, kdepasswd, 
- kfind, ksysguard, plasma-widget-folderview, gtk2-engines-oxygen, gtk3-engines-oxygen, kde-baseapps-bin, 
+Depends: whonix-desktop (= ${source:Version}), kde-workspace, kdm, kdesudo, kdepasswd, 
+ kfind, ksysguard, plasma-widget-folderview, kde-baseapps-bin, 
  polkit-kde-1, konsole, kwrite, dolphin, ark, okular, ${misc:Depends}
-Recommends: whonix-workstation-kde-lite (= ${source:Version}) | whonix-workstation-kde-plus (= ${source:Version})
-Description: add short description for whonix-workstation-kde here
- add long description for whonix-workstation-kde here
+Recommends: whonix-workstation-default-applications (= ${source:Version}),
+ whonix-kde-accessibility (= ${source:Version})
+Description: A metapackage, which contains a minimal, yet complete enough to contain the very basics, KDE desktop.
+ The Whonix-Gateway desktop and the Whonix-Workstation desktop depend on this package.
+
+Package: whonix-kde-accessibility
+Architecture: all 
+Recommends: kdeaccessibility, kvkbd, kmousetool, kmag, kmouth, jovie, ${misc:Depends}
+Description: A metapackage, which contains accessibility tools.
  
-Package: whonix-workstation-kde-lite
+Package: whonix-workstation-default-applications
 Architecture: all
-Depends: whonix-workstation-kde (= ${source:Version}), whonix-workstation-lite (= ${source:Version}), 
- kcalc, gwenview, kgpg, kmix, kdeaccessibility, kvkbd, kmousetool, kmag, kmouth, ${misc:Depends}
-Suggests: whonix-workstation-kde-plus (= ${source:Version})
-Description: add short description for whonix-workstation-kde-lite here
- add long description for whonix-workstation-kde-lite here
+Recommends: whonix-desktop (= ${source:Version}), xchat, vlc, mixmaster, galternatives, apper,
+ kcalc, gwenview, kgpg, kmix, synaptic
+ mat, python-hachoir-core, python-hachoir-parser, coreutils,
+ python-pdfrw, python-cairo, python-poppler, python-mutagen, libimage-exiftool-perl,
+ ${misc:Depends}
+Suggests: whonix-workstation-extra-applications (= ${source:Version})
+Description: A metapackage, which contains recommended default applications, which are useful in a default installation.
+ Can be removed, because they are not crucial for anonymity, privacy or security.
+
+Package: whonix-workstation-extra-applications
+Architecture: all
+Recommends: whonix-workstation (= ${source:Version}), shutter, gtk-recordmydesktop, libreoffice,
+ kdenlive, kolourpaint4, ${misc:Depends}
+Description: A metapackage, which contains extra applications, to complement the default applications, which does
+ not get installed by default, because those take too much space and are not required for everyone.
+
+Package: whonix-workstation-langpack-common
+Architecture: all
+Recommends: iceweasel-l10n-all | firefox-l10n-all, ttf-dejavu, ttf-liberation, locales-all, ttf-kacst, ttf-farsiweb,
+ scim-pinyin, scim-tables-zh, scim-uim, ttf-arphic-ukai, ttf-arphic-uming, culmus, libfribidi0, 
+ ttf-indic-fonts, scim-anthy, ttf-khmeros, ttf-unfonts-core, ttf-lao, ttf-thai-tlwg, 
+ xfonts-intl-chinese, xfonts-wqy, xfonts-bolkhov-koi8r-75dpi, xfonts-bolkhov-koi8r-misc, 
+ xfonts-cronyx-koi8r-100dpi, ${misc:Depends}
+Description: Fonts and language packages for better internationalization support.
+ Does not get installed by default, because it is largely untested and needs more work.
  
-Package: whonix-workstation-kde-plus
+Package: whonix-workstation-langpack-kde
 Architecture: all
 Depends: whonix-workstation-kde (= ${source:Version}), ${misc:Depends}
-Enhances: whonix-workstation-kde-lite (= ${source:Version}), whonix-workstation-plus (= ${source:Version}), 
- kdenlive, kolourpaint4, kde-l10n-ar, kde-l10n-bg, kde-l10n-bs, kde-l10n-ca, kde-l10n-cavalencia, kde-l10n-cs, 
+Recommends: whonix-workstation-default-applications (= ${source:Version}), whonix-workstation-extra-applications (= ${source:Version}), 
+ kde-l10n-ar, kde-l10n-bg, kde-l10n-bs, kde-l10n-ca, kde-l10n-cavalencia, kde-l10n-cs, 
  kde-l10n-da, kde-l10n-de, kde-l10n-el, kde-l10n-engb, kde-l10n-es, kde-l10n-et, kde-l10n-eu, kde-l10n-fa, 
  kde-l10n-fi, kde-l10n-fr, kde-l10n-ga, kde-l10n-gl, kde-l10n-he, kde-l10n-hr, kde-l10n-hu, kde-l10n-ia, 
  kde-l10n-id, kde-l10n-is, kde-l10n-it, kde-l10n-ja, kde-l10n-kk, kde-l10n-km, kde-l10n-ko, kde-l10n-lt, 
@@ -98,6 +112,5 @@ Enhances: whonix-workstation-kde-lite (= ${source:Version}), whonix-workstation-
  kde-l10n-ptbr, kde-l10n-ro, kde-l10n-ru, kde-l10n-si, kde-l10n-sk, kde-l10n-sl, kde-l10n-sr, kde-l10n-sv, 
  kde-l10n-tg, kde-l10n-th, kde-l10n-tr, kde-l10n-ug, kde-l10n-uk, kde-l10n-vi, kde-l10n-wa, kde-l10n-zhcn, 
  kde-l10n-zhtw
-Description: add short description for whonix-workstation-kde-plus here
- add long description for whonix-workstation-kde-plus here
-
+Description: A metapackage, which includes extra language support for the KDE desktop.
+ Does not get installed by default, because it takes a lot space and requires a better solution.
