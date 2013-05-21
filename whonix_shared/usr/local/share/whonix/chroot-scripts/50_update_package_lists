@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## Updating package lists, so Torprojects repository metadata gets fetched.
+apt-get --config-file /usr/local/share/whonix/apt.conf update
+
+

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###################################
+## chroot script: ERROR detected. #
+###################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR INT TERM
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## The torproject archive key has been manually downloaded using the key fingerprint from
+## https://www.torproject.org/docs/debian.html.en and https://www.torproject.org/docs/signing-keys.html.en
+## using gpg:
+##    gpg --keyserver keys.gnupg.net --recv <long-key-id>
+## Verified using:
+##    gpg --list-sigs <long-key-id>
+##    gpg --check-sigs <long-key-id>
+## And added to Whonix source code using:
+##    gpg --export <long-key-id> > /home/user/Whonix/whonix_shared/usr/local/share/whonix/gpg-pubkeys/torprojectarchive.asc
+sudo apt-key add /usr/local/share/whonix/gpg-pubkeys/torprojectarchive.asc
+
+
