@@ -1,5 +1,7 @@
 # Whonix copyright here
 
+SHELL := /bin/bash
+
 all:
 	@echo "adrelanos, value up that makefile with good messages and Whonix copyright"
 	@echo "at top, even if it is only for developers!"
@@ -17,7 +19,9 @@ update:
 	git merge origin/master
 
 commit:
-	@echo "I'll change that after my first successful commit!"
+	git commit -a
+	git push
 
 status:
 	git status
+
