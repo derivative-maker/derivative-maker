@@ -41,7 +41,19 @@ if [ ! -e $LOG ]; then
 fi
 
 # Source configuration
-. /etc/default/$NAME
+if [ -e /etc/default/$NAME ]; then
+   . /etc/default/$NAME
+else
+   echo "timesanitycheck: /etc/default/$NAME does not exist, using default.
+   ## Expiration date in unixtime.
+   ## date --date "17 MAY 2033 10:00:00" "+%s"
+   ## 1999936800
+   "
+   EXPIRATION_UNIXTIME="1999936800"
+
+   ## Convert seconds since the epoch (1970-01-01 UTC) (unixtime) to a date
+   ## date --date="@1999936800"
+fi
 
 log() {
 	echo "$@" >> "${LOG}"
@@ -129,12 +141,16 @@ case "$1" in
 	do_stop
 	do_start
 	;;
+  force-reload)
+	do_stop
+	do_start
+        ;;
   status)
 	do_status
 	exit $?
 	;;
   *)
-	echo "Usage: $SCRIPTNAME (start|stop|restart|status)" >&2
+	echo "Usage: $SCRIPTNAME (start|stop|restart|force-reload|status)" >&2
 	exit 3
 	;;
 esac
