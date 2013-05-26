@@ -1,14 +1,34 @@
 #!/bin/bash
 
 set -x
-set -e
+
+error_handler_gw_postinst() {
+   echo "
+###################################################################
+## Whonix-Gateway postinst script failed. Please report this bug! #
+###################################################################
+"
+   exit 1
+}
+
+trap "error_handler_ws_postinst" ERR
 
 case "$1" in
-        configure)		
-                true "Whonix-Gateway postinst script"
-                           
-                ;;
-        *)
-                ;;
+   configure)		
+      true "INFO: Configuring (postinst script) Whonix-Gateway..."
+
+      ## Check which chroot scripts we got.
+      run-parts --verbose --test "/usr/local/share/whonix/postinst.d"
+
+      ## Run the chroot scripts.
+      ## (Which got copied into the image by copyinto.)
+      run-parts --verbose --exit-on-error "/usr/local/share/whonix/postinst.d"
+
+      true "INFO: Successfully configured (postinst script) Whonix-Gateway."
+
+      ;;
+
+   *)
+      ;;
 esac
 
