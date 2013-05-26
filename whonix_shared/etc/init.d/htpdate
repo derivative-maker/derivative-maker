@@ -110,6 +110,14 @@ do_stop() {
 	start-stop-daemon -K -q -p ${PIDFILE} 2> /dev/null
 }
 
+do_status() {
+   if [ -e "$HTP_SUCCESS_FILE" ]; then
+      return 0
+   else
+      return 1
+   fi
+}
+
 case "$1" in
   start)
 	[ "$VERBOSE" != no ] && log_daemon_msg "$DESC" "$NAME"
@@ -126,8 +134,12 @@ case "$1" in
 	do_stop
 	do_start
 	;;
+  status)
+        do_status
+        exit $?
+	;;
   *)
-	echo "Usage: $SCRIPTNAME (start|stop|restart)" >&2
+	echo "Usage: $SCRIPTNAME (start|stop|restart|status)" >&2
 	exit 3
 	;;
 esac
