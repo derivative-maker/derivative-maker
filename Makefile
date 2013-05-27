@@ -4,6 +4,7 @@ all:
 	@echo "purely optional makefile for Whonix developer convince:"
 	@echo
 	@echo "make lintian    - for lintian report in $(CURDIR)/lintian.log"
+	@echo "make contents   - shows dpkg --contents of all packages"
 	@echo
 	@echo "make cl-append  - to append a new line to changelog"
 	@echo "make cl-release - to update timestamp and let edit the version"
@@ -22,6 +23,14 @@ package:
 	
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
+
+## TODO: Does not work. Please fix.	
+contents:
+	set -x
+	for i in `find .. -name '*.deb''`; do
+		echo "$i"
+		dpkg --contents $i
+	done
 	
 clean:
 	-rm -v `find $(CURDIR)/../whonix* -name '*.dsc' -o -name '*.deb' -o -name '*.changes'`
