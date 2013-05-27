@@ -7,9 +7,11 @@ all:
 	@echo "at top, even if it is only for developers!"
 	@echo
 	@echo "make lintian    - for lintian report in $(CURDIR)/lintian.log"
+	@echo
 	@echo "make update     - to convince glorious git to give me the current code"
-	@echo "make commit     - to convince glorious git to put my current code to GitHub"
+	@echo "make commit/ci  - to convince glorious git to put my current code to GitHub"
 	@echo "make status     - to convince glorious git to give me a meaningful status"
+	@echo "make merge      - to convince glorious git to merge something"
 	@echo
 	@echo "make cl-append  - to append a new line to changelog
 	@echo "make cl-release - to update timestamp and let edit the version
@@ -21,6 +23,8 @@ update:
 	git fetch origin
 	git merge origin/master
 
+ci: commit
+	
 commit:
 	git commit -a
 	git push
