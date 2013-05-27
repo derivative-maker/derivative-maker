@@ -17,6 +17,9 @@ all:
 	@echo "make cl-release - to update timestamp and let edit the version
 	@echo
 	@echo "make clean      - to remove the built packages"
+
+package:
+	dpkg-buildpackage -tc
 	
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
