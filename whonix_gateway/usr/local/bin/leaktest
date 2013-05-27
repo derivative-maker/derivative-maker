@@ -7,6 +7,18 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
+error_handler() {
+   true "##############################"
+   true "## ERROR detected!"
+   true "## BASH_COMMAND: $BASH_COMMAND"
+   true "## Please report this bug!"
+   true "##############################"
+
+   exit 1
+}
+
+trap "error_handler" ERR
+
 exit_function() {
    true "INFO: Listing for leaks stopped."
 
@@ -17,13 +29,9 @@ exit_function() {
 
    true "INFO: Reloading Tor, using normal settings again"
    service tor reload
-   true "INFO: Done."
-
-   ## Exit instantly, to prevent running exit_function more than once.
-exit 1
 }
 
-trap "exit_function" ERR INT TERM
+trap "exit_function" EXIT
 
 ## Install wireshark to the Whonix-Gateway for Leak Testing
 true "INFO: Installing tshark if it is not installed yet"
@@ -42,6 +50,7 @@ ed -s /etc/tor/torrc <<< $',s/\#FascistFirewall 1/FascistFirewall 1/g\nw'
 
 true "INFO: Restarting Tor, only using port 80 and 443..."
 service tor reload
+service tor status
 
 true "NOTE: You must be logged in as user and start this script with sudo leaktest"
 true "NOTE: Otherwise you will see a lot tshark error messages."
