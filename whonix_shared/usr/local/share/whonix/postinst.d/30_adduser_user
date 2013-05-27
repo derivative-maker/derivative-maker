@@ -22,10 +22,11 @@ case $skip_scripts in
 esac
 
 ## Check if user "user" already exist.
-trap "" ERR
-id user
-if [ ! "$?" = 0 ]; then
-   trap "error_handler" ERR
+
+ret=0
+id user || { ret=$? ; true; };
+
+if [ ! "$ret" = 0 ]; then
    echo 'INFO: Creating user "user"...'
    ## setting password of user user to changeme
    ##
@@ -36,11 +37,8 @@ if [ ! "$?" = 0 ]; then
    ## Resulted in: aTayYxVyw5kDo   
    useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/user --shell /bin/bash user
 else
-   trap "error_handler" ERR
    echo 'Not creating user "user", because it user already exists.'
 fi
-
-trap "error_handler" ERR
 
 usermod --append --groups adm,cdrom,audio,dip,sudo,plugdev user || true
 chown --recursive user:user /home/user
