@@ -22,47 +22,54 @@ echo "
 exit 1
 }
 
-## sanity tests
-if [ ! -e /usr/local/bin/uwt ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: /usr/local/bin/uwt does not exist."
-   exit 1
-fi
-if [ ! -x /usr/local/bin/uwt ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: /usr/local/bin/uwt is not executable."
-   exit 1
-fi
-if [ ! -e /usr/bin/"$SCRIPTNAME" ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" does not exist."
-   exit 1
-fi
-if [ ! -x /usr/bin/"$SCRIPTNAME" ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" is not executable."
-   exit 1
-fi
-if [ ! -e $(which torsocks) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) does not exist."
-   exit 1
-fi
-if [ ! -x $(which torsocks) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) is not executable."
-   exit 1
-fi
-if [ ! -e $(which faketime) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
-   exit 1
-fi
-if [ ! -x $(which faketime) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
-   exit 1
-fi
-if [ ! -e $(which timeprivacy) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
-   exit 1
-fi
-if [ ! -x $(which timeprivacy) ]; then
-   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
-   exit 1
-fi
+sanity_tests_general() {
+   if [ ! -e /usr/bin/"$SCRIPTNAME" ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" does not exist."
+      exit 1
+   fi
+   if [ ! -x /usr/bin/"$SCRIPTNAME" ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" is not executable."
+      exit 1
+   fi
+}
+
+sanity_tests_uwt() {
+   if [ ! -e $(which uwt) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which uwt) does not exist."
+      exit 1
+   fi
+   if [ ! -x $(which uwt) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which uwt) is not executable."
+      exit 1
+   fi
+   if [ ! -e $(which torsocks) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) does not exist."
+      exit 1
+   fi
+   if [ ! -x $(which torsocks) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) is not executable."
+      exit 1
+   fi
+}
+
+sanity_tests_timeprivacy() {
+   if [ ! -e $(which faketime) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
+      exit 1
+   fi
+   if [ ! -x $(which faketime) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
+      exit 1
+   fi
+   if [ ! -e $(which timeprivacy) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
+      exit 1
+   fi
+   if [ ! -x $(which timeprivacy) ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
+      exit 1
+   fi
+}
 
 ## Files in /etc/whonix.d/* set variables such as
 ## port_aptget, port_gpg, ... and variables such as
@@ -112,9 +119,12 @@ fi
 
 if [ "$uwtwrapper_global" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
+      sanity_tests_general
+      sanity_tests_timeprivacy
       ret=0
       "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
+      sanity_tests_general
       ret=0
       /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
@@ -125,9 +135,12 @@ temp="uwtwrapper_"$SCRIPTNAME_CLEANED""
 
 if [ "${!temp}" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
+      sanity_tests_general
+      sanity_tests_timeprivacy
       ret=0
       "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
+      sanity_tests_general
       ret=0
       /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
@@ -135,9 +148,14 @@ if [ "${!temp}" = "0" ]; then
 fi
 
 if [ "$fake_time" = "faketime" ]; then
+   sanity_tests_general
+   sanity_tests_uwt
+   sanity_tests_timeprivacy
    ret=0
    "$fake_time" "$privacy_time" /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 else
+   sanity_tests_general
+   sanity_tests_uwt
    ret=0
    /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 fi
