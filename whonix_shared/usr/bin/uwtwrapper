@@ -23,12 +23,12 @@ exit 1
 }
 
 sanity_tests_general() {
-   if [ ! -e /usr/bin/"$SCRIPTNAME" ]; then
-      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" does not exist."
+   if [ ! -e /usr/bin/"$SCRIPTNAME".real ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME".real does not exist."
       exit 1
    fi
-   if [ ! -x /usr/bin/"$SCRIPTNAME" ]; then
-      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" is not executable."
+   if [ ! -x /usr/bin/"$SCRIPTNAME".real ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME".real is not executable."
       exit 1
    fi
 }
@@ -122,11 +122,11 @@ if [ "$uwtwrapper_global" = "0" ]; then
       sanity_tests_general
       sanity_tests_timeprivacy
       ret=0
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
    else
       sanity_tests_general
       ret=0
-      /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+      /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
    fi
    exit $ret
 fi
@@ -138,11 +138,11 @@ if [ "${!temp}" = "0" ]; then
       sanity_tests_general
       sanity_tests_timeprivacy
       ret=0
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
    else
       sanity_tests_general
       ret=0
-      /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+      /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
    fi
    exit $ret
 fi
@@ -152,14 +152,12 @@ if [ "$fake_time" = "faketime" ]; then
    sanity_tests_uwt
    sanity_tests_timeprivacy
    ret=0
-   ## TODO: fix
-   "$fake_time" "$privacy_time" /usr/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+   "$fake_time" "$privacy_time" /usr/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
 else
    sanity_tests_general
    sanity_tests_uwt
    ret=0
-   ## TODO: fix
-   /usr/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
+   /usr/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
 fi
 exit $ret
 

@@ -21,11 +21,24 @@ case $skip_scripts in
                     ;;
 esac
 
-## || true to support re-running the script
+true "INFO: Diverting some /usr/bin/<uwt-wrapped-applications> to /usr/bin/<uwt-wrapped-applications>.real..."
 
-true "Linking uwt wrappers to /usr/bin/uwtwrapper master script."
+## Returns 0, even if already existing, thus "|| true" not required.
 
-## TODO FIX: add dpkg-divert
+dpkg-divert --add --rename --divert /usr/bin/apt-get.real /usr/bin/apt-get
+dpkg-divert --add --rename --divert /usr/bin/curl.real /usr/bin/curl
+dpkg-divert --add --rename --divert /usr/bin/git.real /usr/bin/git
+dpkg-divert --add --rename --divert /usr/bin/gpg.real /usr/bin/gpg
+dpkg-divert --add --rename --divert /usr/bin/mixmaster-update.real /usr/bin/mixmaster-update
+dpkg-divert --add --rename --divert /usr/bin/rawdog.real /usr/bin/rawdog
+dpkg-divert --add --rename --divert /usr/bin/ssh.real /usr/bin/ssh
+dpkg-divert --add --rename --divert /usr/bin/wget.real /usr/bin/wget
+
+true "INFO: Diverted some /usr/bin/<uwt-wrapped-applications> to /usr/bin/<uwt-wrapped-applications>.real."
+
+## "|| true" to support re-running the script
+
+true "INFO: Linking uwt wrappers to /usr/bin/uwtwrapper master script."
 
 ln -s /usr/bin/uwtwrapper /usr/bin/apt-get || true
 ln -s /usr/bin/uwtwrapper /usr/bin/curl || true
