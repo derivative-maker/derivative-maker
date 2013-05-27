@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+change_partition_uuid() {
+   trap "error_handler_general" ERR INT TERM
+
+   sync
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true "INFO: Changing of partition uuid not implemented for bare metal."
+   else
+      ./mount-img
+      ## Change partition uuid.
+      true "INFO: Changing of partition uuid..."
+      tune2fs /dev/mapper/loop0p1 -U 26ada0c0-1165-4098-884d-aafd2220c2c6
+      true "INFO: Changed of partition uuid."
+      sync
+      ./unmount-img
+   fi
+
+   sync
+}
+
+change_partition_uuid
+
