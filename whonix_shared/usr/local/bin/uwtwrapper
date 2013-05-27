@@ -39,6 +39,30 @@ if [ ! -x /usr/bin/"$SCRIPTNAME" ]; then
    echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME" is not executable."
    exit 1
 fi
+if [ ! -e $(which torsocks) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) does not exist."
+   exit 1
+fi
+if [ ! -x $(which torsocks) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which torsocks) is not executable."
+   exit 1
+fi
+if [ ! -e $(which faketime) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
+   exit 1
+fi
+if [ ! -x $(which faketime) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
+   exit 1
+fi
+if [ ! -e $(which timeprivacy) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
+   exit 1
+fi
+if [ ! -x $(which timeprivacy) ]; then
+   echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
+   exit 1
+fi
 
 ## Files in /etc/whonix.d/* set variables such as
 ## port_aptget, port_gpg, ... and variables such as
@@ -79,11 +103,19 @@ fi
 
 ## Using "|| { ret=$? ; true; };" to prevent invoking error_handler in case
 ## the executed application retured a non-zero value.
+##
+## Bash syntax: command1 || command2
+##
+## Setting default "ret=0" beforehand, because
+## command2 does only get executed, if command1 return non-zero.
+## So in case its zero, the default return value must be already set.
 
 if [ "$uwtwrapper_global" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
+      ret=0
       "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
+      ret=0
       /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
    exit $ret
@@ -93,18 +125,23 @@ temp="uwtwrapper_"$SCRIPTNAME_CLEANED""
 
 if [ "${!temp}" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
+      ret=0
       "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    else
+      ret=0
       /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
    fi
    exit $ret
 fi
 
 if [ "$fake_time" = "faketime" ]; then
+   ret=0
    "$fake_time" "$privacy_time" /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 else
+   ret=0
    /usr/local/bin/uwt -t 5 -i "$ip" -p "$port" /usr/bin/"$SCRIPTNAME" ${1+"$@"} || { ret=$? ; true; };
 fi
 exit $ret
 
 ## End of Whonix /usr/local/bin/$SCRIPTNAME uwt wrapper.
+
