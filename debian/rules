@@ -7,7 +7,9 @@ SOURCEFOLDERS=whonix_shared whonix_gateway whonix_workstation
 #       directory is also excluded at all
 #
 # EXCLUDE=.*\(\.directory\)\|.*\(\.bashrc\)\|.*\(timesync\.desktop\)
-EXCLUDE=.*\(\.directory\)
+INITFILES=\(etc\/init\.d\/.*\)
+DEFAULTFILES=\(etc\/default\/.*\)
+EXCLUDE=.*\(\(\.directory\)\|$(DEFAULTFILES)\|$(INITFILES)
 
 #export DH_VERBOSE=1
 
@@ -15,6 +17,8 @@ clean:
 	dh_testdir
 	dh_testroot
 	dh_clean
+	
+	-rm -f *.init *.default
 
 build-arch: build
 
@@ -45,14 +49,29 @@ install: build
 	dh_prep
 	dh_installdirs
 
-	mkdir -p $(CURDIR)/debian/tmp
-	
-	for sf in $(SOURCEFOLDERS); do \
-		find $$sf/ -not -regex '$(EXCLUDE)$$' -type f -exec cp -p --parents {} \
+	@mkdir -p $(CURDIR)/debian/tmp
+	@for sf in $(SOURCEFOLDERS); do \
+		find $$sf/ -not -regex '$(EXCLUDE)\)$$' -type f -exec cp -p --parents {} \
 			$(CURDIR)/debian/tmp \; ; \
+		case "$$sf" in \
+			"whonix_shared") \
+			for dm in `find $$sf/ -regex '.*\($(DEFAULTFILES)\)' -type f \
+				-printf '$(CURDIR)/%p;$(CURDIR)/debian/whonix-shared-common.%f.default '`; do \
+				cp -p `echo $$dm | sed -e 's/;/ /g'` ; \
+			done ; \
+			for im in `find $$sf/ -regex '.*\($(INITFILES)\)' -type f \
+				-printf '$(CURDIR)/%p;$(CURDIR)/debian/whonix-shared-common.%f.init '`; do \
+				cp -p `echo $$im | sed -e 's/;/ /g'` ; \
+			done ; \
+			for in in `find $$sf/ -regex '.*\($(INITFILES)\)' -type f -printf '%f '`; do \
+				echo "dh_installinit -pwhonix-shared-common --name=$$in"; \
+				dh_installinit -pwhonix-shared-common --name=$$in; \
+			done ; \
+			;; \
+		esac ; \
 	done
 
-	if [ ! -f $(CURDIR)/debian/copyright ]; then \
+	@if [ ! -f $(CURDIR)/debian/copyright ]; then \
 		cp $(CURDIR)/LICENSE $(CURDIR)/debian/copyright; \
 	fi
 	

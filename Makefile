@@ -15,9 +15,14 @@ all:
 	@echo
 	@echo "make cl-append  - to append a new line to changelog
 	@echo "make cl-release - to update timestamp and let edit the version
-
+	@echo
+	@echo "make clean      - to remove the built packages"
+	
 lintian: debian/control
-	lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
+	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
+	
+clean:
+	-rm -v `find $(CURDIR)/../whonix* -name '*.dsc' -o -name '*.deb' -o -name '*.changes'`
 
 update:
 	git fetch origin
