@@ -34,6 +34,7 @@ contents:
 	
 clean:
 	-rm -v `find $(CURDIR)/../whonix* -name '*.dsc' -o -name '*.deb' -o -name '*.changes'`
+	fakeroot debian/rules clean
 
 update:
 	git fetch origin
