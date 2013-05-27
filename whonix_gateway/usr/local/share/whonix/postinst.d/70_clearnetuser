@@ -21,10 +21,10 @@ case $skip_scripts in
                     ;;
 esac
 
-trap "" ERR
-id "clearnet"
-if [ ! "$?" = 0 ]; then
-   trap "error_handler" ERR
+ret=0
+id "clearnet" || { ret=$? ; true; };
+
+if [ ! "$ret" = 0 ]; then
    echo 'INFO: Creating user "clearnet"...'
    ## setting password of user clearnet to changeme
    ##
@@ -35,11 +35,8 @@ if [ ! "$?" = 0 ]; then
    ## Resulted in: aTayYxVyw5kDo
    useradd --create-home --password aTayYxVyw5kDo --shell /bin/bash clearnet
 else
-   trap "error_handler" ERR
    echo 'INFO: Not creating user "clearnet", because it already exists.'
 fi
-
-trap "error_handler" ERR
 
 chown --recursive clearnet:clearnet /home/clearnet
 
