@@ -7,7 +7,7 @@ for (var i = 0; i < screenCount; ++i) {
     activity.wallpaperPlugin = "image"
     activity.wallpaperMode = "SingleImage"
     activity.currentConfigGroup = Array("Wallpaper", "image")
-    activity.writeConfig("wallpaper", "/usr/local/share/whonix/mountainmist.jpeg")
+    activity.writeConfig("wallpaper", "/usr/share/whonix/mountainmist.jpeg")
     // End of Whonix changes to 00-defaultLayout.js
     desktop.name = i18n("Desktop")
     desktop.screen = i

@@ -3,9 +3,9 @@
 ## Whonix /etc/profile.d/20_torbrowser.sh
 
 ## The TB_STANDALONE variable get used by the patched Tor Browser
-## startup script /usr/local/share/whonix/start-tor-browser, which gets
+## startup script /usr/share/whonix/start-tor-browser, which gets
 ## copied to /home/user/tor-browser_en-US/start-tor-browser by the
-## Whonix torbrowser download and install script /usr/local/bin/torbrowser.
+## Whonix torbrowser download and install script /usr/bin/torbrowser.
 ## It prevents Tor/Vidalia from starting and only starts Tor Browser.
 ## As soon as upstream moved from Vidalia to tor-launcher, this variable
 ## and the patch Tor Browser start up script may not longer be necessary,
