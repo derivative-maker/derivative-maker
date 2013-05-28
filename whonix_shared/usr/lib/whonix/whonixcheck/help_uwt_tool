@@ -1,0 +1,24 @@
+#!/bin/bash   
+
+uwt_tool() {
+   ret=0
+   which curl.real >/dev/null || { ret=$? ; true; };
+
+   if [ $ret = "0" ]; then
+      ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
+      ## which is the case on a default Whonix installation
+      CURL=curl.real
+   else
+      ret=0
+      which curl >/dev/null || { ret=$? ; true; };
+      if [ $ret = "0" ]; then
+         ## falling back to real curl, if the uwt wrapper has been uninstalled
+         CURL=curl
+      else
+         local MSG="Can not find curl. Please report this bug!"
+         output "--error" "ERROR" "$MSG"
+         exit 1
+      fi
+   fi 
+}
+
