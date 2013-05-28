@@ -22,7 +22,7 @@ package:
 	dpkg-buildpackage -tc
 	
 lintian: debian/control
-	-lintian -I -i --pedantic `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
+	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
 
 ## TODO: Does not work. Please fix.	
 contents:
