@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 all:
-	@echo "Purely optional makefile for Whonix developer convenience:"
+	@echo "Purely optional makefile for Whonix developer's convenience:"
 	@echo
 	@echo "make lintian    - for lintian report in $(CURDIR)/lintian.log"
 	@echo "make contents   - shows dpkg --contents of all packages"
@@ -11,7 +11,7 @@ all:
 	@echo
 	@echo "make clean      - to remove the built packages"
 	@echo
-	@echo "Extra git commands for convenience:"
+	@echo "Extra git commands for $(USER)'s convenience:"
 	@echo
 	@echo "make update     - to convince glorious git to give me the current code"
 	@echo "make commit/ci  - to convince glorious git to put my current code to GitHub"
@@ -25,7 +25,7 @@ lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
 
 contents:
-	@for i in `find .. -name '*.deb'`; do \
+	@for i in `find $(CURDIR)/.. -name '*.deb'`; do \
 		echo "dpkg --contents $$i"; \
 		dpkg --contents $$i ; \
 	done
