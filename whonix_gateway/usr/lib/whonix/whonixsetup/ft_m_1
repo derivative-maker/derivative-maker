@@ -51,24 +51,90 @@ Running it multiple times in a row archives nothing.
 In case of network problems, this is probable not the cause.
 You can confirm that by manually checking if "DisableNetwork 1" has been out commented in /etc/tor/torrc.
 ' 640 480
-      exit 1
    fi
 done < "/etc/tor/torrc"
 
 ## Comment out DisableNetwork 1 in /etc/tor/torrc
-ed -s /etc/tor/torrc <<< $',s/DisableNetwork 1/#DisableNetwork 1/g\nw'
+returncode=0
+ed -s /etc/tor/torrc <<< $',s/DisableNetwork 1/#DisableNetwork 1/g\nw' || { returncode=$? ; true; };
+
+## Ensure changes get written to the disk right now.
 sync
+
+if [ ! "$returncode" = "0" ]; then
+   TITLE="Info..."
+
+   MSG="
+Could not comment out \"DisableNetwork 1\" in /etc/tor/torrc.
+Maybe you commented out or completely removed \"DisableNetwork 1\" in
+/etc/tor/torrc already? This is not necessarily a problem.
+   
+Will try to reload Tor now and check its status afterward...
+"
+else
+   TITLE="Info..."
+
+   MSG="
+Tor in /etc/tor/torrc has been activated.
+
+Will try to reload Tor now and check its status afterward...
+"
+fi
+
+dialog --title "$TITLE" --msgbox "$MSG" 640 480
 
 service tor reload
 
-MSG="
-Tor has been activated.
+returncode=0
+service tor status || { returncode=$? ; true; };
+
+if [ ! "$returncode" = "0" ]; then
+
+   TITLE="Error!"
+
+   MSG="
+sudo service tor status
+returned exit code $returncode, which means, that there is something wrong
+with your /etc/tor/torrc. Tor will NOT work.
+
+This problem is most likely not caused by whonixsetup.
+
+This is most likely a problem with your /etc/tor/torrc.
+Please fix your /etc/tor/torrc.
+
+Running,
+
+sudo service tor restart
+
+might be of assistance finding out, what the problem is.
 "
+
+   dialog --title "$TITLE" --msgbox "$MSG" 640 480
+
+   exit 1
+
+fi
 
 TITLE="Success!"
 
-returncode=0
-dialog --title "$TITLE" --msgbox "$MSG" 640 480 || { returncode=$? ; true; };
+MSG="
+sudo service tor status
+returned $returncode, which means, that reloading Tor worked.
+Tor should work now.
+
+This only means, that Tor is configured now and will try to connect.
+
+Checking, if your host internet connection is functional and/or if Tor can
+reach the Tor network has not been implemented yet into whonixsetup.
+
+Running,
+
+whonixcheck
+
+might be of assistance.
+"
+
+dialog --title "$TITLE" --msgbox "$MSG" 640 480
 
 exit 1
 
