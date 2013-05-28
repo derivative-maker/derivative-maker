@@ -6,7 +6,7 @@ for i in /etc/whonix.d/*; do
    if [ -f "$i" ]; then
       ## If the last character is a ~, ignore that file, because it was created
       ## by some editor, which creates backup files.
-      if [ "{$i: -1}" = "~" ]; then
+      if [ "${i: -1}" = "~" ]; then
          continue
       fi
       source "$i"
