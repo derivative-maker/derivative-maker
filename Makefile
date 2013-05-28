@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 all:
-	@echo "purely optional makefile for Whonix developer convince:"
+	@echo "Purely optional makefile for Whonix developer's convenience:"
 	@echo
 	@echo "make lintian    - for lintian report in $(CURDIR)/lintian.log"
 	@echo "make contents   - shows dpkg --contents of all packages"
@@ -11,7 +11,7 @@ all:
 	@echo
 	@echo "make clean      - to remove the built packages"
 	@echo
-	@echo "Extra commands for Heikos convince:"
+	@echo "Extra git commands for $(USER)'s convenience:"
 	@echo
 	@echo "make update     - to convince glorious git to give me the current code"
 	@echo "make commit/ci  - to convince glorious git to put my current code to GitHub"
@@ -24,12 +24,10 @@ package:
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
 
-## TODO: Does not work. Please fix.	
 contents:
-	set -x
-	for i in `find .. -name '*.deb''`; do
-		echo "$i"
-		dpkg --contents $i
+	@for i in `find $(CURDIR)/.. -name '*.deb'`; do \
+		echo "dpkg --contents $$i"; \
+		dpkg --contents $$i ; \
 	done
 	
 clean:
