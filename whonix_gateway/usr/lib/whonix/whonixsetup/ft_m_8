@@ -20,25 +20,14 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-## sanity checks
-which dialog
-which ed
-which service
-if [ ! -e "/etc/tor/torrc" ]; then
-   error "/etc/tor/torrc does not exist. Please report this bug!"
-   exit 1
-fi
-
 MSG="
 Do you want to disable Tor?
 "
 
 TITLE="Disable Tor."
 
-trap "" ERR
-dialog --title "$TITLE" --yesno "$MSG" 640 480
-returncode=$?
-trap "error_handler" ERR
+returncode=0
+dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode=$? ; true; };
 
 if [ ! "$returncode" = "0" ]; then
    ## Back to main menu.
@@ -71,11 +60,9 @@ sync
 
 service tor reload
 
-trap "" ERR
 dialog --title "Success!" --msgbox 'Tor has been deactivated.
 
 (Technically speaking, whonixsetup deactivated Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.)' 640 480
-trap "error_handler" ERR
 
 ## Signal for whonixsetup to break the while loop.
 exit 1

@@ -2,7 +2,7 @@
 
 ## Debugging
 #set -x
-#export PATH=$PATH:/home/user/whonix_dot/Whonix/whonix_gateway/usr/lib/whonix/whonixsetup/
+export PATH=$PATH:/home/user/whonix_dot/Whonix/whonix_gateway/usr/lib/whonix/whonixsetup/
 
 error_handler() {
    local MSG="\
@@ -27,7 +27,7 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-PATH=$PATH:/usr/lib/whonix/whonixcheck
+export PATH=$PATH:/usr/lib/whonix/whonixcheck
 
 ## sanity tests
 ## >/dev/null hides stdout, but not stderr,
@@ -45,10 +45,17 @@ which ft_m_6 >/dev/null
 which ft_m_7 >/dev/null
 which ft_m_8 >/dev/null
 
-trap "" ERR
-ft_disclaimer
-returncode="$?"
-trap "error_handler" ERR
+which dialog >/dev/null
+which ed >/dev/null
+which service >/dev/null
+
+if [ ! -e "/etc/tor/torrc" ]; then
+   error "/etc/tor/torrc does not exist. Please report this bug!"
+   exit 1
+fi
+
+returncode=0
+ft_disclaimer || { returncode=$? ; true; };
 
 if [ ! "$returncode" = 0 ]; then
    echo "You can always enter whonixsetup again, by starting: sudo whonixsetup"
@@ -57,17 +64,13 @@ fi
 
 while [ 1 ]; do
 
-   trap "" ERR
-   ft_main
-   returncode="$?"
-   trap "error_handler" ERR
+   returncode=0
+   ft_main || { returncode=$? ; true; };
 
    ## if the cancel button gets pressed, returncode will be 0
 
-   trap "" ERR
-   ft_m_$returncode
-   returncode_ft_m_x="$?"
-   trap "error_handler" ERR
+   returncode_ft_m_x=0
+   ft_m_$returncode || { returncode_ft_m_x=$? ; true; };
 
    if [ ! "$returncode_ft_m_x" = 0 ]; then
       break

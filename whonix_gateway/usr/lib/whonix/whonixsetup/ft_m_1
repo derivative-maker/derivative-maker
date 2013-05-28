@@ -20,15 +20,6 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-## sanity checks
-which dialog
-which ed
-which service
-if [ ! -e "/etc/tor/torrc" ]; then
-   error "/etc/tor/torrc does not exist. Please report this bug!"
-   exit 1
-fi
-
 MSG='
 Tor tries to prevent attackers from learning what destination websites you connect to. However, by default, it does not prevent somebody watching your Internet traffic from learning that you are using Tor. If this matters to you, you can reduce this risk by configuring Tor to use a Tor bridge relay rather than connecting directly to the public Tor network. Ultimately the best protection is a social approach: the more Tor users there are near you and the more diverse their interests, the less dangerous it will be that you are one of them. Convince other people to use Tor, too!
 
@@ -39,10 +30,8 @@ Enable Tor and connect to the public Tor network?
 
 TITLE="Connect to the public Tor network."
 
-trap "" ERR
-dialog --title "$TITLE" --yesno "$MSG" 640 480
-returncode=$?
-trap "error_handler" ERR
+returncode=0
+dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode=$? ; true; };
 
 if [ ! "$returncode" = "0" ]; then
    ## Back to main menu.
@@ -78,9 +67,8 @@ Tor has been activated.
 
 TITLE="Success!"
 
-trap "" ERR
-dialog --title "$TITLE" --msgbox "$MSG" 640 480
-trap "error_handler" ERR
+returncode=0
+dialog --title "$TITLE" --msgbox "$MSG" 640 480 || { returncode=$? ; true; };
 
 exit 1
 
