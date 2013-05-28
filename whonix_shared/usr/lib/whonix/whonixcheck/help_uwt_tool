@@ -20,5 +20,24 @@ uwt_tool() {
          exit 1
       fi
    fi 
+   
+   ret=0
+   which rawdog.real >/dev/null || { ret=$? ; true; };
+
+   if [ $ret = "0" ]; then
+      ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
+      ## which is the case on a default Whonix installation
+      RAWDOG=rawdog.real
+   else
+      ret=0
+      which rawdog >/dev/null || { ret=$? ; true; };
+      if [ $ret = "0" ]; then
+         ## falling back to real rawdog, if the uwt wrapper has been uninstalled
+         RAWDOG=rawdog
+      else
+         local MSG="Can not find rawdog. Please report this bug!"
+         output "--error" "ERROR" "$MSG"
+      fi
+   fi    
 }
 
