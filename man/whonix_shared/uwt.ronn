@@ -1,0 +1,74 @@
+uwt(1) -- hack to add stream isolation support to torsocks
+=============================================
+
+## SYNOPSIS
+`uwt` [-h] [-v] -t server_type -i ip -p port command [options...]
+
+## DESCRIPTION
+Uwt is a hack, which can be used to add stream isolation support to torsocks as
+long as torsocks does not have native stream isolation support.
+
+## OPTIONS
+
+  * -h                      
+  
+    help
+    
+  * -v
+  
+    Verbose output. Optional.
+    
+  * -t server_type
+  
+    Server type <4> or <5>. Mandatory.
+    
+  * -i ip
+  
+    IP address of the proxy. Mandatory.
+    
+  * -p port
+  
+    Port of the proxy. Mandatory.
+    
+  * command
+  
+    Application you want to start. Mandatory.
+    
+  * [options...]
+  
+    Any options you wish to forward to the application uwt is supposed to
+    start. Optional.
+
+## EXIT CODES
+Anything the application started by uwt returns.
+
+## EXAMPLES MANUAL USE
+`uwt -t 5 -i 127.0.0.1 -p 9050 wget https://check.torproject.org`
+
+`sudo uwt -t 5 -i 192.168.0.10 -p 9104 /usr/bin/apt-get.real --yes dist-upgrade`
+
+## EXAMPLES WRAPPER USE
+If you wish enforce the proxy settings without entering such a long command
+every time, you can use a wrapper. The wrapper has to be placed in PATH
+('echo $PATH') before the real executable.
+
+    #!/bin/bash
+    set -x
+    uwt -t 5 -i 192.168.0.10 -p 9109 /usr/bin/wget ${1+"$@"}
+    
+From now, any invocation of wget will automatically have uwt added in front of
+it.
+
+## WWW
+https://trac.torproject.org/projects/tor/wiki/doc/torsocks
+
+## FUTURE
+Please help upstream testing the feature
+["add stream isolation support to torsocks"](https://trac.torproject.org/projects/tor/ticket/8053)
+and if you can, please review their patch, so this hack can be retired.
+
+## SEE ALSO
+`torsocks`(1)
+
+## AUTHOR
+Written by adrelanos (adrelanos at riseup dot net)
