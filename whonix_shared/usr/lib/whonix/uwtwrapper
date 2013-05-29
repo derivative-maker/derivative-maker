@@ -6,7 +6,10 @@
 ## globally or for certain applications, see /etc/whonix.d/.
 
 ## Technical comment:
-## uwt wrappers get installed in /usr/share/whonix/postinst.d/70_uwt.
+## - uwt wrappers get installed in /usr/share/whonix/postinst.d/70_uwt.
+## - time_privacy is called time_privacy, because this script may get added
+##   upstream to the Debian package faketime. This is to avoid a conflict, when
+##   the new file timeprivacy gets installed by faketime.
 
 ## Debugging.
 #set -x
@@ -64,11 +67,11 @@ sanity_tests_timeprivacy() {
       echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
       exit 1
    fi
-   if [ ! -e $(which timeprivacy) ]; then
+   if [ ! -e $(which time_privacy) ]; then
       echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) does not exist."
       exit 1
    fi
-   if [ ! -x $(which timeprivacy) ]; then
+   if [ ! -x $(which time_privacy) ]; then
       echo "$SCRIPTNAME uwt wrapper ERROR: $(which faketime) is not executable."
       exit 1
    fi
@@ -100,11 +103,11 @@ temp="timeprivacy_"$SCRIPTNAME""
 
 if [ "${!temp}" = "1" ]; then
    fake_time="faketime"
-   privacy_time="$(timeprivacy -f /tmp/timeprivacy_"$SCRIPTNAME_CLEANED")"
+   privacy_time="$(time_privacy -f /tmp/timeprivacy_"$SCRIPTNAME_CLEANED")"
 else
    if [ "$timeprivacy_global" = "1" ]; then
       fake_time="faketime"
-      privacy_time="$(timeprivacy)"
+      privacy_time="$(time_privacy)"
    else
       fake_time=""
       privacy_time=""
