@@ -19,7 +19,7 @@ all:
 	@echo "make merge      - to convince glorious git to merge something"
 
 package:
-	dpkg-buildpackage -tc
+	dpkg-buildpackage -F -Zxz -z9 -tc
 	
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
@@ -31,7 +31,12 @@ contents:
 	done
 	
 clean:
-	-rm -v `find $(CURDIR)/../whonix* -name '*.dsc' -o -name '*.deb' -o -name '*.changes'`
+	@for dp in `gawk '/^Package\:[[:space:]]*.*$$/ { match($$0, /^Package:[[:space:]]*(.*)$$/, m); print m[1]"*.deb" }' $(CURDIR)/debian/control`; do \
+		rm -vf $(CURDIR)/../$$dp ; \
+	done
+	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.dsc" }' $(CURDIR)/debian/control`
+	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.changes" }' $(CURDIR)/debian/control`
+	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.tar.*" }' $(CURDIR)/debian/control`
 	fakeroot debian/rules clean
 
 update:
