@@ -10,7 +10,7 @@
 if [ -f "/usr/share/whonix/whonix_workstation" ]; then
    true
 else
-   delay timesync -autostart &
+   /usr/lib/whonix/delay timesync -autostart &
 fi
 
 ## End of Whonix /etc/profile.d/30_timesync.sh
