@@ -1,0 +1,105 @@
+time_privacy(1) -- keep your time private
+=============================================
+
+## SYNOPSIS
+`time_privacy` [options]
+
+## DESCRIPTION
+Timeprivacy can keep your time private. You can create wrappers for
+applications (such as git, gpg, etc.) and timeprivacy will feed those
+applications with a fake time, which obfuscates at which time you really used
+that applications (such as when you made the git commit or when you signed that
+document).
+
+It does NOT set your time zone to UTC.
+
+## OPTIONS
+
+  * -h                      
+  
+    help
+    
+  * -d day
+  
+    day
+    
+  * -m month
+  
+    month
+    
+  * -y year
+  
+    year
+    
+  * -i seconds
+  
+    increment in seconds (0-60)
+    
+  * -r <seconds>
+  
+    random increment in seconds (0-60)
+    
+  * -f history folder
+  
+    history folder    
+
+## EXIT CODES
+0 Success
+
+1 Error
+
+## EXAMPLE
+`time_privacy`
+
+`time_privacy -d 30 -m 12 -y 2013 -i 10 -f /tmp/`
+
+`sudo time_privacy -d 30 -m 12 -y 2013 -r -f /tmp/`
+
+## DEMONSTRATION
+Create a file /usr/local/bin/tpdate.
+
+    #!/bin/bash
+    faketime "$(time_privacy)" date ${1+"$@"}
+
+Try.
+
+    ~ $ tpdate
+    Fri May  3 00:00:01 UTC 2013
+    ~ $ tpdate
+    Fri May  3 00:00:02 UTC 2013
+    ~ $ tpdate
+    Fri May  3 00:00:03 UTC 2013
+    ~ $ tpdate
+    Fri May  3 00:00:04 UTC 2013
+    ~ $ tpdate
+    Fri May  3 00:00:05 UTC 2013`
+    
+Let's try something more interesting. Let's add timeprivacy to git. We need to
+create a wrapper. It will take precedence over /usr/bin/git, thus run faketime
+and timeprivacy before git itself. Create a file /usr/local/bin/git.    
+    
+    #!/bin/bash
+    prog=git
+    faketime "$(time_privacy)" $prog ${1+"$@"}
+
+## UPSTREAMING
+This script has been
+[merged](https://github.com/wolfcw/libfaketime/pull/16#issuecomment-17706741)
+into [libfaketime](https://github.com/wolfcw/libfaketime)
+([src](https://github.com/wolfcw/libfaketime/blob/master/src/timeprivacy)).
+
+It may show up as `timeprivacy` in the faketime package at some point.
+Therefore timeprivacy is called time_privacy to avoid a conflict when that
+happens.
+
+## DEVELOPMENT / PATCHES / FEATURE REQUESTS / BUG REPORTS
+You can leave feedback and/or contribute in
+[adrelanos's timeprivacy github repository](https://github.com/adrelanos/timeprivacy)
+or to [libfaketime](https://github.com/wolfcw/libfaketime/issues) and mention
+@adrelanos as far as timeprivacy is concerned.
+
+## SEE ALSO
+`faketime`(1)
+
+## AUTHOR
+Written by adrelanos (adrelanos at riseup dot net)
