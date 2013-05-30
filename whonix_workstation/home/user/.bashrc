@@ -121,15 +121,16 @@ if [ -z "$PS1" ]; then
    return
 fi
 
+## If running in a login shell, don't do anything.
+## Login shells are greeted by /etc/motd.
 shopt -q login_shell
 var="$?"
-
 if [ "$var" = "0" ]; then
-   ## Login shell is greeted by /etc/motd.
    return
 fi
 
-## Konsole
+## We run in a terminal emulator.
+## Lets greet it with /etc/motd.
 echo "$(cat /etc/motd)"
 
 ## End of Whonix /home/user/.bashrc
