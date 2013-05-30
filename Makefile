@@ -4,12 +4,13 @@ all:
 	@echo "Purely optional makefile for Whonix developer's convenience:"
 	@echo
 	@echo "make lintian    - for lintian report in $(CURDIR)/lintian.log"
+	@echo "make package    - performs a full build"
 	@echo "make contents   - shows dpkg --contents of all packages"
 	@echo
 	@echo "make cl-append  - to append a new line to changelog"
 	@echo "make cl-release - to update timestamp and let edit the version"
 	@echo
-	@echo "make clean      - to remove the built packages"
+	@echo "make clean      - to remove the built packages and clean up the debian folder"
 	@echo
 	@echo "Extra git commands for $(USER)'s convenience:"
 	@echo

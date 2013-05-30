@@ -19,6 +19,7 @@ clean:
 	dh_clean
 	-rm -f $(CURDIR)/debian/*.init
 	-rm -f $(CURDIR)/debian/*.default
+	-rm -f $(CURDIR)/debian/*.manpages
 
 build-arch: build
 
@@ -33,6 +34,7 @@ binary-arch:
 binary-indep: build install
 	dh_testdir
 	dh_testroot
+	dh_installman
 	dh_installdebconf
 	dh_installchangelogs
 	dh_installdocs
@@ -69,6 +71,28 @@ install: build
 			done ; \
 			;; \
 		esac ; \
+	done
+	
+	@for sf in $(SOURCEFOLDERS); do \
+		for ronn in `find $(CURDIR)/man/$$sf/ -name '*.ronn'`; do \
+			SEC=`gawk '/^.*\([1-9]\) --/ { match($$0, /^.*\(([1-9])\) --/, m); print m[1] }' $$ronn` ; \
+			DEST=`echo "$(CURDIR)/debian/tmp/$$sf/usr/share/man/man$$SEC/"` ; \
+			DEST=$$DEST`basename $$ronn .ronn` ; \
+			DEST=$$DEST"."$$SEC ; \
+			mkdir -p `dirname $$DEST` ; \
+			ronn --manual="Whonix Documentation" --organization="Whonix" --pipe -r $$ronn > $$DEST; \
+			case "$$sf" in \
+				"whonix_gateway") \
+					echo $$DEST >> $(CURDIR)/debian/whonix-gateway-common.manpages ; \
+					;; \
+				"whonix_shared") \
+					echo $$DEST >> $(CURDIR)/debian/whonix-shared-common.manpages ; \
+					;; \
+				"whonix_workstation") \
+					echo $$DEST >> $(CURDIR)/debian/whonix-workstation-common.manpages ; \
+					;; \
+			esac ; \
+		done ; \
 	done
 
 	@if [ ! -f $(CURDIR)/debian/copyright ]; then \
