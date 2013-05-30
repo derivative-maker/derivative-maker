@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+#############################################################
+## postinst script: ERROR detected. Please report this bug! #
+#############################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+mkdir -p /var/lib/whonix/whonixcheck/
+
+chmod g+w /var/lib/whonix/whonixcheck/
+chmod o+w /var/lib/whonix/whonixcheck/
+
+mkdir -p /home/rawdog/.rawdog/
+
+chmod g+w /home/rawdog/.rawdog/
+chmod o+w /home/rawdog/.rawdog/
+

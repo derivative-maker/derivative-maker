@@ -2,49 +2,86 @@
 
 download_important_blog() {
    trap "error_handler" ERR
-
-   local SOCKS_PORT_WHONIX_NEWS="9114"
-
-   local DOWNLOAD_IMPORTANTBLOG_SUCCESS="1"
-   local MSG="Downloading Whonix Important Blog..."
-   output "--info" "Info" "$MSG" "echo"
-
-   rm -f /home/user/.rawdog/importantblog.html
-
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS"\
-   $RAWDOG --config ~/.rawdog/importantblog.conf $WHONIXCHECK_RAWDOG_VERBOSE --update --write || DOWNLOAD_IMPORTANTBLOG_SUCCESS="0"
-
-   if [ "$DOWNLOAD_IMPORTANTBLOG_SUCCESS" = "0" ]; then
-      local MSG="Could not download Whonix Important Blog."
-      output "--error" "ERROR" "$MSG" "both"
-      return
-   fi
-
-   local MSG="Successfully downloaded Whonix Important Blog."
-   output "--info" "Info" "$MSG" "both"
+   
+   BLOG_NAME="Whonix Important Blog"
+   BLOG_URL="http://sourceforge.net/p/whonix/blog/feed"
+   RAWDOG_CONFIG="/etc/whonixcheck_rawdog/importantblog.conf"
+   FEED_FILE="/var/lib/whonix/whonixcheck/importantblog.feed"
+  
+   download_blog
+   parse_blog
 }
 
 download_feature_blog() {
    trap "error_handler" ERR
+   
+   BLOG_NAME="Whonix Feature Blog"
+   BLOG_URL="http://sourceforge.net/p/whonix/featureblog/feed"
+   RAWDOG_CONFIG="/etc/whonixcheck_rawdog/featureblog.conf"
+   FEED_FILE="/var/lib/whonix/whonixcheck/featureblog.feed"
+  
+   download_blog
+   parse_blog
+}
 
-   local SOCKS_PORT_WHONIX_NEWS="9114"
+download_blog() {
+   trap "error_handler" ERR
 
-   local DOWNLOAD_FEATUREBLOG_SUCCESS="1"
-   local MSG="Downloading Whonix Feature Blog..."
+   local DOWNLOAD_BLOG_SUCCESS="1"
+   local MSG="Downloading "$BLOG_NAME"..."
    output "--info" "Info" "$MSG" "echo"
 
-   rm -f /home/user/.rawdog/featureblog.html
+   rm -f "$FEED_FILE"
+   
+   local NETWORK_DOWN="0"
 
-   uwt -t 5 -i "$GATEWAY_IP" -p "$SOCKS_PORT_WHONIX_NEWS"\
-   $RAWDOG --config ~/.rawdog/featureblog.conf $WHONIXCHECK_RAWDOG_VERBOSE --update --write || DOWNLOAD_FEATUREBLOG_SUCCESS="0"
+   ## --tlsv1 --proto =https \
+   
+   $CURL \
+      $WHONIXCHECK_CURL_VERBOSE \
+      --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
+      --max-time 300 \
+      --location \
+      --output "$FEED_FILE" \
+      "$BLOG_URL" \
+      || local NETWORK_DOWN="1"
+      
+   if [ "$NETWORK_DOWN" = "1" ]; then
+      local MSG="Could not download "$BLOG_NAME"."
+      output "--error" "ERROR" "$MSG" "both"
+      return
+   fi      
+}
 
-   if [ "$DOWNLOAD_FEATUREBLOG_SUCCESS" = "0" ]; then
-      local MSG="Could not download Whonix Feature Blog."      
+parse_blog() {
+   ## rawdog unfortunately always requires a config file in /home/$user/.rawdog/config,
+   ## see man rawdog.
+   cp /etc/whonixcheck_rawdog/config /home/rawdog/.rawdog/config
+   
+   ## rawdog default config file suggest to place a style.css in the same folder as the
+   ## output file.
+   cp /etc/whonixcheck_rawdog/style.css /var/lib/whonix/whonixcheck/
+   
+   ## Delete the style file, because we use curl to download the feed and
+   ## our own interval anyway. Maybe not necessary.
+   rm -f /home/rawdog/.rawdog/state
+
+   local RAWDOG_FAIL="0"
+   
+   sudo -u rawdog $RAWDOG \
+      --config "$RAWDOG_CONFIG" \
+      $WHONIXCHECK_RAWDOG_VERBOSE \
+      --update \
+      --write \
+      || local RAWDOG_FAIL="1"
+
+   if [ "$RAWDOG_FAIL" = "1" ]; then
+      local MSG="Could not parse "$BLOG_NAME"."
       output "--error" "ERROR" "$MSG" "both"
       return
    fi
 
-   local MSG="Successfully downloaded Whonix Feature Blog."
+   local MSG="Successfully downloaded "$BLOG_NAME"."
    output "--info" "Info" "$MSG" "both"
 }
 

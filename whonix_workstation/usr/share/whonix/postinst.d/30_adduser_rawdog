@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+#############################################################
+## postinst script: ERROR detected. Please report this bug! #
+#############################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## Check if user "rawdog" already exist.
+
+ret=0
+id rawdog || { ret=$? ; true; };
+
+if [ ! "$ret" = 0 ]; then
+   true 'INFO: Creating user "rawdog"...'
+   ## setting password of user rawdog to changeme
+   ##
+   ## How this password was created:
+   ## sudo apt-get install whois
+   ## mkpasswd
+   ## changeme
+   ## Resulted in: aTayYxVyw5kDo   
+   useradd --password aTayYxVyw5kDo --user-group --create-home --home-dir /home/rawdog --shell /bin/bash rawdog
+else
+   true 'Not creating user "rawdog", because it rawdog already exists.'
+fi
+
+chown --recursive rawdog:rawdog /home/rawdog
+
