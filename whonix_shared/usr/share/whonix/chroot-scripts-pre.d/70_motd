@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###########################################################
+## chroot script: ERROR detected. Please report this bug! #
+###########################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $skip_scripts in
+   *$own_filename*) true "INFO: Skipping $own_filename, because skip_scripts includes it."
+                    exit 0
+                    ;;
+esac
+
+## rm to get ride of the symlink, in case there is any.
+## http://wiki.debian.org/motd
+rm "$CHROOT_FOLDER"/etc/motd || true
+
