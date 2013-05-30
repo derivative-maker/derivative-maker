@@ -194,6 +194,7 @@ Tor Browser Update Check:
 
 $*"
 
+   return $?
 }
 
 
@@ -410,16 +411,10 @@ else
    VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
 fi
 
-## Setting default answer to 1, which means no.
-## Just in case the question dialog fails for
-## some reason, the default will be no.
-answer="1"
-
-## Need to deactivate the trap, otherwise answering
-## no will throw an error.
-trap "" ERR
+answer="0"
 
 ZENITY_TYPE="--question"
+
 output "\
 "$VERSION_CHECK_RESULT"
 
@@ -437,16 +432,13 @@ YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
 
 A backup of your old Tor Browser and settings will be created in your home folder.
 It is a good idea to delete old TBB backups once in a while if you are running low with disk space.\
-"
+" || { answer=$? ; true; };
 
 ## zenity return codes
 ## no 1
 ## yes 0
-answer="$?"
 
 debug "answer: $answer"
-
-trap "tb_error_handler" ERR
 
 if [ "$TB_FORCE_INSTALL" = "1" ]; then
 	debug "INFO: TB_FORCE_INSTALL = 1"
