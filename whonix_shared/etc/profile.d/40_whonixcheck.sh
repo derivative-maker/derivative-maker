@@ -10,7 +10,7 @@
 if [ -f "/usr/share/whonix/whonix_workstation" ]; then
    true
 else
-   /usr/lib/whonix/delay whonixcheck -autostart &
+   /usr/lib/whonix/delay whonixcheck --autostart &
 fi
 
 ## End of Whonix /etc/profile.d/40_whonixcheck.sh

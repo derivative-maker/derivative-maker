@@ -15,39 +15,53 @@ phrase_cmd_options() {
    WHONIXCHECK_CURL_VERBOSE="--silent"
    ##
    ## not adding any verbosity options to rawdog
-   WHONIXCHECK_RAWDOG_VERBOSE=""
-
-   ## if started with -v switch for verbose output
-   if [ "$1" = "-v" ]; then
-      set -x
-      WHONIXCHECK_CURL_VERBOSE=""
-      WHONIXCHECK_RAWDOG_VERBOSE="--verbose"
-      WHONIXCHECK_VERBOSE="1"
-      echo "Verbose output..."
-      echo "Script running as $(whoami)"
-   fi
-
-   ## if started with -help switch for help
-   if [ "$1" = "-help" ]; then
-      whonixcheck_help
-      exit 0
-   fi
-
-   ## if started with -autostart switch when run by
-   ## kde autostart or /etc/profile.d/whonixcheck.sh
-   if [ "$1" = "-autostart" ]; then
-      WHONIXCHECK_AUTOSTARTED="1"
-   fi
-
-   ## if started with -cron switch when run by cron
-   if [ "$1" = "-cron" ]; then
-      WHONIXCHECK_AUTOSTARTED="1"
-      WHONIXCHECK_RUN_BY_CRON="1"
-   fi
+   WHONIXCHECK_RAWDOG_VERBOSE=""   
    
-   if [ "$WHONIXCHECK_RUN_BY_CRON" = 1 ]; then
-      echo "WHONIXCHECK_RUN_BY_CRON=1, setting DISPLAY to: :0"
-      DISPLAY=":0"
-   fi
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while :
+   do
+       case $1 in
+           -h | --help | -\?)
+               whonixcheck_help
+               exit 0
+               ;;               
+           -v | --verbose)
+               echo "$SCRIPTNAME verbose output..."
+               echo "Script running as $(whoami)"
+               set -x
+               WHONIXCHECK_CURL_VERBOSE=""
+               WHONIXCHECK_RAWDOG_VERBOSE="--verbose"
+               WHONIXCHECK_VERBOSE="1"
+               shift
+               ;;
+           -a | --autostart)
+               WHONIXCHECK_AUTOSTARTED="1"
+               shift
+               ;;               
+           -c | --cron)
+               WHONIXCHECK_AUTOSTARTED="1"
+               WHONIXCHECK_RUN_BY_CRON="1"
+               echo "WHONIXCHECK_RUN_BY_CRON=1, setting DISPLAY to: :0"
+               DISPLAY=":0"
+               shift
+               ;;                  
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$SCRIPTNAME unknown option: $1" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done   
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.   
 } 
 

@@ -3,35 +3,53 @@
 phrase_cmd_options() {
    trap "error_handler" ERR
 
-   ## If timesync is run without command line arguments,
-   ## $1 will not exist.
-   if [ "$#" == "0" ]; then
-      TIMESYNC_VERBOSE="--output-file /dev/null"
-   else
-      if [ "$1" = "-v" ]; then
-         set -x
-         TIMESYNC_VERBOSE=""
-         echo "Verbose output..."
-         echo "Script running as $(whoami)"
-      fi
-      if [ "$1" = "-autostart" ]; then
-         TIMESYNC_VERBOSE="--output-file /dev/null"
-         TIMESYNC_AUTOSTART="1"
-      fi
-      if [ "$1" = "-cron" ]; then
-         TIMESYNC_VERBOSE="--output-file /dev/null"
-         TIMESYNC_AUTOSTART="1"
-         TIMESYNC_CRON="1"
-      fi
-      if [ "$1" = "-help" ]; then
-         timesync_help
-         exit 0
-      fi
-   fi
-   
-   if [ "$TIMESYNC_CRON" = 1 ]; then
-      echo "TIMESYNC_CRON=1, setting DISPLAY to: :0"
-      DISPLAY=":0"
-   fi      
+   TIMESYNC_VERBOSE="--output-file /dev/null"
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while :
+   do
+       case $1 in
+           -h | --help | -\?)
+               timesync_help          
+               exit 0
+               ;;               
+           -v | --verbose)
+               echo "$SCRIPTNAME verbose output..."
+               echo "Script running as $(whoami)"           
+               set -x
+               TIMESYNC_VERBOSE=""
+               shift
+               ;;
+           -a | --autostart)
+               TIMESYNC_VERBOSE="--output-file /dev/null"
+               TIMESYNC_AUTOSTART="1"           
+               shift
+               ;;               
+           -c | --cron)
+               TIMESYNC_VERBOSE="--output-file /dev/null"
+               TIMESYNC_AUTOSTART="1"
+               TIMESYNC_CRON="1"           
+               echo "TIMESYNC_CRON=1, setting DISPLAY to: :0"
+               DISPLAY=":0"               
+               shift
+               ;;                  
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$SCRIPTNAME unknown option: $1" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done   
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.   
 }
 
