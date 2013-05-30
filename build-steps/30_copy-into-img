@@ -97,33 +97,6 @@ copy_into_gateway() {
 
    ## Copy
    rsync --verbose --perms --recursive --checksum "$WHONIX_SOURCE_FOLDER"/whonix_gateway/ "$CHROOT_FOLDER"/
-   
-   trap "" ERR INT TERM
-   id "clearnet"
-   if [ ! "$?" = 0 ]; then
-      trap "error_handler_copy-into-img" ERR INT TERM
-
-      ## This is required for chown --recursive clearnet:clearnet...
-      
-      echo 'INFO: Creating user "clearnet"...'
-      ## setting password of user clearnet to changeme
-      ##
-      ## How this password was created:
-      ## sudo apt-get install whois
-      ## mkpasswd
-      ## changeme
-      ## Resulted in: aTayYxVyw5kDo
-      ##
-      useradd --create-home --password aTayYxVyw5kDo --user-group --shell /bin/bash clearnet
-   else
-      trap "error_handler_copy-into-img" ERR INT TERM
-      echo 'INFO: Not creating user "clearnet", because it already exists.'
-   fi
-
-   trap "error_handler_copy-into-img" ERR INT TERM
-
-   ## Fix /home/clearnet permissions.
-   chown --recursive clearnet:clearnet "$CHROOT_FOLDER"/home/clearnet
 
    ## Fix /home/user permissions.
    chown --recursive user:user "$CHROOT_FOLDER"/home/user
