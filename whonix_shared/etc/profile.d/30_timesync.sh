@@ -2,8 +2,10 @@
 
 ## Whonix /etc/profile.d/30_timesync.sh
 
-## Gets run with any login shell.
-
-/usr/lib/whonix/delay timesync --autostart &
+if [ ! "$(tty)" = "/dev/tty1" ]; then
+   return 0
+else
+   /usr/lib/whonix/delay timesync --showcli &
+fi
 
 ## End of Whonix /etc/profile.d/30_timesync.sh

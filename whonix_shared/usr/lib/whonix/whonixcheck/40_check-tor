@@ -2,7 +2,7 @@
 
 check_tor_grep_error() {
    local MSG="check_tor_grep_error: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-   output "--info" "Info" "$MSG" "echo"
+   output "--info" "$MSG" "echo"
    TOR_OR_NOT=""
 }
  
@@ -11,14 +11,26 @@ check_tor() {
 
    if [ "$1" = "SocksPort" ]; then
       local MSG="Checking network connection... Testing Tor's SocksPort..."
-      output "--info" "Info" "$MSG" "echo"   
+      output "--info" "$MSG" "echo"
+
+      local SOCKS_PORT_WHONIXCHECK="9110"
+      
+      CHECK_TOR_RESULT="0"
       
       ## Ensuring normal curl activity can not be linked to whonixcheck,
       ## by using a SocksPort, which is solely used by whonixcheck.
-      $CURL $WHONIXCHECK_CURL_VERBOSE --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
+      $CURL \
+         $CURL_VERBOSE \
+         --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ \
+         --tlsv1 \
+         --proto =https \
+         --max-time 300 \
+         --output ""$VERIFY_TEMPDIR"/index.html" \
+         https://check.torproject.org \
+         || { CHECK_TOR_RESULT="$?" ; true; };
 
-      if [ "$NETWORK_DOWN" = "1" ]; then
-         local MSG="Your Internet connection appears to be down.
+      if [ ! "$CHECK_TOR_RESULT" = "0" ]; then
+         local MSG="Your Internet connection appears to be down. (Code: "$CHECK_TOR_RESULT")
 
 Possible reasons:
 - Is your host internet connection functional?
@@ -36,52 +48,58 @@ Run whonixcheck on Whonix-Gatway as well.
 
 Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
 
-         output "--error" "ERROR" "$MSG" "both"
-         progress_bar 100
-         show_output         
+         output "--error" "$MSG" "both"
+         EXIT_CODE="1"
          cleanup
-         exit 1
+         return 0
       fi
    elif [ "$1" = "TransPort" ]; then
       ## Do not test for stream isolation if Tor detection failed.
       ## This variable may be set to 1, during the first run of this script.
       if [ "$NOT_USING_TOR" = "1" ]; then
          local MSG="SocksPort test: Could not detect Tor! Not testing Tor's TransPort."
-         output "--info" "Info" "$MSG" "echo"         
-         return
+         output "--info" "$MSG" "echo"         
+         return 0
       fi
    
       local MSG="Testing Tor's TransPort..."
-      output "--info" "Info" "$MSG" "echo"   
+      output "--info" "$MSG" "echo"
+   
+      CHECK_TOR_RESULT="0"
 
       ## For production:
-      $CURL $WHONIXCHECK_CURL_VERBOSE --tlsv1 --proto =https --max-time 300 --output index.html https://check.torproject.org || NETWORK_DOWN="1"
-
-      ## For testing behind demo/test vpn from usaip. (They block SSL.)
-      #$CURL $WHONIXCHECK_CURL_VERBOSE --max-time 300 --output index.html http://check.torproject.org || NETWORK_DOWN="1"
-      
-      if [ "$NETWORK_DOWN" = 1 ]; then
-         local MSG="TransPort Test: Tor's TransPort appears to be down."
-         output "--error" "ERROR" "$MSG" "both"
-         return
+      $CURL \
+         $CURL_VERBOSE \
+         --tlsv1 \
+         --proto =https \
+         --max-time 300 \
+         --output ""$VERIFY_TEMPDIR"/index.html" \
+         https://check.torproject.org \
+         || { CHECK_TOR_RESULT="$?" ; true; };
+     
+      if [ ! "$CHECK_TOR_RESULT" = "0" ]; then
+         local MSG="TransPort Test: Tor's TransPort appears to be down. (Code: "$CHECK_TOR_RESULT")"
+         output "--error" "$MSG" "both"
+         return 0
       fi
    else
      local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
-     output "--error" "ERROR" "$MSG" "both"
-     return
+     output "--error" "$MSG" "both"
+     return 0
    fi
 
    trap "check_tor_grep_error" ERR
 
    TOR_OR_NOT="1"
-   TOR_OR_NOT="$(grep "Congratulations" "index.html")"
+   TOR_OR_NOT="$(grep "Congratulations" ""$VERIFY_TEMPDIR"/index.html")"
+   
    local MSG="TOR_OR_NOT: $TOR_OR_NOT"
-   output "--info" "Info" "$MSG" "debug"
+   output "--info" "$MSG" "debug"
 
    trap "check_tor_grep_error" ERR
 
    IP="error"
-   local IP="$(grep "IP" "index.html" 2>&1)"
+   local IP="$(grep "IP" ""$VERIFY_TEMPDIR"/index.html" 2>&1)"
    IP="$(echo "$IP" | sed 's/<br>//g')"
    IP="$(echo "$IP" | sed 's/<b>//g')"
    IP="$(echo "$IP" | sed 's/<\/b>//g')"
@@ -106,21 +124,20 @@ Possible reasons:
 - You added a transproxy.
 - It's a false positive. https://check.torproject.org fails in some cases to detect exit nodes.
 $IP"
-      output "--error" "WARNING" "$MSG" "both"
+      output "--error" "$MSG" "both"
 
       #############################################
       ## If you are a VPN user or have another    #
       ## special setup, comment out the following #
-      ## four lines.                              #
-      progress_bar 100
-      show_output
+      ## 3 lines.                                 #
+      EXIT_CODE="1"
       cleanup
-      exit 1
+      return 0
       #############################################
 
    else
       local MSG="Tor's $1: You are successfully using Tor. $IP"
-      output "--info" "Info" "$MSG" "both"
+      output "--info" "$MSG" "both"
    fi
 
 }

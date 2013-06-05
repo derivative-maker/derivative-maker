@@ -2,8 +2,10 @@
 
 ## Whonix /etc/profile.d/40_whonixcheck.sh
 
-## Gets run with any login shell.
-
-/usr/lib/whonix/delay whonixcheck --autostart &
+if [ ! "$(tty)" = "/dev/tty1" ]; then
+   return 0
+else
+   /usr/lib/whonix/delay whonixcheck --showcli &
+fi
 
 ## End of Whonix /etc/profile.d/40_whonixcheck.sh

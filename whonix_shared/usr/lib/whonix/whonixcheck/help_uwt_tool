@@ -1,42 +1,46 @@
 #!/bin/bash   
 
 uwt_tool() {
-   ret=0
-   which curl.real >/dev/null || { ret=$? ; true; };
+   trap "error_handler" ERR
 
-   if [ $ret = "0" ]; then
+   ret="0"
+   which curl.real >/dev/null || { ret="$?" ; true; };
+
+   if [ "$ret" = "0" ]; then
       ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
       ## which is the case on a default Whonix installation
       CURL=curl.real
    else
-      ret=0
-      which curl >/dev/null || { ret=$? ; true; };
-      if [ $ret = "0" ]; then
+      ret="0"
+      which curl >/dev/null || { ret="$?" ; true; };
+      if [ "$ret" = "0" ]; then
          ## falling back to real curl, if the uwt wrapper has been uninstalled
          CURL=curl
       else
          local MSG="Can not find curl. Please report this bug!"
-         output "--error" "ERROR" "$MSG"
-         exit 1
+         output "--error" "$MSG"
+         EXIT_CODE="1"
+         cleanup
+         return 0
       fi
    fi 
    
-   ret=0
-   which rawdog.real >/dev/null || { ret=$? ; true; };
+   ret="0"
+   which rawdog.real >/dev/null || { ret="$?" ; true; };
 
-   if [ $ret = "0" ]; then
+   if [ "$ret" = "0" ]; then
       ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
       ## which is the case on a default Whonix installation
       RAWDOG=rawdog.real
    else
-      ret=0
-      which rawdog >/dev/null || { ret=$? ; true; };
-      if [ $ret = "0" ]; then
+      ret="0"
+      which rawdog >/dev/null || { ret="$?" ; true; };
+      if [ "$ret" = "0" ]; then
          ## falling back to real rawdog, if the uwt wrapper has been uninstalled
          RAWDOG=rawdog
       else
          local MSG="Can not find rawdog. Please report this bug!"
-         output "--error" "ERROR" "$MSG"
+         output "--error" "$MSG"
       fi
    fi    
 }

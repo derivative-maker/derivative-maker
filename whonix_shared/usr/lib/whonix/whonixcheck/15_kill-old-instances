@@ -1,23 +1,23 @@
 #!/bin/bash
 
 kill_old_instances() {
-   trap "" ERR
-   
+   trap "error_handler" ERR
+
    local me="$$"
    
    ## Using --exact to prevent getting results for help scripts such
    ## as whonixcheck_hourly.
-   local pids="$(pgrep --exact "$SCRIPTNAME")"
+   local pids="$(pgrep --exact "$SCRIPTNAME")" || true
 
    for pid in $(echo $pids); do
       if [ "$pid" -ne "$me" ]; then
          local MSG="$(date) | killing: "$pid" ... aux: $(ps aux | grep "$pid")"
-         output "--info" "Info" "$MSG" "debug"
+         output "--info" "$MSG" "debug"
          kill -9 "$pid" || true
       else         
          local MSG="$(date) | not killing me "$pid" .. aux: $(ps aux | grep "$pid")"
          true "$MSG"
-         output "--info" "Info" "$MSG" "debug"
+         output "--info" "$MSG" "debug"
       fi
    done
 }

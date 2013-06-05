@@ -5,7 +5,7 @@
 ## Tor Browser download script for Whonix.
 
 script_help() {
-echo "
+   echo "
 ## This script may break when the file name
 ## or RecommendedTBBVersions format changes!
 ##
@@ -54,7 +54,7 @@ echo "
 
 
 tb_lang_help() {
-echo '
+   echo '
 Available languages as in October 2012:
 ar
 de
@@ -119,14 +119,14 @@ and so on.
 
 
 root_check() {
-  if [ "$(id -u)" != "0" ]; then
-       #echo "INFO: torbrowser script running as user."
-       true
-  else
-       ZENITY_TYPE="--error"
-       output "ERROR: do not run this script as root! Please run it as user."
-       exit 1
-  fi
+   if [ "$(id -u)" != "0" ]; then
+      #echo "INFO: torbrowser script running as user."
+      true
+   else
+      ZENITY_TYPE="--error"
+      output "ERROR: do not run this script as root! Please run it as user."
+      exit 1
+   fi
 }
 
 
@@ -156,8 +156,7 @@ tb_error_handler() {
 ## BASH_COMMAND: $BASH_COMMAND
 ##
 ## Experts only:
-## You can enable debugging in /usr/bin/torbrowser
-## Uncomment set -x.
+## bash -x torbrowser
 ###########################################################\
 "
    echo "$MSG"
@@ -194,14 +193,14 @@ Tor Browser Update Check:
 
 $*"
 
-   return $?
+   return "$?"
 }
 
 
 
 USERNAME="$(whoami)"
 
-DOWNLOAD_FAIL_HELP="Possible reasons:
+TEMP1="Possible reasons:
 - no internet connectivity
 
 Please check: Start menu -> System -> Whonix Check
@@ -210,9 +209,9 @@ Please check: Start menu -> System -> Whonix Check
 
 Run whonixcheck on Whonix-Gatway as well.
 
-If whonixcheck reports no problems with internet activity and this still fails, please report a bug!
+If whonixcheck reports no problems with internet activity and this still fails, please report a bug!"
 
-As last resort you can also manually update Tor Browser.
+TEMP2="As last resort you can also manually update Tor Browser.
 
 Check Whonix News:
 https://sourceforge.net/p/whonix/wiki/Download/#stay-tuned
@@ -222,6 +221,18 @@ https://blog.torproject.org
 
 Manually update:
 https://sourceforge.net/p/whonix/wiki/ManualTBupdate/"
+
+
+
+DOWNLOAD_FAIL_HELP="$TEMP1
+
+$TEMP2"
+
+
+
+VERSION_DETECTION_ERROR="Could not find out latest Tor Browser version!
+
+$TEMP2"
 
 
 
@@ -276,146 +287,128 @@ progress_bar() {
 
 
 
-gpg_download_verification_error() {
-trap "tb_error_handler" ERR
-
-ZENITY_TYPE="--error"
-output "\
-ERROR: GPG download signature could NOT be verified.
-ERROR: Tor Browser update failed! Try again later.\
-"
-
-## No longer deleting, might be interesting in case an adversary
-## tampered with it.
-#debug "INFO: Deleting tor-browser-gnu-linux-*.tar.gz*..."
-#rm --force tor-browser-gnu-linux-*.tar.gz*
-
-cd "/home/"$USERNAME""
-## Tell about failure.
-touch TorBrowser_installation_FAILED
-progress_bar 100
-exit 1
-}
-
 #########################################################################
 ## tb_update_check                                                      #
 #########################################################################
 
 tb_update_check() {
-trap "tb_error_handler" ERR
+   trap "tb_error_handler" ERR
 
-#################################
-## preparation
-#################################
-## do not re-download Tor Browser if a previous build already did
-if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
-   if [ -d ~/tor-browser_"$TB_LANG"/ ]; then
-      echo "torbrowser: Not downloading Tor Browser again,
+   #################################
+   ## preparation
+   #################################
+   ## do not re-download Tor Browser if a previous build already did
+   if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
+      if [ -d ~/tor-browser_"$TB_LANG"/ ]; then
+         echo "torbrowser: Not downloading Tor Browser again,
 because ~/tor-browser_"$TB_LANG"/ already exists."
-      exit 0
+         exit 0
+      fi
    fi
-fi
 
-## progress bar for update check
-if [ "$TB_FORCE_INSTALL" = "1" ]; then
-   true
-else
-   exec 3> >(zenity --timeout 86400 --no-markup \
+   ## progress bar for update check
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      true
+   else
+      exec 3> >(zenity --timeout 86400 --no-markup \
    --window-icon /usr/share/whonix/icons/tbupdate.ico \
    --title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Checking Tor Browser version... Will take a moment...")
-fi
+   fi
 
-if [ "$DEV_PASSTHROUGH" = "1" ]; then
-   CURL_PROXY=""
-else
-   CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
-fi
+   if [ "$DEV_PASSTHROUGH" = "1" ]; then
+      CURL_PROXY=""
+   else
+      CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
+   fi
 
-progress_bar 5
-## Get into correct directory is required for relative paths.
-cd "/home/"$USERNAME""
+   #################################
+   ## Getting latest version number
+   #################################
 
-progress_bar 6
-## Delete old .tbbdownload folder.
-#rm --force --recursive ".tbbdownload/"
-progress_bar 7
-rm --force TorBrowser_installation_FAILED
+   progress_bar 10
+   debug "INFO: Find out latest version..."
+   LINK="https://check.torproject.org/RecommendedTBBVersions"
+   debug "INFO: Downloading: "$LINK""
+   
+   mkdir --parents ~/.tb
+   
+   CURL_RETURN="0"
+   $CURL \
+      $CURL_PROXY \
+      --tlsv1 \
+      --proto =https \
+      --max-time 300 \
+      --output ~/.tb/RecommendedTBBVersions \
+      "$LINK" \
+      || { CURL_RETURN="$?" ; true; };
 
-progress_bar 8
-## Create new .tbbdownload folder.
-mkdir --parents ".tbbdownload"
+   progress_bar 95
 
-progress_bar 9
-## Get into the .tbbdownload folder.
-cd ".tbbdownload"
-
-#################################
-## Getting latest version number
-#################################
-
-progress_bar 10
-debug "INFO: Find out latest version..."
-LINK="https://check.torproject.org/RecommendedTBBVersions"
-debug "INFO: Downloading: "$LINK""
-$CURL $CURL_PROXY \
---tlsv1 --proto =https --max-time 300 --output RecommendedTBBVersions "$LINK" || NETWORK_DOWN="1"
-
-progress_bar 95
-
-## Check if curl failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to download: "$LINK"
+   ## Check if curl failed.
+   if [ ! "$CURL_RETURN" = "0" ]; then
+      ZENITY_TYPE="--error"
+      output "Failed to download: "$LINK"
 
 $DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
-fi
+      progress_bar 100
+      exit 1
+   fi
 
-progress_bar 96
+   progress_bar 96
 }
 
 
 
 tb_download() {
-tbbversion
+   trap "tb_error_handler" ERR
 
-progress_bar 97
+   RecommendedTBBVersions=~/.tb/RecommendedTBBVersions
 
-#################################
-## Getting currently installed version number
-#################################
+   tbbversion
 
-progress_bar 98
+   if [ "$TBBVERSION" = "UNKNOWN" ]; then
+      ZENITY_TYPE="--error"
+      output "$VERSION_DETECTION_ERROR"
+      progress_bar 100
+      exit 1
+   fi
 
-## Will fail if the file does not exist, i.e. Tor Browser not installed.
-## Will not break the script.
-TBBINSTALLEDVERSION="$(head -1 ../tor-browser_"$TB_LANG"/Docs/version)" || true
+   progress_bar 97
 
-progress_bar 100
+   #################################
+   ## Getting currently installed version number
+   #################################
 
-if [ "$TBBINSTALLEDVERSION" != "" ]; then
-   #debug "INFO: Successfully detected Tor Browser version."
-   true
-else
-   debug "\
+   progress_bar 98
+
+   ## Will fail if the file does not exist, i.e. Tor Browser not installed.
+   ## Will not break the script.
+   TBBINSTALLEDVERSION="$(head -1 ~/tor-browser_"$TB_LANG"/Docs/version)" || true
+
+   progress_bar 100
+
+   if [ "$TBBINSTALLEDVERSION" != "" ]; then
+      #debug "INFO: Successfully detected Tor Browser version."
+      true
+   else
+      debug "\
 INFO: Could not determine the currently installed Tor Browser version.
 INFO: This could be either because none is installed or because the version format changed.\
 "
-   TBBINSTALLEDVERSION="UNKNOWN OR NONE"
-fi
+      TBBINSTALLEDVERSION="UNKNOWN OR NONE"
+   fi
 
-if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
-   VERSION_CHECK_RESULT="Looks like your Tor Browser version is up to date."
-else
-   VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
-fi
+   if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+      VERSION_CHECK_RESULT="Looks like your Tor Browser version is up to date."
+   else
+      VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
+   fi
 
-answer="0"
+   answer="0"
 
-ZENITY_TYPE="--question"
+   ZENITY_TYPE="--question"
 
-output "\
+   output "\
 "$VERSION_CHECK_RESULT"
 
 Please close Tor Browser if you want to upgrade!
@@ -434,173 +427,203 @@ A backup of your old Tor Browser and settings will be created in your home folde
 It is a good idea to delete old TBB backups once in a while if you are running low with disk space.\
 " || { answer=$? ; true; };
 
-## zenity return codes
-## no 1
-## yes 0
+   ## zenity return codes
+   ## no 1
+   ## yes 0
 
-debug "answer: $answer"
+   debug "answer: $answer"
 
-if [ "$TB_FORCE_INSTALL" = "1" ]; then
-	debug "INFO: TB_FORCE_INSTALL = 1"
-	true
-else
-	if [ "$answer" = "1" ]; then 
-		cd "/home/"$USERNAME""
-		#debug "INFO: Deleting temporary folder .tbbdownload."
-		#rm --force --recursive ".tbbdownload" || true
-		## Exit this function.
-		exit 0
-	fi
-fi
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      debug "INFO: TB_FORCE_INSTALL = 1"
+      true
+   else
+      if [ "$answer" = "1" ]; then 
+         ## Exit this function.
+         exit 0
+      fi
+   fi
 
-## progress bar for download
-if [ "$TB_FORCE_INSTALL" = "1" ]; then
-   true
-else
-   exec 3> >(zenity --timeout 86400 --no-markup \
-   --window-icon /usr/share/whonix/icons/tbupdate.ico \
-   --title="Tor Browser Update Check" "--progress" --auto-close --auto-kill --text "Downloading Tor Browser... Will take a while...")
-fi
+   ## progress bar for download
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      true
+   else
+      exec 3> >(\
+         zenity \
+         --timeout 86400 \
+         --no-markup \
+         --window-icon /usr/share/whonix/icons/tbupdate.ico \
+         --title="Tor Browser Update Check" \
+         --progress \
+         --auto-close \
+         --auto-kill \
+         --text "Downloading Tor Browser... Will take a while..."\
+      )
+   fi
 
+   ###########################################################
+   debug "INFO: Killing Tor Browser if it is still running..."
+   ###########################################################
 
-###########################################################
-debug "INFO: Killing Tor Browser if it is still running..."
-###########################################################
+   progress_bar 5
+   killall firefox || true
 
-progress_bar 5
-killall firefox || true
+   #######################################
+   debug "INFO: Installing Tor Browser..."
+   #######################################
 
-#######################################
-debug "INFO: Installing Tor Browser..."
-#######################################
+   trap "tb_error_handler" ERR
 
-trap "tb_error_handler" ERR
+   rm --recursive --force ~/.tb/gpgtmpdir/
+   mkdir --parents ~/.tb/gpgtmpdir/
+   chmod 700 ~/.tb/gpgtmpdir/
 
-mkdir --parents "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/"
-chmod 700 "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/"
+   gpg --homedir ~/.tb/gpgtmpdir/ --import /usr/share/whonix/keys/tbb-keys.d/*
 
-gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/share/whonix/gpg-pubkeys/sebastian.asc
-gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --import /usr/share/whonix/gpg-pubkeys/erinn.asc
+   ## Download from the torproject.org hidden service, instead over clearnet,
+   ## thus not involving any Tor exist nodes.
+   ## $WHONIX is an environment variable only set in Whonix (by /etc/environment).
+   if [ "$WHONIX" = 1 ]; then
+      TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+      ## Connections to hidden services are automatically encrypted end-to-end.
+      CURL_FORCE_SSL=""
+   else
+      ## Should only be the case when building Whonix from source while not being inside Whonix.
+      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
 
-## Download from the torproject.org hidden service, instead over clearnet,
-## thus not involving any Tor exist nodes.
-## $WHONIX is an environment variable only set in Whonix (by /etc/environment).
-if [ "$WHONIX" = 1 ]; then
-   TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
-   ## Connections to hidden services are automatically encrypted end-to-end.
-   CURL_FORCE_SSL=""
-else
-   ## Should only be the case when building Whonix from source while not being inside Whonix.
-   TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-   CURL_FORCE_SSL="--tlsv1 --proto =https"
-fi
+   progress_bar 10
 
-progress_bar 10
+   debug "INFO: Downloading GPG signature..."
+   TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
+   TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
+   debug "INFO: Downloading: "$TBB_SIG_LINK""
+   
+   CURL_RETURN="0"
+   $CURL \
+      $CURL_PROXY \
+      $CURL_FORCE_SSL \
+      --max-time 300 \
+      --output ~/.tb/"$TBB_SIG_FILENAME" \
+      "$TBB_SIG_LINK" \
+      || { CURL_RETURN="$?" ; true; };
 
-mkdir --parents "$TBBVERSION"
-cd "$TBBVERSION"
-
-debug "INFO: Downloading GPG signature..."
-TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
-TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
-debug "INFO: Downloading: "$TBB_SIG_LINK""
-$CURL $CURL_PROXY \
-$CURL_FORCE_SSL --max-time 300 --output "$TBB_SIG_FILENAME" "$TBB_SIG_LINK" || NETWORK_DOWN="1"
-
-## Check if curl failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to download: "$TBB_SIG_LINK"
-
-$DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
-fi
-
-progress_bar 30
-
-debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
-TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
-TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
-debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
-$CURL $CURL_PROXY \
-$CURL_FORCE_SSL --output "$TBB_PACKAGE_FILENAME" "$TBB_PACKAGE_LINK" || NETWORK_DOWN="1"
-
-## Check if curl failed.
-if [ "$NETWORK_DOWN" = "1" ]; then
-   ZENITY_TYPE="--error"
-   output "Failed to download: "$TBB_PACKAGE_LINK"
+   ## Check if curl failed.
+   if [ ! "$CURL_RETURN" = "0" ]; then
+      ZENITY_TYPE="--error"
+      output "Failed to download: "$TBB_SIG_LINK"
 
 $DOWNLOAD_FAIL_HELP"
-   progress_bar 100
-   exit 1
+      progress_bar 100
+      exit 1
+   fi
+
+   progress_bar 30
+
+   debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
+   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
+   TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
+   debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
+   
+   CURL_RETURN="0"
+   $CURL \
+      $CURL_PROXY \
+      $CURL_FORCE_SSL \
+      --output ~/.tb/"$TBB_PACKAGE_FILENAME" \
+      "$TBB_PACKAGE_LINK" \
+      || { CURL_RETURN="$?" ; true; };
+
+   ## Check if curl failed.
+   if [ ! "$CURL_RETURN" = "0" ]; then
+      ZENITY_TYPE="--error"
+      output "Failed to download: "$TBB_PACKAGE_LINK"
+
+$DOWNLOAD_FAIL_HELP"
+      progress_bar 100
+      exit 1
 fi
 
-progress_bar 90
+   progress_bar 90
 
 }
 
 tb_verify() {
-debug "INFO:
+   trap "tb_error_handler" ERR
+
+   debug "INFO:
 ## Verifying GPG signature.
 ## Not using the users GPG keyring also ensures, that the key can be only
 ## singed by the GPG keys we added. Signatures from random people from the
 ## users keyring will be ignored.
 "
-trap "gpg_download_verification_error" ERR
-gpg --homedir "/home/"$USERNAME"/.tbbdownload/gpgtmpdir/" --verify "tor-browser*.asc"
 
-trap "tb_error_handler" ERR
-debug "INFO: Signature valid."
+   TB_GPG_VERIFY_RETURN="0"
+   gpg \
+   --homedir ~/.tb/gpgtmpdir/ \
+   --verify ~/.tb/"$TBB_SIG_FILENAME" \
+   ~/.tb/"$TBB_PACKAGE_FILENAME" \
+   || { TB_GPG_VERIFY_RETURN="$?" ; true; };
+
+   debug "INFO: Signature valid."
+   
+   if [ ! "$TB_GPG_VERIFY_RETURN" = "0" ]; then
+      ZENITY_TYPE="--error"
+output "\
+ERROR: GPG download signature could NOT be verified.
+ERROR: Tor Browser update failed! Try again later.\
+"
+      progress_bar 100
+      exit 1      
+   fi
 }
 
 
 
 tb_extract() {
-tar -xzvf tor-browser-gnu-linux-*.tar.gz
+   trap "tb_error_handler" ERR
 
-progress_bar 91
-## The tor-browser_"$TB_LANG"/Docs folder should already exist.
-## Just to make sure the script will not break in case the get changed by upstream.
-mkdir --parents tor-browser_"$TB_LANG"/Docs
+   tar -xzvf ~/.tb/"$TBB_PACKAGE_FILENAME" -C ~/.tb/
 
-progress_bar 92
-debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
-mv tor-browser_"$TB_LANG"/start-tor-browser tor-browser_"$TB_LANG"/Docs/
+   progress_bar 91
+   ## The tor-browser_"$TB_LANG"/Docs folder should already exist.
+   ## Just to make sure the script will not break in case the get changed by upstream.
+   mkdir --parents tor-browser_"$TB_LANG"/Docs
 
-## Tor Browser changelog has been forgotten to update.
-## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
-## To play it safe and having a chance of finding out the installed version,
-## we create a file ourselves to remember it.
-debug "Creating version file tor-browser_"$TB_LANG"/Docs/version."
-echo ""$TBBVERSION"" > "tor-browser_"$TB_LANG"/Docs/version"
+   progress_bar 92
+   debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
+   mv ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser ~/.tb/tor-browser_"$TB_LANG"/Docs/
 
-progress_bar 93
-debug "INFO: Creating Unbundled Tor Browser startup script..."
-## Using this until Tor Browser upstream patch #7266 gets accepted.
-##    improve RelativeLink.sh script comments, patch attached
-##    https://trac.torproject.org/projects/tor/ticket/7266
-##
-## After #7266 got accepted, a new patch with TB_STANDALONE will
-## be proposed.
-##
-## Has been copied into Whonix-Workstation at build time.
-cp /usr/share/whonix/start-tor-browser tor-browser_"$TB_LANG"/start-tor-browser
-chmod +x tor-browser_"$TB_LANG"/start-tor-browser
+   ## Tor Browser changelog has been forgotten to update.
+   ## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
+   ## To play it safe and having a chance of finding out the installed version,
+   ## we create a file ourselves to remember it.
+   debug "Creating version file tor-browser_"$TB_LANG"/Docs/version."
+   echo ""$TBBVERSION"" > ~/.tb/tor-browser_"$TB_LANG"/Docs/version
 
-progress_bar 95
-debug "INFO: Moving old folder tor-browser_"$TB_LANG"..."
-mv /home/"$USERNAME"/tor-browser_"$TB_LANG" /home/"$USERNAME"/tor-browser_"$TB_LANG".old."$(date '+%F-%H:%M:%S')" || true
-progress_bar 96
-debug "INFO: Moving temporary folder .tbbdownload/tor-browser_"$TB_LANG" to /home/"$USERNAME"/tor-browser_"$TB_LANG""
-mv tor-browser_"$TB_LANG" "/home/"$USERNAME"/tor-browser_"$TB_LANG""
-progress_bar 97
-debug "INFO: Deleting temporary folder .tbbdownload..."
-progress_bar 98
-#rm --force --recursive "/home/"$USERNAME"/.tbbdownload"
-ZENITY_TYPE="--info"
-progress_bar 100
-output "Finished installing Tor Browser. Can be found in /home/"$USERNAME"/tor-browser_"$TB_LANG"."
+   progress_bar 93
+   debug "INFO: Creating Unbundled Tor Browser startup script..."
+   ## Using this until Tor Browser upstream patch #7266 gets accepted.
+   ##    improve RelativeLink.sh script comments, patch attached
+   ##    https://trac.torproject.org/projects/tor/ticket/7266
+   ##
+   ## After #7266 got accepted, a new patch with TB_STANDALONE will
+   ## be proposed.
+   ##
+   ## Has been copied into Whonix-Workstation at build time.
+   cp /usr/share/whonix/start-tor-browser ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser
+   chmod +x ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser
+
+   debug "INFO: Moving old folder ~/tor-browser_"$TB_LANG"..."
+   mv ~/tor-browser_"$TB_LANG" ~/"tor-browser_"$TB_LANG".old."$(date '+%F-%H:%M:%S')"" || true
+   
+   debug "INFO: Moving temporary folder ~/.tb/tor-browser_"$TB_LANG" to ~/tor-browser_"$TB_LANG"."
+   mv ~/.tb/tor-browser_"$TB_LANG" ~/tor-browser_"$TB_LANG"
+
+   ZENITY_TYPE="--info"
+   progress_bar 100
+   
+   local TEMP=~/tor-browser_"$TB_LANG"/
+   output "Finished installing Tor Browser. Can be found in $TEMP."
 }
 
 
@@ -658,12 +681,12 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 ## -update                                                     #
 ################################################################ 
 if [[ "$1" = "-update" ]]; then
-root_check
-tb_update_check
-tb_download
-tb_verify
-tb_extract
-exit 0
+   root_check
+   tb_update_check
+   tb_download
+   tb_verify
+   tb_extract
+   exit 0
 fi
 
 
@@ -672,14 +695,14 @@ fi
 ## -force-install                                              #
 ################################################################ 
 if [[ "$1" = "-force-install" ]]; then
-root_check
-export TB_FORCE_INSTALL="1"
-tb_update_check
-tb_download
-tb_verify
-tb_extract
-export TB_FORCE_INSTALL="0"
-exit 0
+   root_check
+   export TB_FORCE_INSTALL="1"
+   tb_update_check
+   tb_download
+   tb_verify
+   tb_extract
+   export TB_FORCE_INSTALL="0"
+   exit 0
 fi
 
 
@@ -688,18 +711,18 @@ fi
 ## -dev-build-passthrough                                      #
 ################################################################ 
 if [[ "$1" = "-dev-build-passthrough" ]]; then
-root_check
-DEV_BUILD_PASSTHROUGH="1"
-DEV_PASSTHROUGH="1"
-TB_FORCE_INSTALL="1"
-tb_update_check
-tb_download
-tb_verify
-tb_extract
-DEV_BUILD_PASSTHROUGH="0"
-DEV_PASSTHROUGH="0"
-TB_FORCE_INSTALL="0"
-exit 0
+   root_check
+   DEV_BUILD_PASSTHROUGH="1"
+   DEV_PASSTHROUGH="1"
+   TB_FORCE_INSTALL="1"
+   tb_update_check
+   tb_download
+   tb_verify
+   tb_extract
+   DEV_BUILD_PASSTHROUGH="0"
+   DEV_PASSTHROUGH="0"
+   TB_FORCE_INSTALL="0"
+   exit 0
 fi
 
 
@@ -709,10 +732,10 @@ fi
 ################################################################ 
 ## for compatibility
 if [[ "$1" = "-noreadme" ]]; then
-root_check
-LINK=""
-tb_start_new_tab
-exit 0
+   root_check
+   LINK=""
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -721,10 +744,10 @@ fi
 ## -start                                                      #
 ################################################################ 
 if [[ "$1" = "-start" ]]; then
-root_check
-LINK=""
-tb_start_new_tab
-exit 0
+   root_check
+   LINK=""
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -733,11 +756,11 @@ fi
 ################################################################ 
 ## for compatibility
 if [[ "$1" = "-readme" ]]; then
-root_check
-LINK="$DOC_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$DOC_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -746,11 +769,11 @@ fi
 ## -doc                                                        #
 ################################################################ 
 if [[ "$1" = "-doc" ]]; then
-root_check
-LINK="$DOC_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$DOC_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -759,11 +782,11 @@ fi
 ## -contribute                                                 #
 ################################################################ 
 if [[ "$1" = "-contribute" ]]; then
-root_check
-LINK="$CONTRIBUTE_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$CONTRIBUTE_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -772,11 +795,11 @@ fi
 ## -donate                                                     #
 ################################################################ 
 if [[ "$1" = "-donate" ]]; then
-root_check
-LINK="$DONATE_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$DONATE_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -784,11 +807,11 @@ fi
 ## -forum                                                      #
 ################################################################ 
 if [[ "$1" = "-forum" ]]; then
-root_check
-LINK="$FORUM_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$FORUM_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -797,11 +820,11 @@ fi
 ## -mailinglist                                                #
 ################################################################ 
 if [[ "$1" = "-mailinglist" ]]; then
-root_check
-LINK="$MAILINGLIST_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$MAILINGLIST_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -810,11 +833,11 @@ fi
 ## -importantblog                                              #
 ################################################################ 
 if [[ "$1" = "-importantblog" ]]; then
-root_check
-LINK="$IMPORTANTBLOG_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$IMPORTANTBLOG_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -823,11 +846,11 @@ fi
 ## -featureblog                                                #
 ################################################################ 
 if [[ "$1" = "-featureblog" ]]; then
-root_check
-LINK="$FEATUREBLOG_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$FEATUREBLOG_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -836,14 +859,14 @@ fi
 ## -recommend                                                  #
 ################################################################ 
 if [[ "$1" = "-recommend" ]]; then
-root_check
-LINK="$IMPORTANTBLOG_OFFLINE_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-LINK="$FEATUREBLOG_OFFLINE_LINK"
-debug "INFO: Setting link to $LINK"
-tb_start_new_tab
-exit 0
+   root_check
+   LINK="$IMPORTANTBLOG_OFFLINE_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   LINK="$FEATUREBLOG_OFFLINE_LINK"
+   debug "INFO: Setting link to $LINK"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -852,11 +875,11 @@ fi
 ## -new-tab                                                    #
 ################################################################ 
 if [[ "$1" = "-new-tab" ]]; then
-root_check
-debug "INFO: Setting link to $2" 
-LINK="$2"
-tb_start_new_tab
-exit 0
+   root_check
+   debug "INFO: Setting link to $2" 
+   LINK="$2"
+   tb_start_new_tab
+   exit 0
 fi
 
 
@@ -865,8 +888,8 @@ fi
 ## -help                                                       #
 ################################################################ 
 if [[ "$1" = "-help" ]]; then
-script_help
-exit 0
+   script_help
+   exit 0
 fi
 
 
@@ -875,8 +898,8 @@ fi
 ## -lang                                                       #
 ################################################################ 
 if [[ "$1" = "-lang" ]]; then
-tb_lang_help
-exit 0
+   tb_lang_help
+   exit 0
 fi
 
 
@@ -885,8 +908,8 @@ fi
 ## no option chosen                                            # 
 ################################################################ 
 if [[ "$1" = "" ]]; then 
-echo "torbrowser: No option chosen. Please run with -help to find out more."
-exit 0
+   echo "torbrowser: No option chosen. Please run with -help to find out more."
+   exit 0
 fi
 
 ## End of Whonix /usr/bin/torbrowser

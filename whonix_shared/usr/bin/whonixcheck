@@ -16,8 +16,9 @@ source /usr/lib/whonix/whonixcheck/help_output
 source /usr/lib/whonix/whonixcheck/10_preparation
 source /usr/lib/whonix/whonixcheck/help_uwt_tool
 source /usr/lib/whonix/whonixcheck/help_cli
-source /usr/lib/whonix/whonixcheck/help_phrase-cmd-options
+source /usr/lib/whonix/whonixcheck/help_parse-cmd-options
 source /usr/lib/whonix/whonixcheck/15_kill-old-instances
+source /usr/lib/whonix/whonixcheck/16_delete_old_files
 source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
 source /usr/lib/whonix/whonixcheck/20_check-lastrun
 source /usr/lib/whonix/whonixcheck/25_autostart
@@ -32,113 +33,127 @@ source /usr/lib/whonix/whonixcheck/help_tbbversion
 source /usr/lib/whonix/whonixcheck/65_check-torbrowser
 source /usr/lib/whonix/whonixcheck/67_check_clock
 source /usr/lib/whonix/whonixcheck/70_check-htpdate
+source /usr/lib/whonix/whonixcheck/72_donate
 source /usr/lib/whonix/whonixcheck/75_cleanup
 
+trap "error_handler" ERR ## help_error-handler
+
 whonixcheck_main() {
-  trap "error_handler" ERR
+   trap "error_handler" ERR ## help_error-handler
 
-  preparation ## 10_preparation
-  uwt_tool ## help_uwt_tool
-  phrase_cmd_options ${1+"$@"} ## help_phrase-cmd-options
-  kill_old_instances ## 15_kill-old-instances
-  check_whonixcheck_lastrun ## 20_check-lastrun
-  check_autostart ## 25_autostart
-  progress_bar ## help_output
-  welcome ## 30_welcome
-  disclaimer ## 35_disclaimer
+   parse_cmd_options ${1+"$@"} ## help_parse-cmd-options 
+   preparation ## 10_preparation
+   uwt_tool ## help_uwt_tool
+   progress_bar ## help_output
+   
+   if [ "$FUNCTION" = "" ]; then
+      true
+   else
+      $FUNCTION
+      return 0
+   fi
+  
+   if [ "$SHOW_X" = "1" ] || [ "$SHOW_CLI" = "1" ]; then
+      ## cleanup calls show_output
+      cleanup
+      return
+   fi
+   
+   kill_old_instances ## 15_kill-old-instances
+   delete_old_files ## 16_delete_old_files
+   check_whonixcheck_lastrun ## 20_check-lastrun
+   check_autostart ## 25_autostart
+   welcome ## 30_welcome
+   disclaimer ## 35_disclaimer
 
-  ## The 5% indicate, that the check has begun.
-  progress_bar 5
+   ## The 5% indicate, that the check has begun.
+   progress_bar 5
 
-  if [ -f "/usr/share/whonix/whonix_workstation" ]; then
-    ## for Whonix-Workstation
+   if [ -f "/usr/share/whonix/whonix_workstation" ]; then
+      ## for Whonix-Workstation
 
-    ## connection 1
-    check_tor "SocksPort" ## 40_check-tor
-    progress_bar 15
+      ## connection 1
+      check_tor "SocksPort" ## 40_check-tor
+      progress_bar 15
 
-    ## connection 2
-    check_tor "TransPort" ## 40_check-tor
-    progress_bar 30
+      ## connection 2
+      check_tor "TransPort" ## 40_check-tor
+      progress_bar 30
+      
+      ## no connection
+      check_stream_isolation ## 45_check-stream-isolation
 
-    ## no connection
-    check_stream_isolation ## 45_check-stream-isolation
+      ## connection 3
+      ## after checking IPs
+      ## early in list, because less likely to break
+      download_whonix_news ## 50_check-whonix-news
+      verify_whonix_news  ## 50_check-whonix-news
+      check_whonix_version  ## 50_check-whonix-news
+      check_whonix_news  ## 50_check-whonix-news
+      progress_bar 45
 
-    ## connection 3
-    ## after checking IPs
-    ## early in list, because less likely to break
-    download_whonix_news ## 50_check-whonix-news
-    verify_whonix_news  ## 50_check-whonix-news
-    check_whonix_version  ## 50_check-whonix-news
-    check_whonix_news  ## 50_check-whonix-news
-    progress_bar 45
+      ## connection 4
+      check_operating_system ## 55_check-operating-system
+      progress_bar 60
 
-    ## connection 4
-    check_operating_system ## 55_check-operating-system
-    progress_bar 60
+      ## connection 5
+      download_important_blog ## 60_download-whonix-blog
+      progress_bar 75
 
-    ## connection 5
-    download_important_blog ## 60_download-whonix-blog
-    progress_bar 75
+      ## connection 7
+      download_feature_blog ## 60_download-whonix-blog
+      progress_bar 90
 
-    ## connection 7
-    download_feature_blog ## 60_download-whonix-blog
-    progress_bar 90
+      ## connection 4
+      check_torbrowser ## 65_check-torbrowser
+      progress_bar 95
 
-    ## connection 4
-    check_torbrowser ## 65_check-torbrowser
-    progress_bar 95
+      ## no connection
+      check_bootclockrandomization
 
-    ## no connection
-    check_bootclockrandomization
+      ## no connection
+      ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
+      check_timesanitycheck
 
-    ## no connection
-    ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
-    check_timesanitycheck
+      ## no connection
+      ## last, more time to finish
+      check_htpdate ## 70_check-htpdate
 
-    ## no connection
-    ## last, more time to finish
-    check_htpdate ## 70_check-htpdate
+   else
+      ## for Whonix-Gateway
 
-  else
-    ## for Whonix-Gateway
+      ## no connection
+      check_tor_enabled
 
-    ## no connection
-    check_tor_enabled
+      ## connection 1
+      check_tor "SocksPort"
 
-    ## connection 1
-    check_tor "SocksPort"
+      ## connection 2
+      ## after checking IP
+      ## early in list, because less likely to break
+      download_whonix_news
+      verify_whonix_news
+      check_whonix_version
+      check_whonix_news
 
-    ## connection 2
-    ## after checking IP
-    ## early in list, because less likely to break
-    download_whonix_news
-    verify_whonix_news
-    check_whonix_version
-    check_whonix_news
+      ## connection 3
+      check_operating_system
 
-    ## connection 3
-    check_operating_system
+      ## no connection
+      check_bootclockrandomization
 
-    ## no connection
-    check_bootclockrandomization
+      ## no connection
+      ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
+      check_timesanitycheck
 
-    ## no connection
-    ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
-    check_timesanitycheck
+      ## no connection
+      ## last, more time to finish
+      check_htpdate
+   fi
 
-    ## no connection
-    ## last, more time to finish
-    check_htpdate
-  fi
-
-  whonixcheck_completed ## 20_check-lastrun
-
-  progress_bar 100
-  show_output ## help_output
-  cleanup ## 75_cleanup
-
-  exit 0
+   donate ## 72_donate
+   whonixcheck_completed ## 20_check-lastrun
+   cleanup ## 75_cleanup
 }
 
 whonixcheck_main ${1+"$@"}

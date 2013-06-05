@@ -3,6 +3,8 @@
 ## also used by timesync
 
 get_local_whonix_version() {
+   trap "error_handler" ERR
+
    ## Find out installed Whonix version.
    ## Read only FIRST line.
    INSTALLED_WHONIX_VERSION="Could not read local Whonix version file. Please report this bug!"
@@ -16,40 +18,27 @@ get_local_whonix_version() {
 preparation() {
    trap "error_handler" ERR
 
-   ## Initialize the variables.
+   if [ "$SHOW_CLI" = "1" ]; then
+      true
+   elif [ "$SHOW_X" = "1" ]; then
+      true
+   else
+      rm -f /var/run/whonix/whonixcheck/""$SCRIPTNAME"_done"
+      touch /var/run/whonix/whonixcheck/""$SCRIPTNAME"_running"
+   fi
+   
+   sync
+   
    USERNAME="user"
    WHONIX_HOMEPAGE="http://whonix.sf.net"
-   BUG="0"
    VERIFY_TEMPDIR="$(mktemp --directory)"
 
    ## returns: INSTALLED_WHONIX_VERSION
    get_local_whonix_version
 
-   ## Initialize more variables.
-   PROGRESS="0" ## used by timesync
-   NETWORK_DOWN="0"
-   NOT_USING_TOR="0"
-   DOWNLOAD_NEWS_SUCCESS="0"
-   WHONIX_NEWS_VERIFY_ERROR="0"
-   APT_GET_SUCCESS="1"
-   ZENITY_TYPE=""
-   ZENITY_TITLE=""
-   ZENITY_MESSAGE=""
-
    ## Prepare temporary directory.
-   #rm -r "$VERIFY_TEMPDIR" 2>/dev/null || true
    mkdir --parents "$VERIFY_TEMPDIR"
    chmod 700 "$VERIFY_TEMPDIR"
-   cd "$VERIFY_TEMPDIR"
-   
-   ## SOCKS_PORT_WHONIXCHECK="9110"
-   SOCKS_PORT_WHONIXCHECK="9110"
-   SOCKS_PORT_APT_GET="9104"
-   
-   ## SOCKS_PORT_WHONIXCHECK="9110"
-   SOCKS_PORT_WHONIXCHECK="9110"
-   SOCKS_PORT_APT_GET="9104"
-   SOCKS_PORT_WHONIX_NEWS="9114"
    
    if [ -f "/usr/share/whonix/whonix_gateway" ]; then
       VM="Whonix-Gateway"
@@ -58,7 +47,7 @@ preparation() {
       VM="Whonix-Workstation"
       GATEWAY_IP="192.168.0.10"
    else
-      VM="whonixcheck script could not determine if this is whonix_Gateway or whonix_Workstation. Please report this bug."
+      VM="whonixcheck script could not determine if this is whonix_gateway or whonix_workstation. Please report this bug."
       GATEWAY_IP="192.168.0.10"
    fi
  
@@ -67,7 +56,7 @@ preparation() {
    ARCH="$(uname --machine)"
   
    local MSG="INFO: $ARCH detected."
-   output "--info" "Info" "$MSG" "debug"
+   true "--info" "$MSG" "debug"
    
    TIME_START="$(date +%s)"
 }

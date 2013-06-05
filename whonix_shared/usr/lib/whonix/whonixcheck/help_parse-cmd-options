@@ -1,6 +1,6 @@
 #!/bin/bash
 
-phrase_cmd_options() {
+parse_cmd_options() {
    trap "error_handler" ERR
 
    ## If whonixcheck is run without command line arguments,
@@ -9,13 +9,13 @@ phrase_cmd_options() {
    ## defaults
    ##
    ## not being autostarted is the default
-   WHONIXCHECK_AUTOSTARTED="0"
+   AUTOSTARTED="0"
    ##
    ## adding --silent to curl to surpress output
-   WHONIXCHECK_CURL_VERBOSE="--silent"
+   CURL_VERBOSE="--silent"
    ##
    ## not adding any verbosity options to rawdog
-   WHONIXCHECK_RAWDOG_VERBOSE=""   
+   RAWDOG_VERBOSE=""   
    
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
@@ -24,36 +24,58 @@ phrase_cmd_options() {
    do
        case $1 in
            -h | --help | -\?)
-               whonixcheck_help
-               exit 0
+               help_cli
+               EXIT_CODE="0"
+               cleanup
+               return 0
                ;;               
            -v | --verbose)
                echo "$SCRIPTNAME verbose output..."
                echo "Script running as $(whoami)"
-               set -x
-               WHONIXCHECK_CURL_VERBOSE=""
-               WHONIXCHECK_RAWDOG_VERBOSE="--verbose"
-               WHONIXCHECK_VERBOSE="1"
+               CURL_VERBOSE=""
+               RAWDOG_VERBOSE="--verbose"
+               VERBOSE="1"
                shift
                ;;
            -a | --autostart)
-               WHONIXCHECK_AUTOSTARTED="1"
+               AUTOSTARTED="1"
                shift
                ;;               
            -c | --cron)
-               WHONIXCHECK_AUTOSTARTED="1"
-               WHONIXCHECK_RUN_BY_CRON="1"
-               echo "WHONIXCHECK_RUN_BY_CRON=1, setting DISPLAY to: :0"
+               RUN_BY_CRON="1"
+               echo "RUN_BY_CRON=1, setting DISPLAY to: :0"
                DISPLAY=":0"
                shift
-               ;;                  
+               ;;
+           -i | --showcli)
+               SHOW_CLI="1"
+               shift
+               ;;
+           -x | --showx)
+               SHOW_X="1"
+               shift
+               ;;
+           -n | --nosleep)
+               NOSLEEP="1"
+               shift
+               ;;
+           -l | --nochecklastrun)
+               NOCHECKLASTRUN="1"
+               shift
+               ;;
+           -f | --function)
+               FUNCTION="$2"
+               shift 2
+               ;;                   
            --)
                shift
                break
                ;;
            -*)
                echo "$SCRIPTNAME unknown option: $1" >&2
-               exit 1
+               EXIT_CODE="1"
+               cleanup
+               return 0
                ;;
            *)
                break

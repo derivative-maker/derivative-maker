@@ -2,7 +2,7 @@
 
 download_important_blog() {
    trap "error_handler" ERR
-   
+
    BLOG_NAME="Whonix Important Blog"
    BLOG_URL="http://sourceforge.net/p/whonix/blog/feed"
    RAWDOG_CONFIG="/etc/whonixcheck_rawdog/importantblog.conf"
@@ -14,7 +14,7 @@ download_important_blog() {
 
 download_feature_blog() {
    trap "error_handler" ERR
-   
+
    BLOG_NAME="Whonix Feature Blog"
    BLOG_URL="http://sourceforge.net/p/whonix/featureblog/feed"
    RAWDOG_CONFIG="/etc/whonixcheck_rawdog/featureblog.conf"
@@ -27,33 +27,35 @@ download_feature_blog() {
 download_blog() {
    trap "error_handler" ERR
 
-   local DOWNLOAD_BLOG_SUCCESS="1"
    local MSG="Downloading "$BLOG_NAME"..."
-   output "--info" "Info" "$MSG" "echo"
+   output "--info" "$MSG" "echo"
 
    rm -f "$FEED_FILE"
    
-   local NETWORK_DOWN="0"
+   local DOWNLOAD_BLOG_RETURN="0"
 
    ## --tlsv1 --proto =https \
    
    $CURL \
-      $WHONIXCHECK_CURL_VERBOSE \
+      $CURL_VERBOSE \
       --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
       --max-time 300 \
       --location \
       --output "$FEED_FILE" \
       "$BLOG_URL" \
-      || local NETWORK_DOWN="1"
+      || { local DOWNLOAD_BLOG_RETURN="$?" ; true; };
       
-   if [ "$NETWORK_DOWN" = "1" ]; then
-      local MSG="Could not download "$BLOG_NAME"."
-      output "--error" "ERROR" "$MSG" "both"
-      return
-   fi      
+   if [ "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
+      return 0
+   fi
+
+   local MSG="Could not download "$BLOG_NAME". (Code: "$DOWNLOAD_BLOG_RETURN")"
+   output "--error" "$MSG" "both"
 }
 
 parse_blog() {
+   trap "error_handler" ERR
+
    ## rawdog unfortunately always requires a config file in /home/$user/.rawdog/config,
    ## see man rawdog.
    cp /etc/whonixcheck_rawdog/config /home/rawdog/.rawdog/config
@@ -66,22 +68,22 @@ parse_blog() {
    ## our own interval anyway. Maybe not necessary.
    rm -f /home/rawdog/.rawdog/state
 
-   local RAWDOG_FAIL="0"
+   local RAWDOG_RETURN="0"
    
    sudo -u rawdog $RAWDOG \
       --config "$RAWDOG_CONFIG" \
-      $WHONIXCHECK_RAWDOG_VERBOSE \
+      $RAWDOG_VERBOSE \
       --update \
       --write \
-      || local RAWDOG_FAIL="1"
+      || { local RAWDOG_RETURN="$?" ; true; };
 
-   if [ "$RAWDOG_FAIL" = "1" ]; then
-      local MSG="Could not parse "$BLOG_NAME"."
-      output "--error" "ERROR" "$MSG" "both"
-      return
+   if [ "$RAWDOG_RETURN" = "0" ]; then
+      local MSG="Successfully downloaded "$BLOG_NAME"."
+      output "--info" "$MSG" "both"
+      return 0
    fi
 
-   local MSG="Successfully downloaded "$BLOG_NAME"."
-   output "--info" "Info" "$MSG" "both"
+   local MSG="Could not parse "$BLOG_NAME". (Code: "$RAWDOG_RETURN")"
+   output "--error" "$MSG" "both"
 }
 

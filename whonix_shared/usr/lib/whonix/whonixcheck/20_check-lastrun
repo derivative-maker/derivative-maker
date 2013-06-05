@@ -7,7 +7,10 @@ check_whonixcheck_lastrun() {
    ## A day has 86400 seconds.
    local MAX="86400"
    
-   if [ -f "/home/user/.whonixcheck/lastrun" ]; then
+   ## Using "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun", because
+   ## /var/run/ gets cleared on boot.
+   
+   if [ -f "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun" ]; then
       local i="0"
       while read LINE; do
          let i "i=i+1" ||  true
@@ -15,12 +18,10 @@ check_whonixcheck_lastrun() {
          if [ "$i" = "1" ]; then
             local LASTRUN="$LINE"
          fi
-      done < "/home/user/.whonixcheck/lastrun"
+      done < "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun"
    else
       ## the whonixcheck_completed function does almost the same
       local LASTRUN="$MAX"
-      mkdir --parents /home/user/.whonixcheck/
-      echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
    fi
 
    local CURRENTTIME="$(date +%s)"
@@ -33,12 +34,9 @@ check_whonixcheck_lastrun() {
    #echo "DIFFERENCE: $DIFFERENCE MAX: $MAX"
 
    if [ "$DIFFERENCE" -le "$MAX" ]; then
-      WHONIXCHECK_RECENTLY_RUN="1"
+      RECENTLY_RUN="1"
    else
-      WHONIXCHECK_RECENTLY_RUN="0"
-
-      local MSG="Whonixcheck has not completed for more than one day. Running checks again..."
-      output "--info" "Info" "$MSG" "echo"
+      RECENTLY_RUN="0"
    fi
 }
 
@@ -46,7 +44,6 @@ whonixcheck_completed() {
    trap "error_handler" ERR
 
    local LASTRUN="$(date +%s)"
-   mkdir --parents /home/user/.whonixcheck/
-   echo "$LASTRUN" > "/home/user/.whonixcheck/lastrun"
+   echo "$LASTRUN" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun"
 }
 

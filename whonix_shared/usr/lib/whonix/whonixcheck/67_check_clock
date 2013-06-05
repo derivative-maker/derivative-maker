@@ -1,33 +1,33 @@
 #!/bin/bash
 
 check_bootclockrandomization() {
-   trap "" ERR
-   ## There is an exception in /etc/sudoers.d/bootclockrandomization.
-   sudo service bootclockrandomization status
-   local returncode="$?"
    trap "error_handler" ERR
+
+   ## There is an exception in /etc/sudoers.d/bootclockrandomization.
+   local returncode=0
+   sudo service bootclockrandomization status || { local returncode=$? ; true; };
    
    if [ "$returncode" = "0" ]; then
       local MSG="bootclockrandomization success."
-      #output "--info" "Info" "$MSG" "both"
+      #output "--info" "$MSG" "both"
    else
       local MSG="bootclockrandomization failed. Please report this bug!
 Last 6 lines of /var/log/bootclockrandomization.log:
 $(tail -n 6 /var/log/bootclockrandomization.log)"
-      output "--error" "ERROR" "$MSG" "both"        
+      output "--error" "$MSG" "both"        
    fi
 }
 
 check_timesanitycheck() {
-   trap "" ERR
-   ## There is an exception in /etc/sudoers.d/timesanitycheck.
-   sudo service timesanitycheck status
-   local returncode="$?"
    trap "error_handler" ERR
+
+   ## There is an exception in /etc/sudoers.d/timesanitycheck.
+   local returncode=0
+   sudo service timesanitycheck status || { local returncode=$? ; true; };
    
    if [ "$returncode" = "0" ]; then
       local MSG="timesanitycheck success."
-      #output "--info" "Info" "$MSG" "both"
+      #output "--info" "$MSG" "both"
    else
       local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!!
 Last 6 lines of /var/log/timesanitycheck.log:
@@ -35,7 +35,7 @@ $(tail -n 6 /var/log/timesanitycheck.log)
 
 Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
 If your host clock is sane, please report a bug."
-      output "--error" "ERROR" "$MSG" "both"  
+      output "--error" "$MSG" "both"  
    fi
 }
 

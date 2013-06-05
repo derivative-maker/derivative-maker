@@ -3,31 +3,40 @@
 welcome() {
    trap "error_handler" ERR
 
-   if [ "$SCRIPTNAME" = "timesync" ]; then
-      check_htpdate_status    
-      if [ "$TIMESYNC_AUTOSTART" = "1" ] || [ "$TIMESYNC_CRON" = "1" ]; then
-         ## No need for flashing a progress meter, if htpdate already succeeded.
-         if [ "$HTPDATE_STATUS" = "SUCCESS" ]; then
-            return
-         fi
-      fi
+   ## No progress bar if automatically started,
+   ## dispatching the progress bar in that case is the task
+   ## of --showx.
+   if [ "$AUTOSTARTED" = "1" ]; then
+      return 0
    fi
 
    ## No progress meter, if timesync was run by cron.
-   if [ "$TIMESYNC_CRON" = "1" ]; then
-      return
+   if [ "$SCRIPTNAME" = "timesync" ]; then 
+      if [ "$RUN_BY_CRON" = "1" ]; then
+         return 0
+      fi
    fi
    
-   #echo "whonixcheck by Whonix
-#$WHONIX_HOMEPAGE
-#--help for help.
-#Running checks..."
-
+   ## Protect progress bar from starting multiple times,
+   ## to prevent flashing it over and over again.
+   if [ "$STARTED_ZENITY_BAR" = "1" ]; then   
+      return 0
+   fi
+   
    STARTED_ZENITY_BAR="1"
    local TITLE="$SCRIPTNAME $VM $INSTALLED_WHONIX_VERSION Info $(date)"
    ## The progress window will close automatically after 100% progress.
-   exec 3> >(zenity --display="$DISPLAY" --timeout "86400" --no-markup \
-   --window-icon "/usr/share/whonix/icons/whonix.ico" \
-   --title=" $TITLE " --progress --auto-close --auto-kill --text "$NOTIFY_MSG")
+   exec 3> >(\
+      zenity \
+      --display="$DISPLAY" \
+      --timeout "86400" \
+      --no-markup \
+      --window-icon "/usr/share/whonix/icons/whonix.ico" \
+      --title=" $TITLE " \
+      --progress \
+      --auto-close \
+      --auto-kill \
+      --text "$NOTIFY_MSG"\
+   )
 }
 

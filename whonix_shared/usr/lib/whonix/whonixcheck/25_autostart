@@ -1,16 +1,16 @@
 #!/bin/bash
 
 check_autostart() {
-   ## This script gets run by:
-   ## - /etc/profile.d/whonixcheck.sh
-   ## - /home/user/.config/autostart/whonixcheck.desktop
-   ## - user cron
-
    trap "error_handler" ERR
 
+   ## This script gets run by:
+   ## - /etc/profile.d/
+   ## - /etc/xdg/autostart/whonixcheck.desktop
+   ## - /etc/cron.d/
+
    ## If it was not autostarted the user is free to re-run the checks.
-   if [ "$WHONIXCHECK_AUTOSTARTED" = "0" ]; then
-      return
+   if [ ! "$AUTOSTARTED" = "1" ]; then
+      return 0
    fi
 
    ## To prevent issuing leaving a clear network fingerprint,
@@ -25,37 +25,46 @@ check_autostart() {
    ## For debugging.
    #local DELAY="10"
 
-   if [ "$WHONIXCHECK_RECENTLY_RUN" = 0 ]; then
-      local MSG="Running whonixcheck in "$DELAY" seconds..."
-      output "--info" "Info" "$MSG" "echo"
-      
-      #notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
-      kdialog --passivepopup "$MSG" "$DELAY" 2>/dev/null || true
-
-      sleep "$DELAY"
-   else
-      ## If it was run by cron and there is nothing to tell, say nothing.
-      if [ "$WHONIXCHECK_RUN_BY_CRON" = "1" ]; then
-         local MSG="whonixcheck started by cron. whonixcheck checks completed $DIFFERENCE seconds ago. No need to run again."
-         output "--info" "Info" "$MSG" "debug"
+   if [ "$NOCHECKLASTRUN" = "1" ]; then
+      RECENTLY_RUN="0"
+   fi   
+   
+   if [ "$RECENTLY_RUN" = "0" ]; then
+      if [ "$NOSLEEP" = "1" ]; then
+         return 0
+      else
+         local MSG="$SCRIPTNAME has not completed for more than one day. Running $SCRIPTNAME again in "$DELAY" seconds..."
          
-         ## Useful echo for testing.
-         echo MSG="$MSG"
+         echo "$MSG" > /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting"
+         echo "--info" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
 
-         exit 0
+         ## "|| true", so the sleep process can be killed for debugging.
+         sleep "$DELAY" || true
+      fi
+   else
+      touch "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_recently_run"
+   
+      ## If it was run by cron and there is nothing to tell, say nothing,
+      ## only send a debug message, if debugging is enabled.
+      if [ "$RUN_BY_CRON" = "1" ]; then
+         local MSG="$SCRIPTNAME started by cron. $SCRIPTNAME checks completed $DIFFERENCE seconds ago. No need to run again."
+         
+         echo "$MSG" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_cli
+         echo "$MSG" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_x
+         echo "--info" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
+         
+         EXIT_CODE="0"
+         cleanup
+         return 0
       fi
 
-      local MSG="No need to run whonixcheck, was run less than one day ago. You could still start whonixcheck manually."
-      output "--info" "Info" "$MSG" "echo"
-
-      #notify-send --expire-time ""$DELAY"000" "whonixcheck" "$MSG" || true
-      kdialog --passivepopup "$MSG" "$DELAY" 2>/dev/null || true
-
-      exit 0
+      local MSG="No need to run $SCRIPTNAME, was run less than one day ago. You could still start $SCRIPTNAME manually."
+      echo "$MSG" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_cli
+      echo "$MSG" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_x
+      echo "--info" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
+      
+      EXIT_CODE="0"
+      cleanup
+      return 0
    fi
-
-   ## notify-send will fade out in max. 10 seconds due to an upstream bug:
-   ##    https://bugs.launchpad.net/ubuntu/+source/notify-osd/+bug/390508
-   ## Using || true in case notify-send is not installed.
-   ## (notify-send --expire-time expects milliseconds, hence adding 000.)
 }

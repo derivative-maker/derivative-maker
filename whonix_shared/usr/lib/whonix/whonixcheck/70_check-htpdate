@@ -1,6 +1,8 @@
 #!/bin/bash
 
 run_timesanitycheck() {
+   trap "error_handler" ERR
+
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
    sudo service timesanitycheck restart
 }
@@ -14,17 +16,17 @@ check_htpdate_status() {
    
    if [ ! -f "$pid_file" ]; then
       HTPDATE_STATUS="NO_PID"
-      return
+      return 0
    fi
    
    if [ -f "$success_file" ]; then
       HTPDATE_STATUS="SUCCESS"
-      return
+      return 0
    fi
    
    if [ -f "$done_file" ]; then
       HTPDATE_STATUS="DONE"
-      return
+      return 0
    fi
    
    HTPDATE_STATUS="RUNNING"
@@ -32,7 +34,7 @@ check_htpdate_status() {
 
 check_htpdate() {
    trap "error_handler" ERR
-   
+
    local HELPTEXT="See logfile: tail -f -n 20 /var/log/htpdate.log
 See status files: cd /var/run/htpdate && dir
 Try again: Start menu -> Applications -> System -> Whonix Timesync
@@ -41,11 +43,9 @@ Last resort: manually set the clock! (In UTC!):
              sudo su
              date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
 
-   trap "" ERR
+   local TIMESANITYCHECK_STATUS=0
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
-   sudo service timesanitycheck status
-   local TIMESANITYCHECK_STATUS="$?"
-   trap "error_handler" ERR
+   sudo service timesanitycheck status || { local TIMESANITYCHECK_STATUS="$?" ; true; };
 
    let "PROGRESS=$PROGRESS+1" || true
    progress_bar $PROGRESS
@@ -73,19 +73,19 @@ TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS"
 pid_file does not exist. Please report this bug!
 
 $HELPTEXT"
-      output "--error" "ERROR" "$MSG" "both"
-      return
+      output "--error" "$MSG" "both"
+      return 0
    fi
 
    if [ "$HTPDATE_STATUS" = "SUCCESS" ]; then
       local success_file="/var/run/htpdate/success"
       local SUCCESS_TIME="$(date -r "$success_file")" 
       
-      if [ "$TIMESANITYCHECK_STATUS" = 0 ]; then
+      if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## Ok.
          local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful."
-         output "--info" "Info" "$MSG" "both"
-         return
+         output "--info" "$MSG" "both"
+         return 0
       else
          ## Something went wrong.
          local MSG="The clock is not sane,
@@ -95,13 +95,13 @@ Please report this bug!
 Either timesync has a bug or this is an attack. Better manually set your clock!!!
 
 $HELPTEXT"
-         output "--error" "ERROR" "$MSG" "both"
-         return
+         output "--error" "$MSG" "both"
+         return 0
       fi
    fi
    
    if [ "$HTPDATE_STATUS" = "DONE" ]; then
-      if [ "$TIMESANITYCHECK_STATUS" = 0 ]; then
+      if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## Htpdate done, but no success. The clock is sane. This should rarely happen,
          ## only in case the internet connection was down at this point.
          local MSG="Network Time Synchronization (timesync) done, but no success!!!
@@ -112,16 +112,16 @@ Test your internet connection: Start menu -> Applications -> System -> Whonixche
                                or in Terminal with debugging: whonixcheck -v
 
 $HELPTEXT"
-         output "--error" "ERROR" "$MSG" "both"
-         return
+         output "--error" "$MSG" "both"
+         return 0
       else
          local MSG="Network Time Synchronization (timesync) done, but no success!!!
 Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
 If your host clock is sane, please report a bug.
 
 $HELPTEXT"
-         output "--error" "ERROR" "$MSG" "both"
-         return      
+         output "--error" "$MSG" "both"
+         return 0
       fi
    fi
 
@@ -131,7 +131,7 @@ $HELPTEXT"
       #echo "check_htpdate debug info: Not done. Waiting up to $WAIT_RESULT more seconds."
       sleep 7
       check_htpdate
-      return
+      return 0
    fi
 
    ## This following code should get rarely hit, only in case of a bug,
@@ -143,8 +143,8 @@ TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS"
 Please report this bug!
 
 $HELPTEXT"
-   output "--error" "ERROR" "$MSG" "both"
-   return
+   output "--error" "$MSG" "both"
+   return 0
 }
 
 

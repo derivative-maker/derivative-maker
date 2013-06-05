@@ -4,38 +4,43 @@
 
 ## Check is Tor enabled.
 check_tor_enabled_do() {
+   trap "error_handler" ERR
+
    if [ ! -e "/usr/share/whonix/whonix_gateway" ]; then
-      return 1
+      TOR_ENABLED=1
+      return 0
    fi
    if [ ! -e "/etc/tor/torrc" ]; then
       error "check_tor_enabled: file /etc/tor/torrc does not exist."
-      return 1
-   fi   
+      TOR_ENABLED=0
+      return 0
+   fi
    while read LINE; do
       if [ "$LINE" = "DisableNetwork 1" ]; then     
+         TOR_ENABLED=0
          return 0
       fi
    done < "/etc/tor/torrc"   
-   return 1
+   TOR_ENABLED=1
+   return 0
 } 
 
 ## Aborting whonixcheck if whonixsetup was not run, i.e. if
 ## "DisableNetwork 1" is commented in in /etc/tor/torrc.
 check_tor_enabled() {
+   trap "error_handler" ERR
+
    check_tor_enabled_do
-   returncode="$?"
-   if [ "$returncode" = "0" ]; then
-      local MSG='Not starting whonixcheck, because "DisableNetwork 1" is in commented in /etc/tor/torrc. Please run whonixsetup.'
-      output "--warning" "Info" "$MSG" "both"
-      progress_bar 100
-      show_output
+
+   if [ "$TOR_ENABLED" = "0" ]; then
+      local MSG='Not starting whonixcheck, because "DisableNetwork 1" is in commented in /etc/tor/torrc. Please run: sudo whonixsetup'
+      output "--warning" "$MSG" "both"
+      EXIT_CODE="1"
       cleanup
-      exit 1
+      return
    else
       local MSG='"DisableNetwork 1" in /etc/tor/torrc not commented in, ok.'
-      #output "--info" "Info" "$MSG" "both"
+      #output "--info" "$MSG" "both"
    fi
 }
-
-#check_tor_enabled
 
