@@ -13,58 +13,42 @@ cd help-steps
 source variables
 source pre
 
-run-chroot-scripts-img() {
+run-chroot-scripts() {
    trap "error_handler_general" ERR INT TERM
 
    sync
 
+   ## Ignored on bare-metal.
    ./mount-img
+   ## Ignored on bare-metal.
    ./chroot-img
 
    sync
 
    ## Just for testing.
-   chroot "$CHROOT_FOLDER" dir
-   chroot "$CHROOT_FOLDER" ls -l "/usr/bin/"
-   chroot "$CHROOT_FOLDER" mount
-   chroot "$CHROOT_FOLDER" update-grub -v
-   chroot "$CHROOT_FOLDER" sync
+   $CHROOT dir
+   $CHROOT ls -l "/usr/bin/"
+   $CHROOT mount
+   $CHROOT update-grub -v
+   $CHROOT sync
    sync
 
    ## Check which chroot scripts we got.
-   chroot "$CHROOT_FOLDER" run-parts --verbose --test "/usr/share/whonix/chroot-scripts-pre.d"
+   $CHROOT run-parts --verbose --test "/usr/share/whonix/chroot-scripts-pre.d"
 
    ## Run the chroot scripts.
    ## (Which got copied into the image by copyinto.)
-   chroot "$CHROOT_FOLDER" run-parts --verbose --exit-on-error "/usr/share/whonix/chroot-scripts-pre.d"
+   $CHROOT run-parts --verbose --exit-on-error "/usr/share/whonix/chroot-scripts-pre.d"
 
    sync
 
+   ## Ignored on bare-metal.
    ./unchroot-img
+   ## Ignored on bare-metal.   
    ./unmount-img
 
    sync
 }
 
-run-chroot-scripts-bare-metal() {
-   trap "error_handler_general" ERR INT TERM
-
-   sync
-
-   ## Check which "chroot" scripts we got.
-   run-parts --verbose --test "/usr/share/whonix/chroot-scripts-pre.d"
-
-   ## Run the "chroot" scripts.
-   ## (Which got copied into the image by copyinto.)
-   run-parts --verbose --exit-on-error "/usr/share/whonix/chroot-scripts-pre.d"
-
-   sync
-
-}
-
-if [ "$BARE_METAL" = "1" ]; then
-   run-chroot-scripts-bare-metal
-else
-   run-chroot-scripts-img
-fi
+run-chroot-scripts
 
