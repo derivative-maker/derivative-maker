@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+run-chroot-scripts-post-d() {
+   trap "error_handler_general" ERR INT TERM
+
+   sync
+
+   ## Ignored on bare-metal.
+   ./mount-img
+   ## Ignored on bare-metal.
+   ./chroot-img
+
+   sync
+
+   ## Just for testing.
+   $CHROOT dir
+   $CHROOT ls -l "/usr/bin/"
+   $CHROOT mount
+   $CHROOT update-grub -v
+   $CHROOT sync
+   sync
+
+   ## Check which chroot scripts we got.
+   $CHROOT run-parts --verbose --test "/usr/share/whonix/chroot-scripts-post.d"
+
+   ## Run the chroot scripts.
+   ## (Which got copied into the image by copyinto.)
+   $CHROOT run-parts --verbose --exit-on-error "/usr/share/whonix/chroot-scripts-post.d"
+
+   sync
+
+   ## Ignored on bare-metal.
+   ./unchroot-img
+   ## Ignored on bare-metal.   
+   ./unmount-img
+
+   sync
+}
+
+run-chroot-scripts-post-d
+
+ 
