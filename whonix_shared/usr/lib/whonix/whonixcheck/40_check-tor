@@ -117,24 +117,31 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
    ## and choose which message to show.
    if [ "$TOR_OR_NOT" = "" ]; then
       NOT_USING_TOR="1"
-      local MSG="Tor's $1: Looks like you are not connected through Tor!
+
+      if [ "$WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE" = "1" ]; then
+         local MSG="Tor's $1: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this.
+$IP"     
+         output "--info" "$MSG" "both"
+      else
+         local MSG="Tor's $1: Looks like you are not connected through Tor!
 Possible reasons:
 - There could be something wrong.
 - You added a VPN.
 - You added a transproxy.
 - It's a false positive. https://check.torproject.org fails in some cases to detect exit nodes.
-$IP"
-      output "--error" "$MSG" "both"
+$IP
 
-      #############################################
-      ## If you are a VPN user or have another    #
-      ## special setup, comment out the following #
-      ## 3 lines.                                 #
-      EXIT_CODE="1"
-      cleanup
-      return 0
-      #############################################
-
+(
+ VPN/transproxy users:
+ In case you added a VPN/transproxy and do not want whonixcheck to stop once this has been detected, see whonixcheck /etc/whonix.d/10_whonixcheck_default configuration file.
+)
+"
+         output "--error" "$MSG" "both"      
+         EXIT_CODE="1"
+         cleanup
+         return 0
+      fi
+      
    else
       local MSG="Tor's $1: You are successfully using Tor. $IP"
       output "--info" "$MSG" "both"
