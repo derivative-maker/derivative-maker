@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+create-debian-packages() {
+   trap "error_handler_general" ERR INT TERM
+
+   ## If whonix_build is run with -fast switch.
+   if [ "$FAST" = "1" ]; then
+      echo "create-debian-packages: run with -fast switch. Skipping package creation step."
+      exit 0
+   fi
+
+   cd "$MYDIR"
+   cd ..
+   
+   sudo -u "$USERNAME" make clean
+   sudo -u "$USERNAME" make package
+} 
+
+create-debian-packages
+
