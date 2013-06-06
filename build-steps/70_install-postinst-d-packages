@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+install-postinst-d-packages() {
+   trap "error_handler_general" ERR INT TERM
+
+   sync
+
+   ./mount-img
+   ./chroot-img
+
+   sync
+
+   ## Just for testing.
+   $CHROOT update-grub -v
+   $CHROOT sync
+   sync
+   
+   if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then 
+      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-gateway-postinst_"$VERSION"_all.deb
+   elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-workstation-postinst_"$VERSION"_all.deb
+   else
+      bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tg-bare-metal nor -tw nor tw-bare-metal"
+   fi   
+   
+   sync
+
+   ./unchroot-img
+   ./unmount-img
+
+   sync
+}
+
+install-postinst-d-packages
+
+
+ 
