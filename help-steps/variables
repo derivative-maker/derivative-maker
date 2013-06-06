@@ -107,14 +107,22 @@ if [ -z $MACHINE ]; then
 else
    if [ "$VMNAME" = "unknown" ]; then
       set -x
-      bug "variabels: VMNAME is still unknown. Something went wrong. Please report this BUG."
+      bug "Variables: VMNAME is still unknown. Something went wrong. Please report this BUG."
       exit 1
    else
       echo "Variables: Internal run for: $MACHINE"
    fi
 fi
 
-export WHONIX_INITIAL_DEB_INSTALL_FOLDER=""$CHROOT_FOLDER"/var/lib/whonix/initialdeb"
+if [ "$BARE_METAL" = "1" ]; then
+   CHROOT=""
+else
+   CHROOT="chroot "$CHROOT_FOLDER"" 
+fi   
+
+export DEB_INSTALL_FOLDER="/var/lib/whonix/initialdeb"
+
+export WHONIX_INITIAL_DEB_INSTALL_FOLDER=""$CHROOT_FOLDER"/"$DEB_INSTALL_FOLDER""
 
 set -x
 
