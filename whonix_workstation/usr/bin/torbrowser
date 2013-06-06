@@ -3,101 +3,13 @@
 ## Whonix /usr/bin/torbrowser
 
 ## Tor Browser download script for Whonix.
+## See its man page for available command line options.
 
-script_help() {
-   echo "
-## This script may break when the file name
-## or RecommendedTBBVersions format changes!
-##
-## Do not run as root!
-##
-## This script is currently only tested
-## in Whonix. It could be easily
-## made to work in Tails or on any Linux.
-##
-## -update
-## Check if there is an update and ask to
-## install it. Will create a backup.
-##
-## -force-install
-## Installs without asking. Will create
-## a backup.
-##
-## -dev-build-passthrough
-## For developers only! Do not use!
-## Internally used by the build scripts.
-##
-## -new-tab url
-## Opens a new tab or starts Tor Browser and
-## opens a new tab.
-##
-## -doc
-## Starts Tor Browser and opens the
-## Online Documentation.
-##
-## -start
-## Starts Tor Browser.
-##
-## -help
-## Show this help.
-"
-}
-
-## -contribute
-## -donate
-## -forum
-## -mailinglist
-## -importantblog
-## -featureblog
-## -recommend
-
-
-
-tb_lang_help() {
-   echo '
-Available languages as in October 2012:
-ar
-de
-en-US
-es-ES
-fa
-fr
-it
-ko
-nl
-pl
-pt-PT
-ru
-vi
-zh-CN
-
-To check if further languages are supported visit:
-https://www.torproject.org/dist/torbrowser/linux/
-http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux/
-
-Always use:
-    export TB_LANG="<language code>"
-to set the language before running
-torbrowser -update.
-
-For example, for Vietnamese use:
-    export TB_LANG="vi"
-
-Replace "vi" with "zh-CN" for Chinese
-and so on.
-'
-}
-
-
-
-## -force-install is internally used by
-## chroot-script 70_torbrowser
-
-
+SCRIPTNAME="$(basename $0)"
 
 ## Developer comment on this script:
-## I would be very happy if this script would not be requried.
-## Unfortunately, it is required. It works arround a lot bugs:
+## I would be very happy if this script would not be required.
+## Unfortunately, it is required. It works around a lot bugs:
 ## - There is no deb/rpm/whatever package with Tor Browser.
 ##   https://trac.torproject.org/projects/tor/ticket/5236
 ##   https://trac.torproject.org/projects/tor/ticket/3994
@@ -113,14 +25,9 @@ and so on.
 
 
 
-## Debugging.
-#set -x
-
-
-
 root_check() {
    if [ "$(id -u)" != "0" ]; then
-      #echo "INFO: torbrowser script running as user."
+      #echo "INFO: $SCRIPTNAME running as user."
       true
    else
       ZENITY_TYPE="--error"
@@ -131,21 +38,10 @@ root_check() {
 
 
 
-## Fortunately, on linux-image-486 kernel, while "uname --all" returns for example
-## "Linux host 3.2.0-4-486 #1 Debian 3.2.41-2 i686 GNU/Linux",
-## "uname --machine" returns "i686" and Tor Browser works fine with linux-image-486 kernel.
-## (There are no 486 downloads for Tor Browser.)
-##ARCH="x86_64"
-##ARCH="i686"
-ARCH="$(uname --machine)"
-echo "INFO: $ARCH detected."
-
-
-
 tb_error_handler() {
    local MSG="\
 ###########################################################
-## torbrowser script bug.
+## $SCRIPTNAME script bug.
 ## No panic. Nothing is broken. Just some rare condition
 ## has been hit. Try again later. There is likely a
 ## solution for this problem. Please see the Whonix News,
@@ -156,7 +52,7 @@ tb_error_handler() {
 ## BASH_COMMAND: $BASH_COMMAND
 ##
 ## Experts only:
-## bash -x torbrowser
+## bash -x $SCRIPTNAME
 ###########################################################\
 "
    echo "$MSG"
@@ -197,8 +93,6 @@ $*"
 }
 
 
-
-USERNAME="$(whoami)"
 
 TEMP1="Possible reasons:
 - no internet connectivity
@@ -251,25 +145,137 @@ IMPORTANTBLOG_OFFLINE_LINK="file:///var/lib/whonix/whonixcheck/importantblog.htm
 FEATUREBLOG_OFFLINE_LINK="file:///var/lib/whonix/whonixcheck/featureblog.html"
 
 
-## provides tbbversion function
-source /usr/lib/whonix/whonixcheck/help_tbbversion
 
-## provides $CURL variable
-source /usr/lib/whonix/whonixcheck/help_uwt_tool
-uwt_tool
+parse_cmd_options() {
+   trap "tb_error_handler" ERR
+   
+   if [ "$1" = "" ]; then
+      echo "$SCRIPTNAME no option chosen."
+      echo "See:"
+      echo "    man $SCRIPTNAME"
+      exit 1   
+   fi
+  
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while :
+   do
+       case $1 in             
+           --update)
+               TB_UPDATE="1"
+               shift
+               ;;            
+           --noask)
+               TB_UPDATE="1"           
+               TB_FORCE_INSTALL="1"
+               shift
+               ;;              
+           --devbuildpassthrough)
+               TB_UPDATE="1"           
+               TB_FORCE_INSTALL="1"
+               DEV_BUILD_PASSTHROUGH="1"
+               DEV_PASSTHROUGH="1"
+               shift
+               ;;
+           --language)             
+               TB_LANG="$2"
+               shift 2
+               ;;
+           --start)
+               LINK=""
+               shift
+               ;;            
+           --doc)
+               LINK="$DOC_LINK"
+               shift
+               ;;
+           --contribute)
+               LINK="$CONTRIBUTE_LINK"
+               shift
+               ;;               
+           --doc)
+               LINK="$DOC_LINK"
+               shift
+               ;;           
+           --donate)
+               LINK="$DONATE_LINK"
+               shift
+               ;;
+           --forum)
+               LINK="$FORUM_LINK"
+               shift
+               ;;               
+           --mailinglist)
+               LINK="$MAILINGLIST_LINK"
+               shift
+               ;;
+           --importantblog)
+               LINK="$IMPORTANTBLOG_LINK"
+               shift
+               ;;               
+           --featureblog)
+               LINK="$FEATUREBLOG_LINK"
+               shift
+               ;;
+           --newtab)
+               LINK="$2"
+               shift 2
+               ;;               
+           --recommend)
+               tb_start_recommend
+               shift
+               ;;      
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$SCRIPTNAME unknown option: $1"
+               echo "See:"
+               echo "    man $SCRIPTNAME"
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done   
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.   
+}
 
 
 
-#debug "TB_LANG: $TB_LANG"
+tb_preparation() {
+   ## Fortunately, on linux-image-486 kernel, while "uname --all" returns for example
+   ## "Linux host 3.2.0-4-486 #1 Debian 3.2.41-2 i686 GNU/Linux",
+   ## "uname --machine" returns "i686" and Tor Browser works fine with linux-image-486 kernel.
+   ## (There are no 486 downloads for Tor Browser.)
+   ##ARCH="x86_64"
+   ##ARCH="i686"
+   ARCH="$(uname --machine)"
+   echo "INFO: $ARCH detected."
 
-## Check if TB_LANG exists and is not empty.
-if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-   #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
-   true
-else
-   #debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
-   TB_LANG="en-US"
-fi
+   ## provides tbbversion function
+   source /usr/lib/whonix/whonixcheck/help_tbbversion
+
+   ## provides $CURL variable
+   source /usr/lib/whonix/whonixcheck/help_uwt_tool
+   uwt_tool
+   
+   #debug "TB_LANG: $TB_LANG"
+
+   ## Check if TB_LANG exists and is not empty.
+   if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
+      #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
+      true
+   else
+      #debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
+      TB_LANG="en-US"
+   fi
+}
 
 
 
@@ -287,21 +293,13 @@ progress_bar() {
 
 
 
-#########################################################################
-## tb_update_check                                                      #
-#########################################################################
-
 tb_update_check() {
    trap "tb_error_handler" ERR
 
-   #################################
-   ## preparation
-   #################################
    ## do not re-download Tor Browser if a previous build already did
    if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
       if [ -d ~/tor-browser_"$TB_LANG"/ ]; then
-         echo "torbrowser: Not downloading Tor Browser again,
-because ~/tor-browser_"$TB_LANG"/ already exists."
+         echo "$SCRIPTNAME: Not downloading Tor Browser again, because ~/tor-browser_"$TB_LANG"/ already exists."
          exit 0
       fi
    fi
@@ -320,10 +318,6 @@ because ~/tor-browser_"$TB_LANG"/ already exists."
    else
       CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
    fi
-
-   #################################
-   ## Getting latest version number
-   #################################
 
    progress_bar 10
    debug "INFO: Find out latest version..."
@@ -374,12 +368,6 @@ tb_download() {
    fi
 
    progress_bar 97
-
-   #################################
-   ## Getting currently installed version number
-   #################################
-
-   progress_bar 98
 
    ## Will fail if the file does not exist, i.e. Tor Browser not installed.
    ## Will not break the script.
@@ -438,7 +426,6 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       true
    else
       if [ "$answer" = "1" ]; then 
-         ## Exit this function.
          exit 0
       fi
    fi
@@ -460,18 +447,8 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       )
    fi
 
-   ###########################################################
-   debug "INFO: Killing Tor Browser if it is still running..."
-   ###########################################################
-
    progress_bar 5
    killall firefox || true
-
-   #######################################
-   debug "INFO: Installing Tor Browser..."
-   #######################################
-
-   trap "tb_error_handler" ERR
 
    rm --recursive --force ~/.tb/gpgtmpdir/
    mkdir --parents ~/.tb/gpgtmpdir/
@@ -544,7 +521,6 @@ $DOWNLOAD_FAIL_HELP"
 fi
 
    progress_bar 90
-
 }
 
 tb_verify() {
@@ -628,10 +604,6 @@ tb_extract() {
 
 
 
-#########################################################################
-## tb_start_new_tab                                                     #
-#########################################################################
-
 tb_start_new_tab() {
    trap "tb_error_handler" ERR
 
@@ -641,7 +613,7 @@ tb_start_new_tab() {
 The folder ~/tor-browser_"$TB_LANG"/ does not exist.
 
 Please run: Start Menu -> Applications -> System -> Tor Browser Updater
-            or in Terminal: torbrowser -update"
+            or in Terminal: $SCRIPTNAME --update"
       exit 1
    fi
 
@@ -677,240 +649,31 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 
 
 
-################################################################ 
-## -update                                                     #
-################################################################ 
-if [[ "$1" = "-update" ]]; then
-   root_check
-   tb_update_check
-   tb_download
-   tb_verify
-   tb_extract
-   exit 0
-fi
-
-
-
-################################################################ 
-## -force-install                                              #
-################################################################ 
-if [[ "$1" = "-force-install" ]]; then
-   root_check
-   export TB_FORCE_INSTALL="1"
-   tb_update_check
-   tb_download
-   tb_verify
-   tb_extract
-   export TB_FORCE_INSTALL="0"
-   exit 0
-fi
-
-
-
-################################################################ 
-## -dev-build-passthrough                                      #
-################################################################ 
-if [[ "$1" = "-dev-build-passthrough" ]]; then
-   root_check
-   DEV_BUILD_PASSTHROUGH="1"
-   DEV_PASSTHROUGH="1"
-   TB_FORCE_INSTALL="1"
-   tb_update_check
-   tb_download
-   tb_verify
-   tb_extract
-   DEV_BUILD_PASSTHROUGH="0"
-   DEV_PASSTHROUGH="0"
-   TB_FORCE_INSTALL="0"
-   exit 0
-fi
-
-
-
-################################################################ 
-## -noreadme                                                   #
-################################################################ 
-## for compatibility
-if [[ "$1" = "-noreadme" ]]; then
-   root_check
-   LINK=""
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -start                                                      #
-################################################################ 
-if [[ "$1" = "-start" ]]; then
-   root_check
-   LINK=""
-   tb_start_new_tab
-   exit 0
-fi
-
-
-################################################################ 
-## -readme                                                     #
-################################################################ 
-## for compatibility
-if [[ "$1" = "-readme" ]]; then
-   root_check
-   LINK="$DOC_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -doc                                                        #
-################################################################ 
-if [[ "$1" = "-doc" ]]; then
-   root_check
-   LINK="$DOC_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -contribute                                                 #
-################################################################ 
-if [[ "$1" = "-contribute" ]]; then
-   root_check
-   LINK="$CONTRIBUTE_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -donate                                                     #
-################################################################ 
-if [[ "$1" = "-donate" ]]; then
-   root_check
-   LINK="$DONATE_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-################################################################ 
-## -forum                                                      #
-################################################################ 
-if [[ "$1" = "-forum" ]]; then
-   root_check
-   LINK="$FORUM_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -mailinglist                                                #
-################################################################ 
-if [[ "$1" = "-mailinglist" ]]; then
-   root_check
-   LINK="$MAILINGLIST_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -importantblog                                              #
-################################################################ 
-if [[ "$1" = "-importantblog" ]]; then
-   root_check
-   LINK="$IMPORTANTBLOG_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -featureblog                                                #
-################################################################ 
-if [[ "$1" = "-featureblog" ]]; then
-   root_check
-   LINK="$FEATUREBLOG_LINK"
-   debug "INFO: Setting link to $LINK"
-   tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -recommend                                                  #
-################################################################ 
-if [[ "$1" = "-recommend" ]]; then
+tb_start_recommend() {
    root_check
    LINK="$IMPORTANTBLOG_OFFLINE_LINK"
-   debug "INFO: Setting link to $LINK"
+   debug "INFO: Link set to $LINK"
    tb_start_new_tab
    LINK="$FEATUREBLOG_OFFLINE_LINK"
-   debug "INFO: Setting link to $LINK"
+   debug "INFO: Link set to $LINK"
    tb_start_new_tab
    exit 0
-fi
+}  
 
 
 
-################################################################ 
-## -new-tab                                                    #
-################################################################ 
-if [[ "$1" = "-new-tab" ]]; then
+parse_cmd_options ${1+"$@"} 
+ 
+if [ "$TB_UPDATE" = "1" ]; then 
    root_check
-   debug "INFO: Setting link to $2" 
-   LINK="$2"
+   tb_preparation
+   tb_update_check
+   tb_download
+   tb_verify
+   tb_extract   
+else
+   tb_preparation
    tb_start_new_tab
-   exit 0
-fi
-
-
-
-################################################################ 
-## -help                                                       #
-################################################################ 
-if [[ "$1" = "-help" ]]; then
-   script_help
-   exit 0
-fi
-
-
-
-################################################################ 
-## -lang                                                       #
-################################################################ 
-if [[ "$1" = "-lang" ]]; then
-   tb_lang_help
-   exit 0
-fi
-
-
-
-################################################################ 
-## no option chosen                                            # 
-################################################################ 
-if [[ "$1" = "" ]]; then 
-   echo "torbrowser: No option chosen. Please run with -help to find out more."
-   exit 0
 fi
 
 ## End of Whonix /usr/bin/torbrowser
-
