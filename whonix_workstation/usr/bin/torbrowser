@@ -170,7 +170,12 @@ parse_cmd_options() {
                TB_UPDATE="1"           
                TB_FORCE_INSTALL="1"
                shift
-               ;;              
+               ;;
+           --nokilltb)
+               TB_UPDATE="1"
+               NOKILLTB="1"
+               shift
+               ;;         
            --devbuildpassthrough)
                TB_UPDATE="1"           
                TB_FORCE_INSTALL="1"
@@ -448,7 +453,10 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    fi
 
    progress_bar 5
-   killall firefox || true
+
+   if [ ! "$NOKILLTB" = "1" ]; then
+      killall firefox || true
+   fi
 
    rm --recursive --force ~/.tb/gpgtmpdir/
    mkdir --parents ~/.tb/gpgtmpdir/
