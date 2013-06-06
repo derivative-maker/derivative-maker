@@ -9,15 +9,19 @@ error_handler() {
 
 trap "error_handler" ERR
 
+export MACHINE="-internal"
+export VMNAME="-internal"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
 cd ..
 
-## provides VERSION variable
-source help-steps/version
+cd help-steps
 
-mkdir --parents "../whonix_binary"
+source variables
+
+mkdir --parents ""$WHONIX_BINARY""
 
 ## Reading ./release/whonix_news, substitute the $VERSION variable in ./release/whonix_news
 ## with the actual VERSION and storing it as ../whonix_binary/whonix_news.
@@ -26,21 +30,21 @@ mkdir --parents "../whonix_binary"
 ## http://superuser.com/questions/235738/how-do-i-substitute-environment-variables-when-i-ouput-a-file
 
 eval echo "\"$(cat <<EOF_$RANDOM
-$(<"./release/whonix_news")
+$(<""$WHONIX_SOURCE_FOLDER"/release/whonix_news")
 EOF_$RANDOM
-)\"" > "../whonix_binary/whonix_news"
+)\"" > ""$WHONIX_BINARY"/whonix_news"
 
-cat "../whonix_binary/whonix_news"
+cat ""$WHONIX_BINARY"/whonix_news"
 
-rm --force "../whonix_binary/whonix_news.asc"
+rm --force ""$WHONIX_BINARY"/whonix_news.asc"
 
-gpg --clearsign "../whonix_binary/whonix_news"
+gpg --clearsign ""$WHONIX_BINARY"/whonix_news"
 
-cat "../whonix_binary/whonix_news.asc"
+cat ""$WHONIX_BINARY"/whonix_news.asc"
 
-gpg --verify "../whonix_binary/whonix_news.asc"
+gpg --verify ""$WHONIX_BINARY"/whonix_news.asc"
 
 sleep 10
 
-rsync --partial --progress --verbose --rsh ssh "../whonix_binary/whonix_news.asc" adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/news/
+rsync --partial --progress --verbose --rsh ssh ""$WHONIX_BINARY"/whonix_news.asc" adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/news/
 

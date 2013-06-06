@@ -9,25 +9,29 @@ error_handler() {
 
 trap "error_handler" ERR
 
+export MACHINE="-internal"
+export VMNAME="-internal"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
 cd ..
 
-## provides VERSION variable
-source help-steps/version
+cd help-steps
 
-mkdir --parents "../whonix_binary"
+source variables
 
-cp "./release/README" "../whonix_binary/"
-rm --force "../whonix_binary/README.asc"
+mkdir --parents "$WHONIX_BINARY"
 
-gpg --clearsign "../whonix_binary/README"
+cp ""$WHONIX_SOURCE_FOLDER"/release/README" ""$WHONIX_BINARY"/"
+rm --force ""$WHONIX_BINARY"/README.asc"
 
-cat "../whonix_binary/README.asc"
+gpg --clearsign ""$WHONIX_BINARY"/README"
 
-gpg --verify "../whonix_binary/README.asc"
+cat ""$WHONIX_BINARY"/README.asc"
+
+gpg --verify ""$WHONIX_BINARY"/README.asc"
 
 sleep 10
 
-rsync --partial --progress --verbose --rsh ssh "../whonix_binary/README.asc" adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/whonix-"$VERSION"/README
+rsync --partial --progress --verbose --rsh ssh ""$WHONIX_BINARY"/README.asc" adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/whonix-"$VERSION"/README

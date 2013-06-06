@@ -12,6 +12,8 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
 export WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
 
+export WHONIX_BINARY="$HOMEVAR"/whonix_binary
+
 export DEBIAN_FRONTEND=noninteractive 
 
 ## Disable uwt while building Whonix,
@@ -22,11 +24,6 @@ export SNAPSHOT_DESCRIPTION="
    Reverts your Virtual Machine back to a clean state.
    All changes, all installed packages, all data you created will be lost!
 "
-
-## provides VERSION variable
-source "$WHONIX_SOURCE_FOLDER"/help-steps/version
-
-echo "VERSION: $VERSION"
 
 if [ -z $VMNAME ]; then
    export VMNAME="unknown"
@@ -41,7 +38,7 @@ if [[ "$1" = "-tg" ]] || [[ "$MACHINE" = "-tg" ]]; then
    export MACHINE="-tg"
    export VMNAME="Whonix-Gateway"
    export VMRAM="768"
-   export CHROOT_FOLDER="$HOMEVAR"/whonix_binary/"$VMNAME"_image
+   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
 fi
 
 if [[ "$1" = "-tg-bare-metal" ]] || [[ "$MACHINE" = "-tg-bare-metal" ]]; then
@@ -56,7 +53,7 @@ if [[ "$1" = "-tw" ]] || [[ "$MACHINE" = "-tw" ]]; then
    export MACHINE="-tw"
    export VMNAME="Whonix-Workstation"
    export VMRAM="768"
-   export CHROOT_FOLDER="$HOMEVAR"/whonix_binary/"$VMNAME"_image
+   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
 fi
 
 if [[ "$1" = "-tw-bare-metal" ]] || [[ "$MACHINE" = "-tw-bare-metal" ]]; then
@@ -100,6 +97,8 @@ if [ -z $MACHINE ]; then
       exit 1
    elif [ "$1" = "-buildscript" ]; then
       echo "Internal run for whonix_build -buildscript: $MACHINE"
+   elif [ "$VMNAME" = "-internal"; then
+      echo "Internal run for -internal." 
    else
       echo "ERROR: Please report this BUG variables A!"
       exit 1
@@ -123,6 +122,17 @@ fi
 export DEB_INSTALL_FOLDER="/var/lib/whonix/initialdeb"
 
 export WHONIX_INITIAL_DEB_INSTALL_FOLDER=""$CHROOT_FOLDER"/"$DEB_INSTALL_FOLDER""
+
+## Find out installed Whonix version.
+## Read only FIRST line.
+VERSION="Could not read local Whonix version file. Please report this bug!"
+read -r VERSION < ""$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/whonix/version"
+## Remove ALL spaces.
+## Thanks to
+## http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
+VERSION="${VERSION//[[:space:]]}"
+
+echo "VERSION: $VERSION"
 
 set -x
 
