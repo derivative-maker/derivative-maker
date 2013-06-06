@@ -1,0 +1,92 @@
+#!/bin/bash
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source variables
+source pre
+
+trap "error_handler_general" ERR INT TERM
+
+error_handler_copy-into() {
+: echo "
+#!!! ERROR in $(caller) !!!#
+#!!! ERROR in $(caller) !!!#
+#!!! ERROR in $(caller) !!!#
+"
+
+   ./unmount-img
+
+: echo "
+#!!! ERROR in $(caller) !!!#
+#!!! ERROR in $(caller) !!!#
+#!!! ERROR in $(caller) !!!#
+"
+
+   exit 1
+}
+
+copy_into_shared() {
+   trap "error_handler_copy-into" ERR INT TERM
+   
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-common_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-desktop_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-desktop-kde_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-common_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-kde-accessibility_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+
+   ## Too big.
+   #cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-desktop-langpack-kde_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+}
+
+copy_into_gateway() {
+   trap "error_handler_copy-into" ERR INT TERM
+
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-gateway_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-gateway-common_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/               
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-gateway-postinst_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/ 
+}
+
+copy_into_workstation() {
+   trap "error_handler_copy-into" ERR INT TERM
+
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-common_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-postinst_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-langpack-common_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-default-applications_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/            
+   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-extra-applications_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+   
+   ## DummyTor
+   cp "$WHONIX_SOURCE_PARENTDIR"/tor_0.6.2_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+}
+
+## ignored with bare-metal option
+./mount-img
+
+mkdir --parent "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
+
+if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
+   copy_into_gateway
+   copy_into_shared
+elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+   copy_into_shared
+   copy_into_workstation
+else
+   bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
+fi
+
+## ignored with bare-metal option
+./unmount-img
+
