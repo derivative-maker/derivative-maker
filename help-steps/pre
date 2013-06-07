@@ -17,6 +17,22 @@ exit 1
 
 trap "error_handler_general" ERR INT TERM
 
+error_handler_unchroot_unprevent_unmount() {
+   echo "ERROR in $TEMP_SCRIPTNAME. Aborting..."
+   ./unchroot-img
+   ./unprevent-daemons-from-starting   
+   ./unmount-img   
+   echo "ERROR in $TEMP_SCRIPTNAME! Aborted."
+   exit 1
+}
+
+error_handler_unmount() {
+   echo "ERROR in $TEMP_SCRIPTNAME. Aborting..."
+   ./unmount-img   
+   echo "ERROR in $TEMP_SCRIPTNAME! Aborted."
+   exit 1
+}
+
 if [ "$(id -u)" != "0" ]; then
     echo "ERROR: This must be run as root (sudo)!"
     exit 1

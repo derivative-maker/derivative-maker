@@ -4,6 +4,8 @@ set -x
 
 true "Currently running script: $0"
 
+TEMP_SCRIPTNAME="$0"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
@@ -13,10 +15,8 @@ cd help-steps
 source variables
 source pre
 
-trap "error_handler_general" ERR INT TERM
-
 verify_copied_files() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_unmount" ERR INT TERM
 
    for i in $(find "$1"); do
       if [ -d "$i" ]; then
@@ -29,19 +29,26 @@ verify_copied_files() {
    done
 }
 
-./mount-img
-## Setting +x because the for loops otherwise cause too much output.
-set +x
+verify_copied_f() {
+   trap "error_handler_unmount" ERR INT TERM
 
-if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
-   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_gateway/"
-   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
-elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
-   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_workstation/"
-   verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
-else
-   bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
-fi
+   ./mount-img
+   ## Setting +x because the for loops otherwise cause too much output.
+   set +x
 
-set -x
-./unmount-img
+   if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
+      verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_gateway/"
+      verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+   elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+      verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_workstation/"
+      verify_copied_files "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+   else
+      bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
+   fi
+
+   set -x
+   ./unmount-img
+}
+
+verify_copied_f
+
