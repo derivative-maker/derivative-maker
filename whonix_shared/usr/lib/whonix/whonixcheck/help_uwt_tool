@@ -42,6 +42,25 @@ uwt_tool() {
          local MSG="Can not find rawdog. Please report this bug!"
          output "--error" "$MSG"
       fi
-   fi    
+   fi
+
+   ret="0"
+   which apt-get.real >/dev/null || { ret="$?" ; true; };
+
+   if [ "$ret" = "0" ]; then
+      ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
+      ## which is the case on a default Whonix installation
+      APT_GET=apt-get.real
+   else
+      ret="0"
+      which apt-get >/dev/null || { ret="$?" ; true; };
+      if [ "$ret" = "0" ]; then
+         ## falling back to real apt-get, if the uwt wrapper has been uninstalled
+         APT_GET=apt-get
+      else
+         local MSG="Can not find apt-get. Please report this bug!"
+         output "--error" "$MSG"
+      fi
+   fi     
 }
 
