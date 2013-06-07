@@ -322,7 +322,7 @@ $SCRIPTNAME
 
 progress_bar() {
    trap "error_handler" ERR
-   
+
    ## When it was autostarted, there is no progress bar. (Thats up to --showx.)
    ## So just write the progress into a file, so --showx can read it.
    if [ "$AUTOSTARTED" = "1" ]; then
@@ -331,8 +331,8 @@ progress_bar() {
    fi   
 
    ## Check if zenity is installed.
-   ## - This is not the case for cli users.
-   ## - This is also not the case on Whonix-Gateway.
+   ## - This is not the case for cli users,
+   ## who removed zenity or custom builds which never had zenity installed.
    if [ "$(which zenity)" = "" ]; then
       ## zenity is not installed.
       #echo "help_output: zenity not found."
@@ -354,7 +354,11 @@ progress_bar() {
 
    if [ ! "$STARTED_ZENITY_BAR" = "1" ]; then
       return 0
-   fi  
+   fi
+
+   if [ "$KILLED_ZENITY_BAR" = "1" ]; then
+      return 0
+   fi
 
    ## If run without parameter. (initialization)
    if [ "$1" = "" ]; then
@@ -364,7 +368,13 @@ progress_bar() {
    ## Debugging:
    #echo "$SCRIPTNAME progress_bar: $1"
    
-   echo "$1" >&3 || true
-   echo "$1" > "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"   
+   if [ "$1" = "100" ]; then
+      KILLED_ZENITY_BAR="1"
+      kill -9 "$ZENITY_PROGRESS_PID" || true
+      rm -f "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"
+   else
+      echo "$1" >&3 || true
+      echo "$1" > "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"   
+   fi  
 }
 
