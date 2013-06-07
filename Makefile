@@ -22,6 +22,11 @@ all:
 package:
 	dpkg-buildpackage -F -Zxz -z9 -tc
 	
+unsignedpackage:
+	## Used by build-steps/1200_create-debian-packages.
+	## See comments in 1200_create-debian-packages for why signing is not required and secure.
+	dpkg-buildpackage -F -Zxz -z9 -tc -us -uc	
+	
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
 
