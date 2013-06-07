@@ -13,8 +13,17 @@ cd help-steps
 source variables
 source pre
 
+error_handler_run-chroot-scripts() {
+   echo "ERROR in $0. Aborting..."
+   ./unchroot-img
+   ./unprevent-daemons-from-starting   
+   ./unmount-img   
+   echo "ERROR in $0! Aborted."
+   exit 1
+}
+
 run-chroot-scripts() {
-   trap "error_handler_general" ERR INT TERM
+   trap "error_handler_run-chroot-scripts" ERR INT TERM
 
    sync
 
