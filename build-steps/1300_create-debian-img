@@ -39,12 +39,14 @@ create-debian-img() {
 
    true "INFO: WHONIX_TARGET_ARCH: $WHONIX_TARGET_ARCH"
 
+   ## Enable apt-cacher-ng proxy.
+   export http_proxy="http://127.0.0.1:3142"   
+   
    grml-debootstrap \
       --arch "$WHONIX_TARGET_ARCH" \
       --filesystem ext4 \
       --force \
       --hostname host \
-      --mirror http://127.0.0.1:3142/debian \
       --keep_src_list \
       --password changeme \
       --release wheezy \
@@ -54,6 +56,9 @@ create-debian-img() {
       --config ""$WHONIX_SOURCE_FOLDER"/grml_config" \
       --packages ""$WHONIX_SOURCE_FOLDER"/grml_packages" \
       --target "$WHONIX_BINARY"/"$VMNAME".img
+      
+   ## Disable apt-cacher-ng proxy.
+   export unset http_proxy      
 
    chown --recursive "$USERNAME":"$USERNAME" "$WHONIX_BINARY"/
 } 

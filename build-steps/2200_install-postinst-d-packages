@@ -30,6 +30,9 @@ install-postinst-d-packages() {
    $CHROOT update-grub -v
    $CHROOT sync
    sync
+
+   ## Enable apt-cacher-ng.
+   export http_proxy="http://127.0.0.1:3142"   
    
    if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then 
       $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-gateway-postinst_"$VERSION"_all.deb
@@ -40,6 +43,9 @@ install-postinst-d-packages() {
    fi   
    
    sync
+   
+   ## Disable apt-cacher-ng.
+   export unset http_proxy   
 
    ./unchroot-img   
    ./unprevent-daemons-from-starting   
