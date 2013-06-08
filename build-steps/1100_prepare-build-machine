@@ -90,6 +90,7 @@ prepare-build-machine() {
    apt-get --yes dist-upgrade
    
    ## Check if config-package-dev with debhelper support is installed.
+   ## (Build Dependency for Whonix Build Script for creating .deb packages.)
    if [ ! -d /usr/share/doc/config-package-dev/examples/debhelper/ ]; then   
       ## Temporarily adding debian testing (jessi) repository, because we need config-package-dev with debhelper support,
       ## which is unfortunately only available since debian jessi.
@@ -106,11 +107,58 @@ prepare-build-machine() {
       apt-get update
    fi
 
-   ## Install build dependencies.
-   apt-get install --yes debhelper virtualbox qemu grml-debootstrap parted kpartx debootstrap mksh dialog git sudo rsync diffutils gdebi ruby-ronn
-
-   ## gdebi is only a build dependency for bare metal builds
-   ## so build dependencies could differ for VM and for bare metal builds
+   ###############################################   
+   ## Build Dependencies for Whonix Build Script #
+   ###############################################
+   ## - required for sudo -u user
+   ##      sudo
+   ## - required for creating man pages
+   ##      ruby-ronn
+   ## - required for build step "verify files"
+   ##      diffutils
+   ## - required for creating .deb packages
+   ##      debhelper
+   ## - required for debug-steps/copy-into-img
+   ##      rsync
+   ## - required for some dialog based upstream (Debian) postinst scripts
+   ##      dialog   
+   apt-get install --yes \
+      sudo \
+      ruby-ronn \
+      diffutils \
+      debhelper \
+      rsync \
+      dialog
+  
+   if [ "$BARE_METAL" = "1" ]; then
+      ###########################################
+      ## Build Dependency for Bare Metal Builds #
+      ###########################################
+      ## (Because in that case gdebi runs on the host and not inside a VM.)
+      ##    gdebi   
+      apt-get install --yes \
+         gdebi
+   else
+      ##################################################################
+      ## Build Dependencies for creating Virtual Machine Images (.img) #
+      ##################################################################
+      ## - for grml-debootstrap
+      ##      grml-debootstrap kpartx mksh parted qemu-utils
+      ## - for creating Virtual Box VM images
+      ##      virtualbox   
+      apt-get install --yes \
+         qemu-utils \
+         grml-debootstrap \
+         parted \
+         kpartx \
+         mksh
+         
+      #######################################################################
+      ## Build Dependencies for creating Virtual Box Images (.vdi and .ova) #
+      #######################################################################         
+      apt-get install --yes \
+         virtualbox
+   fi
 
    ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
    #sudo apt-get update
