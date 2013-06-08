@@ -66,13 +66,21 @@ prepare-build-machine() {
    ## But why? If you do not want to use it, comment out the following line and
    ## change the mirror settings in grml configuration file.
    
-   ## Update package lists and install apt-cacher-ng.
-   apt-get update 
-   apt-get install --yes apt-cacher-ng
+   ## Check if apt-cacher-ng is installed.
+   dpkg --status apt-cacher-ng 1>/dev/null 2>/dev/null || { ret="$?" ; true; };
+   
+   if [ ! "$ret" = "0" ]; then
+      ## Update package lists and install apt-cacher-ng.
+      apt-get update 
+      apt-get install --yes apt-cacher-ng
+   fi
 
    ## Restart apt-cacher-ng.
    ## Should not be required, but it was for me.
    service apt-cacher-ng restart
+   
+   ## Check status of apt-cacher-ng.
+   service apt-cacher-ng status
 
    ## Enable apt-cacher-ng proxy.
    export http_proxy="http://127.0.0.1:3142"
@@ -80,6 +88,23 @@ prepare-build-machine() {
    ## Update package lists and upgrade.
    apt-get update
    apt-get --yes dist-upgrade
+   
+   ## Check if config-package-dev with debhelper support is installed.
+   if [ ! -d /usr/share/doc/config-package-dev/examples/debhelper/ ]; then   
+      ## Temporarily adding debian testing (jessi) repository, because we need config-package-dev with debhelper support,
+      ## which is unfortunately only available since debian jessi.
+      echo "deb http://ftp.us.debian.org/debian testing main" > /etc/apt/sources.list.d/whonixtestingtemp.list
+
+      ## Update package lists and install config-package-dev from debian testing (jessi).
+      apt-get update
+      apt-get -t testing install config-package-dev
+   
+      ## Removing temporary debian testing (jessi) repository.
+      rm --force /etc/apt/sources.list.d/whonixtestingtemp.list
+   
+      ## Update package lists again to get ride of debian testing (jessi) repository.
+      apt-get update
+   fi
 
    ## Install build dependencies.
    apt-get install --yes debhelper virtualbox qemu grml-debootstrap parted kpartx debootstrap mksh dialog git sudo rsync diffutils gdebi ruby-ronn
