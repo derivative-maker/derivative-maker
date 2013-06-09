@@ -25,7 +25,7 @@ check_tor_enabled_do() {
    return 0
 } 
 
-## Aborting whonixcheck if whonixsetup was not run, i.e. if
+## Aborting, if whonixsetup was not run, i.e. if
 ## "DisableNetwork 1" is commented in in /etc/tor/torrc.
 check_tor_enabled() {
    trap "error_handler" ERR
@@ -33,7 +33,13 @@ check_tor_enabled() {
    check_tor_enabled_do
 
    if [ "$TOR_ENABLED" = "0" ]; then
-      local MSG='Not starting whonixcheck, because "DisableNetwork 1" is in commented in /etc/tor/torrc. Please run: sudo whonixsetup'
+      local MSG="No network. Tor is disabled.
+
+Please enable Tor!
+
+    Start Menu -> Applications -> System -> First Time Connection Setup
+
+    or in Terminal: sudo whonixsetup"
       output "--warning" "$MSG" "both"
       EXIT_CODE="1"
       cleanup
