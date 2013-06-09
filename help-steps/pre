@@ -37,13 +37,20 @@ if [ "$(id -u)" != "0" ]; then
     echo "ERROR: This must be run as root (sudo)!"
     exit 1
 else
-    echo "INFO: Script running as root."
+    true "INFO: Script running as root."
 fi
 
+## Lower IO priority.
 ionice -c3 -p$$
-ionice
-renice +19 -p $$
-nice 
+
+## Check.
+ionice >/dev/null
+
+## Lower CPU priority.
+renice +19 -p $$ >/dev/null
+
+## Check.
+nice >/dev/null
 
 set -x
 
