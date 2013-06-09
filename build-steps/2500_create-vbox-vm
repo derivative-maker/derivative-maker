@@ -166,83 +166,6 @@ workstation_specific() {
    sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --audio pulse
 }
 
-
-
-hardware_modifications() {
-   trap "error_handler_general" ERR INT TERM
-
-   ## Thanks to:
-   ## - http://www.dedmeet.com/software-projects-mainmenu-12/asus-recovery-cd-with-virtualbox.html
-   ## - https://www.virtualbox.org/ticket/7325
-   ## Hiding BIOS information.
-   ##
-   ##
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
-   ##
-   ##
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
-
-   ## TODO VBOX: Wait for next Virtual Box version.
-   ## Not yet available.
-   ## http://wiki.ubuntuusers.de/Dualboot-Windows_virtualisieren
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisAssetTag" "<EMPTY>"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisSerial" "<EMPTY>"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVendor" "string:Medion"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVersion" "string:N/A"
-   ## https://forums.virtualbox.org/viewtopic.php?f=2&t=43678
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardProduct""D2560-A2"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardVendor" "FUJITSU SIEMENS"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct" "ESPRIMO P"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor" "FUJITSU SIEMENS"
-
-   ## Configuring the hard disk vendor product data (VPD)
-   ## http://www.virtualbox.org/manual/ch09.html#changevpd
-
-   ## Port0 (hdd)
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
-
-   ## Port1 (cd-rom)
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
-
-   ## Show changes.
-   sudo -u "$USERNAME" VBoxManage getextradata "$VMNAME" enumerate
-} 
-
 general_setup
 
 if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
@@ -252,6 +175,4 @@ elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
 else
    bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tw"
 fi
-
-hardware_modifications
 
