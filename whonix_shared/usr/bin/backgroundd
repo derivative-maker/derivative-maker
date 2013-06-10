@@ -1,0 +1,56 @@
+#!/bin/bash
+
+SCRIPTNAME="$(basename $0)"
+
+## Not in use for Whonix-Workstation.
+if [ -e /usr/share/whonix/whonix_workstation ]; then
+   true
+   exit 0
+fi
+
+root_check() {
+   if [ "$(id -u)" != "0" ]; then
+      echo "ERROR: $SCRIPTNAME must run as root."
+      exit 1
+   fi
+}
+
+process_background() {
+
+   mkdir --parents /var/lib/whonix/
+
+   BACKGROUND_PROCESSED="/var/lib/whonix/background.jpeg"
+
+   cp /usr/share/whonix/mountainmist-orig.jpeg "$BACKGROUND_PROCESSED"
+
+   ## Modify top.
+   
+   MSG="Welcome to Whonix-Gateway!
+
+This is NOT your working environment! Please do NOT use Whonix-Gateway for anything else than configuring Tor and Whonix. Use Whonix-Workstation for anonymous activities instead.
+
+If you want to change the keyboard layout from the default "us" to something else:
+- Start menu button -> Applications -> Settings -> System Settings -> input devices -> layout -> add yours and remove default one -> apply -> Done."
+
+   convert "$BACKGROUND_PROCESSED" \
+      -background Orange label:"$MSG" \
+      +swap \
+      -gravity Center \
+      -append "$BACKGROUND_PROCESSED"
+      
+   ## Modify bottom.
+
+   MSG="The more you learn about Whonix and anonymity, the safer you can become. Reading Whonix documentation is recommend.
+
+Default username: username
+Default password: changeme"
+
+   convert "$BACKGROUND_PROCESSED" \
+      -background Khaki label:"$MSG" \
+      -gravity Center \
+      -append "$BACKGROUND_PROCESSED"
+}
+
+root_check
+process_background
+
