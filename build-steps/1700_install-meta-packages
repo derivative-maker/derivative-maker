@@ -33,7 +33,9 @@ install-meta-packages() {
    
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
-   
+
+   mkdir --parents "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
+   mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR"
    mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
   
    local TEMP="$CHROOT_FOLDER"/etc/apt/sources.list.d/whonix_temp_initialdeb.list
@@ -44,7 +46,7 @@ install-meta-packages() {
    
    $CHROOT sudo apt-get update \
                    -o Dir::Etc::sourcelist="$TEMP" \
-                   -o Dir::Etc::sourceparts="-" \
+                   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
                    -o APT::Get::List-Cleanup="0"
 
    $CHROOT apt-get --yes install whonix-shared
