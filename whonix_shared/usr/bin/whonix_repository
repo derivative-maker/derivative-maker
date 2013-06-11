@@ -34,6 +34,20 @@ root_check() {
    fi
 }
 
+read_config() {
+   for i in /etc/whonix.d/*; do
+      if [ -f "$i" ]; then
+         ## If the last character is a ~, ignore that file,
+         ## because it was created by some editor,
+         ## which creates backup files.
+         if [ "${i: -1}" = "~" ]; then
+            continue
+         fi
+         source "$i"
+      fi
+   done
+}
+
 parse_cmd_options() {
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
@@ -42,9 +56,8 @@ parse_cmd_options() {
 man $SCRIPTNAME"
 
    ## defaults, in case run by postinst script, can
-   ## be overruled with the DISTRUST_WHONIX_DEB_REPO variable,
+   ## be overruled with the DISTRUST_WHONIX_APT_REPO variable,
    ## see: man $SCRIPTNAME
-   ENABLE="1"
    DISABLE="0"
    
    while :
@@ -61,13 +74,11 @@ man $SCRIPTNAME"
                shift
                ;;
            -e | --enable)
-               ENABLE="1"
                DISABLE="0"               
                shift
                ;;
            -d | --disable)
                DISABLE="1"
-               ENABLE="0"              
                shift
                ;;               
            --)
@@ -131,12 +142,16 @@ revoke_keys() {
 
 main_function() {
    root_check
-
+   read_config
    parse_cmd_options ${1+"$@"}
+   
+   if [ "$WHONIX_APT_REPOSITORY_DISTRUST" = "1" ]; then
+      echo "INFO $0: WHONIX_APT_REPOSITORY_DISTRUST is set to 1, revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
+      DISABLE="1"   
+   fi
 
-   if [ "$DISTRUST_WHONIX_DEB_REPO" = "1" ]; then
-      echo "INFO $0: Environment variable DISTRUST_WHONIX_DEB_REPO is set to 1, revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
-      ENABLE="0"
+   if [ "$DISTRUST_WHONIX_APT_REPO" = "1" ]; then
+      echo "INFO $0: Environment variable DISTRUST_WHONIX_APT_REPO is set to 1, revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
       DISABLE="1"
    fi
    
