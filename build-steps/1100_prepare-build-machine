@@ -94,17 +94,24 @@ prepare-build-machine() {
    if [ ! -d /usr/share/doc/config-package-dev/examples/debhelper/ ]; then   
       ## Temporarily adding debian testing (jessi) repository, because we need config-package-dev with debhelper support,
       ## which is unfortunately only available since debian jessi.
-      echo "deb http://ftp.us.debian.org/debian testing main" > /etc/apt/sources.list.d/whonixtestingtemp.list
+      local TEMP=/etc/apt/sources.list.d/whonixtestingtemp.list
+      echo "deb http://ftp.us.debian.org/debian testing main" > "$TEMP"
 
       ## Update package lists and install config-package-dev from debian testing (jessi).
-      apt-get update
+      apt-get update \
+                   -o Dir::Etc::sourcelist="$TEMP" \
+                   -o Dir::Etc::sourceparts="-" \
+                   -o APT::Get::List-Cleanup="0"
+
       apt-get -t testing install config-package-dev
    
       ## Removing temporary debian testing (jessi) repository.
-      rm --force /etc/apt/sources.list.d/whonixtestingtemp.list
+      rm --force "$TEMP"
    
       ## Update package lists again to get ride of debian testing (jessi) repository.
-      apt-get update
+      apt-get update \
+         --no-download \
+         --list-cleanup
    fi
 
    ###############################################   
