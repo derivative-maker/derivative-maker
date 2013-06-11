@@ -38,14 +38,12 @@ install-meta-packages() {
    mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR"
    mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
   
-   local TEMP="$CHROOT_FOLDER"/etc/apt/sources.list.d/whonix_temp_initialdeb.list
-
-   echo "deb file:$DEB_INSTALL_FOLDER/ stable main" > "$TEMP"
+   echo "deb file:$DEB_INSTALL_FOLDER/ stable main" > "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
    
    sync
    
    $CHROOT sudo apt-get update \
-                   -o Dir::Etc::sourcelist="$TEMP" \
+                   -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_TEMP_BUILD_BASE" \
                    -o Dir::Etc::sourceparts="$EMPTY_DIR" \
                    -o APT::Get::List-Cleanup="0"
 
@@ -67,7 +65,7 @@ install-meta-packages() {
       bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tg-bare-metal nor -tw nor tw-bare-metal"
    fi
    
-   $CHROOT rm --force "$TEMP"
+   $CHROOT rm --force "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
    
    $CHROOT apt-get update \
               --no-download \
