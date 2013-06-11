@@ -32,34 +32,49 @@ install-meta-packages() {
    sync
    
    ## Enable apt-cacher-ng.
-   export http_proxy="http://127.0.0.1:3142"   
-
-   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-   $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-shared_"$VERSION"_all.deb
-
-   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-desktop_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-   $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-shared-desktop_"$VERSION"_all.deb
+   export http_proxy="http://127.0.0.1:3142"
    
-   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-desktop-kde_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/  
-   $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-shared-desktop-kde_"$VERSION"_all.deb
+   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
+  
+   local TEMP="$CHROOT_FOLDER"/etc/apt/sources.list.d/whonix_temp_initialdeb.list
 
-   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-kde-accessibility_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-   $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-shared-kde-accessibility_"$VERSION"_all.deb
+   echo "deb file:$DEB_INSTALL_FOLDER/ stable main" > "$TEMP"
    
    sync
    
-   if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then 
-      cp "$WHONIX_SOURCE_PARENTDIR"/whonix-gateway_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/   
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-gateway_"$VERSION"_all.deb
-   elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
-      cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/  
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-workstation_"$VERSION"_all.deb
+   $CHROOT sudo apt-get update \
+                   -o Dir::Etc::sourcelist="$TEMP" \
+                   -o Dir::Etc::sourceparts="-" \
+                   -o APT::Get::List-Cleanup="0"
+
+   $CHROOT apt-get --yes install whonix-shared
+
+   $CHROOT apt-get --yes install whonix-shared-desktop
+   
+   $CHROOT apt-get --yes install whonix-shared-desktop-kde
+
+   $CHROOT apt-get --yes install whonix-shared-kde-accessibility   
       
-      cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-default-applications_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/                 
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-workstation-default-applications_"$VERSION"_all.deb
+   if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then 
+      $CHROOT apt-get --yes install whonix-gateway
+   elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
+      $CHROOT apt-get --yes install whonix-workstation
+      
+      $CHROOT apt-get --yes install whonix-workstation-default-applications
    else
       bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tg-bare-metal nor -tw nor tw-bare-metal"
-   fi   
+   fi
+   
+   $CHROOT rm --force "$TEMP"
+   
+   $CHROOT apt-get update \
+              --no-download \
+              --list-cleanup
+   
+   $CHROOT sync
+   sync
+
+   umount "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
    
    sync
    

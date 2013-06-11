@@ -41,27 +41,38 @@ install-common-packages() {
    
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
+   
+   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
 
-   cp "$WHONIX_SOURCE_PARENTDIR"/whonix-shared-common_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-   $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-shared-common_"$VERSION"_all.deb
+   local TEMP="$CHROOT_FOLDER"/etc/apt/sources.list.d/whonix_temp_initialdeb.list
+
+   echo "deb file:$DEB_INSTALL_FOLDER/ stable main" > "$TEMP"   
    
    sync
+
+   $CHROOT apt-get --yes install whonix-shared-common 
    
    if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then
-      cp "$WHONIX_SOURCE_PARENTDIR"/whonix-gateway-common_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-gateway-common_"$VERSION"_all.deb
+      $CHROOT apt-get --yes install whonix-gateway-common
    elif [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then
-      cp "$WHONIX_SOURCE_PARENTDIR"/whonix-workstation-common_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/whonix-workstation-common_"$VERSION"_all.deb
+      $CHROOT apt-get --yes install whonix-workstation-common
       
       ## DummyTor
-      cp "$WHONIX_SOURCE_PARENTDIR"/tor_"$VERSION"_all.deb "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"/
-      $CHROOT gdebi --non-interactive "$DEB_INSTALL_FOLDER"/tor_"$VERSION"_all.deb
+      $CHROOT apt-get --yes install tor
    else
       bug "ERROR: MACHINE is $MACHINE - neither -tg nor -tg-bare-metal nor -tw nor tw-bare-metal"
    fi   
+
+   $CHROOT rm --force "$TEMP"
    
+   $CHROOT apt-get update \
+              --no-download \
+              --list-cleanup
+   
+   $CHROOT sync
    sync
+
+   umount "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
    
    ## Disable apt-cacher-ng.
    export unset http_proxy
