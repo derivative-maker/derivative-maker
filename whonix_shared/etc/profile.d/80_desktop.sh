@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## Whonix /etc/profile.d/20_desktop.sh
+## Whonix /etc/profile.d/80_desktop.sh
 
 if [ ! "$(tty)" = "/dev/tty1" ]; then
    return 0
@@ -48,7 +48,7 @@ else
 
    if [ ! "$ret" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         echo "/etc/profile.d/20_desktop.sh INFO: display manager \
+         echo "/etc/profile.d/80_desktop.sh INFO: display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
       fi
@@ -61,7 +61,7 @@ configuration folder does not exist. Not starting a desktop environment."
 
    if [ "$ret" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         echo "/etc/profile.d/20_desktop.sh INFO: \
+         echo "/etc/profile.d/80_desktop.sh INFO: \
 Not starting kdm, already running."
       fi
       ## return, not exit, because this file gets sourced (not executed)
@@ -70,7 +70,7 @@ Not starting kdm, already running."
    fi
 
    if [ "$whonixdesktop_debug" = 1 ]; then
-      temp="/etc/profile.d/20_desktop.sh INFO: $(/bin/date) | \
+      temp="/etc/profile.d/80_desktop.sh INFO: $(/bin/date) | \
       whoami: $(/usr/bin/whoami) | caller: $0 | path: $PATH"
       echo "$x"
       echo "$x" >> /var/log/whonixdesktop
@@ -90,7 +90,7 @@ Not starting kdm, already running."
 
    if [ "$whonixdesktop_start_display_manager" = 0 ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         echo "/etc/profile.d/20_desktop.sh INFO: \
+         echo "/etc/profile.d/80_desktop.sh INFO: \
 whonixdesktop_start_display_manager is set to 0 in /etc/whonix.d/ \
 configuration folder, not starting a desktop environment."
       fi
@@ -99,7 +99,7 @@ configuration folder, not starting a desktop environment."
 
    if [ ! "$whonixdesktop_skip_ram_test" = "1" ]; then
       if [ "$total_ram" -lt "$whonixdesktop_minium_ram" ]; then
-         echo "/etc/profile.d/20_desktop.sh INFO: Not starting login manager \
+         echo "/etc/profile.d/80_desktop.sh INFO: Not starting login manager \
 (graphical desktop environment) ($whonixdesktop_display_manager), \
 because there is only "$total_ram" MB total RAM. (Minimum \
 "$whonixdesktop_minium_ram" RAM configured in /etc/whonix.d/ \
@@ -108,7 +108,7 @@ configuration folder.)"
       fi
    fi
 
-   echo "/etc/profile.d/20_desktop.sh INFO: Starting login manager \
+   echo "/etc/profile.d/80_desktop.sh INFO: Starting login manager \
 (graphical desktop environment) "$whonixdesktop_display_manager" in \
 "$whonixdesktop_wait_seconds" seconds, unless you abort using ctrl + c. \
 This can be configured in /etc/whonix.d/ configuration folder."
@@ -125,4 +125,4 @@ This can be configured in /etc/whonix.d/ configuration folder."
 
 fi
 
-## End of Whonix /etc/profile.d/20_desktop.sh
+## End of Whonix /etc/profile.d/80_desktop.sh
