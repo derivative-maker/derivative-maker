@@ -1,0 +1,58 @@
+#!/bin/bash
+
+echo "$0 INFO: Begin..."
+
+## Technical comment:
+## Whonix has a feature, which determines whether the display manager (dm)
+## (kdm by default) gets autostarted based on available RAM and other
+## configuration options. To make this work, we 
+##
+## This is required, because when a display manager gets upgraded by
+## apt-get/dpkg, its postinst script by default runs
+## "update-rc.d $dm defaults", unless $dm which /etc/init.d/$dm is not
+## executable, which clashes with this feature. Making /etc/init.d/$dm not
+## executable with a Whonix chroot-scripts-post.d script is no option either,
+## because this would break "sudo service $dm restart" for the user.
+##
+## - hook to call this file: /etc/apt/apt.conf.d/90whonix-display-manager
+## - configuration file: /etc/whonix.d/30_desktop_default
+## - implementation: /etc/profile.d/80_desktop.sh
+
+if [ "$(id -u)" != "0" ]; then
+    echo "$0 ERROR: This must be run as root (sudo)!"
+    exit 1
+else
+    true "$0 INFO: Script running as root."
+fi
+
+for i in /etc/whonix.d/*; do
+   if [ -f "$i" ]; then
+      ## If the last character is a ~, ignore that file,
+      ## because it was created by some editor,
+      ## which creates backup files.
+      if [ "${i: -1}" = "~" ]; then
+         continue
+      fi
+      source "$i"
+   fi
+done
+
+if [ "$whonixdesktop_disable_rc_d_remove" = 1 ]; then
+   echo "$0 INFO: whonixdesktop_disable_rc_d_remove is set to 0. Do nothing. Exit."
+   exit 0
+fi
+
+echo "$0 INFO: Deactivating display manager (kdm, gdm, lightdm, slim, wdm, xdm, nodm) /etc/init.d/ autostart mechanism, since this is handled by Whonix."
+
+update-rc.d kdm remove >/dev/null 2>/dev/null
+update-rc.d gdm remove >/dev/null 2>/dev/null
+update-rc.d lightdm remove >/dev/null 2>/dev/null
+update-rc.d slim remove >/dev/null 2>/dev/null
+update-rc.d wdm remove >/dev/null 2>/dev/null
+update-rc.d xdm remove >/dev/null 2>/dev/null
+update-rc.d nodm remove >/dev/null 2>/dev/null
+
+echo "$0 INFO: Done."
+
+exit 0
+
