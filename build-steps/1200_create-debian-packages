@@ -13,6 +13,9 @@ cd help-steps
 source variables
 source pre
 
+cd "$MYDIR"
+cd ..
+
 create-debian-packages() {
    trap "error_handler_general" ERR INT TERM
 
@@ -33,6 +36,14 @@ create-debian-packages() {
    ## Using signed packages for this build step would not buy any security and make
    ## the build process for people who create their own builds unnecessarily more complicated.
    sudo -u "$USERNAME" make unsignedpackage
+   
+   true "$0 INFO: Purging local APT repository..."
+   sudo -u "$USERNAME" reprepro --basedir "$WHONIX_APT_REPOSITORY_FOLDER" removematched local "*"
+   true "$0 INFO: Done, purged local APT repository."
+   
+   true "$0 INFO: Creating local APT repository..."
+   sudo -u "$USERNAME" reprepro --basedir "$WHONIX_APT_REPOSITORY_FOLDER" includedeb local ../*.deb
+   true "$0 INFO: Done, created local APT repository."
 } 
 
 create-debian-packages
