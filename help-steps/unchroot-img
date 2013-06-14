@@ -2,13 +2,6 @@
 
 set -x
 
-if [ "$BARE_METAL" = "1" ]; then
-   true "${green}INFO${reset}: Skipping script, because BARE_METAL=1: $0"
-   exit 0
-else
-   true "${bold}INFO${reset}: Currently running script: $0"
-fi
-
 error_handler_unchroot-img() {
 : echo "
 ${red}${bold}ERROR${reset} in $(caller)
@@ -40,5 +33,11 @@ do_unchroot() {
    sync || true
 }
 
-do_unchroot
+if [ "$BARE_METAL" = "1" ]; then
+   true "${green}INFO${reset}: Skipping script, because BARE_METAL=1: $0"
+   exit 0
+else
+   true "${bold}INFO${reset}: Currently running script: $0"
+   do_unchroot
+fi
 
