@@ -3,16 +3,14 @@
 set +x
 #set -x
 
-echo "Currently running script: $0"
-
 error_handler_general() {
    ## Removing temporary debian testing (jessi) repository.
    rm --force /etc/apt/sources.list.d/whonixtestingtemp.list
 
-   echo "
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
+   echo -e "
+#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
+#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
+#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
 "
 
    exit 1
@@ -21,23 +19,53 @@ error_handler_general() {
 trap "error_handler_general" ERR INT TERM
 
 error_handler_unchroot_unprevent_unmount() {
-   echo "ERROR in $TEMP_SCRIPTNAME. Aborting..."
+   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME. Aborting..."
    ./unchroot-img
    ./unprevent-daemons-from-starting   
    ./unmount-img   
-   echo "ERROR in $TEMP_SCRIPTNAME! Aborted."
+   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME! Aborted."
    exit 1
 }
 
 error_handler_unmount() {
-   echo "ERROR in $TEMP_SCRIPTNAME. Aborting..."
+   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME. Aborting..."
    ./unmount-img   
-   echo "ERROR in $TEMP_SCRIPTNAME! Aborted."
+   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME! Aborted."
    exit 1
 }
 
+## Source of Colors / Thanks to:
+## http://sterlinghamilton.com/2010/12/23/unix-shell-adding-color-to-your-bash-script/
+
+## Example usage:
+## echo -e ${RedF}This text will be red!${Reset}
+## echo -e ${BlueF}${BoldOn}This will be blue and bold!${BoldOff} - and this is just blue!${Reset}
+## echo -e ${RedB}${BlackF}This has a red background and black font!${Reset}and everything after the reset is normal text!
+Colors() {
+Escape="\033";
+BlackF="${Escape}[30m"; RedF="${Escape}[31m"; GreenF="${Escape}[32m";
+YellowF="${Escape}[33m"; BlueF="${Escape}[34m"; Purplef="${Escape}[35m";
+CyanF="${Escape}[36m"; WhiteF="${Escape}[37m";
+BlackB="${Escape}[40m"; RedB="${Escape}[41m"; GreenB="${Escape}[42m";
+YellowB="${Escape}[43m"; BlueB="${Escape}[44m"; PurpleB="${Escape}[45m";
+CyanB="${Escape}[46m"; WhiteB="${Escape}[47m";
+BoldOn="${Escape}[1m"; BoldOff="${Escape}[22m";
+ItalicsOn="${Escape}[3m"; ItalicsOff="${Escape}[23m";
+UnderlineOn="${Escape}[4m"; UnderlineOff="${Escape}[24m";
+BlinkOn="${Escape}[5m"; BlinkOff="${Escape}[25m";
+InvertOn="${Escape}[7m"; InvertOff="${Escape}[27m";
+Reset="${Escape}[0m";
+}
+
+## Example:
+## Output test code.
+#echo -e ${CyanF}This text will be red!${Reset};
+
+## initialization
+Colors
+
 if [ "$(id -u)" != "0" ]; then
-    echo "ERROR: This must be run as root (sudo)!"
+    echo -e "${RedB}ERROR${Reset}: This must be run as root (sudo)!"
     exit 1
 else
     true "INFO: Script running as root."
@@ -54,6 +82,8 @@ renice +19 -p $$ >/dev/null
 
 ## Check.
 nice >/dev/null
+
+echo -e "${BlackF}${WhiteB}Currently running script: $0 ${Reset}"
 
 set -x
 
