@@ -10,8 +10,8 @@ cd "$MYDIR"
 cd ..
 cd help-steps
 
-source variables
 source pre
+source variables
 
 cd "$MYDIR"
 cd ..
@@ -49,7 +49,7 @@ create-debian-packages() {
    
    ## Check, if we previously already created a local OpenPGP signing key.
    if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
-      true "$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one..."   
+      true "${cyan}$0 INFO${reset}: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one...}"   
    
       sudo -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
    
@@ -69,16 +69,16 @@ create-debian-packages() {
       
       sudo -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
       
-      true "$0 INFO: Created local OpenPGP signing key for our local APT repository."
+      true "${cyan}$0 INFO${reset}: Created local OpenPGP signing key for our local APT repository."
    else
-      true "$0 INFO: We already have a local OpenPGP signing key for our local APT repository."
+      true "${cyan}$0 INFO${reset}: We already have a local OpenPGP signing key for our local APT repository."
    fi
    
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    sudo -u "$USERNAME" gpg --no-default-keyring --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" --list-secret-keys  
    
-   true "$0 INFO: Purging local APT repository..."
+   true "${cyan}$0 INFO${reset}: Purging local APT repository..."
    
    sudo -u "$USERNAME" \
       reprepro \
@@ -86,9 +86,9 @@ create-debian-packages() {
          --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
          removematched local "*"
          
-   true "$0 INFO: Done, purged local APT repository."
+   true "${cyan}$0 INFO${reset}: Done, purged local APT repository."
    
-   true "$0 INFO: Creating local APT repository..."
+   true "${cyan}$0 INFO${reset}: Creating local APT repository..."
    
    sudo -u "$USERNAME" \
       reprepro \
@@ -96,7 +96,7 @@ create-debian-packages() {
          --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
          includedeb local ../*.deb
    
-   true "$0 INFO: Done, created local APT repository."
+   true "${cyan}$0 INFO${reset}: Done, created local APT repository."
 } 
 
 create-debian-packages

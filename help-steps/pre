@@ -7,10 +7,10 @@ error_handler_general() {
    ## Removing temporary debian testing (jessi) repository.
    rm --force /etc/apt/sources.list.d/whonixtestingtemp.list
 
-   echo -e "
-#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
-#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
-#!!! ${RedB}ERROR${Reset} in $(caller) !!!#
+   echo "
+${red}${bold}ERROR${reset} in $(caller) !!!#
+${red}${bold}ERROR${reset} in $(caller) !!!#
+${red}${bold}ERROR${reset} in $(caller) !!!#
 "
 
    exit 1
@@ -19,53 +19,65 @@ error_handler_general() {
 trap "error_handler_general" ERR INT TERM
 
 error_handler_unchroot_unprevent_unmount() {
-   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME. Aborting..."
+   echo "${red}${bold}ERROR${reset} in $TEMP_SCRIPTNAME. Aborting..."
    ./unchroot-img
    ./unprevent-daemons-from-starting   
    ./unmount-img   
-   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME! Aborted."
+   echo "${red}${bold}ERROR${reset} in $TEMP_SCRIPTNAME! Aborted."
    exit 1
 }
 
 error_handler_unmount() {
-   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME. Aborting..."
+   echo "${red}${bold}ERROR${reset} in $TEMP_SCRIPTNAME. Aborting..."
    ./unmount-img   
-   echo -e "${RedB}ERROR${Reset} in $TEMP_SCRIPTNAME! Aborted."
+   echo "${red}${bold}ERROR${reset} in $TEMP_SCRIPTNAME! Aborted."
    exit 1
 }
 
-## Source of Colors / Thanks to:
-## http://sterlinghamilton.com/2010/12/23/unix-shell-adding-color-to-your-bash-script/
-
-## Example usage:
-## echo -e ${RedF}This text will be red!${Reset}
-## echo -e ${BlueF}${BoldOn}This will be blue and bold!${BoldOff} - and this is just blue!${Reset}
-## echo -e ${RedB}${BlackF}This has a red background and black font!${Reset}and everything after the reset is normal text!
-Colors() {
-Escape="\033";
-BlackF="${Escape}[30m"; RedF="${Escape}[31m"; GreenF="${Escape}[32m";
-YellowF="${Escape}[33m"; BlueF="${Escape}[34m"; Purplef="${Escape}[35m";
-CyanF="${Escape}[36m"; WhiteF="${Escape}[37m";
-BlackB="${Escape}[40m"; RedB="${Escape}[41m"; GreenB="${Escape}[42m";
-YellowB="${Escape}[43m"; BlueB="${Escape}[44m"; PurpleB="${Escape}[45m";
-CyanB="${Escape}[46m"; WhiteB="${Escape}[47m";
-BoldOn="${Escape}[1m"; BoldOff="${Escape}[22m";
-ItalicsOn="${Escape}[3m"; ItalicsOff="${Escape}[23m";
-UnderlineOn="${Escape}[4m"; UnderlineOff="${Escape}[24m";
-BlinkOn="${Escape}[5m"; BlinkOff="${Escape}[25m";
-InvertOn="${Escape}[7m"; InvertOff="${Escape}[27m";
-Reset="${Escape}[0m";
+## Thanks to:
+## http://mywiki.wooledge.org/BashFAQ/037
+## Variables for terminal requests.
+[[ -t 2 ]] && { 
+    alt=$(      tput smcup  || tput ti      ) # Start alt display
+    ealt=$(     tput rmcup  || tput te      ) # End   alt display
+    hide=$(     tput civis  || tput vi      ) # Hide cursor
+    show=$(     tput cnorm  || tput ve      ) # Show cursor
+    save=$(     tput sc                     ) # Save cursor
+    load=$(     tput rc                     ) # Load cursor
+    bold=$(     tput bold   || tput md      ) # Start bold
+    stout=$(    tput smso   || tput so      ) # Start stand-out
+    estout=$(   tput rmso   || tput se      ) # End stand-out
+    under=$(    tput smul   || tput us      ) # Start underline
+    eunder=$(   tput rmul   || tput ue      ) # End   underline
+    reset=$(    tput sgr0   || tput me      ) # Reset cursor
+    blink=$(    tput blink  || tput mb      ) # Start blinking
+    italic=$(   tput sitm   || tput ZH      ) # Start italic
+    eitalic=$(  tput ritm   || tput ZR      ) # End   italic
+[[ $TERM != *-m ]] && { 
+    red=$(      tput setaf 1|| tput AF 1    )
+    green=$(    tput setaf 2|| tput AF 2    )
+    yellow=$(   tput setaf 3|| tput AF 3    )
+    blue=$(     tput setaf 4|| tput AF 4    )
+    magenta=$(  tput setaf 5|| tput AF 5    )
+    cyan=$(     tput setaf 6|| tput AF 6    )
 }
-
-## Example:
-## Output test code.
-#echo -e ${CyanF}This text will be red!${Reset};
-
-## initialization
-Colors
+    white=$(    tput setaf 7|| tput AF 7    )
+    default=$(  tput op                     )                                                                                                                                                                   
+    eed=$(      tput ed     || tput cd      )   # Erase to end of display
+    eel=$(      tput el     || tput ce      )   # Erase to end of line
+    ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
+    ewl=$eel$ebl                                # Erase whole line
+    draw=$(     tput -S <<< '   enacs
+                                smacs
+                                acsc
+                                rmacs' || { \
+                tput eA; tput as;
+                tput ac; tput ae;         } )   # Drawing characters
+    back=$'\b'
+} 2>/dev/null ||:
 
 if [ "$(id -u)" != "0" ]; then
-    echo -e "${RedB}ERROR${Reset}: This must be run as root (sudo)!"
+    echo "${red}${bold}ERROR:${reset} This must be run as root (sudo)!"
     exit 1
 else
     true "INFO: Script running as root."
@@ -83,7 +95,7 @@ renice +19 -p $$ >/dev/null
 ## Check.
 nice >/dev/null
 
-echo -e "${BlackF}${WhiteB}Currently running script: $0 ${Reset}"
+echo "${bold}Currently running script: $0${reset}"
 
 set -x
 
