@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set +x
-#set -x
+set -x
 
 echo "Currently running script: $0"
 
@@ -24,99 +24,50 @@ export UWT_DEV_PASSTHROUGH="1"
 
 export WHONIX_DEB_DEBUG="1"
 
-if [ -z $VMNAME ]; then
-   export VMNAME="unknown"
+if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
+   source "$WHONIX_SOURCE_FOLDER"/help-steps/parse-cmd
+fi
+
+if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+   export VMNAME="Whonix-Gateway"
+   export VMRAM="768"
+   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+fi
+
+if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+   export VMNAME="Whonix-Workstation"
+   export VMRAM="768"
+   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+fi
+
+if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+   export VMNAME="internal"
+fi
+
+if [ "$BARE_METAL" = "1" ]; then
+   export CHROOT_FOLDER=""
+else
+   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+   export BARE_METAL="0"
+fi
+
+if [ "$VMNAME" = "unknown" ]; then
+   true "variables ERROR: VMNAME is unknown. Please report this bug!"
+   exit 1
+fi
+
+if [ "$VMNAME" = "internal"; then
+   echo "variables INFO: Internal run."
 else
    true
-fi
-
-#echo "variables \$1: $1"
-#echo "variables MACHINE: $MACHINE"
-
-if [[ "$1" = "-tg" ]] || [[ "$MACHINE" = "-tg" ]]; then
-   export MACHINE="-tg"
-   export VMNAME="Whonix-Gateway"
-   export VMRAM="768"
-   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
-fi
-
-if [[ "$1" = "-tg-bare-metal" ]] || [[ "$MACHINE" = "-tg-bare-metal" ]]; then
-   export MACHINE="-tg-bare-metal"
-   export VMNAME="Whonix-Gateway"
-   export VMRAM="768"
-   export CHROOT_FOLDER=""
-   export BARE_METAL="1"
-fi
-
-if [[ "$1" = "-tw" ]] || [[ "$MACHINE" = "-tw" ]]; then
-   export MACHINE="-tw"
-   export VMNAME="Whonix-Workstation"
-   export VMRAM="768"
-   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
-fi
-
-if [[ "$1" = "-tw-bare-metal" ]] || [[ "$MACHINE" = "-tw-bare-metal" ]]; then
-   export MACHINE="-tw-bare-metal"
-   export VMNAME="Whonix-Workstation"
-   export VMRAM="768"
-   export CHROOT_FOLDER=""
-   export BARE_METAL="1"
-fi
-
-if [ "$1" = "-all" ]; then
-   export VMNAME="-all"
-fi
-
-if [ "$1" = "-fast" ]; then
-   export VMNAME="-fast"
-fi
-
-if [ "$1" = "-clean" ]; then
-   export VMNAME="-clean"
-fi
-
-if [ "$1" = "-help" ]; then
-   export VMNAME="-help"
-fi
-
-if [ -z $MACHINE ]; then
-   if [ "$VMNAME" = "unknown" ]; then
-      echo '
-      : "ERROR:"
-      : " "
-      : "Read Build Documentation or"
-      : "Physical Isolation Documentation (Bare Metal)"
-      : " "
-      : "Please add"
-      : "-tg for Whonix-Gateway VM or,"
-      : "-tw for Whonix-Workstation VM or,"
-      : "-tg-bare-metal for Whonix-Gateway Bare Metal"
-      : "-tw-bare-metal for Whonix-Workstation Bare Metal"
-      '
-      exit 1
-   elif [ "$1" = "-buildscript" ]; then
-      echo "Internal run for whonix_build -buildscript: $MACHINE"
-   elif [ "$VMNAME" = "-internal"; then
-      echo "Internal run for -internal." 
-   else
-      echo "ERROR: Please report this BUG variables A!"
-      exit 1
-   fi
-else
-   if [ "$VMNAME" = "unknown" ]; then
-      set -x
-      bug "Variables: VMNAME is still unknown. Something went wrong. Please report this BUG."
-      exit 1
-   else
-      echo "Variables: Internal run for: $MACHINE"
-   fi
+   true "variables INFO: VMNAME is $VMNAME"
 fi
 
 if [ "$BARE_METAL" = "1" ]; then
    CHROOT=""
 else
    CHROOT="chroot "$CHROOT_FOLDER"" 
-fi   
+fi
 
 export DEB_INSTALL_FOLDER="/initialdeb"
 

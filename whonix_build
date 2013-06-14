@@ -4,47 +4,6 @@ set -x
 
 true "Currently running script: $0"
 
-script_help() {
-: "
-## creates separate build folder
-## "$HOMEVAR"/whonix_binary
-##
-## FLAGS:
-## -all
-## Build both VBox machines.
-##
-## -fast
-## Build both VBox machines.
-## Skips the 20_create-debian-img step.
-##
-## -tg
-## Builds Whonix-Gateway VBox machine.
-##
-## -tw
-## Builds Whonix-Workstation VBox machine.
-##
-## -tg-fast
-## Builds Whonix-Gateway VBox machine.
-## Skips the 20_create-debian-img step.
-##
-## -tw-fast
-## Builds Whonix-Workstation VBox machine.
-## Skips the 20_create-debian-img step.
-##
-## -clean
-## Deletes both .imgs and VBox vms.
-##
-## -tg-clean
-## Deletes Whonix-Gateway .img and VBox vm.
-##
-## -tw-clean
-## Deletes Whonix-Workstation .img and VBox vm.
-##
-"
-}
-
-
-
 error_handler_build-machine() {
 : echo "
 #!!! ERROR in $(caller) !!!#
@@ -64,14 +23,13 @@ exit 1
 
 
 whonix_build_preparation() {
-   export MACHINE="-buildscript"
-   export VMNAME="-buildscript"
-
    cd help-steps
 
    MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-   source variables
+   source parse-cmd
+   export WHONIX_BUILD_PARSED="1"   
+   
    source pre
 
    cd ..
@@ -83,7 +41,7 @@ whonix_build_machine() {
    trap "error_handler_build-machine" ERR INT TERM
 
    run-parts --verbose --test ./build-steps
-   run-parts --verbose --exit-on-error --arg "$MACHINE" ./build-steps
+   run-parts --verbose --exit-on-error ./build-steps
 }
 
 
@@ -91,134 +49,62 @@ whonix_build_machine() {
 whonix_build_clean() {
    trap "error_handler_general" ERR INT TERM
 
-   ./debug-steps/delete-vbox-vm "$MACHINE"
+   ./debug-steps/delete-vbox-vm
 }
 
 
 
-################################################################ 
-# -tg                                                          #
-################################################################ 
-if [ "$1" = "-tg" ]; then
-   whonix_build_preparation
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
+whonix_build_preparation ${1+"$@"}
+
+
+
+if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
+   if [ "$WHONIX_BUILD_ALL" = "1" ]; then
+   
+      WHONIX_BUILD_GATEWAY="1"
+      WHONIX_BUILD_WORKSTATION="0"   
+      whonix_build_clean
+      
+      WHONIX_BUILD_GATEWAY="0"
+      WHONIX_BUILD_WORKSTATION="1"
+      whonix_build_clean
+      
+      exit 0
+   fi
+   
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+      whonix_build_clean   
+      exit 0
+   fi
+   
+   if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+      whonix_build_clean  
+      exit 0
+   fi
 fi
 
-################################################################ 
-# -tw                                                          #
-################################################################ 
-if [[ "$1" = "-tw" ]]; then
-   whonix_build_preparation
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
+if [ "$WHONIX_BUILD_BUILD" = "1" ]; then
+   if [ "$WHONIX_BUILD_ALL" = "1" ]; then
+
+      WHONIX_BUILD_GATEWAY="1"
+      WHONIX_BUILD_WORKSTATION="0"
+      whonix_build_machine
+   
+      WHONIX_BUILD_GATEWAY="0"
+      WHONIX_BUILD_WORKSTATION="1"
+      whonix_build_machine
+
+      exit 0
+   fi
+
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+      whonix_build_machine
+      exit 0
+   fi
+
+   if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+      whonix_build_machine
+      exit 0
+   fi
 fi
 
-################################################################ 
-# -all                                                         #
-################################################################ 
-if [[ "$1" = "-all" ]]; then
-   whonix_build_preparation
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -fast                                                        #
-################################################################ 
-if [[ "$1" = "-fast" ]]; then
-   whonix_build_preparation
-   export FAST=1
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -tg-fast                                                     #
-################################################################ 
-if [[ "$1" = "-tg-fast" ]]; then
-   whonix_build_preparation
-   export FAST=1
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -tw-fast                                                     #
-################################################################ 
-if [[ "$1" = "-tw-fast" ]]; then
-   whonix_build_preparation
-   export FAST=1
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   whonix_build_machine "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -clean                                                       #
-################################################################ 
-if [[ "$1" = "-clean" ]]; then
-   whonix_build_preparation
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -tg-clean                                                    #
-################################################################ 
-if [[ "$1" = "-tg-clean" ]]; then
-   whonix_build_preparation
-   export MACHINE="-tg"
-   whonix_build_clean "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -tw-clean                                                    #
-################################################################ 
-if [[ "$1" = "-tw-clean" ]]; then
-   whonix_build_preparation
-   export MACHINE="-tw"
-   whonix_build_clean "$MACHINE"
-   exit 0
-fi
-
-################################################################ 
-# -help                                                        #
-################################################################ 
-if [[ "$1" = "-help" ]]; then
-   script_help
-   exit 0
-fi
-
-################################################################ 
-# no option chosen                                             # 
-################################################################ 
-if [[ "$1" = "" ]]; then 
-   echo "
-   INFO: No option chosen.
-
-   Please append -help to find out more.
-   "
-   exit 0
-fi

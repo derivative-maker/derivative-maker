@@ -1,0 +1,125 @@
+#!/bin/bash
+
+script_help() {
+: "
+## creates separate build folder
+## "$HOMEVAR"/whonix_binary
+##
+## FLAGS:
+## --build
+## Build Whonix.
+##
+## --clean
+## Deletes .img, .ova and VBox VMs.
+##
+## --bare-metal
+## Use this for Whonix with physical isolation.
+##
+## --torgateway
+## Builds Whonix-Gateway VBox machine.
+##
+## --torworkstation
+## Builds Whonix-Workstation VBox machine.
+##
+## --all
+## Build both VBox machines.
+"
+}
+
+whonix_build_cmdoptions() {
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+   
+   if [ "$*" = "" ]; then
+      true "$0 no option chosen. Use --help." >&2
+      exit 1
+   fi
+
+   while :
+   do
+       case $1 in
+           -h | --help | -\?)
+               script_help
+               exit 0
+               ;;
+           -a  | --all)
+               export WHONIX_BUILD_ALL="1"
+               shift
+               ;;               
+           -tg | --torgateway)
+               export WHONIX_BUILD_GATEWAY="1"
+               shift
+               ;;
+           -tw | --torworkstation)
+               export WHONIX_BUILD_WORKSTATION="1"
+               shift
+               ;;               
+           -bm | --bare-metal)
+               export BARE_METAL="1"
+               shift
+               ;;
+           -f1 | --fast1)
+               export WHONIX_BUILD_FAST1="1"
+               shift
+               ;;
+           -f2 | --fast2)
+               export WHONIX_BUILD_FAST2="1"
+               shift
+               ;;
+           -c  | --clean)
+               export WHONIX_BUILD_CLEAN="1"
+               shift
+               ;;
+           -b  | --build)
+               export WHONIX_BUILD_BUILD="1"
+               shift
+               ;;
+           -i  | --internalrun)
+               export WHONIX_BUILD_INTERNALRUN="1"
+               shift
+               ;;                    
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$0 unknown option: $1" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done   
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters. 
+
+   
+   if [ ! "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then   
+      if [ "$WHONIX_BUILD_BUILD" = "1" ] && [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
+         true "$0 You must either use --build or --clean." >&2
+         exit 1         
+      fi
+   fi
+   
+   if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+      true "$0 You can not combine --all with --torgateway. You must either use --all or --torgateway." >&2
+      exit 1      
+   fi
+   
+   if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+      true "$0 You can not combine --all with --torworkstation. You must either use --all or --torworkstation." >&2
+      exit 1      
+   fi
+
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ] || [ "$WHONIX_BUILD_WORKSTATION" = "1" ] || [ "$WHONIX_BUILD_ALL" = "1" ]; then
+      true
+   else
+      true "$0 You must add --torgateway or --torworkstation or --all."
+      exit 1
+   fi
+}
+
+whonix_build_cmdoptions ${1+"$@"}
+

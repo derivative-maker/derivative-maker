@@ -43,17 +43,17 @@ run-chroot-scripts() {
      "$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/whonix/chroot-scripts-pre.d/* \
      "$CHROOT_FOLDER"/var/lib/whonix/initial-chroot-scripts-pre.d/
      
-   if [ "$MACHINE" = "-tg" ] || [ "$MACHINE" = "-tg-bare-metal" ]; then   
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then   
       cp \
         "$WHONIX_SOURCE_FOLDER"/whonix_gateway/usr/share/whonix/chroot-scripts-pre.d/* \
         "$CHROOT_FOLDER"/var/lib/whonix/initial-chroot-scripts-pre.d/ 
-   fi
-   
-   if [ "$MACHINE" = "-tw" ] || [ "$MACHINE" = "-tw-bare-metal" ]; then   
+   elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then   
       cp \
         "$WHONIX_SOURCE_FOLDER"/whonix_workstation/usr/share/whonix/chroot-scripts-pre.d/* \
         "$CHROOT_FOLDER"/var/lib/whonix/initial-chroot-scripts-pre.d/
-   fi  
+   else
+      bug "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+   fi
    
    ## Check which chroot scripts we got.
    $CHROOT run-parts --verbose --test "/var/lib/whonix/initial-chroot-scripts-pre.d"
