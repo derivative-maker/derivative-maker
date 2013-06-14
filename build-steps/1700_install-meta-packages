@@ -35,6 +35,14 @@ install-meta-packages() {
    $CHROOT sync
    sync
    
+   ## backup exiting /etc/apt/sources.list, might be useful for bare metal users
+   cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
+   
+   ## We have to manually fix /etc/apt/sources.list, because the list which comes with
+   ## grml-debootstrap is incomplete (does not complain debian security repository) and points
+   ## to 127.0.0.1.
+   cp "$WHONIX_SOURCE_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list
+   
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
