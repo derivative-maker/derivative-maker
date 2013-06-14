@@ -10,21 +10,21 @@ cd "$MYDIR"
 cd ..
 cd help-steps
 
-source variables
 source pre
+source variables
 
 error_handler_interactive-chroot-img-shell() {
    trap "error_handler_interactive-img" ERR INT TERM
 
-   echo "Exited (1) interactive shell."
+   echo "${green}INFO${reset}: Exited (1) interactive shell."
    sync
 }
 
 error_handler_interactive-chroot-img() {
    echo "
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
+${red}${bold}ERROR${reset} in $(caller)
+${red}${bold}ERROR${reset} in $(caller)
+${red}${bold}ERROR${reset} in $(caller)
 "
 
    ./unchroot-img
@@ -32,9 +32,9 @@ error_handler_interactive-chroot-img() {
    ./unmount-img
    
    echo "
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
-#!!! ERROR in $(caller) !!!#
+${red}${bold}ERROR${reset} in $(caller)
+${red}${bold}ERROR${reset} in $(caller)
+${red}${bold}ERROR${reset} in $(caller)
 "
 
    exit 1
@@ -55,15 +55,15 @@ interactive-chroot-img() {
    sync
 
    ## Info.
-   echo "Entering interactive shell..."
-   echo "Recommendation: check /home/user if you are really inside the image and not on your host system."
-   echo "When you are done, do not forget to leave the shell using: exit 0"
+   echo "${cyan}INFO${reset}: Entering interactive shell..."
+   echo "${cyan}Recommendation${reset}: check /home/user if you are really inside the image and not on your host system."
+   echo "    When you are done, do not forget to leave the shell using: exit 0"
 
    ## Run interactive shell.
    trap "error_handler_interactive-chroot-img-shell" ERR INT TERM
    $CHROOT "/bin/bash"
 
-   echo "Exited (0) interactive shell."
+   echo "${green}INFO${reset}: Exited (0) interactive shell."
 
    ./unchroot-img
    ./unprevent-daemons-from-starting
