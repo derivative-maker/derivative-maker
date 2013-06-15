@@ -43,7 +43,11 @@ interactive-chroot-img() {
    trap "error_handler_interactive-chroot-img" ERR INT TERM
 
    ./mount-img
-   ./prevent-daemons-from-starting
+
+   echo "${cyan}INFO: Trying to prevent daemons from starting, if /usr/sbin/ folder already exist (will fail open, if not)...${reset}"
+
+   ./prevent-daemons-from-starting || true
+
    ./chroot-img
 
    sync
@@ -53,22 +57,47 @@ interactive-chroot-img() {
    $CHROOT update-grub -v
    sync
 
+   echo "${cyan}INFO: Trying to make local APT repository available inside chroot, if already available (will fail open, if not)...${reset}" 
+   
+   ## Enable apt-cacher-ng.
+   export http_proxy="http://127.0.0.1:3142"
+
+   mkdir --parents "$WHONIX_INITIAL_DEB_INSTALL_FOLDER" || true
+   mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR" || true
+   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER" || true
+   
+   cp "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/pubring.gpg "$CHROOT_FOLDER"/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg || true
+  
+   echo "deb file:"$DEB_INSTALL_FOLDER"/ local main" > "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL" || true
+   
+   sync
+
    ## Info.
-   echo "${cyan}INFO${reset}: Entering interactive shell..."
-   echo "${cyan}Recommendation${reset}: check /home/user if you are really inside the image and not on your host system."
-   echo "    When you are done, do not forget to leave the shell using: exit 0"
+   echo "${cyan}INFO: Entering interactive shell...${reset}"
+   echo "${cyan}Recommendation: check /home/user if you are really inside the image and not on your host system."
+   echo "    When you are done, do not forget to leave the shell using: exit 0${reset}"
 
    ## Run interactive shell.
    trap "error_handler_interactive-chroot-img-shell" ERR INT TERM
    $CHROOT "/bin/bash"
 
-   echo "${green}INFO${reset}: Exited (0) interactive shell."
+   echo "${green}INFO: Exited (0) interactive shell.${reset}"
+   
+   rm --force "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
+   
+   $CHROOT sync
+   sync
+   
+   ## Disable apt-cacher-ng.
+   export unset http_proxy
 
    ./unchroot-img
    ./unprevent-daemons-from-starting
    ./unmount-img
 
    sync
+   
+   echo "${green}INFO: Terminated interactive chroot without any errors.${reset}"
 }
 
 true "${bold}INFO: Currently running script: $0${reset}"
