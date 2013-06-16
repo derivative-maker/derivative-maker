@@ -1,0 +1,102 @@
+#!/bin/bash
+
+set -x
+
+## Disable root check, so this script can be better tested.
+## When debhelper runs this script, debhelper already checked,
+## if it has root.
+ROOT_CHECK="0"
+
+## import error handler, colors...
+source "$CURDIR"/help-steps/pre
+
+CURDIR="$(pwd)"
+
+SOURCEFOLDERS='whonix_shared whonix_gateway whonix_workstation'
+
+for i in $(find "$CURDIR/man"); do
+
+   set +x
+   
+   if [ -d "$i" ]; then
+      continue
+   fi
+ 
+   temp="${i#"$CURDIR/man/"}"
+
+   source_folder="$(dirname "$temp")"
+   
+   filename_without_ron_file_extension="$(basename "$i" ".ronn")"
+   
+   mkdir --parents "$CURDIR"/debian/tmp-man/"$source_folder"
+   
+   echo "${bold}${cyan}INFO: Creating man page "$CURDIR"/debian/tmp-man/"$source_folder"/"$filename_without_ron_file_extension" ${reset}"
+   
+   ronn \
+      --manual="Whonix Documentation" \
+      --organization="Whonix" \
+      <$i \
+      > "$CURDIR"/debian/tmp-man/"$source_folder"/"$filename_without_ron_file_extension"
+      
+done
+
+for sf in $SOURCEFOLDERS; do  
+   
+      set +x
+   
+      for i in $(find "$CURDIR/$sf"); do
+         if [ -d "$i" ]; then
+            continue
+         fi        
+         
+         ## path without source folder in it
+         temp="${i#"$CURDIR/$sf"}"
+         
+         filename="$(basename "$temp")"         
+         
+         if [ "$filename" = ".directory" ]; then
+             echo "${bold}${cyan}INFO: Skipping .directory file: $i ${reset}"
+             continue
+         fi     
+
+         if [ "$sf" = "whonix_shared" ]; then
+         
+            if [ "$(dirname "$temp")" = "/etc/init.d" ]; then
+               echo "${green}cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".init ${reset}"
+               cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".init
+               echo "${bold}${green}dh_installinit --package="whonix-shared-files" --name="$filename" ${reset}"
+               dh_installinit --package="whonix-shared-files" --name="$filename"
+            
+               continue
+            fi
+         
+            #if [ "$(dirname "$temp")" = "/etc/default" ]; then
+            #   if [ "$filename" = "grub.whonix" ]; then
+            #      echo "${bold}${cyan}INFO: Skipping $filename, since its handled by config-package-dev displace. ${reset}"
+            #   else
+            #      echo "${green}cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".default ${reset}"
+            #      cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".default
+            #      
+            #      continue
+            #   fi
+            #fi
+            
+         fi
+         
+         mkdir --parents "$CURDIR"/debian/tmp/"$sf"/"$(dirname "$temp")"
+       
+         #echo "cp --preserve "$i" "$CURDIR"/debian/tmp/"$sf"/"$temp""
+         cp --preserve "$i" "$CURDIR"/debian/tmp/"$sf"/"$temp"
+
+      done     
+
+done
+
+set -x
+
+if [ ! -f "$CURDIR"/debian/copyright ]; then \
+   cp "$CURDIR"/LICENSE "$CURDIR"/debian/copyright; \
+fi 
+
+exit 0
+

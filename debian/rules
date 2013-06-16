@@ -3,17 +3,6 @@
 %:
 	dh $@ --with=config-package
 
-SOURCEFOLDERS=whonix_shared whonix_gateway whonix_workstation
-
-# Generally exclude files matching the regular expression,
-# NOTE: if the excluded file(s) result in an empty directory, this
-#       directory is also excluded at all
-#
-# EXCLUDE=.*\(\.directory\)\|.*\(\.bashrc\)\|.*\(timesync\.desktop\)
-INITFILES=\(etc\/init\.d\/.*\)
-DEFAULTFILES=\(etc\/default\/.*\)
-EXCLUDE=.*\(\(\.directory\)\|$(DEFAULTFILES)\|$(INITFILES)
-
 #export DH_VERBOSE=1
 
 clean:
@@ -21,8 +10,7 @@ clean:
 	dh_testroot
 	dh_clean
 	-rm -f $(CURDIR)/debian/*.init
-	-rm -f $(CURDIR)/debian/*.default
-	-rm -f $(CURDIR)/debian/*.manpages
+	-rm --force --recursive $(CURDIR)/debian/tmp-man
 
 build-arch: build
 
@@ -54,54 +42,8 @@ install: build
 	dh_prep
 	dh_installdirs
 
-	@mkdir -p $(CURDIR)/debian/tmp
-	@for sf in $(SOURCEFOLDERS); do \
-		find $$sf/ -not -regex '$(EXCLUDE)\)$$' -type f -exec cp -p --parents {} \
-			$(CURDIR)/debian/tmp \; ; \
-		case "$$sf" in \
-			"whonix_shared") \
-				for dm in `find $$sf/ -regex '.*\($(DEFAULTFILES)\)' -type f \
-					-printf '$(CURDIR)/%p;$(CURDIR)/debian/whonix-shared-files.%f.default '`; do \
-					cp -p `echo $$dm | sed -e 's/;/ /g'` ; \
-				done ; \
-				for im in `find $$sf/ -regex '.*\($(INITFILES)\)' -type f \
-					-printf '$(CURDIR)/%p;$(CURDIR)/debian/whonix-shared-files.%f.init '`; do \
-					cp -p `echo $$im | sed -e 's/;/ /g'` ; \
-				done ; \
-				for in in `find $$sf/ -regex '.*\($(INITFILES)\)' -type f -printf '%f '`; do \
-					echo "dh_installinit -pwhonix-shared-files --name=$$in"; \
-					dh_installinit -pwhonix-shared-files --name=$$in; \
-				done ; \
-			;; \
-		esac ; \
-	done
-	
-	@for sf in $(SOURCEFOLDERS); do \
-		for ronn in `find $(CURDIR)/man/$$sf/ -name '*.ronn'`; do \
-			SEC=`gawk '/^.*\([1-9]\) --/ { match($$0, /^.*\(([1-9])\) --/, m); print m[1] }' $$ronn` ; \
-			DEST=`echo "$(CURDIR)/debian/tmp/$$sf/usr/share/man/man$$SEC/"` ; \
-			DEST=$$DEST`basename $$ronn .ronn` ; \
-			DEST=$$DEST"."$$SEC ; \
-			mkdir -p `dirname $$DEST` ; \
-			ronn --manual="Whonix Documentation" --organization="Whonix" --pipe -r $$ronn > $$DEST; \
-			case "$$sf" in \
-				"whonix_gateway") \
-					echo $$DEST >> $(CURDIR)/debian/whonix-gateway-files.manpages ; \
-					;; \
-				"whonix_shared") \
-					echo $$DEST >> $(CURDIR)/debian/whonix-shared-files.manpages ; \
-					;; \
-				"whonix_workstation") \
-					echo $$DEST >> $(CURDIR)/debian/whonix-workstation-files.manpages ; \
-					;; \
-			esac ; \
-		done ; \
-	done
+	$(CURDIR)/debian/rules-helper.bsh
 
-	@if [ ! -f $(CURDIR)/debian/copyright ]; then \
-		cp $(CURDIR)/LICENSE $(CURDIR)/debian/copyright; \
-	fi
-	
 	dh_configpackage
 	dh_install --fail-missing --sourcedir=$(CURDIR)/debian/tmp
 	
