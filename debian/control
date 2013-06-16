@@ -8,7 +8,7 @@ Vcs-Browser: https://github.com/Whonix/Whonix
 Vcs-Git: https://github.com/Whonix/Whonix.git
 Standards-Version: 3.9.3
 
-Package: whonix-shared-packages
+Package: whonix-shared-packages-dependencies
 Architecture: all
 Depends: console-common, initramfs-tools, grub-pc, os-prober, bzip2, file, lsof, most, 
  pciutils, strace, sysfsutils, acpi-support-base, keyboard-configuration, sudo, rungetty, mingetty, 
@@ -16,14 +16,22 @@ Depends: console-common, initramfs-tools, grub-pc, os-prober, bzip2, file, lsof,
  ca-certificates, curl, libdatetime-perl, libdatetime-format-dateparse-perl, 
  libgetopt-long-descriptive-perl, libtry-tiny-perl, update-notifier-common, zenity, libnotify-bin, 
  imagemagick, ${misc:Depends}
-Recommends: bash-completion, command-not-found, zsh, nano, wget, dnsutils, dbus, iputils-ping,
- apparmor-profiles, apparmor-utils
-Description: Dependencies and recommend packages for Whonix-Gateway and Whonix-Workstation
+Description: Dependencies for Whonix-Gateway and Whonix-Workstation
  A metapackage, which installs packages which both, Whonix-Gateway 
  and Whonix-Workstation, depend on.
  .
- Also includes recommend packages to ensure,
- Debian GNU/Linux standard tools are available.
+ Do not remove.
+ 
+Package: whonix-shared-packages-recommend
+Priority: optional
+Architecture: all
+Depends: bash-completion, command-not-found, zsh, nano, wget, dnsutils, dbus, iputils-ping,
+ apparmor-profiles, apparmor-utils, ${misc:Depends}
+Description: Recommend packages for Whonix-Gateway and Whonix-Workstation
+ A metapackage, which includes recommend packages to ensure, Debian GNU/Linux
+ standard tools are available and other useful recommend packages.
+ .
+ Safe to remove, if you know what you are doing.
  
 Package: whonix-shared-files
 Architecture: all
@@ -37,16 +45,28 @@ Description: Scripts and config files for Whonix-Gateway and Whonix-Workstation
  These are in a separate package and not inside the whonix-shared-packages
  metapackage, because this eases debugging while building Whonix.
  
-Package: whonix-gateway-packages
+Package: whonix-gateway-packages-dependencies
 Architecture: all
-Pre-Depends: whonix-shared-packages (= ${source:Version})
+Pre-Depends: whonix-shared-packages-dependencies (= ${source:Version})
 Depends: tor, torsocks, dhcp3-client, isc-dhcp-client, dialog, ${misc:Depends}
-Recommends: tor-geoipdb, tor-arm, obfsproxy
-Conflicts: whonix-workstation-packages
-Description: Dependencies and recommend packages for Whonix-Gateway
+Conflicts: whonix-workstation-packages-dependencies
+Description: Dependencies for Whonix-Gateway
  A metapackage, which installs packages which Whonix-Gateway 
- depends on and packages, which are recommended for Whonix-Gateway, 
- because they are useful for a Tor Gateway.
+ depends on.
+ .
+ Do not remove.
+ 
+Package: whonix-gateway-packages-recommend
+Priority: optional
+Architecture: all
+Pre-Depends: whonix-shared-packages-dependencies (= ${source:Version})
+Depends: tor-geoipdb, tor-arm, obfsproxy, ${misc:Depends}
+Conflicts: whonix-workstation-packages-recommend
+Description: Recommend packages for Whonix-Gateway
+ A metapackage, which installs packages, which are recommended for
+ a Tor Gateway.
+ .
+ Safe to remove, if you know what you are doing.
  
 Package: whonix-gateway-files
 Architecture: all
@@ -73,20 +93,36 @@ Description: Runs Whonix-Gateway postinst scripts
  The postinst file of this package uses run-parts to execute all scripts in
  the /usr/share/whonix/postinst.d folder.
  
-Package: whonix-workstation-packages
+Package: whonix-workstation-packages-dependencies
 Architecture: all
-Pre-Depends: whonix-shared-packages (= ${source:Version})
+Pre-Depends: whonix-shared-packages-dependencies (= ${source:Version})
 Depends: torsocks, rawdog, ${misc:Depends}
-Recommends: rinetd, libasound2, alsa-base, alsa-utils, 
- gtk2-engines-oxygen, gtk3-engines-oxygen, faketime
+Recommends: whonix-workstation-packages-recommend (= ${source:Version})
 Suggests: whonix-shared-desktop (= ${source:Version}),
  whonix-workstation-default-applications (= ${source:Version}),
  whonix-workstation-extra-applications (= ${source:Version})
 Conflicts: whonix-gateway-packages
-Description: Dependencies and recommend packages for Whonix-Workstation
+Description: Dependencies for Whonix-Workstation
  A metapackage, which installs packages which Whonix-Workstation
- depends on and packages, which are recommended for Whonix-Workstation,
- because they are useful for a Tor Workstation.
+ depends on.
+ .
+ Do not remove.
+ 
+Package: whonix-workstation-packages-recommend
+Priority: optional
+Architecture: all
+Pre-Depends: whonix-shared-packages-dependencies (= ${source:Version})
+Depends: rinetd, libasound2, alsa-base, alsa-utils, 
+ gtk2-engines-oxygen, gtk3-engines-oxygen, faketime, ${misc:Depends}
+Suggests: whonix-shared-desktop (= ${source:Version}),
+ whonix-workstation-default-applications (= ${source:Version}),
+ whonix-workstation-extra-applications (= ${source:Version})
+Conflicts: whonix-gateway-packages
+Description: Recommend packages for Whonix-Workstation
+ A metapackage, which installs packages, which are recommended for
+ Whonix-Workstation, because they are useful for a Tor Workstation.
+ .
+ Feel free to remove, if you know what you are doing.
  
 Package: whonix-workstation-files
 Architecture: all
@@ -141,22 +177,20 @@ Priority: optional
 Architecture: all
 Depends: whonix-shared-desktop (= ${source:Version}), kde-workspace, kdm, kdesudo, kdepasswd, kfind, 
  ksysguard, plasma-widget-folderview, kde-baseapps-bin, polkit-kde-1, konsole, kwrite, dolphin, ark, 
- okular, ${misc:Depends}
-Recommends: khelpcenter4 (= ${source:Version})
+ okular, khelpcenter4, ${misc:Depends}
 Suggests: whonix-shared-kde-accessibility (= ${source:Version}),
  whonix-shared-desktop-langpack-kde (= ${source:Version})
-Description: Dependencies and recommend packages for Gateway/Workst. base KDE desktop
+Description: Recommend packages for Gateway/Workstation base KDE desktop
  A metapackage, which installs a minimal, yet complete enough 
- to contain the very basics, KDE desktop.
+ to contain the very basics, KDE desktop. The Whonix-Gateway desktop and the
+ Whonix-Workstation desktop depend on this package.
  .
- The Whonix-Gateway desktop and the Whonix-Workstation desktop
- depend on this package.
+ Safe to remove.
 
 Package: whonix-shared-kde-accessibility
 Priority: optional
 Architecture: all
-Depends: ${misc:Depends}
-Recommends: kdeaccessibility, kvkbd, kmousetool, kmag, kmouth, jovie
+Depends: kdeaccessibility, kvkbd, kmousetool, kmag, kmouth, jovie, ${misc:Depends}
 Description: KDE accessibility tools
  A metapackage, which installs accessibility tools for the KDE desktop.
  .
@@ -166,10 +200,10 @@ Description: KDE accessibility tools
 Package: whonix-workstation-default-applications
 Priority: optional
 Architecture: all
-Depends: ${misc:Depends}
-Recommends: xchat, vlc, mixmaster, galternatives, apper,
+Depends: xchat, vlc, mixmaster, galternatives, apper,
  kcalc, gwenview, kgpg, kmix, synaptic, mat, python-hachoir-core, python-hachoir-parser, 
- python-pdfrw, python-cairo, python-poppler, python-mutagen, libimage-exiftool-perl
+ python-pdfrw, python-cairo, python-poppler, python-mutagen, libimage-exiftool-perl,
+ ${misc:Depends}
 Suggests: whonix-shared-desktop (= ${source:Version}),
  whonix-workstation-extra-applications (= ${source:Version}),
  whonix-workstation-langpack-common (= ${source:Version})
@@ -184,7 +218,7 @@ Package: whonix-workstation-extra-applications
 Priority: optional
 Architecture: all
 Depends: ${misc:Depends}
-Recommends: whonix-workstation-packages (= ${source:Version}),
+Recommends: whonix-workstation-packages-recommended (= ${source:Version}),
  whonix-workstation-default-applications (= ${source:Version}), shutter,
  gtk-recordmydesktop, libreoffice, kdenlive, kolourpaint4
 Suggests: whonix-workstation-langpack-common (= ${source:Version})
