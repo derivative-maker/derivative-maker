@@ -21,15 +21,30 @@ create-debian-packages() {
 
    cd "$MYDIR"
    cd ..
-   
+
+   true "${cyan}$0 INFO: Cleaning old packages... ${reset}"
+
    sudo -u "$USERNAME" make clean
+
+   true "${cyan}$0 INFO: Cleaned old packages. ${reset}"
+
+   true "${cyan}$0 INFO: Automatically bumping version number in debian/changelog... ${reset}"
+   ## bump changelog version numbers
+   ## whonxi is written in lower case,
+   ## because thats the name of the file in /etc/dpkg/origins/
+   debchange --vendor "whonix" --increment ""
+
+   true "${cyan}$0 INFO: Bumped version number in debian/changelog. ${reset}"   
    
+   true "${cyan}$0 INFO: Creating deb packages... ${reset}"
    ## We do not have to use signed packages here, since all actions are done locally,
    ## i.e. package creation, copying packages into the image and installing the images
    ## never touches insecure networks.
    ## Using signed packages for this build step would not buy any security and make
    ## the build process for people who create their own builds unnecessarily more complicated.
    sudo -u "$USERNAME" make unsignedpackage
+   
+   true "${cyan}$0 INFO: Created deb packages. ${reset}"
 
    ## We need to create a local signing key for signing our local APT repository. Otherwise,
    ## apt-get would complain, that the package can not be verified. In theory, signing is not
@@ -43,7 +58,7 @@ create-debian-packages() {
    
    ## Check, if we previously already created a local OpenPGP signing key.
    if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
-      true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one...}${reset}"
+      true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
    
       sudo -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
    
@@ -63,16 +78,16 @@ create-debian-packages() {
       
       sudo -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
       
-      true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository.${reset}"
+      true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
    else
-      true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository.${reset}"
+      true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
    fi
    
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    sudo -u "$USERNAME" gpg --no-default-keyring --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" --list-secret-keys  
    
-   true "${cyan}$0 INFO: Purging local APT repository...${reset}"
+   true "${cyan}$0 INFO: Purging local APT repository... ${reset}"
    
    sudo -u "$USERNAME" \
       reprepro \
@@ -80,9 +95,9 @@ create-debian-packages() {
          --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
          removematched local "*"
          
-   true "${cyan}$0 INFO: Done, purged local APT repository.${reset}"
+   true "${cyan}$0 INFO: Done, purged local APT repository. ${reset}"
    
-   true "${cyan}$0 INFO: Creating local APT repository...${reset}"
+   true "${cyan}$0 INFO: Creating local APT repository... ${reset}"
    
    sudo -u "$USERNAME" \
       reprepro \
@@ -90,9 +105,9 @@ create-debian-packages() {
          --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
          includedeb local ../*.deb
    
-   true "${cyan}$0 INFO: Done, created local APT repository.${reset}"
+   true "${cyan}$0 INFO: Done, created local APT repository. ${reset}"
 } 
 
-true "${bold}INFO: Currently running script: $0${reset}"
+true "${bold}INFO: Currently running script: $0 ${reset}"
 create-debian-packages
 
