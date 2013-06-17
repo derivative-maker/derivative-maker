@@ -101,8 +101,8 @@ configuration folder, not starting a desktop environment."
       if [ "$total_ram" -lt "$whonixdesktop_minium_ram" ]; then
          echo "/etc/profile.d/80_desktop.sh INFO: Not starting login manager \
 (graphical desktop environment) ($whonixdesktop_display_manager), \
-because there is only "$total_ram" MB total RAM. (Minimum \
-"$whonixdesktop_minium_ram" RAM configured in /etc/whonix.d/ \
+because there is only "$total_ram" MB total RAM. (A minimum of \
+"$whonixdesktop_minium_ram" MB total RAM is configured in /etc/whonix.d/ \
 configuration folder.)"
          return 0
       fi
