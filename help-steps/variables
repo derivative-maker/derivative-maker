@@ -97,6 +97,32 @@ WHONIX_BUILD_WHONIX_VERSION="${WHONIX_BUILD_WHONIX_VERSION//[[:space:]]}"
 
 echo "WHONIX_BUILD_WHONIX_VERSION: $WHONIX_BUILD_WHONIX_VERSION"
 
+## {{{ WHONIX_BUILD_CHANGELOG_VERSION
+
+OIFS="${IFS}"
+NIFS=$'\n'
+
+IFS="${NIFS}"
+
+## fallback
+export WHONIX_BUILD_CHANGELOG_VERSION="ERROR. Please report this bug! WHONIX_BUILD_CHANGELOG_VERSION could not be determined."
+
+for LINE in $(dpkg-parsechangelog); do
+   first="$(echo $LINE | awk '{print $1}')"
+   second="$(echo $LINE | awk '{print $2}')"
+   first="$(echo $first | awk '{print tolower($0)}')"
+   if [ "$first" = "version:" ]; then
+      export WHONIX_BUILD_CHANGELOG_VERSION="$second"
+      break
+   fi
+done
+
+IFS="${OIFS}"
+
+## }}}
+
+echo "WHONIX_BUILD_CHANGELOG_VERSION: $WHONIX_BUILD_CHANGELOG_VERSION"
+
 if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
    for i in "$WHONIX_SOURCE_FOLDER"/buildconfig.d/*; do
       if [ -f "$i" ]; then
