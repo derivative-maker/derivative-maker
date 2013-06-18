@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "${bold}${red}$0 ERROR:${reset} BASH_COMMAND: $BASH_COMMAND"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+
+export ROOT_CHECK="0"
+export VMNAME="internalrun"
+
+source pre
+source variables
+
+cd "$WHONIX_SOURCE_PARENTDIR"
+
+tar \
+   --preserve-permissions \
+   --create \
+   --gzip \
+   --file whonix_"$VERSION".orig.tar.gz \
+   Whonix
+
