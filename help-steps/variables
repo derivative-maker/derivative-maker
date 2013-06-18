@@ -86,7 +86,8 @@ WHONIX_SOURCES_LIST_TEMP_BUILD_BASE="/etc/apt/sources.list.d/whonix_temp_initial
 
 WHONIX_SOURCES_LIST_TEMP_BUILD_FULL="$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_BASE"
 
-## Find out installed Whonix version.
+## {{{ WHONIX_BUILD_WHONIX_VERSION
+
 ## Read only FIRST line.
 WHONIX_BUILD_WHONIX_VERSION="Could not read local Whonix version file. Please report this bug!"
 read -r WHONIX_BUILD_WHONIX_VERSION < ""$WHONIX_SOURCE_FOLDER"/whonix_shared/usr/share/whonix/version"
@@ -97,7 +98,9 @@ WHONIX_BUILD_WHONIX_VERSION="${WHONIX_BUILD_WHONIX_VERSION//[[:space:]]}"
 
 echo "WHONIX_BUILD_WHONIX_VERSION: $WHONIX_BUILD_WHONIX_VERSION"
 
-## {{{ WHONIX_BUILD_CHANGELOG_VERSION
+## }}}
+
+## {{{ WHONIX_BUILD_OLD_CHANGELOG_VERSION
 
 OIFS="${IFS}"
 NIFS=$'\n'
@@ -105,23 +108,54 @@ NIFS=$'\n'
 IFS="${NIFS}"
 
 ## fallback
-export WHONIX_BUILD_CHANGELOG_VERSION="ERROR. Please report this bug! WHONIX_BUILD_CHANGELOG_VERSION could not be determined."
+export WHONIX_BUILD_OLD_CHANGELOG_VERSION="ERROR. Please report this bug! WHONIX_BUILD_OLD_CHANGELOG_VERSION could not be determined."
+
+cd "$WHONIX_SOURCE_FOLDER"
 
 for LINE in $(dpkg-parsechangelog); do
    first="$(echo $LINE | awk '{print $1}')"
    second="$(echo $LINE | awk '{print $2}')"
    first="$(echo $first | awk '{print tolower($0)}')"
    if [ "$first" = "version:" ]; then
-      export WHONIX_BUILD_CHANGELOG_VERSION="$second"
+      export WHONIX_BUILD_OLD_CHANGELOG_VERSION="$second"
       break
    fi
 done
 
 IFS="${OIFS}"
 
+echo "WHONIX_BUILD_OLD_CHANGELOG_VERSION: $WHONIX_BUILD_OLD_CHANGELOG_VERSION"
+
 ## }}}
 
-echo "WHONIX_BUILD_CHANGELOG_VERSION: $WHONIX_BUILD_CHANGELOG_VERSION"
+## {{{ WHONIX_BUILD_OLD_DEB_REVISION_VERSION
+
+WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$WHONIX_BUILD_OLD_CHANGELOG_VERSION"
+WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | tr "-" " ")"
+WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | awk '{print $2}')"
+WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | sed 's/debpackage//g')"
+
+echo "WHONIX_BUILD_OLD_DEB_REVISION_VERSION: ${WHONIX_BUILD_OLD_DEB_REVISION_VERSION}"
+
+## }}}
+
+## {{{ WHONIX_BUILD_NEW_DEB_REVISION_VERSION
+
+WHONIX_BUILD_NEW_DEB_REVISION_VERSION=$(expr ${WHONIX_BUILD_OLD_DEB_REVISION_VERSION} + 1) || true
+
+echo "WHONIX_BUILD_NEW_DEB_REVISION_VERSION: $WHONIX_BUILD_NEW_DEB_REVISION_VERSION"
+
+## }}}
+
+## {{{ WHONIX_BUILD_NEW_CHANGELOG_VERSION
+
+WHONIX_BUILD_NEW_CHANGELOG_VERSION=""$WHONIX_BUILD_WHONIX_VERSION""-debpackage""$WHONIX_BUILD_NEW_DEB_REVISION_VERSION""
+
+echo "WHONIX_BUILD_NEW_CHANGELOG_VERSION: $WHONIX_BUILD_NEW_CHANGELOG_VERSION"
+
+## }}}
+
+## {{{ buildconfig.d
 
 if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
    for i in "$WHONIX_SOURCE_FOLDER"/buildconfig.d/*; do
@@ -137,6 +171,10 @@ if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
    done
 fi
 
+## }}}
+
+## {{{ WHONIX_BUILD_SKIP_SCRIPTS
+
 ## Would be more pretty to have this in the pre script, but the variables script
 ## runs before pre to get pretty colors.
 own_filename="$(basename $0)"
@@ -145,6 +183,8 @@ case $WHONIX_BUILD_SKIP_SCRIPTS in
                     exit 0
                     ;;
 esac
+
+## }}}
 
 set -x
 
