@@ -14,8 +14,6 @@ export WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
 
 export WHONIX_BINARY="$HOMEVAR"/whonix_binary
 
-export WHONIX_LOCAL_SIGNING_KEY_FOLDER="$WHONIX_BINARY"/gpg-local-signing-key
-
 export DEBIAN_FRONTEND=noninteractive
 
 export WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_SOURCE_FOLDER"/aptrepo_local
@@ -67,7 +65,9 @@ else
 fi
 
 if [ "$VMNAME" = "" ]; then
-   bug "${red}${bold}variables ERROR: VMNAME is empty! Please report this bug!${reset}"
+   MSG="${red}${bold}variables ERROR: VMNAME is empty! Please report this bug!${reset}"
+   echo "$MSG"
+   bug "$MSG"
 fi
 
 if [ "$BARE_METAL" = "1" ]; then
@@ -169,6 +169,26 @@ if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
          source "$i"
       fi
    done
+fi
+
+## }}}
+
+## {{{ fallback variables for debchange (dch), dpkg-buildpackage and debuild
+
+if [ "$DEBFULLNAME" = "" ]; then
+   export DEBFULLNAME="Whonix auto generated local APT signing key"
+fi
+
+if [ "$DEBEMAIL" = "" ]; then   
+   export DEBEMAIL="whonix@local-signing.key"
+fi
+
+if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
+   export DEBUILD_LINTIAN_OPTS="-i -I --show-overrides"
+fi
+
+if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
+   export WHONIX_LOCAL_SIGNING_KEY_FOLDER="$WHONIX_BINARY"/gpg-local-signing-key
 fi
 
 ## }}}
