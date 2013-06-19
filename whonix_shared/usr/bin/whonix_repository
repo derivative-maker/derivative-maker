@@ -100,8 +100,10 @@ man $SCRIPTNAME"
 }
 
 add_keys() {
-   echo "$0: Adding from signing keys from "$1"."
-   apt-key add $1 #>/dev/null 2>/dev/null
+   for KEY in $1; do
+      echo "INFO $0: Adding KEY: $KEY..."
+      apt-key add $KEY #>/dev/null 2>/dev/null
+   done
 }
 
 revoke_keys() {
@@ -114,30 +116,21 @@ revoke_keys() {
       --homedir "$GPG_TMP" \
       --no-default-keyring \
       --import $1 \
-      2>/dev/null   
-   
-   gpg \
-      --homedir "$GPG_TMP" \
-      --no-default-keyring \
-      --keyid-format "0xlong" \
-      --fingerprint \
-      2>/dev/null \
-      | \
-         
-         while read LINE; do     
-            local FIRST_WORD="$(echo $LINE | awk '{print $1}')"
+      2>/dev/null
 
-            if [ ! "$FIRST_WORD" = "pub" ]; then
-               continue
-            fi
-            
-            ## Ex: 4096R/0x9C131AD3713AAEEF
-            MIDDLE_WORD="$(echo $LINE | awk '{print $2}')"
-            
-            FINGERPRINT="$(echo "$MIDDLE_WORD" | awk -F"/" '{ print $2 }')"  
-      
+   for FINGERPRINT in $(\
+      gpg \
+         --homedir "$GPG_TMP" \
+         --no-default-keyring \
+         --with-colons \
+         --keyid-format "0xlong" \
+         --fingerprint \
+         2>/dev/null \
+         | awk -F: '$1 == "fpr" {print $10;}'\         
+         ); do
+            echo "INFO $0: Removing FINGERPRINT: $FINGERPRINT..."
             apt-key del "$FINGERPRINT" #>/dev/null 2>/dev/null
-         done
+   done
 }
 
 main_function() {
