@@ -46,12 +46,14 @@ prepare-build-machine() {
    ## Not sure its still useful for anything.
    #chown --recursive "$USERNAME":"$USERNAME" /home/"$USERNAME"   
 
-   ## Always keep old configuration file. Do not prompt to install new config files.
-   echo '
-      Dpkg::Options {
-         "--force-confold";
-      }
-   ' > /etc/apt/apt.conf.d/90whonix-build-confold
+   if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
+      ## Always keep old configuration file. Do not prompt to install new config files.
+      echo '
+         Dpkg::Options {
+            "--force-confold";
+         }
+      ' > /etc/apt/apt.conf.d/90whonix-build-confold
+   fi
    
    ## Using an apt cache to speed up downloading
    ## If you want to build multiple times (for debugging etc.),
@@ -85,9 +87,11 @@ prepare-build-machine() {
    ## Enable apt-cacher-ng proxy.
    export http_proxy="http://127.0.0.1:3142"
 
-   ## Update package lists and upgrade.
-   apt-get update
-   apt-get --yes dist-upgrade
+   if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
+      ## Update package lists and upgrade.
+      apt-get update
+      apt-get --yes dist-upgrade
+   fi
    
    ## Check if config-package-dev with debhelper support is installed.
    ## (Build Dependency for Whonix Build Script for creating .deb packages.)
