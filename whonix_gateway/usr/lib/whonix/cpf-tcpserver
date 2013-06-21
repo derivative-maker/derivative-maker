@@ -1,0 +1,151 @@
+#!/bin/bash
+
+set -x
+
+OIFS="$IFS"
+IFS="$OIFS"
+
+## Do not use echos for user or debug output,
+## because those are send back to the client, which gets confused.
+
+## {{{ controlportfilt.d
+
+if [ -d /etc/controlportfilt.d ]; then
+   for i in /etc/controlportfilt.d/*; do
+      if [ -f "$i" ]; then
+         ## If the last character is a ~, ignore that file,
+         ## because it was created by some editor,
+         ## which creates backup files.
+         if [ "${i: -1}" = "~" ]; then
+            continue
+         fi
+         source "$i"
+      fi
+   done
+else
+   echo "$0 ERROR: configuration folder /etc/controlportfilt.d does not exist."
+   exit 1
+fi
+
+## }}}
+
+## {{{ CONTROL_PORT_FILTER_LOWERCASE_WHITELIST
+
+i=0
+for element in "${CONTROL_PORT_FILTER_WHITELIST[@]}"; do
+   CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[$i]="${element,,}"
+   i=$((${i} + 1))
+done 
+
+for element in "${CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[@]}"; do
+   true "CONTROL_PORT_FILTER_LOWERCASE_WHITELIST element: $element"
+done
+
+## }}}
+
+write_back() {
+   IFS="$OIFS"
+   echo "$@"
+   echo "BACK: $@" >> /var/log/controlportfilt
+}
+
+received() {
+   IFS="$OIFS"
+   true "$@"
+   echo "GOT: $@" >> /var/log/controlportfilt
+}
+
+while read -r; do
+
+   IFS="$OIFS"
+     
+   received "$REPLY"   
+ 
+   if [ "$REPLY" = "" ]; then
+      write_back '510 Unrecognized command ""'
+      continue
+   fi
+
+   first="$(echo "$REPLY" | awk '{print $1}')"   
+
+   ## We do not check any control port password or auth cookies here,
+   ## because only only safe commands are accepted anyway. Whonix-Workstation
+   ## has no access to auth password / auth cookie anyway and sharing such a
+   ## secret would be difficult.
+   ## The only useful thing here could be to check if Tors control port is
+   ## available at all, but this would also make this script even slower.
+   
+   if [ "${first,,}" = "authenticate" ]; then
+      write_back "250 OK"
+      continue
+   fi
+   
+   ## input to lower case
+   cleaned_reply="${REPLY,,}"
+   
+   ## strip newlines from input
+   cleaned_reply="$(echo "$cleaned_reply" | tr '\r\n' ' ')"
+
+   ## strip trailing empty spaces from input
+   cleaned_reply="$(echo "$cleaned_reply" | sed -e "s/ \{1,\}$//")"
+   
+   ok=0
+   for element in "${CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[@]}"; do
+      true "CONTROL_PORT_FILTER_LOWERCASE_WHITELIST element: $element"      
+     
+      if [ "$cleaned_reply" = "$element" ]; then
+         ok=1
+         true "ok: reply ${REPLY,,} = element $element"
+         break
+      fi     
+   done
+   
+   if [ ! "$ok" = 1 ]; then
+      write_back "510 Prohibited command \"$REPLY\""
+      continue
+   fi
+
+   var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")"
+  
+   ## split at newlines only
+   IFS='
+'
+
+   for line in $var; do
+   
+      #true "line: $line"
+
+      #set +x
+      if [ "$line" = "Trying 127.0.0.1..." ]; then
+         previous_line="$line"
+         continue
+      fi     
+      if [ "$line" = "Connected to 127.0.0.1." ]; then
+         previous_line="$line"
+         continue
+      fi    
+      if [ "$line" =  "Escape character is '^]'." ]; then
+         previous_line="$line"
+         continue
+      fi
+      if [ "$line" = "250 closing connection" ]; then
+         previous_line="$line"
+         continue
+      fi
+      if [ "$line" = "250 OK" ]; then
+         if [ "$previous_line" = "Escape character is '^]'." ]; then
+            previous_line="$line"
+            continue
+         fi         
+      fi
+      #set -x
+
+      write_back "$line"
+      
+      previous_line="$line"
+   done
+
+   IFS="$OIFS"
+
+done
+

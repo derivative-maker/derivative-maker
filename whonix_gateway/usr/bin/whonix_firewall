@@ -109,6 +109,9 @@ DNS_PORT_WHONIXW="53"
 TRANS_PORT_WHONIXG="9041"
 DNS_PORT_WHONIXG="54"
 
+## Control Port Filter Proxy Port
+CONTROL_PORT_FILTER_PROXY_PORT="9052"
+
 ## Socks Ports for per application circuits.
 ## Note: FLASHPROXY_PORT=9000
 SOCKS_PORT_TOR_DEFAULT="9050"
@@ -246,6 +249,10 @@ if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
    iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_WHONIXW" -j ACCEPT
 fi
 
+if [ "$CONTROL_PORT_FILTER_PROXY_ENABLE" = "1" ]; then
+   iptables -A INPUT -i "$INT_IF" -p tcp --dport "$CONTROL_PORT_FILTER_PROXY_PORT" -j ACCEPT
+fi
+
 ## Allow socksified applications.
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TOR_DEFAULT" -j ACCEPT
 iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$SOCKS_PORT_TB" -j ACCEPT
@@ -376,6 +383,10 @@ fi
 ##+# #OptionalFeatureNr.3# Restrict TransPort.
 ##+# Replace above rule with a more restrictive one, e.g.:
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
+
+if [ "$CONTROL_PORT_FILTER_PROXY_ENABLE" = "1" ]; then
+   iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$CONTROL_PORT_FILTER_PROXY_PORT"
+fi
 
 ## Log.
 #iptables -A INPUT -j LOG --log-prefix "Whonix blocked input4: "
