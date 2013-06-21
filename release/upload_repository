@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+project="testprojectwh"
+#project="whonix"
+
+rsync \
+   --partial \
+   --progress \
+   --recursive \
+   --verbose \
+   --rsh ssh \
+   "$WHONIX_BINARY"/aptrepo_remote/dists/* \
+   adrelanos,whonix@frs.sourceforge.net:/home/frs/project/$project/internal/dists/
+
+rsync \
+   --partial \
+   --progress \
+   --recursive \
+   --verbose \
+   --rsh ssh \
+   "$WHONIX_BINARY"/aptrepo_remote/dists/* \
+   adrelanos,whonix@frs.sourceforge.net:/home/frs/project/$project/internal/pool/
+   
