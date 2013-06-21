@@ -52,36 +52,45 @@ create-debian-packages() {
    ## anyone could sign packages with this snake oil key. Therefore we play it safe and
    ## create a local signing key on the build machine.
    
-   ## Check, if we previously already created a local OpenPGP signing key.
-   if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
-      true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
+   ## We only automatically create am auto local signing key, in case the builder did not
+   ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
+   ## help-steps/variables.
+   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
+      true "${cyan}$0 INFO: Using auto local signing key method... ${reset}"
    
-      sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+      ## Check, if we previously already created a local OpenPGP signing key.
+      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
+         true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
    
-      ## chmod 700, so gpg will not complain about folder permissions
-      sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"   
+         sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+   
+         ## chmod 700, so gpg will not complain about folder permissions
+         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"   
 
-      ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
+         ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
       
-      echo "
-         Key-Type: RSA
-         Key-Length: 4096
-         Subkey-Type: RSA
-         Subkey-Length: 4096
-         Name-Real: Whonix auto generated local APT signing key
-         Name-Email: whonix@local-signing.key
-         Expire-Date: 0
-      " | sudo -E -u "$USERNAME" gpg \
-                                 --no-default-keyring \
-                                 --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                                 --batch \
-                                 --gen-key
+         echo "
+            Key-Type: RSA
+            Key-Length: 4096
+            Subkey-Type: RSA
+            Subkey-Length: 4096
+            Name-Real: Whonix auto generated local APT signing key
+            Name-Email: whonix@local-signing.key
+            Expire-Date: 0
+         " | sudo -E -u "$USERNAME" gpg \
+                                    --no-default-keyring \
+                                    --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+                                    --batch \
+                                    --gen-key
       
-      sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
+         sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
       
-      true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
+         true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
+      else
+         true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
+      fi
    else
-      true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
+      true "${cyan}$0 INFO: Using custom signing key method... ${reset}"
    fi
    
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
