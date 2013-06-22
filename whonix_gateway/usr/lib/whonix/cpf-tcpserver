@@ -88,7 +88,7 @@ while read -r; do
 
    ## strip trailing empty spaces from input
    cleaned_reply="$(echo "$cleaned_reply" | sed -e "s/ \{1,\}$//")"
-   
+
    ok=0
    for element in "${CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[@]}"; do
       true "CONTROL_PORT_FILTER_LOWERCASE_WHITELIST element: $element"      
@@ -104,6 +104,17 @@ while read -r; do
       write_back "510 Prohibited command \"$REPLY\""
       continue
    fi
+   
+   ## Lie when we are asked "GETINFO net/listeners/socks". 
+   ## This is documented on Whonix Control Port Filter Proxy Design page,
+   ## search for lie.
+   lie_when="GETINFO net/listeners/socks"
+   
+   if [ "$cleaned_reply" = "${lie_when,,}" ]; then
+      true "Got \"$cleaned_reply\" lets lie and forge the answer to make Tor Button happy."
+      write_back '250-net/listeners/socks="127.0.0.1:9150"'
+      continue
+   fi   
 
    var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")"
   
