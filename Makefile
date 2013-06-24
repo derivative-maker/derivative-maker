@@ -30,7 +30,7 @@ unsignedpackage:
 	dpkg-buildpackage -F -Zxz -z9 -tc -us -uc
 	
 lintian: debian/control
-	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > $(CURDIR)/lintian.log
+	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > ../lintian.log
 
 contents:
 	@for i in `find $(CURDIR)/.. -name '*.deb'`; do \
