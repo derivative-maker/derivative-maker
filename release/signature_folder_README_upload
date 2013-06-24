@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+sudo -u "$USERNAME" \
+   mkdir --parents "$WHONIX_BINARY"
+
+sudo -u "$USERNAME" \
+   cp ""$WHONIX_SOURCE_FOLDER"/release/signature_folder_README" ""$WHONIX_BINARY"/"
+   
+sudo -u "$USERNAME" \
+   rm --force ""$WHONIX_BINARY"/signature_folder_README.asc"
+
+sudo -u "$USERNAME" \
+   gpg --clearsign ""$WHONIX_BINARY"/signature_folder_README"
+
+sudo -u "$USERNAME" \
+   cat ""$WHONIX_BINARY"/signature_folder_README.asc"
+
+sudo -u "$USERNAME" \
+   gpg --verify ""$WHONIX_BINARY"/signature_folder_README.asc"
+
+sleep 10
+
+sudo -u "$USERNAME" \
+   rsync \
+      --partial \
+      --progress \
+      --verbose \
+      --rsh ssh \
+      ""$WHONIX_BINARY"/signature_folder_README.asc" \
+      adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/whonix-"$WHONIX_BUILD_WHONIX_VERSION"-sig/README
+
