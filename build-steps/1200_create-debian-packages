@@ -123,16 +123,20 @@ create-debian-packages() {
          -sa
    
    true "${cyan}$0 INFO: Created deb packages. ${reset}"
+
+   if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then   
+      true "${cyan}$0 INFO: Purging local APT repository... ${reset}"
    
-   true "${cyan}$0 INFO: Purging local APT repository... ${reset}"
-   
-   sudo -E -u "$USERNAME" \
-      reprepro \
-         -V \
-         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-         removematched "$WHONIX_BUILD_APT_CODENAME" "*"
+      sudo -E -u "$USERNAME" \
+         reprepro \
+            -V \
+            $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+            removematched "$WHONIX_BUILD_APT_CODENAME" "*"
          
-   true "${cyan}$0 INFO: Done, purged "$WHONIX_BUILD_APT_CODENAME" APT repository. ${reset}"
+      true "${cyan}$0 INFO: Done, purged "$WHONIX_BUILD_APT_CODENAME" APT repository. ${reset}"
+   else
+      true "${cyan}$0 INFO: Not purging APT repository, because distribution is "$WHONIX_BUILD_APT_CODENAME". ${reset}"
+   fi
    
    true "${cyan}$0 INFO: Creating "$WHONIX_BUILD_APT_CODENAME" APT repository... ${reset}"
    true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
