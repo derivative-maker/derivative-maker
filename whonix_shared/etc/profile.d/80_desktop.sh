@@ -111,7 +111,7 @@ configuration folder.)"
    echo "/etc/profile.d/80_desktop.sh INFO: Starting login manager \
 (graphical desktop environment) "$whonixdesktop_display_manager" in \
 "$whonixdesktop_wait_seconds" seconds, unless you abort using ctrl + c. \
-This can be configured in /etc/whonix.d/ configuration folder."
+This can be disabled or configured in /etc/whonix.d/ configuration folder."
 
    sleep "$whonixdesktop_wait_seconds"
 
