@@ -5,14 +5,14 @@
 get_local_whonix_version() {
    trap "error_handler" ERR
 
-   ## Find out installed Whonix version.
-   ## Read only FIRST line.
+   ## fallback
    INSTALLED_WHONIX_VERSION="Could not read local Whonix version file. Please report this bug!"
-   read -r INSTALLED_WHONIX_VERSION < /usr/share/whonix/version || true
-   ## Remove ALL spaces.
-   ## Thanks to
-   ## http://stackoverflow.com/questions/369758/how-to-trim-whitespace-from-bash-variable
-   INSTALLED_WHONIX_VERSION="${INSTALLED_WHONIX_VERSION//[[:space:]]}"
+
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then  
+      INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-gateway-postinst")"
+   elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
+      INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-workstation-postinst")"
+   fi
 }
 
 preparation() {
