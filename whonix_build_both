@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -x
+
+## small hack to build both virtual machines, as long as whonix_build does not support --all.
+
+build_all_error_handler() {
+   : echo "
+${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
+${red}${bold}ERROR $0: | caller: $(caller)${reset}
+"
+   exit 1
+}
+
+trap "build_all_error_handler" ERR
+
+./whonix_build --build --tor-gateway
+
+./whonix_build --build --tor-workstation
+
