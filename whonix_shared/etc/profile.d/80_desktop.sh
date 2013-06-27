@@ -42,6 +42,16 @@ else
    if [ -z "$whonixdesktop_wait_seconds" ]; then
       whonixdesktop_wait_seconds=10
    fi
+   if [ -z "$whonixdesktop_autostart_decision_feature" ]; then
+      whonixdesktop_autostart_decision_feature=1
+   fi
+   
+   if [ ! "$whonixdesktop_autostart_decision_feature" = "1" ]; then
+      if [ "$whonixdesktop_debug" = 1 ]; then  
+         echo "/etc/profile.d/80_desktop.sh INFO: whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
+      fi
+      return 0
+   fi
 
    which "$whonixdesktop_display_manager" >/dev/null
    ret="$?"
