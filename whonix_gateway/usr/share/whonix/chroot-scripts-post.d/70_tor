@@ -22,7 +22,15 @@ case $WHONIX_BUILD_SKIP_SCRIPTS in
 esac
 
 ## Enable apt-cacher-ng proxy.
-export http_proxy="http://127.0.0.1:3142"  
+export http_proxy="http://127.0.0.1:3142"
+
+mkdir --parents "$EMPTY_DIR"
+
+## Update torproject repository upstream package lists, so latest version of Tor, torsocks and obfsproxy gets known.
+apt-get update \
+   -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/torproject.list" \
+   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
+   -o APT::Get::List-Cleanup="0"
 
 ## Installing Torprojects Debian package, which helps to keep Torprojects signing key current.
 apt-get --yes install deb.torproject.org-keyring
