@@ -15,7 +15,83 @@ source variables
 
 export-vbox-vm() {
    trap "error_handler_general" ERR INT TERM
+   
+   if [ "$VMNAME" = "Whonix-Gateway" ]; then
+      local TEXT="
+############################################
+## INFORMATION ABOUT SYSTEMS WITH LOW RAM ##
+############################################
 
+If you have 4 GB RAM or more:
+  -> Great! Go ahead.
+  -> You can leave Whonix RAM settings as they are.
+    -> A graphical Whonix-Gateway will be started.
+
+If you have 2 GB RAM:
+  -> Reduce Whonix-Gateway RAM to 128 MB.
+    -> A non-graphical, terminal-only Whonix-Gateway will be started.
+      -> You can still do everything as if you had a graphical Whonix-Gateway, it just will not be that pretty and convenient. You could also shut down Whonix-Workstation sometimes, increase RAM, start into a graphical Whonix-Gateway, configure something and finally reduce RAM to revert to a non-graphical Whonix-Gateway.
+
+If you have less than 2 GB RAM:
+  -> Reduce Whonix-Gateway RAM to 128 MB.
+    -> A non-graphical, terminal-only Whonix-Gateway will be started.
+      -> You can still do everything as if you had a graphical Whonix-Gateway, it just will not be that pretty and convenient. You could also shut down Whonix-Workstation sometimes, increase RAM, start into a graphical Whonix-Gateway, configure something and finally reduce RAM to revert to a non-graphical Whonix-Gateway.    
+  -> Reduce Whonix-Workstation RAM to 512 MB.
+    -> Whonix-Workstation's performance won't be that good.
+    -> As an advanced user you could consider setting up a lighter desktop environment or using Custom-Whonix-Workstation, please refer to the Whonix documentation.
+    
+If you have very low RAM:
+  -> Reduce Whonix-Gateway RAM to 128 MB.
+    -> A non-graphical, terminal-only Whonix-Gateway will be started.
+  -> Reduce Whonix-Workstation RAM to anything applicable for your system.
+    -> A non-graphical, terminal-only Whonix-Workstation will be started.
+    -> As an advanced user you could consider setting up a lighter desktop environment or using Custom-Whonix-Workstation, please refer to the Whonix documentation.
+    
+(This feature can be further configured in /etc/whonix.d/ configuration folder.)
+    
+#############
+## OBVIOUS ##
+#############
+
+There is no magic pill for anonymity. The more you learn about what Whonix, Tor and anonymity advantages, limitations, backgrounds and so forth, the safer you can become. Reading Whonix documentation is recommend.
+
+################
+## DISCLAIMER ##
+################
+
+Whonix is produced independently from the Tor (r) anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+Whonix is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+http://whonix.sourceforge.net
+"
+   elif [ "$VMNAME" = "Whonix-Workstation" ]; then
+      local TEXT="
+#################
+## INFORMATION ##
+#################
+
+Before starting Whonix-Workstation, you should import and start Whonix-Gateway.
+Whonix-Workstation is not useful on its own.
+
+#############
+## OBVIOUS ##
+#############
+
+There is no magic pill for anonymity. The more you learn about what Whonix, Tor and anonymity advantages, limitations, backgrounds and so forth, the safer you can become. Reading Whonix documentation is recommend.
+
+################
+## DISCLAIMER ##
+################
+
+Whonix is produced independently from the Tor (r) anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
+Whonix is experimental software by means of concept and design. Do not rely on it for strong anonymity.
+http://whonix.sourceforge.net
+"
+   else
+      local MSG="${bold}${red}$0 ERROR: VMNAME is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug! ${reset}"
+      echo "$MSG"
+      bug "$MSG"
+   fi
+   
    ## Not yet using: --producturl
    
    sudo -u "$USERNAME" \
@@ -25,6 +101,7 @@ export-vbox-vm() {
          --product "$VMNAME" \
          --vendor "Whonix" \
          --vendorurl "http://whonix.sourceforge.net" \
+         --eula "$TEXT" \
          --version "$WHONIX_BUILD_WHONIX_VERSION" \
          --output "$WHONIX_BINARY"/"$VMNAME".ova
 }
