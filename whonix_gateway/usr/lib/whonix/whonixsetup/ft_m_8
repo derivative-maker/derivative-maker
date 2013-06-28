@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 error_handler() {
    local MSG="\
 ###########################################################
@@ -19,6 +21,26 @@ if [ "$(id -u)" != "0" ]; then
     echo "ERROR: This must be run as root (sudo)!"
     exit 1
 fi
+
+stop_tor() {
+      returncode=0
+      service tor status || { returncode=$? ; true; };
+      sync
+      sleep 1
+      
+      if [ "$returncode" = "0" ]; then      
+         dialog --title "Info" --msgbox 'Tor still running. Stopping it now...' 640 480      
+      
+         returncode=0
+         service tor stop || { returncode=$? ; true; };
+         sync
+         sleep 1
+         
+         dialog --title "Info" --msgbox 'Stopped Tor.' 640 480
+      else
+         dialog --title "Info" --msgbox 'Tor was already stopped.' 640 480
+      fi
+}
 
 MSG="
 Do you want to disable Tor?
@@ -40,8 +62,7 @@ fi
 ## looking like ####DisableNetwork 1 (if the user chooses
 ## this option multiple times).
 while read LINE; do
-   if [ "$LINE" = "DisableNetwork 1" ]; then
-      service tor reload 
+   if [ "$LINE" = "DisableNetwork 1" ]; then      
       dialog --title "Success!" --msgbox '"DisableNetwork 1" was already set in /etc/tor/torrc.
 So Tor should now be disabled.
 
@@ -50,19 +71,43 @@ Running it multiple times in a row archives nothing.
 In case of network problems, this is probable not the cause.
 You can confirm that by manually checking if "DisableNetwork 1" has been in commented in /etc/tor/torrc.
 ' 640 480
-      ## Signal for whonixsetup to break the while loop.
+
+      dialog --title "Info" --msgbox 'Checking if Tor is still running and stopping it if necessary...' 640 480
+
+      stop_tor
+      ## Signal for whonixsetup to break the while loop. 
       exit 1
    fi
 done < "/etc/tor/torrc"
 
-ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 1/DisableNetwork 1/g\nw'
+dialog --title "Info" --msgbox 'Trying to disable Tor...
+
+Technically speaking, this will comment in "DisableNetwork 1" in /etc/tor/torrc.
+' 640 480
+
+returncode=0
+ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 1/DisableNetwork 1/g\nw' || { returncode=$? ; true; };
 sync
 
-service tor reload
+if [ "$returncode" = "0" ]; then
+   stop_tor
+   ## Signal for whonixsetup to break the while loop.
+   exit 1
 
-dialog --title "Success!" --msgbox 'Tor has been deactivated.
+   dialog --title "Success!" --msgbox 'Tor has been deactivated.
 
 (Technically speaking, whonixsetup deactivated Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.)' 640 480
+else
+   dialog --title "ERROR!" --msgbox 'Tor could not be deactivated. Please report this bug!
 
-## Signal for whonixsetup to break the while loop.
-exit 1
+(Technically speaking, whonixsetup could not deactivate Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc (ed failed).)' 640 480
+
+   dialog --title "WARNING" --msgbox 'Will at least stop Tor...
+   
+Warning: Since Tor could not be deactivated in /etc/tor/torrc, Tor will be reconnect, next time you reboot or restart Tor. You are advised to manually add "DisableNetwork 1" in /etc/tor/torrc and to run "sudo service tor stop" to ensure, that Tor will not start, if that is what you want.' 640 480
+
+   stop_tor
+   ## Signal for whonixsetup to break the while loop.
+   exit 1
+fi
+
