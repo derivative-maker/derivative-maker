@@ -250,8 +250,9 @@ if [ "$WORKSTATION_TRANSPARENT_TCP" = "1" ]; then
    iptables -A INPUT -i "$INT_IF" -p tcp --dport "$TRANS_PORT_WHONIXW" -j ACCEPT
 fi
 
+## Allow TCP traffic to Control Port Filter Proxy.
 if [ "$CONTROL_PORT_FILTER_PROXY_ENABLE" = "1" ]; then
-   iptables -A INPUT -i "$INT_IF" -p tcp --dport "$CONTROL_PORT_FILTER_PROXY_PORT" -j ACCEPT
+   iptables -A INPUT -i "$INT_TIF" -p tcp --dport "$CONTROL_PORT_FILTER_PROXY_PORT" -j ACCEPT
 fi
 
 ## Allow socksified applications.
@@ -293,6 +294,11 @@ iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9160:9169 -j A
 iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9170:9179 -j ACCEPT
 ## Custom Ports #4:
 iptables -A INPUT -i "$INT_TIF" -p tcp --match multiport --dports 9180:9189 -j ACCEPT
+
+## Redirect Control Port Filter Proxy to Control Port Filter Proxy port.
+if [ "$CONTROL_PORT_FILTER_PROXY_ENABLE" = "1" ]; then
+   iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$CONTROL_PORT_FILTER_PROXY_PORT" -j REDIRECT --to-ports "$CONTROL_PORT_FILTER_PROXY_PORT"
+fi
 
 ## Redirect Browser/IRC/TorBirdy, etc. to SocksPort.
 iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --dport "$SOCKS_PORT_TOR_DEFAULT" -j REDIRECT --to-ports "$SOCKS_PORT_TOR_DEFAULT"
@@ -386,10 +392,6 @@ fi
 ##+# #OptionalFeatureNr.3# Restrict TransPort.
 ##+# Replace above rule with a more restrictive one, e.g.:
 #iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --match multiport --dports 80,443 --syn -j REDIRECT --to-ports "$TRANS_PORT_WHONIXW"
-
-if [ "$CONTROL_PORT_FILTER_PROXY_ENABLE" = "1" ]; then
-   iptables -t nat -A PREROUTING -i "$INT_IF" -p tcp --syn -j REDIRECT --to-ports "$CONTROL_PORT_FILTER_PROXY_PORT"
-fi
 
 ## Log.
 #iptables -A INPUT -j LOG --log-prefix "Whonix blocked input4: "
