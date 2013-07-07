@@ -8,7 +8,11 @@ IFS="$OIFS"
 ## Do not use echos for user or debug output,
 ## because those are send back to the client, which gets confused.
 
-## {{{ controlportfilt.d
+ID="$(uuidgen -r)"
+
+echo "$ID INFO: Getting connection... " >> /var/log/controlportfilt
+
+## {{{ /etc/controlportfilt.d
 
 if [ -d /etc/controlportfilt.d ]; then
    for i in /etc/controlportfilt.d/*; do
@@ -45,28 +49,37 @@ done
 
 write_back() {
    IFS="$OIFS"
-   echo "$@"
-   echo "BACK: $@" >> /var/log/controlportfilt
+   echo "${1+"$@"}"
+   echo "$ID BACK: ${1+"$@"}" >> /var/log/controlportfilt
 }
 
 received() {
    IFS="$OIFS"
-   true "$@"
-   echo "GOT: $@" >> /var/log/controlportfilt
+   true "${1+"$@"}"
+   echo "$ID GOT: ${1+"$@"}" >> /var/log/controlportfilt
 }
 
 while read -r; do
 
    IFS="$OIFS"
-     
-   received "$REPLY"   
+
+   cleaned_reply="$REPLY"
  
-   if [ "$REPLY" = "" ]; then
+   ## strip newlines from input
+   cleaned_reply="$(echo "$cleaned_reply" | tr '\r' ' ')"
+   cleaned_reply="$(echo "$cleaned_reply" | tr '\n' ' ')"
+   
+   ## strip trailing empty spaces from input
+   cleaned_reply="$(echo "$cleaned_reply" | sed -e "s/ \{1,\}$//")"   
+   
+   received "$cleaned_reply"
+ 
+   if [ "$cleaned_reply" = "" ]; then
       write_back '510 Unrecognized command ""'
       continue
    fi
 
-   first="$(echo "$REPLY" | awk '{print $1}')"   
+   first="$(echo "$cleaned_reply" | awk '{print $1}')"   
 
    ## We do not check any control port password or auth cookies here,
    ## because only only safe commands are accepted anyway. Whonix-Workstation
@@ -80,28 +93,19 @@ while read -r; do
       continue
    fi
    
-   ## input to lower case
-   cleaned_reply="${REPLY,,}"
-   
-   ## strip newlines from input
-   cleaned_reply="$(echo "$cleaned_reply" | tr '\r\n' ' ')"
-
-   ## strip trailing empty spaces from input
-   cleaned_reply="$(echo "$cleaned_reply" | sed -e "s/ \{1,\}$//")"
-
    ok=0
    for element in "${CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[@]}"; do
       true "CONTROL_PORT_FILTER_LOWERCASE_WHITELIST element: $element"      
-     
-      if [ "$cleaned_reply" = "$element" ]; then
+
+      if [ "${cleaned_reply,,}" = "$element" ]; then
          ok=1
-         true "ok: reply ${REPLY,,} = element $element"
+         true "ok: reply ${cleaned_reply,,} = element $element"
          break
       fi     
    done
    
    if [ ! "$ok" = 1 ]; then
-      write_back "510 Prohibited command \"$REPLY\""
+      write_back "510 Prohibited command \"$cleaned_reply\""
       continue
    fi
    
@@ -110,14 +114,14 @@ while read -r; do
    ## search for lie.
    lie_when="GETINFO net/listeners/socks"
    
-   if [ "$cleaned_reply" = "${lie_when,,}" ]; then
+   if [ "${cleaned_reply,,}" = "${lie_when,,}" ]; then
       true "Got \"$cleaned_reply\" lets lie and forge the answer to make Tor Button happy."
       write_back '250-net/listeners/socks="127.0.0.1:9150"'
       continue
    fi   
 
    var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")"
-  
+ 
    ## split at newlines only
    IFS='
 '
@@ -160,3 +164,6 @@ while read -r; do
 
 done
 
+IFS="$OIFS"
+
+echo "$ID INFO: End. " >> /var/log/controlportfilt
