@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+#############################################################
+## postinst script: ERROR detected. Please report this bug! #
+#############################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $WHONIX_BUILD_SKIP_SCRIPTS in
+   *$own_filename*) true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
+                    exit 0
+                    ;;
+esac
+
+## Deactivating kmix autostart. Workaround to fix Klipper (and others?) autostart.
+## Working around bug http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=630617 by using
+## workaround http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=630617#79
+dpkg-divert --add --rename --divert /usr/share/autostart/kmix_autostart.desktop.real /usr/share/autostart/kmix_autostart.desktop
+
+#dpkg-divert --list
+
