@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "
+###########################################################
+## chroot script: ERROR detected. Please report this bug! #
+###########################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $WHONIX_BUILD_SKIP_SCRIPTS in
+   *$own_filename*) true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
+                    exit 0
+                    ;;
+esac
+
+echo "INFO: Logging WHONIX_BUILD_WHONIX_VERSION_NEW $WHONIX_BUILD_WHONIX_VERSION_NEW to /usr/share/whonix/build_version..."
+
+echo "$WHONIX_BUILD_WHONIX_VERSION_NEW" > /usr/share/whonix/build_version
+
