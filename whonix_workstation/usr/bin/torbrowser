@@ -183,6 +183,10 @@ parse_cmd_options() {
                DEV_PASSTHROUGH="1"
                shift
                ;;
+           --clearnet)
+               TB_CLEARNET="1"
+               shift
+               ;;               
            --language)             
                TB_LANG="$2"
                shift 2
@@ -474,7 +478,7 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    ## Download from the torproject.org hidden service, instead over clearnet,
    ## thus not involving any Tor exist nodes.
    ## $WHONIX is an environment variable only set in Whonix (by /etc/environment).
-   if [ "$WHONIX" = 1 ]; then
+   if [ "$WHONIX" = "1" ]; then
       TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
       ## Connections to hidden services are automatically encrypted end-to-end.
       CURL_FORCE_SSL=""
@@ -482,6 +486,12 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       ## Should only be the case when building Whonix from source while not being inside Whonix.
       TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
       CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+   
+   if [ "$TB_CLEARNET" = "1" ]; then
+      ## In case the --clearnet option was used.
+      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      CURL_FORCE_SSL="--tlsv1 --proto =https"   
    fi
 
    progress_bar 10
