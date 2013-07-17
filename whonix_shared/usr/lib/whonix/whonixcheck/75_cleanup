@@ -1,5 +1,12 @@
 #!/bin/bash
 
+trap_sigterm() {
+   echo "$SCRIPTNAME: SIGTERM received. Exiting."
+   exit 0
+}
+
+trap "trap_sigterm" SIGTERM
+
 cleanup() {
    trap "error_handler" ERR
 
@@ -22,8 +29,9 @@ cleanup() {
    else  
       rm -f /var/run/whonix/whonixcheck/""$SCRIPTNAME"_running"
       rm -f /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting"
-      rm -f /var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress
-      touch /var/run/whonix/whonixcheck/""$SCRIPTNAME"_done"      
+      rm -f /var/run/whonix/whonixcheck/""$SCRIPTNAME"_progress"
+      touch /var/run/whonix/whonixcheck/""$SCRIPTNAME"_done"
+      rm -f /var/run/whonix/whonixcheck/""$SCRIPTNAME"_pid"
    fi
    
    sync
@@ -51,4 +59,5 @@ cleanup() {
    
    exit "$EXIT_CODE"
 }
+
 
