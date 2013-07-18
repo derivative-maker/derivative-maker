@@ -141,8 +141,12 @@ FORUM_LINK="https://sourceforge.net/p/whonix/discussion/"
 MAILINGLIST_LINK="https://whonix.org/cgi-bin/mailman/listinfo/"
 IMPORTANTBLOG_LINK="https://anonymousoperatingsystem.wordpress.com/category/important/"
 FEATUREBLOG_LINK="https://anonymousoperatingsystem.wordpress.com/"
-IMPORTANTBLOG_OFFLINE_LINK="file:///var/lib/whonix/whonixcheck/importantblog.html"
-FEATUREBLOG_OFFLINE_LINK="file:///var/lib/whonix/whonixcheck/featureblog.html"
+
+IMPORTANTBLOG_OFFLINE_FILE="/var/lib/whonix/whonixcheck/importantblog.html"
+IMPORTANTBLOG_OFFLINE_LINK="file://"$IMPORTANTBLOG_OFFLINE_FILE""
+
+FEATUREBLOG_OFFLINE_FILE="/var/lib/whonix/whonixcheck/featureblog.html"
+FEATUREBLOG_OFFLINE_LINK="file://"$FEATUREBLOG_OFFLINE_FILE""
 
 
 
@@ -689,12 +693,25 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 tb_start_recommend() {
    root_check
    tb_preparation
+   
    LINK="$IMPORTANTBLOG_OFFLINE_LINK"
    debug "INFO: Link set to $LINK"
+ 
+   if [ ! -e "$IMPORTANTBLOG_OFFLINE_FILE" ]; then
+      echo "The blog has not been downloaded yet. It should be done, next time whonixcheck runs." > "$FEATUREBLOG_OFFLINE_FILE"
+   fi
+   
    tb_start_new_tab
+   
    LINK="$FEATUREBLOG_OFFLINE_LINK"
    debug "INFO: Link set to $LINK"
+ 
+   if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
+      echo "The blog has not been downloaded yet. It should be done, next time whonixcheck runs." > "$FEATUREBLOG_OFFLINE_FILE"
+   fi   
+   
    tb_start_new_tab
+   
    exit 0
 }  
 
