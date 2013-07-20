@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+"$WHONIX_SOURCE_FOLDER"/debug-steps/reprepro-wrapper --export=changed export stable
+"$WHONIX_SOURCE_FOLDER"/debug-steps/reprepro-wrapper --export=changed export testers
+"$WHONIX_SOURCE_FOLDER"/debug-steps/reprepro-wrapper --export=changed export developers
+
+true "${cyan}Done. Refreshed repository. OpenPGP Resigned and updated valid-until field. Do not forget to upload the refreshed repository. ${reset}"
+
