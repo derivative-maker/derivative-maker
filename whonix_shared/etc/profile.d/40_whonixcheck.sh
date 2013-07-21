@@ -10,7 +10,7 @@ else
       echo "Waiting for results from Whonix Check..."
    fi
    
-   /usr/lib/whonix/delay whonixcheck --showcli &
+   /usr/lib/whonix/delay whonixcheck --showcli & disown
 fi
 
 ## End of Whonix /etc/profile.d/40_whonixcheck.sh

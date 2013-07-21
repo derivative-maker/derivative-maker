@@ -10,7 +10,7 @@ else
       echo "Waiting for results from Network Time Synchronization..."
    fi
    
-   /usr/lib/whonix/delay timesync --showcli &
+   /usr/lib/whonix/delay timesync --showcli & disown
 fi
 
 ## End of Whonix /etc/profile.d/30_timesync.sh
