@@ -97,10 +97,6 @@ Not starting kdm, already running."
    ## http://stackoverflow.com/a/10277712
    total_ram="$(free -m | sed  -n -e '/^Mem:/s/^[^0-9]*\([0-9]*\) .*/\1/p')"
 
-   if [ "$whonixdesktop_wait" = 0 ]; then
-      return 0
-   fi
-
    if [ "$whonixdesktop_start_display_manager" = 0 ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
          true "/etc/profile.d/80_desktop.sh INFO: \
@@ -122,10 +118,16 @@ configuration folder.)"
       fi
    fi
 
-   echo "/etc/profile.d/80_desktop.sh INFO: Starting login manager \
+   if [ "$whonixdesktop_wait" = "0" ]; then
+      if [ "$whonixdesktop_debug" = 1 ]; then
+         true "/etc/profile.d/80_desktop.sh INFO: Waiting feature disabled."
+      fi
+   else
+      echo "/etc/profile.d/80_desktop.sh INFO: Starting login manager \
 (graphical desktop environment) "$whonixdesktop_display_manager" in \
 "$whonixdesktop_wait_seconds" seconds, unless you abort using ctrl + c. \
 This can be disabled or configured in /etc/whonix.d/ configuration folder."
+   fi
 
    if [ -e "/usr/share/whonix/whonix_gateway" ]; then
       echo "If your host has little RAM, you are advised to reduce Whonix-Gateway RAM to 128 MB. No graphical desktop environment will be started in that case. A Whonix-Gateway without graphical desktop environment works as good as one with, its just not that convenient. If you want, you can sometimes start a graphical desktop environment and sometimes only a terminal by toggling how much RAM is available to Whonix-Gateway. Documentation about this feature can be found here: https://whonix.org/wiki/Desktop"
