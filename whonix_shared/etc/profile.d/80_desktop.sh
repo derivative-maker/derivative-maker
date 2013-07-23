@@ -86,10 +86,10 @@ Not starting kdm, already running."
       temp="/etc/profile.d/80_desktop.sh INFO: $(/bin/date) | \
       whoami: $(/usr/bin/whoami) | caller: $0 | path: $PATH"
       true "$temp"
-      echo "$temp" >> /var/log/whonixdesktop
-      chown user:user /var/log/whonixdesktop
-      chmod g+w /var/log/whonixdesktop
-      chmod o+w /var/log/whonixdesktop
+      echo "$temp" >> ~/whonixdesktop
+      chown user:user ~/whonixdesktop
+      chmod g+w ~/whonixdesktop
+      chmod o+w ~/whonixdesktop
    fi
 
    ## Check how much RAM the system has in total.
