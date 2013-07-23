@@ -5,6 +5,8 @@
 if [ ! "$(tty)" = "/dev/tty1" ]; then
    return 0
 else
+   scriptname="/etc/profile.d/80_desktop.sh RAM Adjusted Desktop Starter"
+
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
@@ -48,7 +50,7 @@ else
    
    if [ ! "$whonixdesktop_autostart_decision_feature" = "1" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then  
-         true "/etc/profile.d/80_desktop.sh INFO: whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
+         true "$scriptname INFO: whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
          set +x
       fi
       return 0
@@ -59,7 +61,7 @@ else
 
    if [ ! "$ret" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "/etc/profile.d/80_desktop.sh INFO: display manager \
+         true "$scriptname INFO: display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
          set +x
@@ -73,7 +75,7 @@ configuration folder does not exist. Not starting a desktop environment."
 
    if [ "$ret" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "/etc/profile.d/80_desktop.sh INFO: \
+         true "$scriptname INFO: \
 Not starting kdm, already running."
          set +x
       fi
@@ -83,7 +85,7 @@ Not starting kdm, already running."
    fi
 
    if [ "$whonixdesktop_debug" = 1 ]; then
-      temp="/etc/profile.d/80_desktop.sh INFO: $(/bin/date) | \
+      temp="$scriptname INFO: $(/bin/date) | \
       whoami: $(/usr/bin/whoami) | caller: $0 | path: $PATH"
       true "$temp"
       echo "$temp" >> ~/whonixdesktop
@@ -99,7 +101,7 @@ Not starting kdm, already running."
 
    if [ "$whonixdesktop_start_display_manager" = 0 ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "/etc/profile.d/80_desktop.sh INFO: \
+         true "$scriptname INFO: \
 whonixdesktop_start_display_manager is set to 0 in /etc/whonix.d/ \
 configuration folder, not starting a desktop environment."
          set +x
@@ -109,7 +111,7 @@ configuration folder, not starting a desktop environment."
 
    if [ ! "$whonixdesktop_skip_ram_test" = "1" ]; then
       if [ "$total_ram" -lt "$whonixdesktop_minium_ram" ]; then
-         echo "/etc/profile.d/80_desktop.sh INFO: Not starting login manager \
+         echo "$scriptname INFO: Not starting login manager \
 (graphical desktop environment) ($whonixdesktop_display_manager), \
 because there is only "$total_ram" MB total RAM. (A minimum of \
 "$whonixdesktop_minium_ram" MB total RAM is configured in /etc/whonix.d/ \
@@ -120,10 +122,10 @@ configuration folder.)"
 
    if [ "$whonixdesktop_wait" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "/etc/profile.d/80_desktop.sh INFO: Waiting feature disabled."
+         true "$scriptname INFO: Waiting feature disabled."
       fi
    else
-      echo "/etc/profile.d/80_desktop.sh INFO: Starting login manager \
+      echo "$scriptname INFO: Starting login manager \
 (graphical desktop environment) "$whonixdesktop_display_manager" in \
 "$whonixdesktop_wait_seconds" seconds, unless you abort using ctrl + c. \
 This can be disabled or configured in /etc/whonix.d/ configuration folder."
@@ -140,7 +142,7 @@ This can be disabled or configured in /etc/whonix.d/ configuration folder."
    ret="$?"
 
    if [ "$whonixdesktop_debug" = 1 ]; then
-      true "/etc/profile.d/80_desktop.sh INFO: End."
+      true "$scriptname INFO: End."
       set +x
    fi
 
