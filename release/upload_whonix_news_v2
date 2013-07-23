@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+mkdir --parents "$WHONIX_BINARY"/news
+
+## Reading ./release/whonix_news, substitute the $WHONIX_BUILD_WHONIX_VERSION variable in ./release/whonix_news
+## with the actual WHONIX_BUILD_WHONIX_VERSION and storing it as ../whonix_binary/whonix_news.
+##
+## Thanks to:
+## http://superuser.com/questions/235738/how-do-i-substitute-environment-variables-when-i-ouput-a-file
+
+for i in "$WHONIX_SOURCE_FOLDER"/release/news/*; do
+   if [ -f "$i" ]; then
+      ## If the last character is a ~, ignore that file,
+      ## because it was created by some editor,
+      ## which creates backup files.
+      if [ "${i: -1}" = "~" ]; then
+         continue
+      fi
+   fi
+
+   filename="$(basename "$i")"
+      
+   cp "$i" "$WHONIX_BINARY"/news/"$filename"
+
+   cat "$WHONIX_BINARY"/news/"$filename"
+
+   rm --force "$WHONIX_BINARY"/news/"$filename".asc
+
+   gpg --clearsign "$WHONIX_BINARY"/news/"$filename"
+   
+   rm "$WHONIX_BINARY"/news/"$filename"
+
+   cat "$WHONIX_BINARY"/news/"$filename".asc
+
+   gpg --verify "$WHONIX_BINARY"/news/"$filename".asc
+
+done
+
+rm --force "$WHONIX_BINARY"/news/.directory
+
+ls -la "$WHONIX_BINARY"/news/
+
+true "Please press any key to continue to upload."
+
+read temp
+
+rsync \
+   --partial \
+   --progress \
+   --verbose \
+   --rsh ssh \
+   "$WHONIX_BINARY"/news/* \
+   adrelanos,whonix@frs.sourceforge.net:/home/frs/project/whonix/internal/news/
+
