@@ -7,6 +7,8 @@ download_important_blog() {
    BLOG_URL="https://anonymousoperatingsystem.wordpress.com/category/important/feed/"
    RAWDOG_CONFIG="/etc/whonixcheck_rawdog/importantblog.conf"
    FEED_FILE="/var/lib/whonix/whonixcheck/importantblog.feed"
+   
+   BLOG_SUCCESS=0
   
    download_blog
    parse_blog
@@ -78,12 +80,17 @@ parse_blog() {
       || { local RAWDOG_RETURN="$?" ; true; };
 
    if [ "$RAWDOG_RETURN" = "0" ]; then
-      local MSG="Successfully downloaded "$BLOG_NAME"."
-      output "--info" "$MSG" "both"
-      return 0
+      BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"
+      
+      ## Lets make just one success message, not two.
+      if [ "$BLOG_SUCCESS" = "2" ]; then   
+         local MSG="Downloaded Whonix blog."
+         output "--info" "$MSG" "both"
+         return 0
+      fi
+   else
+      local MSG="Could not parse "$BLOG_NAME". (rawdog return code: "$RAWDOG_RETURN")"
+      output "--error" "$MSG" "both"
    fi
-
-   local MSG="Could not parse "$BLOG_NAME". (rawdog return code: "$RAWDOG_RETURN")"
-   output "--error" "$MSG" "both"
 }
 

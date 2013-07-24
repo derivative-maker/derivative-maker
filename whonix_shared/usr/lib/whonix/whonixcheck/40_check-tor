@@ -98,11 +98,14 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
 
    trap "check_tor_grep_error" ERR
 
-   IP="error"
+   local IP="error"
    local IP="$(grep "IP" ""$VERIFY_TEMPDIR"/index.html" 2>&1)"
-   IP="$(echo "$IP" | sed 's/<br>//g')"
-   IP="$(echo "$IP" | sed 's/<b>//g')"
-   IP="$(echo "$IP" | sed 's/<\/b>//g')"
+   local IP="$(echo "$IP" | sed 's/Your IP address appears to be//g')"
+   local IP="$(echo "$IP" | sed 's/<br>//g')"
+   local IP="$(echo "$IP" | sed 's/<b>//g')"
+   local IP="$(echo "$IP" | sed 's/<\/b>//g')"
+   local IP="$(echo "$IP" | sed 's/://g')"
+   local IP="$(echo "$IP" | sed 's/ //g')"
 
    trap "error_handler" ERR
 
@@ -133,7 +136,7 @@ $IP
 
 (
  VPN/transproxy users:
- In case you added a VPN/transproxy and do not want whonixcheck to stop once this has been detected, see whonixcheck /etc/whonix.d/10_whonixcheck_default configuration file.
+ In case you added a VPN/transproxy and do not want whonixcheck to stop once this has been detected, see whonixcheck /etc/whonix.d/30_whonixcheck_default configuration file.
 )
 "
          output "--error" "$MSG" "both"      
@@ -143,7 +146,7 @@ $IP
       fi
       
    else
-      local MSG="Tor's $1: You are successfully using Tor. $IP"
+      local MSG="$1 connected to Tor. IP: $IP"
       output "--info" "$MSG" "both"
    fi
 

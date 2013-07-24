@@ -6,14 +6,14 @@ check_operating_system() {
    ## Runing apt-get update as user (non-root).
    ## Depends on exception set in /etc/sudoers.   
    ## Minmal custom script.
-   local MSG="Checking for operating system updates..."
+   local MSG="Checking for installed software updates using apt-get..."
    output "--info" "$MSG" "echo"
    APT_GET_RETURN="0"
    sudo /usr/lib/whonix/whonixcheck/apt-get-update >/dev/null || { APT_GET_RETURN="$?" ; true; };
 
    if [ ! "$APT_GET_RETURN" = "0" ]; then
-      local MSG="Could not check for operating system updates ($APT_GET_RETURN).
-Please check by manually running:
+      local MSG="Could not check for installed software updates using apt-get. (apt-get return code: $APT_GET_RETURN)
+Please manually check by running:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
 sudo apt-get update && sudo apt-get dist-upgrade"
       output "--warning" "$MSG" "both"   
@@ -30,8 +30,7 @@ sudo apt-get update && sudo apt-get dist-upgrade"
    local FIRST_CHAR="${CHECK_OS_RESULT:0:1}"
 
    if [ "$FIRST_CHAR" = "0" ]; then
-      local MSG="Operating system is up to date.
-$CHECK_OS_RESULT"
+      local MSG="Installed software is up to date."
       output "--info" "$MSG" "both"
       return 0
    fi
@@ -45,7 +44,7 @@ $CHECK_OS_RESULT"
          ## too many bugs. Needs more testing and bugreports.
          #apper --updates --display "$DISPLAY" 2>/dev/null 
 
-         local MSG="$CHECK_OS_RESULT
+         local MSG="Apt-get reports that "$FIRST_CHAR" packages can be updated.
 Please update Whonix-Gateway and Whonix-Workstation:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
 sudo apt-get update && sudo apt-get dist-upgrade"
@@ -54,7 +53,7 @@ sudo apt-get update && sudo apt-get dist-upgrade"
       fi
    fi
 
-   local MSG="$CHECK_OS_RESULT
+   local MSG="Apt-get reports that "$FIRST_CHAR" packages can be updated.
 Please update Whonix-Gateway and Whonix-Workstation:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
 sudo apt-get update && sudo apt-get dist-upgrade"
