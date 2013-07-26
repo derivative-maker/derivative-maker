@@ -30,31 +30,63 @@ check_tor() {
          || { CHECK_TOR_RESULT="$?" ; true; };
 
       if [ ! "$CHECK_TOR_RESULT" = "0" ]; then
-         local MSG="Your Internet connection appears to be down.
+         if [ "$VM" = "Whonix-Gateway" ]; then
+
+            local MSG="\
+Your Internet connection appears to be down. Whonixcheck aborted!
+(curl return code: "$CHECK_TOR_RESULT")
+
+Possible reasons:
+- Is your host internet connection functional?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+- check.tpo is offline.
+  Check on the host, if you can reach https://check.torproject.org via the Tor Browser Bundle.
+
+Try again: Start menu -> Applications -> System -> Whonix Check
+           or in Terminal: whonixcheck
+           or in Terminal with debugging: bash -x whonixcheck --verbose         
+
+Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
+
+            output "--error" "$MSG" "both"
+
+         elif [ "$VM" = "Whonix-Workstation" ]; then
+         
+            local MSG="\
+Your Internet connection appears to be down. Whonixcheck aborted!
 (curl return code: "$CHECK_TOR_RESULT")
 
 Possible reasons:
 - Is your host internet connection functional?
 - Did you start Whonix-Gateway beforehand?
-- Did you enable Tor in whonixsetup on Whonix-Gateway?
 - Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
 - check.tpo is offline.
-  Check on the host, if you can reach https://check.torproject.org using the Tor Browser Bundle.
+  Check on the host, if you can reach https://check.torproject.org via the Tor Browser Bundle.
 
 Try again: Start menu -> Applications -> System -> Whonix Check
            or in Terminal: whonixcheck
-           or in Terminal with debugging: whonixcheck -v
-
+           or in Terminal with debugging: bash -x whonixcheck --verbose
+           
 Run whonixcheck on Whonix-Gatway as well.
 
 Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
 
-         output "--error" "$MSG" "both"
+            output "--error" "$MSG" "both"
+         else
+            local MSG="check_tor(): This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"         
+         fi
+
          EXIT_CODE="1"
          cleanup
          return 0
       fi
    elif [ "$1" = "TransPort" ]; then
+      if [ "$WHONIXCHECK_DISABLE_TRANS_PORT_TEST" = "1" ]; then
+         local MSG="Not testing Tor's TransPort, because you set WHONIXCHECK_DISABLE_TRANS_PORT_TEST=\"1\" to deactivate this."
+         output "--info" "$MSG" "echo"         
+         return 0      
+      fi
+      
       ## Do not test for stream isolation if Tor detection failed.
       ## This variable may be set to 1, during the first run of this script.
       if [ "$NOT_USING_TOR" = "1" ]; then
@@ -80,8 +112,12 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
      
       if [ ! "$CHECK_TOR_RESULT" = "0" ]; then
          local MSG="\
-Tor's TransPort was not reachable.
-(curl return code: "$CHECK_TOR_RESULT")"
+Tor's TransPort was not reachable. Whonixcheck aborted!
+(curl return code: "$CHECK_TOR_RESULT")
+
+(
+ If you disabled Tor's TransPort, please disable this check, see whonixcheck /etc/whonix.d/30_whonixcheck_default configuration file.
+)"
          output "--error" "$MSG" "both"
          return 0
       fi
@@ -121,36 +157,60 @@ Tor's TransPort was not reachable.
 
    ## Check if connected to Tor or not,
    ## and choose which message to show.
-   if [ "$TOR_OR_NOT" = "" ]; then
+   if [ ! "$TOR_OR_NOT" = "" ]; then
+      if [ "$1" = "TransPort" ]; then
+         local MSG="TransPort connected to Tor. IP: $IP"
+      elif [ "$1" = "SocksPort" ]; then
+         local MSG="SocksPort connected to Tor. IP: $IP"      
+      fi      
+      output "--info" "$MSG" "both"
+   else
       NOT_USING_TOR="1"
 
-      if [ "$WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE" = "1" ]; then
-         local MSG="Tor's $1: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this.
-$IP"     
-         output "--info" "$MSG" "both"
-      else
-         local MSG="Tor's $1: Looks like you are not connected through Tor!
+      if [ "$1" = "TransPort" ]; then
+         if [ "$WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE" = "1" ]; then
+            local MSG="\
+Tor's TransPort: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this.
+IP: $IP"
+            output "--info" "$MSG" "both"
+         else
+            local MSG="\
+Tor's TransPort: Looks like you are not connected through Tor! Whonixcheck aborted!
+IP: $IP
+
 Possible reasons:
 - There could be something wrong.
 - You added a VPN.
 - You added a transproxy.
 - It's a false positive. https://check.torproject.org fails in some cases to detect exit nodes.
-$IP
 
 (
  VPN/transproxy users:
  In case you added a VPN/transproxy and do not want whonixcheck to stop once this has been detected, see whonixcheck /etc/whonix.d/30_whonixcheck_default configuration file.
 )
-"
-         output "--error" "$MSG" "both"      
-         EXIT_CODE="1"
-         cleanup
-         return 0
+
+You could try to find out if this IP is/was a Tor exit node using a search engine or ExoneraTor:
+https://metrics.torproject.org/exonerator.html"
+
+            output "--error" "$MSG" "both"      
+            EXIT_CODE="1"
+            cleanup
+            return 0
+         fi
+      elif [ "$1" = "SocksPort" ]; then
+            local MSG="\
+Tor's SocksPort: Looks like you are not connected through Tor!
+IP: $IP
+
+Whonixcheck aborted!
+
+Possible reasons:
+- There could be something wrong.
+- It's a false positive. https://check.torproject.org fails in some cases to detect exit nodes.
+
+You could try to find out if this IP is/was a Tor exit node using a search engine or ExoneraTor:
+https://metrics.torproject.org/exonerator.html"
       fi
-      
-   else
-      local MSG="$1 connected to Tor. IP: $IP"
-      output "--info" "$MSG" "both"
    fi
 
 }
