@@ -10,7 +10,7 @@ check_tor() {
    trap "error_handler" ERR
 
    if [ "$1" = "SocksPort" ]; then
-      local MSG="Checking network connection... Testing Tor's SocksPort..."
+      local MSG="SocksPort Test: Checking network connection... Testing Tor's SocksPort..."
       output "--info" "$MSG" "echo"
 
       local SOCKS_PORT_WHONIXCHECK="9110"
@@ -33,6 +33,7 @@ check_tor() {
          if [ "$VM" = "Whonix-Gateway" ]; then
 
             local MSG="\
+SocksPort Test Result:
 Your Internet connection appears to be down. Whonixcheck aborted!
 (curl return code: "$CHECK_TOR_RESULT")
 
@@ -53,6 +54,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
          elif [ "$VM" = "Whonix-Workstation" ]; then
          
             local MSG="\
+SocksPort Test Result:
 Your Internet connection appears to be down. Whonixcheck aborted!
 (curl return code: "$CHECK_TOR_RESULT")
 
@@ -73,7 +75,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
 
             output "--error" "$MSG" "both"
          else
-            local MSG="check_tor(): This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"         
+            local MSG="SocksPort Test Error: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
          fi
 
          EXIT_CODE="1"
@@ -82,7 +84,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
       fi
    elif [ "$1" = "TransPort" ]; then
       if [ "$WHONIXCHECK_DISABLE_TRANS_PORT_TEST" = "1" ]; then
-         local MSG="Not testing Tor's TransPort, because you set WHONIXCHECK_DISABLE_TRANS_PORT_TEST=\"1\" to deactivate this."
+         local MSG="TransPort Test: Not testing Tor's TransPort, because you set WHONIXCHECK_DISABLE_TRANS_PORT_TEST=\"1\" to deactivate this."
          output "--info" "$MSG" "echo"         
          return 0      
       fi
@@ -90,12 +92,12 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
       ## Do not test for stream isolation if Tor detection failed.
       ## This variable may be set to 1, during the first run of this script.
       if [ "$NOT_USING_TOR" = "1" ]; then
-         local MSG="Not testing Tor's TransPort, because Tor could not be detected on Tor's SocksPort."
+         local MSG="TransPort Test: Not testing Tor's TransPort, because Tor could not be detected on Tor's SocksPort."
          output "--info" "$MSG" "echo"         
          return 0
       fi
    
-      local MSG="Testing Tor's TransPort..."
+      local MSG="TransPort Test: Testing Tor's TransPort..."
       output "--info" "$MSG" "echo"
    
       CHECK_TOR_RESULT="0"
@@ -112,6 +114,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
      
       if [ ! "$CHECK_TOR_RESULT" = "0" ]; then
          local MSG="\
+TransPort Test Result:
 Tor's TransPort was not reachable. Whonixcheck aborted!
 (curl return code: "$CHECK_TOR_RESULT")
 
@@ -122,7 +125,7 @@ Tor's TransPort was not reachable. Whonixcheck aborted!
          return 0
       fi
    else
-     local MSG="check_tor(): \$1 is neither TransPort nor SocksPort. Please report this BUG!"
+     local MSG="Trans/Socks-Port Test Error: \$1 is neither TransPort nor SocksPort. Please report this BUG!"
      output "--error" "$MSG" "both"
      return 0
    fi
@@ -132,7 +135,7 @@ Tor's TransPort was not reachable. Whonixcheck aborted!
    TOR_OR_NOT="1"
    TOR_OR_NOT="$(grep "Congratulations" ""$VERIFY_TEMPDIR"/index.html")"
    
-   local MSG="TOR_OR_NOT: $TOR_OR_NOT"
+   local MSG="Socks/Trans-Port Test Debug: TOR_OR_NOT: $TOR_OR_NOT"
    output "--info" "$MSG" "debug"
 
    trap "check_tor_grep_error" ERR
@@ -159,9 +162,9 @@ Tor's TransPort was not reachable. Whonixcheck aborted!
    ## and choose which message to show.
    if [ ! "$TOR_OR_NOT" = "" ]; then
       if [ "$1" = "TransPort" ]; then
-         local MSG="TransPort connected to Tor. IP: $IP"
+         local MSG="TransPort Test Result: Connected to Tor. IP: $IP"
       elif [ "$1" = "SocksPort" ]; then
-         local MSG="SocksPort connected to Tor. IP: $IP"      
+         local MSG="SocksPort Test Result: Connected to Tor. IP: $IP"
       fi      
       output "--info" "$MSG" "both"
    else
@@ -170,12 +173,14 @@ Tor's TransPort was not reachable. Whonixcheck aborted!
       if [ "$1" = "TransPort" ]; then
          if [ "$WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE" = "1" ]; then
             local MSG="\
-Tor's TransPort: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this.
+TransPort Test Result:
+Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this.
 IP: $IP"
             output "--info" "$MSG" "both"
          else
             local MSG="\
-Tor's TransPort: Looks like you are not connected through Tor! Whonixcheck aborted!
+TransPort Test Result:
+Looks like you are not connected through Tor! Whonixcheck aborted!
 IP: $IP
 
 Possible reasons:
@@ -199,6 +204,7 @@ https://metrics.torproject.org/exonerator.html"
          fi
       elif [ "$1" = "SocksPort" ]; then
             local MSG="\
+TransPort Test Result:
 Tor's SocksPort: Looks like you are not connected through Tor!
 IP: $IP
 

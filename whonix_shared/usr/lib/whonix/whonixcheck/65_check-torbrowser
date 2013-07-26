@@ -5,15 +5,15 @@ check_torbrowser() {
 
    ## Check if TB_LANG exists and is not empty.
    if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-      MSG="Tor Browser language variable is set to "$TB_LANG"."
+      MSG="Tor Browser Update Check: Tor Browser language variable is set to "$TB_LANG"."
    else
-      MSG="Tor Browser language set to default en-US."
+      MSG="Tor Browser Update Check: Tor Browser language set to default en-US."
       TB_LANG="en-US"
    fi
    #echo "$MSG"
 
    CHECK_TORBROWSER_RESULT="0"
-   local MSG="Checking Tor Browser version..."
+   local MSG="Tor Browser Update Check: Checking version..."
    output "--info" "$MSG" "echo"
 
    local SOCKS_PORT_WHONIXCHECK="9110"
@@ -32,7 +32,8 @@ check_torbrowser() {
       || { CHECK_TORBROWSER_RESULT="$?" ; true; }
 
    if [ ! "$CHECK_TORBROWSER_RESULT" = "0" ]; then
-      local MSG="Tor Browser Update check failed. (curl return code: "$CHECK_TORBROWSER_RESULT") Could now download: https://check.torproject.org/RecommendedTBBVersions
+      local MSG="Tor Browser Update Check Result:
+Tor Browser Update check failed. (curl return code: "$CHECK_TORBROWSER_RESULT") Could now download: https://check.torproject.org/RecommendedTBBVersions
 Try: Start menu -> Applications -> System -> Tor Browser Updater"
       output "--error" "$MSG" "both"
       return 0
@@ -48,7 +49,8 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
       true
    else
       TBBINSTALLEDVERSION="UNKNOWN"
-      local MSG="Could not determine currently installed Tor Browser version.\
+      local MSG="Tor Browser Update Check Result:
+Could not determine currently installed Tor Browser version.\
 This could be either because none is installed or because the version format changed.
 
 Try: Start menu -> Applications -> System -> Tor Browser Updater"
@@ -59,11 +61,11 @@ Try: Start menu -> Applications -> System -> Tor Browser Updater"
    ## Append to MSG if Tor Browser is current or not.
    if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
       ## It is up to date...
-      local MSG="Tor Browser is up to date."
+      local MSG="Tor Browser Update Check Result: Up to date."
       output "--info" "$MSG" "both"
    else
       ## Outdated...
-      local MSG="\
+      local MSG="Tor Browser Update Check Result:
 Installed Tor Browser version: $TBBINSTALLEDVERSION. Latest Tor Browser version: $TBBVERSION.
 Please run: Start menu -> Applications -> System -> Tor Browser Updater"
       output "--warning" "$MSG" "both"
