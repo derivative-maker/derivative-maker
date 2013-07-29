@@ -1,0 +1,77 @@
+#!/bin/bash
+
+## bash script fragment
+
+TEMP_DIR_WHONIX_SCRIPT="$(mktemp --directory)"
+
+disable_echo() {
+   exec 5>&1 >>""$TEMP_DIR_WHONIX_SCRIPT"/output"
+   exec 6>&2 2>>""$TEMP_DIR_WHONIX_SCRIPT"/output"
+}
+
+enable_echo() {
+   exec 1>&5
+   exec 2>&6
+}
+
+if [ "$WHONIX_DEB_DEBUG" = "1" ]; then
+   set -x
+   OUT_CMD_WHONIX_SCRIPT="true"
+else
+   OUT_CMD_WHONIX_SCRIPT="echo"
+   disable_echo
+fi
+
+force_echo() {
+   if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then
+      enable_echo
+   fi
+
+   if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then  
+      echo "$@"
+   fi
+   ## No need to use "true" or "echo" in case WHONIX_DEB_DEBUG is set to 1,
+   ## because in that case we saw the output anyway, because set -x was set.
+
+   if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then
+      disable_echo
+   fi
+}
+
+error_handler() {
+   local return_code="$?"
+   local last_err="$BASH_COMMAND"
+
+   if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then   
+      local output="$(cat ""$TEMP_DIR_WHONIX_SCRIPT"/output")"
+   fi
+
+   if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then
+      exec 1>&5
+      exec 2>&6
+   fi
+
+   force_echo "
+#############################################################
+## error:
+$output
+##
+## postinst script: ERROR detected. Please report this bug! #
+## scriptname: $0
+## BASH_COMMAND: $BASH_COMMAND
+## return_code: $return_code
+#############################################################
+" 1>&2
+
+   exit 1
+} 
+
+trap "error_handler" ERR 
+
+own_filename="$(basename $0)"
+case $WHONIX_BUILD_SKIP_SCRIPTS in
+   *$own_filename*) force_echo "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."                 
+                    exit 0
+                    ;;
+esac 
+
