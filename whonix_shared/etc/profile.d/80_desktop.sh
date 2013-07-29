@@ -15,6 +15,11 @@ else
          if [ "${i: -1}" = "~" ]; then
             continue
          fi
+         ## Skipping files such as .dpkg-old and .dpkg-dist.
+         if ( echo "$i" | grep -q ".dpkg-" ); then
+            echo "skip $i"
+            continue
+         fi         
          source "$i"
       fi
    done
