@@ -23,14 +23,14 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 MSG='
-Tor tries to prevent attackers from learning what destination websites you connect to. However, by default, it does not prevent somebody watching your Internet traffic from learning that you are using Tor. If this matters to you, you can reduce this risk by configuring Tor to use a Tor bridge relay rather than connecting directly to the public Tor network. Ultimately the best protection is a social approach: the more Tor users there are near you and the more diverse their interests, the less dangerous it will be that you are one of them. Convince other people to use Tor, too!
+Tor tries to prevent attackers from learning what websites you connect to. However, by default, it does not hide the fact that you are using Tor. If this matters, you can reduce this risk by configuring Tor to use a Tor bridge relay rather than connecting directly to the public Tor network. Ultimately, the best protection is a social approach: the more Tor users there are near you and the more diverse their interests, the safer it will be to use it. Convince other people to use Tor, too!
 
-(Technically speaking, whonixsetup activates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc.)
+Note: whonixsetup activates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc.
 
-Enable Tor and connect to the public Tor network?
+Enable Tor and connect to the Tor network?
 '
 
-TITLE="Connect to the public Tor network."
+TITLE="Connect to the Tor network."
 
 returncode=0
 dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode=$? ; true; };
@@ -44,13 +44,9 @@ fi
 ## This is to prevent getting ed from failing.
 while read LINE; do
    if [ "$LINE" = '#DisableNetwork 1' ]; then
-      dialog --title "Success!" --msgbox '"DisableNetwork 1" was already commented out in /etc/tor/torrc.
-So Tor should now be activated.
+      dialog --title "Success!" --msgbox '"DisableNetwork 1" was already commented out in /etc/tor/torrc. Tor should be activated.
 
-whonixsetup really only activates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc.
-Running it multiple times in a row archives nothing.
-In case of network problems, this is probably not the cause.
-You can confirm that by manually checking if "DisableNetwork 1" has been out commented in /etc/tor/torrc.
+Note: whonixsetup activates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc. There is no need to run it multiple times, and it probably not the cause of network problems. You can manually check if "DisableNetwork 1" has been commented out in /etc/tor/torrc.
 ' 640 480
       break
    fi
@@ -64,20 +60,19 @@ ed -s /etc/tor/torrc <<< $',s/DisableNetwork 1/#DisableNetwork 1/g\nw' || { retu
 sync
 
 if [ ! "$returncode" = "0" ]; then
-   TITLE="Info..."
+   TITLE="Info:"
 
    MSG="
-Could not comment out \"DisableNetwork 1\" in /etc/tor/torrc.
-Maybe you commented out or completely removed \"DisableNetwork 1\" in
-/etc/tor/torrc already? This is not necessarily a problem.
-   
+Could not comment out \"DisableNetwork 1\" in /etc/tor/torrc. Did you commented out or completely removed \"DisableNetwork 1\" in /etc/tor/torrc already? This is not necessarily a problem.
+
 Will try to reload Tor now and check its status afterward...
 "
+
 else
-   TITLE="Info..."
+   TITLE="Info:"
 
    MSG="
-Tor in /etc/tor/torrc has been activated.
+Tor has been activated in /etc/tor/torrc.
 
 Will try to reload Tor now and check its status afterward...
 "
@@ -129,27 +124,21 @@ if [ ! "$returncode" = "0" ]; then
 
    MSG="
 sudo service tor status
-returned exit code $returncode, which means, that there is something wrong
-with your /etc/tor/torrc. Tor will NOT work.
+returned exit code $returncode. There is something wrong with your /etc/tor/torrc. Tor will NOT work. This is most likely a problem with your /etc/tor/torrc (and not whonixsetup). Please fix your /etc/tor/torrc.
 
-This problem is most likely not caused by whonixsetup.
-
-This is most likely a problem with your /etc/tor/torrc.
-Please fix your /etc/tor/torrc.
-
-You can open /etc/tor/torrc for example using the nano editor.
+You can open /etc/tor/torrc in the terminal:
 
     sudo nano /etc/tor/torrc
 
-Or, if you are using a graphical Whonix-Gateway.    
+Or, if you are using a graphical Whonix-Gateway:
     
     Start Menu -> Applications -> /etc/tor/torrc
 
-Running,
+Running:
 
    sudo service tor restart
 
-might be of assistance finding out, what the problem is.
+might help with troubleshooting.
 "
 
    dialog --title "$TITLE" --msgbox "$MSG" 640 480
@@ -162,22 +151,19 @@ TITLE="Success!"
 
 MSG="
 sudo service tor status
-returned $returncode, which means, that reloading Tor worked.
-Tor should work now.
+returned $returncode. Reloading Tor worked.
 
-This only means, that Tor is configured now and will try to connect.
+Tor is configured now and will try to connect.
 
-Checking, if your host internet connection is functional and/or if Tor can
-reach the Tor network has not been implemented yet into whonixsetup.
+Checking if your internet connection is functional and/or if Tor can reach the Tor network has not been implemented yet into whonixsetup.
 
-Running,
+Running:
 
     whonixcheck
 
-might be of assistance.
+might help with troubleshooting.
 "
 
 dialog --title "$TITLE" --msgbox "$MSG" 640 480
 
 exit 1
-
