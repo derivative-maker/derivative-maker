@@ -17,7 +17,7 @@ else
          fi
          ## Skipping files such as .dpkg-old and .dpkg-dist.
          if ( echo "$i" | grep -q ".dpkg-" ); then
-            echo "skip $i"
+            true "skip $i"
             continue
          fi         
          source "$i"
