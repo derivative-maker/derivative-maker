@@ -3,58 +3,40 @@
 #set -x
 
 MSG='
-Some Internet Service Providers (ISPs) attempt to prevent users from accessing the Tor network by blocking connections to known Tor relays.
+(You can scroll down using the arrow key.)
 
-Ordinary bridge relays (non-private) (non-obfuscated) (or bridges for short) are relays that help these censored users access the Tor network. Unlike other Tor relays, bridges are not listed in the same public directories as normal relays. Since there is no complete public list of them, less sophisticated censors have trouble enumerating and censoring all of them.
+Some Internet Service Providers prevent users from accessing the Tor network by blocking connections to known relays. "Bridge relays" help these users access Tor by not being listed in the same public directories as normal relays. Less sophisticated censors have trouble censoring all of them.
 
-More sophisticated censors do not only ban bridges by collecting IP addresses, but also by looking at the traffic flow. Pluggable transports have been developed to work around such issues. One transport plugin which can disguise traffic is obfsproxy. Bridges running obfsproxy are called obfuscated bridges. If ordinary bridge relays do not work for you, try obfuscated bridges.
+Sophisticated censors can only be circumvented with private obfuscated bridges. Someone you trust must run a bridge configured with obfsproxy (to help avoid detection) and the option "PublishServerDescriptor 0" (to not be listed by The Tor Project). However, since even private obfuscated bridges can ultimately be detected, Whonix does NOT recommend using Tor where its detection could result in significant harm.
 
-Since there are not so many obfuscated bridges, to circumvent even more sophisticated censors, you may have to use private obfuscated bridges.
 
-How do I find bridge relays?
+Finding Bridges
+---------------
 
-(You can scroll down in this window using the arrow key.)
+You can find the IP address of public bridges at:
+https://bridges.torproject.org/bridges
 
-type of bridge ..................... | where to find
-----------------------------------------------------------------------
-semi-public non-obfuscated bridges . | https://bridges.torproject.org/
-semi-public obfuscated bridges obfs2 | https://bridges.torproject.org/
-semi-public obfuscated bridges obfs3 | https://bridges.torproject.org/
+If you can not reach the URL, send an email (from a gmail.com or yahoo.com account only) to bridges@torproject.org with "get bridges" in the message body.
 
-If you can not reach https://bridges.torproject.org/, another way to find bridges is to send mail to bridges@torproject.org with a special command.
+Whonix recommends using "bridge obfs3" IP addresses only.
 
-type of bridge ..................... | mail body
-----------------------------------------------------------------------
-semi-public non-obfuscated bridges . | get bridges
-semi-public obfuscated bridges obfs2 | transport obfs2
-semi-public obfuscated bridges obfs3 | transport obfs3
 
-At time of writing, the "transport obfs3" command was not implemented. "transport obfs2" worked.
+Configure Whonix to Use Bridges
+-------------------------------
 
-However, to make it harder for an attacker to learn lots of bridge addresses, you must send this request from a gmail.com or yahoo.com account.
+Press enter to close this message, then cancel the connection wizard by using Cancel button in the main menu. You must manually add the bridge(s) IP address to /etc/tor/torrc. Comments and examples in that file will help you through the process. After you have finished, restart the First Time Connection Wizard.
 
-To use private obfuscated bridges, ask your friends to run them in uncensored area of the Internet. Unlike running an exit relay, running a bridge relay just passes data to and from the Tor network, so it should not expose the operator to any abuse complaints. In this case "private" means that the bridge is configured with the option "PublishServerDescriptor 0". Without this option, The Tor Project can learn about the bridge and may distribute its address to others and so it could end up in the hands of your adversary.
-
-How to use bridges in Whonix?
-
-Whonix does not yet include a bridge mode that guides you through the process of setting up bridges before connecting to Tor (help welcome!). You must manually add bridges to /etc/tor/torrc. However, that is not rocket science and /etc/tor/torrc includes comments and examples to help you through the process.
-
-Whonix uses an ordinary version of Tor, downloaded from the Debian repository of The Tor Project. There is no "special" version of Tor. (Private) (obfuscated) bridges can be configured on Whonix-Gateway the same way, they would be configured when not using Whonix, i.e. just like on a server without graphical user interface.
-
-You can open torrc for example using the nano editor.
+You can open /etc/tor/torrc in the terminal:
 
     sudo nano /etc/tor/torrc
 
-Or, if you are using a graphical Whonix-Gateway.    
-    
-    Start Menu -> Applications -> /etc/tor/torrc
+Or, if you are using a graphical Whonix-Gateway:
 
-Having said that it is a manual process, you can press ok now (press enter). Nothing will happen. You can leave the First Time Connection Wizard using the Cancel button in the main menu.
+    Start Menu -> Applications -> /etc/tor/torrc
 '
 
-TITLE="Tor (or other anonymity networks) are censored in my area."
+TITLE="Tor is censored in my area."
 
 dialog --title "$TITLE" --msgbox "$MSG" 640 480
 
 exit 0
-
