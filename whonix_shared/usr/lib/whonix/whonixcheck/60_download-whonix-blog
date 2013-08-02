@@ -1,16 +1,24 @@
 #!/bin/bash
 
+SOCKS_PORT_WHONIX_NEWS="9114"
+BLOG_SUCCESS=0
+
 download_important_blog() {
    trap "error_handler" ERR
 
    BLOG_NAME="Whonix Important Blog"
+   BLOG_HTML_FILE="importantblog.html"
+   BLOG_TXT_FILE="important_blog.txt"
    BLOG_URL="https://anonymousoperatingsystem.wordpress.com/category/important/feed/"
    RAWDOG_CONFIG="/etc/whonixcheck_rawdog/importantblog.conf"
-   FEED_FILE="/var/lib/whonix/whonixcheck/importantblog.feed"
-   
-   BLOG_SUCCESS=0
+   FEED_FILE="/var/lib/whonix/whonixcheck/importantblog.feed"   
   
    download_blog
+
+   if [ ! "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
+      return 0
+   fi   
+   
    parse_blog
 }
 
@@ -18,11 +26,18 @@ download_feature_blog() {
    trap "error_handler" ERR
 
    BLOG_NAME="Whonix Feature Blog"
+   BLOG_HTML_FILE="featureblog.html"
+   BLOG_TXT_FILE="feature_blog.txt"
    BLOG_URL="https://anonymousoperatingsystem.wordpress.com/feed/"
    RAWDOG_CONFIG="/etc/whonixcheck_rawdog/featureblog.conf"
    FEED_FILE="/var/lib/whonix/whonixcheck/featureblog.feed"
   
    download_blog
+   
+   if [ ! "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
+      return 0
+   fi
+   
    parse_blog
 }
 
@@ -34,7 +49,7 @@ download_blog() {
 
    rm -f "$FEED_FILE"
    
-   local DOWNLOAD_BLOG_RETURN="0"
+   DOWNLOAD_BLOG_RETURN="0"
 
    ## --tlsv1 --proto =https \
    
@@ -46,7 +61,7 @@ download_blog() {
       --location \
       --output "$FEED_FILE" \
       "$BLOG_URL" \
-      || { local DOWNLOAD_BLOG_RETURN="$?" ; true; };
+      || { DOWNLOAD_BLOG_RETURN="$?" ; true; };
       
    if [ "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
       return 0
@@ -67,31 +82,51 @@ parse_blog() {
    ## output file.
    cp /etc/whonixcheck_rawdog/style.css /var/lib/whonix/whonixcheck/
    
-   ## Delete the style file, because we use curl to download the feed and
+   ## Delete the state file, because we use curl to download the feed and
    ## our own interval anyway. Maybe not necessary.
    rm -f /home/rawdog/.rawdog/state
 
    local RAWDOG_RETURN="0"
    
-   sudo -u rawdog $RAWDOG \
-      --config "$RAWDOG_CONFIG" \
-      $RAWDOG_VERBOSE \
-      --update \
-      --write \
-      || { local RAWDOG_RETURN="$?" ; true; };
+   sudo -u rawdog \
+      $RAWDOG \
+         --config "$RAWDOG_CONFIG" \
+         $RAWDOG_VERBOSE \
+         --update \
+         --write \
+         || { local RAWDOG_RETURN="$?" ; true; };
 
    if [ "$RAWDOG_RETURN" = "0" ]; then
-      BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"
-      
-      ## Lets make just one success message, not two.
-      if [ "$BLOG_SUCCESS" = "2" ]; then   
-         local MSG="Whonix Blog Download Result: Success."
-         output "--info" "$MSG" "both"
-         return 0
-      fi
+      BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"      
    else
       local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (rawdog return code: "$RAWDOG_RETURN")"
       output "--error" "$MSG" "both"
+      return 0
+   fi
+   
+   local PANDOC_RETURN="0"
+   
+   sudo -u rawdog \
+      pandoc \
+         --read=html \
+         --write=plain \
+         --output=/var/lib/whonix/whonixcheck/"$BLOG_TXT_FILE" \
+         /var/lib/whonix/whonixcheck/"$BLOG_HTML_FILE" \
+         || { local PANDOC_RETURN="$?" ; true; };
+      
+   if [ "$PANDOC_RETURN" = "0" ]; then
+      true
+   else
+      local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (pandoc return code: "$PANDOC_RETURN")"
+      output "--error" "$MSG" "both"
+      return 0
+   fi 
+  
+   ## Lets make just one success message, not two.
+   if [ "$BLOG_SUCCESS" = "2" ]; then
+      local MSG="Whonix Blog Download Result: Success."
+      output "--info" "$MSG" "both"
+      return 0
    fi
 }
 
