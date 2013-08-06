@@ -1,0 +1,36 @@
+#!/bin/bash
+
+check_tor_bootstrap() {
+   trap "error_handler" ERR
+   
+   tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { tor_bootstrap_percent="$?" ; true; }
+   
+   local MSG="tor_bootstrap_percent: $tor_bootstrap_percent"
+   output "--info" "$MSG" "debug"
+   local MSG="tor_bootstrap_status: $tor_bootstrap_status"
+   output "--info" "$MSG" "debug"
+   
+   if [ "$tor_bootstrap_percent" = "-1" ] || [ "$tor_bootstrap_percent" = "-2" ] ; then
+      local MSG="Tor Bootstrap Result:
+/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py ERROR ($tor_bootstrap_percent). Please report this bug!"
+      output "--error" "$MSG" "both"
+      EXIT_CODE="1"
+      cleanup
+      return 0
+   fi
+   
+   if [ "$tor_bootstrap_status" = "done" ]; then
+      local MSG="Tor Bootstrap Result:
+Connected to Tor."
+      output "--info" "$MSG" "both"
+      return 0
+   else
+      local MSG="Tor Bootstrap Result:
+$tor_bootstrap_status"
+      output "--info" "$MSG" "both"
+      EXIT_CODE="1"
+      cleanup
+      return 0
+   fi
+} 
+
