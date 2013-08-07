@@ -3,6 +3,12 @@
 check_tor_bootstrap() {
    trap "error_handler" ERR
    
+   if [ "$TOR_BOOTSTRAP_TIME_START" = "" ]; then
+      TOR_BOOTSTRAP_TIME_START="$(date +%s)"
+   fi
+   TOR_BOOTSTRAP_TIME_NOW="$(date +%s)"
+   TOR_BOOTSTRAP_TIME_PASSED="$(expr "$TOR_BOOTSTRAP_TIME_NOW" - "$TOR_BOOTSTRAP_TIME_START")" || true
+   
    tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { tor_bootstrap_percent="$?" ; true; }
    
    local MSG="tor_bootstrap_percent: $tor_bootstrap_percent"
@@ -10,7 +16,7 @@ check_tor_bootstrap() {
    local MSG="tor_bootstrap_status: $tor_bootstrap_status"
    output "--info" "$MSG" "debug"
    
-   if [ "$tor_bootstrap_percent" = "-1" ] || [ "$tor_bootstrap_percent" = "-2" ] ; then
+   if [ "$tor_bootstrap_percent" = "254" ]; then
       local MSG="Tor Bootstrap Result:
 /usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py ERROR ($tor_bootstrap_percent). Please report this bug!"
       output "--error" "$MSG" "both"
@@ -19,18 +25,119 @@ check_tor_bootstrap() {
       return 0
    fi
    
-   if [ "$tor_bootstrap_status" = "done" ]; then
-      local MSG="Tor Bootstrap Result:
-Connected to Tor."
-      output "--info" "$MSG" "both"
-      return 0
-   else
-      local MSG="Tor Bootstrap Result:
-$tor_bootstrap_status"
-      output "--info" "$MSG" "both"
+   if [ "$tor_bootstrap_percent" = "255" ]; then
+      if [ "$VM" = "Whonix-Gateway" ]; then
+         local MSG="Tor Bootstrap Result:
+Tor's Control Port could not be reached.
+Please report this bug!"
+      elif [ "$VM" = "Whonix-Workstation" ]; then
+         local MSG="Tor Bootstrap Result:
+Tor's Control Port could not be reached.
+Did you start Whonix-Gateway beforehand?
+Please run whonixcheck on Whonix-Gateway."
+      else
+         local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
+      fi
+      output "--error" "$MSG" "both"
       EXIT_CODE="1"
       cleanup
       return 0
    fi
+   
+   if [ "$tor_bootstrap_percent" = "100" ]; then
+      local MSG="Tor Bootstrap Result: Connected to Tor."
+      output "--info" "$MSG" "both"
+      return 0
+   fi    
+   
+   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -lt "60" ]; then   
+      if [ "$tor_bootstrap_percent" -lt "100" ]; then
+         if [ "$PROGRESS" = "" ]; then
+            PROGRESS="5"
+         fi
+         PROGRESS="$(expr $PROGRESS + 1)" || true
+         
+         if [ "$TOR_BOOTSTRAP_PERCENT_OLD" = "" ]; then
+            TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
+         fi
+      
+         if [ "$TOR_BOOTSTRAP_PERCENT_OLD" = "$tor_bootstrap_percent" ]; then
+            ## no progress has been made   
+            TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
+      
+            local MSG="Tor Bootstrap Result: Bootstrapping for $TOR_BOOTSTRAP_TIME_PASSED seconds. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
+            output "--info" "$MSG" "echo"
+      
+            progress_bar "$PROGRESS"
+      
+            sleep 2
+      
+            check_tor_bootstrap
+            return 0
+         else
+            ## progress has been made
+            TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
+         
+            local MSG="Tor Bootstrap Result: Bootstrapping $TOR_BOOTSTRAP_TIME_PASSED seconds. Progress has been made. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
+            output "--info" "$MSG" "echo"
+      
+            progress_bar "$PROGRESS"
+      
+            sleep 2
+      
+            check_tor_bootstrap
+            return 0         
+         fi
+      fi
+   fi
+   
+   if [ "$VM" = "Whonix-Gateway" ]; then
+
+      local MSG="\
+Tor Bootstrap Result:
+Whonixcheck gave up waiting after $TOR_BOOTSTRAP_TIME_PASSED seconds.
+Bootstrapping $tor_bootstrap_percent % done.
+Tor reports: $tor_bootstrap_status
+
+Possible reasons:
+- Is your host internet connection functional?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+
+Try again: Start menu -> Applications -> System -> Whonix Check
+           or in Terminal: whonixcheck
+           or in Terminal with debugging: bash -x whonixcheck --verbose         
+
+Use arm on Whonix-Gateway, connection page two, to see if Tor is connected: Start menu -> Applications -> System -> Arm
+                                                                            or in Terminal: armwrapper"
+
+   elif [ "$VM" = "Whonix-Workstation" ]; then
+
+      local MSG="\
+Tor Bootstrap Result:
+Whonixcheck gave up waiting after $TOR_BOOTSTRAP_TIME_PASSED seconds.
+Bootstrapping $tor_bootstrap_percent % done.
+Tor reports: $tor_bootstrap_status.
+
+ Possible reasons:
+- Is your host internet connection functional?
+- Did you start Whonix-Gateway beforehand?
+- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
+
+Try again: Start menu -> Applications -> System -> Whonix Check
+           or in Terminal: whonixcheck
+           or in Terminal with debugging: bash -x whonixcheck --verbose
+           
+Run whonixcheck on Whonix-Gatway as well."
+
+   else
+
+      local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
+            
+   fi
+
+   output "--error" "$MSG" "both"
+   EXIT_CODE="1"
+   cleanup
+   return 0
 } 
 

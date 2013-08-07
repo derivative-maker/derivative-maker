@@ -43,52 +43,26 @@ check_tor_socks_or_trans_port() {
 
             local MSG="\
 SocksPort Test Result:
-Your Internet connection appears to be down. Whonixcheck aborted!
-(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")
-
-Possible reasons:
-- Is your host internet connection functional?
-- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
-- check.tpo is offline.
-  Check on the host, if you can reach https://check.torproject.org via the Tor Browser Bundle.
-
-Try again: Start menu -> Applications -> System -> Whonix Check
-           or in Terminal: whonixcheck
-           or in Terminal with debugging: bash -x whonixcheck --verbose         
-
-Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
+https://check.torproject.org was not reachable.
+You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle.
+(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
 
          elif [ "$VM" = "Whonix-Workstation" ]; then         
          
             local MSG="\
 SocksPort Test Result:
-Your Internet connection appears to be down. Whonixcheck aborted!
-(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")
-
-Possible reasons:
-- Is your host internet connection functional?
-- Did you start Whonix-Gateway beforehand?
-- Tor on the Whonix-Gateway will need a few moments until bootstrapping to the Tor network is done.
-- check.tpo is offline.
-  Check on the host, if you can reach https://check.torproject.org via the Tor Browser Bundle.
-
-Try again: Start menu -> Applications -> System -> Whonix Check
-           or in Terminal: whonixcheck
-           or in Terminal with debugging: bash -x whonixcheck --verbose
-           
-Run whonixcheck on Whonix-Gatway as well.
-
-Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
+https://check.torproject.org was not reachable.
+You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle.
+(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
 
          else
          
-            local MSG="SocksPort Test Error: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
+            local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
             
          fi
 
          output "--error" "$MSG" "both"
-         EXIT_CODE="1"
-         cleanup
+
          return 0
       fi
    elif [ "$1" = "TransPort" ]; then
@@ -105,6 +79,14 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
          output "--info" "$MSG" "echo"         
          return 0
       fi
+      
+      if [ ! "$CHECK_TOR_RESULT_SOCKS_PORT" = "0" ]; then
+         local MSG="\
+TransPort Test:
+Not checking Tor's TransPort, because SocksPort test failed already."
+         output "--error" "$MSG" "both"
+         return 0
+      fi      
    
       local MSG="TransPort Test: Testing Tor's TransPort..."
       output "--info" "$MSG" "echo"
@@ -127,7 +109,7 @@ Use arm on Whonix-Gateway, connection page two, to see if Tor is connected."
       if [ ! "$CHECK_TOR_RESULT_TRANS_PORT" = "0" ]; then
          local MSG="\
 TransPort Test Result:
-Tor's TransPort was not reachable. Whonixcheck aborted!
+Tor's TransPort was not reachable.
 (curl return code: "$CHECK_TOR_RESULT_TRANS_PORT")
 
 (
