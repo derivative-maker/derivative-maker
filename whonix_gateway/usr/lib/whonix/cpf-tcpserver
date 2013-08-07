@@ -2,6 +2,18 @@
 
 set -x
 
+error_handler() {
+   local return_code="$?"
+   local bash_command="$BASH_COMMAND"
+   if [ "$ID" = "" ] ; then
+      ID="No_ID"
+   fi
+   echo "$ID ERROR: return_code: $return_code | bash_command: $bash_command" >> /var/log/controlportfilt
+   exit 1
+}
+
+trap error_handler ERR
+
 OIFS="$IFS"
 IFS="$OIFS"
 
@@ -102,18 +114,18 @@ while read -r; do
       break
    fi
    
-   ok=0
+   ok="0"
    for element in "${CONTROL_PORT_FILTER_LOWERCASE_WHITELIST[@]}"; do
       true "CONTROL_PORT_FILTER_LOWERCASE_WHITELIST element: $element"      
 
       if [ "${cleaned_reply,,}" = "$element" ]; then
-         ok=1
+         ok="1"
          true "ok: reply ${cleaned_reply,,} = element $element"
          break
       fi     
    done
    
-   if [ ! "$ok" = 1 ]; then
+   if [ ! "$ok" = "1" ]; then
       write_back "510 Prohibited command \"$cleaned_reply\""
       continue
    fi
@@ -129,7 +141,13 @@ while read -r; do
       continue
    fi   
 
-   var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")"
+   tor_ctrl_return="0"
+   var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" || { tor_ctrl_return="$?" ; true; }
+   
+   if [ ! "$tor_ctrl_return" = "0" ]; then
+      echo "$ID ERROR: tor-ctrl returned a non-zero exit code: $tor_ctrl_return. Breaking..." >> /var/log/controlportfilt
+      break
+   fi
  
    ## split at newlines only
    IFS='
