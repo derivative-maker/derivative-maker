@@ -6,6 +6,9 @@
 ## - options inspired by tails_htp
 ## - log file layout inspired by tails_htp
 
+## TODO
+## - do not exit on non-fatal errors (for daemon)
+
 #set -x
 
 SCRIPTNAME="$(basename $0)"                                              
@@ -343,7 +346,14 @@ sdwdate_loop() {
          exit 1
       fi
       
-      ## TODO: ALLOWED_PER_POOL_FAILURE_RATIO
+      local temp="$(python -c "print $array_length*$ALLOWED_PER_POOL_FAILURE_RATIO")"
+      ## adjust upward / downward
+      local allowed_member_failures="$(printf "%.f" "$temp")"
+      
+      if [ "$array_length_remember" -ge "$allowed_member_failures" ]; then
+         sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached."
+         exit 1
+      fi
       
       local random_integer="$(( ($(od -An -N2 -i /dev/random) )%($array_length) ))"
       
