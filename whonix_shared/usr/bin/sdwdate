@@ -6,9 +6,6 @@
 ## - options inspired by tails_htp
 ## - log file layout inspired by tails_htp
 
-## TODO
-## - demonizing
-
 #set -x
 
 SCRIPTNAME="$(basename $0)"                                              
@@ -29,7 +26,8 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         --neutral_pool                        neutral hostnames
         --foe_pool                            distrusted hostnames
         --allowed_per_pool_failure_ratio      ratio (0.0-1.0) of allowed per-pool failure
-        -p --proxy                            what to pass to curl's --socks5-hostname"
+        -p --proxy                            what to pass to curl's --socks5-hostname
+        -i --interval                         continuously run every x minutes"
 }
 
 sdwdate_defaults() {
@@ -183,6 +181,10 @@ sdwdate_parse_cmd_options() {
                CURL_PROXY="--socks5-hostname $PROXY"
                shift 2
                ;;
+           -i | --interval)
+               INTERVAL=$2
+               shift 2
+               ;;               
            -q | --quiet)
                QUIET=1
                shift
@@ -439,11 +441,23 @@ sdwdate_set_new_time() {
    touch "$DONE_FILE"
 }
 
-sdwdate_defaults
-sdwdate_read_config_folder
-sdwdate_parse_cmd_options ${1+"$@"}
-sdwdate_preparation
-sdwdate_pick
-sdwdate_build_median
-sdwdate_set_new_time
+sdwdate_main() {
+   while true; do
+      sdwdate_defaults
+      sdwdate_read_config_folder
+      sdwdate_parse_cmd_options ${1+"$@"}
+      sdwdate_preparation
+      sdwdate_pick
+      sdwdate_build_median
+      sdwdate_set_new_time
+      if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
+         break
+      else
+         local minutes="$(expr $INTERVAL \* 60)"
+         sdwdate_log "Sleeping for $INTERVAL minutes."
+         sleep "$minutes"
+      fi      
+   done
+}
 
+sdwdate_main ${1+"$@"}
