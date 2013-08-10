@@ -1,0 +1,151 @@
+#!/bin/bash
+
+set -x
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+source pre
+source variables
+
+## Related links:
+## - https://wiki.debian.org/SecureApt#How_to_manually_check_for_package.27s_integrity
+
+## TODO:
+## - This is a work in progress.
+## - dpkg diverted (symlinked) files may be an issue and may need to be followed.
+## - Other symlinked files may be an issue.
+## - Code from build-steps.d/2100_verify-files should be reused to check scripts and config files shipped by Whonix source code.
+## - We could verify files in /var/cache/apt/archives, but this is probably not necessary since we could also use apt-get autoclean
+##   to get rid of those packages before creating an image.
+
+## TODO lower priority:
+## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
+
+## TODO: Read which version to check or filename from command line?
+WHONIX_BUILD_WHONIX_VERSION_NEW="0.5.6"
+
+TEMP_FOLDER=""$WHONIX_BINARY"/verification"
+mkdir --parents "$TEMP_FOLDER"
+cd "$TEMP_FOLDER"
+
+declare -g whonix_verification_remembered_file
+
+if [ -f ""$TEMP_FOLDER"/"$VMNAME".img" ]; then
+   ## Unpacking not required, skipping...
+   true
+else
+   if [ ! -f ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" ]; then
+      ## Unpack .ova.
+      error "ERROR: ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" does not exist."
+   else
+      tar -xvf ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
+   fi
+fi
+
+## Convert .vmdk to .img, since there is no Free Software for mounting .img using command line.
+if [ -f ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" ]; then
+   qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw ""$TEMP_FOLDER"/"$VMNAME".img"
+else
+   error "ERROR: "$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk does not exist."
+fi
+
+## Mount "$TEMP_FOLDER"/"$VMNAME".img
+"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
+
+## archive keyring
+gpg \
+   --fingerprint \
+   --no-default-keyring \
+   --keyring \
+   /etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg
+
+## verify Packages file against archive keyring
+## TODO: Get rid of || true. The file seems to be signed with two keys, but one is missing.
+gpg \
+   --verify \
+   --no-default-keyring \
+   --keyring \
+   /etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg \
+   /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease || true
+
+## Print the md5sum of the Packages file which is listed in the Release file.
+## TODO: Is this required?
+#sed -n "s,main/binary-i386/Packages$,,p" /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease
+
+## Print the md5sum of the Packages file itself.
+## TODO: Is this required?
+#md5sum /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_main_binary-i386_Packages
+## should work as well:
+#sha1sum
+#sha256sum
+
+parse_dpkg_status_file() {
+   trap "error_handler_general" ERR
+
+   ## Check which packages are claimed to be installed.
+   while read LINE; do
+      ## example LINE: Package: bash
+      first="$(echo "$LINE" | awk '{print $1}')"   
+ 
+      if [ "${first,,}" = "package:" ]; then
+         package="$(echo "$LINE" | awk '{print $2}')"
+      fi
+   
+      if [ "${first,,}" = "version:" ]; then
+         version="$(echo "$LINE" | awk '{print $2}')"
+         check_package
+         break
+      fi  
+
+   done < ""$CHROOT_FOLDER"/var/lib/dpkg/status"
+}
+
+check_package() {
+   trap "error_handler_general" ERR
+
+   ## TODO: Does this use verification? Temporarily remove archive key to see if verification would fail.
+   apt_download_stdout="$(apt-get download "$package"="$version")"
+   ## example apt_download_stdout: "Get:1 Downloading bash 4.2+dfsg-1 [1480 kB] Fetched 1 B in 0s .......
+
+   pkg_name="$(echo "$apt_download_stdout" | awk '{print $3}')"
+   ## example pkg_name: bash
+
+   vers="$(echo "$apt_download_stdout" | awk '{print $4}')"
+   ## example vers: 4.2+dfsg-1
+
+   ## TODO: More generic way to get arch variable.
+   arch="i386"
+
+   ## Extract the package including the DEBIAN folder.
+   dpkg-deb --raw-extract "$pkg_name"_"$vers"_"$arch".deb "$TEMP_FOLDER"/"$pkg_name"_"$vers"
+   
+   verify_package
+}
+
+verify_package() {
+   trap "error_handler_general" ERR
+
+   while read LINE; do
+      ## Example LINE: 539e96d4fba5635c346a904107b4244e  bin/bash
+   
+      pkg_content_filename="$(echo "$LINE" | awk '{print $0}')"
+      pkg_content_md5sum="$(echo "$LINE" | awk '{print $1}')"
+   
+      md5_actual="$(md5sum "$CHROOT_FOLDER"/"$pkg_content_filename")"
+   
+      if [ "$pkg_content_md5sum" = "$md5_actual" ]; then
+         whonix_verification_remembered_file[$pkg_content_filenam]="0"
+      else
+         whonix_verification_remembered_file[$pkg_content_filenam]="1"
+         true "ERROR: Mismatch. md5 of /"$pkg_content_filename" should be "$pkg_content_md5sum" but is "$md5_actual""      
+      fi
+   
+   done < ""$TEMP_FOLDER"/"$pkg_name"_"$vers"/DEBIAN/md5sums"
+}
+
+parse_dpkg_status_file
+
