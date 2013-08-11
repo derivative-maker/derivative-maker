@@ -16,6 +16,8 @@ source variables
 
 ## TODO:
 ## - This is a work in progress.
+## - Mismatch variable. Default 0 and set to 1 if a single mismatching file was found.
+## - Some TODOs below need to activated.
 ## - dpkg diverted (symlinked) files may be an issue and may need to be followed.
 ## - Other symlinked files may be an issue.
 ## - Code from build-steps.d/2100_verify-files should be reused to check scripts and config files shipped by Whonix source code.
@@ -24,9 +26,12 @@ source variables
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
+## - /home/user/whonix_binary/verification/Whonix-Workstation.ovf has to be manually audited.
 
 ## TODO: Read which version to check or filename from command line?
 WHONIX_BUILD_WHONIX_VERSION_NEW="0.5.6"
+
+WHONIX_BUILD_VERIFY_OLD_PWD="$(pwd)"
 
 TEMP_FOLDER=""$WHONIX_BINARY"/verification"
 mkdir --parents "$TEMP_FOLDER"
@@ -35,26 +40,44 @@ cd "$TEMP_FOLDER"
 declare -g whonix_verification_remembered_file
 
 if [ -f ""$TEMP_FOLDER"/"$VMNAME".img" ]; then
-   ## Unpacking not required, skipping...
+   ## Unpacking not required, skipping.
    true
 else
    if [ ! -f ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" ]; then
       ## Unpack .ova.
-      error "ERROR: ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" does not exist."
+      error "${red}${bold}ERROR: ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" does not exist. ${reset}"
    else
       tar -xvf ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
    fi
 fi
 
-## Convert .vmdk to .img, since there is no Free Software for mounting .img using command line.
-if [ -f ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" ]; then
-   qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw ""$TEMP_FOLDER"/"$VMNAME".img"
-else
-   error "ERROR: "$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk does not exist."
+if [ ! -f ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" ]; then
+   error "${red}${bold}ERROR: "$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk does not exist. ${reset}"
 fi
 
+## export, so help-steps/(un)mount-img opens this one.
+export WHONIX_BUILD_MOUNT_IMG_FILE=""$TEMP_FOLDER"/"$VMNAME".img"
+
+if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
+   ## Converting .vmdk to .img not required, skipping.
+   true
+else
+   ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
+   qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+fi
+
+error_handler_unmount_verify_build() {
+   ## Get out of this folder, so unmounting will work.
+   cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
+   
+   error_handler_unmount
+}
+
+trap "error_handler_unmount_verify_build" ERR INT TERM
+
 ## Mount "$TEMP_FOLDER"/"$VMNAME".img
-"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
+## TODO activate
+#"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 
 ## archive keyring
 gpg \
@@ -84,68 +107,93 @@ gpg \
 #sha256sum
 
 parse_dpkg_status_file() {
-   trap "error_handler_general" ERR
+   trap "error_handler_unmount_verify_build" ERR INT TERM
 
    ## Check which packages are claimed to be installed.
-   while read LINE; do
-      ## example LINE: Package: bash
-      first="$(echo "$LINE" | awk '{print $1}')"   
+   
+   ## TODO
+   #mapfile -t lines < ""$CHROOT_FOLDER"/var/lib/dpkg/status"   
+   mapfile -t lines < "/var/lib/dpkg/status"   
+  
+   for line in "${lines[@]}"; do
+      ## example line: Package: bash
+      
+      first="$(echo "$line" | awk '{print $1}')"   
  
       if [ "${first,,}" = "package:" ]; then
-         package="$(echo "$LINE" | awk '{print $2}')"
+         package="$(echo "$line" | awk '{print $2}')"
+         continue
       fi
    
       if [ "${first,,}" = "version:" ]; then
-         version="$(echo "$LINE" | awk '{print $2}')"
+         version="$(echo "$line" | awk '{print $2}')"
          check_package
+         #continue
          break
       fi  
 
-   done < ""$CHROOT_FOLDER"/var/lib/dpkg/status"
+   done
 }
 
 check_package() {
-   trap "error_handler_general" ERR
+   trap "error_handler_unmount_verify_build" ERR INT TERM
+   
+   ## Enable apt-cacher-ng.
+   export http_proxy="http://127.0.0.1:3142"
 
    ## TODO: Does this use verification? Temporarily remove archive key to see if verification would fail.
-   apt_download_stdout="$(apt-get download "$package"="$version")"
-   ## example apt_download_stdout: "Get:1 Downloading bash 4.2+dfsg-1 [1480 kB] Fetched 1 B in 0s .......
-
-   pkg_name="$(echo "$apt_download_stdout" | awk '{print $3}')"
-   ## example pkg_name: bash
-
-   vers="$(echo "$apt_download_stdout" | awk '{print $4}')"
-   ## example vers: 4.2+dfsg-1
+   apt-get download "$package"="$version"
+   
+   ## Disable apt-cacher-ng.
+   export unset http_proxy
 
    ## TODO: More generic way to get arch variable.
    arch="i386"
+   
+   ## Remove "1:" from version number
+   ## Not sure what 1:version in dpkg status file means.
+   version="${version##"1:"}"
 
    ## Extract the package including the DEBIAN folder.
-   dpkg-deb --raw-extract "$pkg_name"_"$vers"_"$arch".deb "$TEMP_FOLDER"/"$pkg_name"_"$vers"
+   dpkg-deb --raw-extract "$package"_"$version"_"$arch".deb "$TEMP_FOLDER"/"$package"_"$version"
    
    verify_package
 }
 
 verify_package() {
-   trap "error_handler_general" ERR
+   trap "error_handler_unmount_verify_build" ERR INT TERM
 
-   while read LINE; do
-      ## Example LINE: 539e96d4fba5635c346a904107b4244e  bin/bash
+   mapfile -t lines < ""$TEMP_FOLDER"/"$package"_"$version"/DEBIAN/md5sums"
    
-      pkg_content_filename="$(echo "$LINE" | awk '{print $0}')"
-      pkg_content_md5sum="$(echo "$LINE" | awk '{print $1}')"
+   for line in "${lines[@]}"; do
+      ## Example line: 539e96d4fba5635c346a904107b4244e  bin/bash
    
-      md5_actual="$(md5sum "$CHROOT_FOLDER"/"$pkg_content_filename")"
+      pkg_content_md5sum="$(echo "$line" | awk '{print $1}')"
+      pkg_content_filename="$(echo "$line" | awk '{print $2}')"    
+   
+      ## TODO
+      #md5_actual="$(md5sum "$CHROOT_FOLDER"/"$pkg_content_filename")"
+      md5_actual="$(md5sum /"$pkg_content_filename")"
+      ## Example md5_actual: 979992095c9402655134383ffbd4cbe8  /usr/share/man/man4/vmmouse.4.gz
+            
+      md5_actual="$(echo "$md5_actual" | awk '{print $1}')"
+      ## Example md5_actual: 979992095c9402655134383ffbd4cbe8
    
       if [ "$pkg_content_md5sum" = "$md5_actual" ]; then
          whonix_verification_remembered_file[$pkg_content_filenam]="0"
       else
          whonix_verification_remembered_file[$pkg_content_filenam]="1"
-         true "ERROR: Mismatch. md5 of /"$pkg_content_filename" should be "$pkg_content_md5sum" but is "$md5_actual""      
+         true "${red}${bold}ERROR: Mismatch. md5 of /"$pkg_content_filename" should be "$pkg_content_md5sum" but is "$md5_actual" ${reset}"
       fi
    
-   done < ""$TEMP_FOLDER"/"$pkg_name"_"$vers"/DEBIAN/md5sums"
+   done
 }
 
 parse_dpkg_status_file
+
+## Get out of this folder, so unmounting will work.
+cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
+
+## TODO: activate
+#"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
 
