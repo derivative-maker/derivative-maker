@@ -15,85 +15,49 @@ source variables
 
 export-vbox-vm() {
    trap "error_handler_general" ERR INT TERM
-   
+
    if [ "$VMNAME" = "Whonix-Gateway" ]; then
       local TEXT="
-############################################
-## INFORMATION ABOUT SYSTEMS WITH LOW RAM ##
-############################################
+################################
+## HOSTS WITH 2GB RAM OR LESS ##
+################################
 
-If you have 4 GB RAM or more:
-  -> Great! Go ahead.
-  -> You can leave Whonix RAM settings as they are.
-    -> A graphical Whonix-Gateway will be started.
+If your host computer has only 2 GB RAM, set the virtual machine's RAM for Whonix-Gateway to 128MB to automatically boot into a command-line environment. The Gateway will work normally, and you can configure it via the command-line. If you need a graphical environment, temporarily increase RAM to 512MB to boot to a desktop.
 
-If you have 2 GB RAM:
-  -> Reduce Whonix-Gateway RAM to 128 MB.
-    -> A non-graphical, terminal-only Whonix-Gateway will be started.
-      -> You can still do everything as if you had a graphical Whonix-Gateway, it just will not be that pretty and convenient. You could also shut down Whonix-Workstation sometimes, increase RAM, start into a graphical Whonix-Gateway, configure something and finally reduce RAM to revert to a non-graphical Whonix-Gateway.
+If your host computer has less than 2GB of RAM, you can also lower the RAM for Whonix-Workstation to 512MB. Performance will suffer, but an advanced user can install a lighter desktop environment or use a Custom-Whonix-Workstation. Setting RAM to less than 512MB will boot to a command-line environment.
 
-If you have less than 2 GB RAM:
-  -> Reduce Whonix-Gateway RAM to 128 MB.
-    -> A non-graphical, terminal-only Whonix-Gateway will be started.
-      -> You can still do everything as if you had a graphical Whonix-Gateway, it just will not be that pretty and convenient. You could also shut down Whonix-Workstation sometimes, increase RAM, start into a graphical Whonix-Gateway, configure something and finally reduce RAM to revert to a non-graphical Whonix-Gateway.    
-  -> Reduce Whonix-Workstation RAM to 512 MB.
-    -> Whonix-Workstation's performance won't be that good.
-    -> As an advanced user you could consider setting up a lighter desktop environment or using Custom-Whonix-Workstation, please refer to the Whonix documentation.
-    
-If you have very low RAM:
-  -> Reduce Whonix-Gateway RAM to 128 MB.
-    -> A non-graphical, terminal-only Whonix-Gateway will be started.
-  -> Reduce Whonix-Workstation RAM to anything applicable for your system.
-    -> A non-graphical, terminal-only Whonix-Workstation will be started.
-    -> As an advanced user you could consider setting up a lighter desktop environment or using Custom-Whonix-Workstation, please refer to the Whonix documentation.
-    
-(This feature can be further configured in /etc/whonix.d/ configuration folder.)
-    
-#############
-## OBVIOUS ##
-#############
-
-There is no magic pill for anonymity. The more you learn about what Whonix, Tor and anonymity advantages, limitations, backgrounds and so forth, the safer you can become. Reading Whonix documentation is recommended.
+Boot environment based on RAM can be configured in /etc/whonix.d/
 
 ################
 ## DISCLAIMER ##
 ################
 
-Whonix is produced independently from the Tor (r) anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
-Whonix is experimental software by means of concept and design. Do not rely on it for strong anonymity.
-https://www.whonix.org
+There is no magic pill for anonymity. The more you learn about Whonix, Tor, and threats your privacy, the safer you can become.
+
+Whonix is produced independently of, and carries no guarantee from, The Tor Project.
+
+Whonix is experimental software. Do not rely on it for strong anonymity.
 "
    elif [ "$VMNAME" = "Whonix-Workstation" ]; then
       local TEXT="
-#################
-## INFORMATION ##
-#################
-
-Before starting Whonix-Workstation, you should import and start Whonix-Gateway.
-Whonix-Workstation is not useful on its own.
-
-#############
-## OBVIOUS ##
-#############
-
-There is no magic pill for anonymity. The more you learn about what Whonix, Tor and anonymity advantages, limitations, backgrounds and so forth, the safer you can become. Reading Whonix documentation is recommended.
-
 ################
 ## DISCLAIMER ##
 ################
 
-Whonix is produced independently from the Tor (r) anonymity software and carries no guarantee from The Tor Project about quality, suitability or anything else.
-Whonix is experimental software by means of concept and design. Do not rely on it for strong anonymity.
-https://www.whonix.org
+There is no magic pill for anonymity. The more you learn about Whonix, Tor, and threats your privacy, the safer you can become.
+
+Whonix is produced independently of, and carries no guarantee from, The Tor Project.
+
+Whonix is experimental software. Do not rely on it for strong anonymity.
 "
    else
       local MSG="${bold}${red}$0 ERROR: VMNAME is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug! ${reset}"
       echo "$MSG"
       bug "$MSG"
    fi
-   
+
    ## Not yet using: --producturl
-   
+
    sudo -u "$USERNAME" \
       VBoxManage export "$VMNAME" \
          --manifest \
@@ -112,4 +76,3 @@ else
    true "${bold}INFO: Currently running script: $0${reset}"
    export-vbox-vm
 fi
-
