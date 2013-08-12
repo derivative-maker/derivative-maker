@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## Update 18
+## Update 19
 
 ## https://trac.torproject.org/projects/tor/wiki/doc/torsocks
 
@@ -83,9 +83,9 @@ if [ -z "$UWT_DEV_PASSTHROUGH" ]; then
 fi
 
 usage () {
-        echo "Usage: $NAME [-h] [-v] -t server_type -i ip -p port <command> [<options>...]"
-        echo "Example: $NAME -t 5 -i 127.0.0.1 -p 9050 wget https://check.torproject.org"
-        echo "         sudo $NAME -t 5 -i 192.168.0.10 -p 9104 /usr/bin/apt-get --yes dist-upgrade"
+        echo "Usage: $NAME [-h] [-v] -i ip -p port <command> [<options>...]"
+        echo "Example: $NAME -i 127.0.0.1 -p 9050 wget https://check.torproject.org"
+        echo "         sudo $NAME -i 192.168.0.10 -p 9104 /usr/bin/apt-get --yes dist-upgrade"
 }
 
 set_id () {
@@ -141,10 +141,10 @@ if [ -z "$port" ]; then
 	exit 1
 fi
 
-if [ -z "$server_type" ]; then
-	echo "UWT ERROR: server type (-t) missing." >&2
-	exit 1
-fi
+#if [ -z "$server_type" ]; then
+#	echo "UWT ERROR: server type (-t) missing." >&2
+#	exit 1
+#fi
 
 if [ -z "$command" ]; then
 	echo "UWT ERROR: command is missing." >&2
@@ -196,7 +196,12 @@ echo "
 	local = 172.16.0.0/255.240.0.0
 	local = 192.168.0.0/255.255.0.0
 	server = $ip
-	server_type = $server_type
+	## Ignoring -t server_type and therefore defaulting to 4.
+	## 5 does not work well with the torsocks version from Debian testing.
+	## (Things like dget and update-command-not-found are broken.)
+	## Reporting a bug against torsocks is not worth it, since torsocks is
+	## currently being rewritten anyway.
+	#server_type = $server_type
 	server_port = $port
 " > "$TORSOCKS_CONF_FILE"
 
