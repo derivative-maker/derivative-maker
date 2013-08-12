@@ -23,10 +23,15 @@ source variables
 ## - Code from build-steps.d/2100_verify-files should be reused to check scripts and config files shipped by Whonix source code.
 ## - We could verify files in /var/cache/apt/archives, but this is probably not necessary since we could also use apt-get autoclean
 ##   to get rid of those packages before creating an image.
+## - Check the dpkg status file if it contains all packages their dependencies of those as claimed
+##   in <whonix source code>/debian/control.
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
 ## - /home/user/whonix_binary/verification/Whonix-Workstation.ovf has to be manually audited.
+
+## TODO remove
+CHROOT_FOLDER=""
 
 ## TODO: Read which version to check or filename from command line?
 WHONIX_BUILD_WHONIX_VERSION_NEW="0.5.6"
@@ -37,10 +42,15 @@ WHONIX_BUILD_VERIFY_OLD_PWD="$(pwd)"
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
 TEMP_FOLDER=""$WHONIX_BINARY"/verification"
-mkdir --parents "$TEMP_FOLDER"
+sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER"
 cd "$TEMP_FOLDER"
 
-declare -g whonix_verification_remembered_file
+declare -g remembered_file
+
+declare -A -g pkg_name
+declare -A -g pkg_vers_with
+declare -A -g pkg_vers_without
+declare -A -g pkg_arch
 
 if [ -f ""$TEMP_FOLDER"/"$VMNAME".img" ]; then
    ## Unpacking not required, skipping.
@@ -50,7 +60,7 @@ else
       ## Unpack .ova.
       error "${red}${bold}ERROR: ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" does not exist. ${reset}"
    else
-      tar -xvf ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
+      sudo -u "$USERNAME" tar -xvf ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
    fi
 fi
 
@@ -66,7 +76,7 @@ if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
    true
 else
    ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
-   qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+   sudo -u "$USERNAME" qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
 fi
 
 error_handler_unmount_verify_build() {
@@ -79,7 +89,7 @@ error_handler_unmount_verify_build() {
 trap "error_handler_unmount_verify_build" ERR INT TERM
 
 ## Mount "$TEMP_FOLDER"/"$VMNAME".img
-## TODO activate
+## TODO: activate
 #"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 
 ## archive keyring
@@ -109,98 +119,176 @@ gpg \
 #sha1sum
 #sha256sum
 
+## Enable apt-cacher-ng.
+export http_proxy="http://127.0.0.1:3142"
+
+## TODO: Fails with Whonix apt repository enabled, because of apt-cacher-ng. Contacted author.
+#apt-get update
+   
+## Disable apt-cacher-ng.
+export unset http_proxy
+
 parse_dpkg_status_file() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
-   ## Check which packages are claimed to be installed.
+   ## Check which packages are claimed to be installed within the build.
+   local dpkg_status_file=""$CHROOT_FOLDER"/var/lib/dpkg/status"
+   mapfile -t lines < "$dpkg_status_file"
    
-   ## TODO
-   #mapfile -t lines < ""$CHROOT_FOLDER"/var/lib/dpkg/status"   
-   mapfile -t lines < "/var/lib/dpkg/status"   
+   #set +x
+   
+   echo "${cyan}$0 INFO: Parsing $dpkg_status_file... ${reset}"
+   
+   local i=0
   
    for line in "${lines[@]}"; do
       ## example line: Package: bash
       
-      first="$(echo "$line" | awk '{print $1}')"   
+      local first="$(echo "$line" | awk '{print $1}')"   
  
       if [ "${first,,}" = "package:" ]; then
-         package="$(echo "$line" | awk '{print $2}')"
+         local i="$(expr "$i" + 1)"
+         
+         ## Debugging.
+         ## TODO: Out comment.
+         #if [ "$i" -ge "10" ]; then
+            #echo "${red}$0: XXXXXXXXXXXXXX ${reset}"
+            #break
+         #fi
+      
+         local package="$(echo "$line" | awk '{print $2}')"
          continue
       fi
       
+      if [ "${first,,}" = "status:" ]; then
+         local status="$(echo "$line" | awk '{print $2}')"
+         continue
+      fi      
+      
       if [ "${first,,}" = "architecture:" ]; then
-         arch="$(echo "$line" | awk '{print $2}')"
+         local arch="$(echo "$line" | awk '{print $2}')"
          continue
       fi
    
       if [ "${first,,}" = "version:" ]; then
-         version="$(echo "$line" | awk '{print $2}')"
-         check_package
-         continue         
-      fi  
+         local version_with="$(echo "$line" | awk '{print $2}')"
+         
+         ## Remove "1:", "2:", etc. from version number.
+         ## Not sure what 1:version in dpkg status file means.   
+         local second_char="${version_with:1:1}"
+         if [ "$second_char" = ":" ] ;then
+            local version_without="$(echo "$version_with" | awk -F ":" '{ print $2 }')"
+         else
+            local version_without="$version_with"
+         fi
+         
+         local first_six_chars="${package:0:6}"
+         if [ "${first_six_chars,,}" = "whonix" ]; then
+            ## Files coming with Whonix are checked against Whonix source code.
+            echo "${cyan}$0 INFO: Skipping $package, because it begins with \"whonix\". ${reset}"
+            continue
+         fi
+         
+         if [ "${status,,}" = "deinstall" ]; then
+            echo "${cyan}$0 INFO: Skipping $package, because status is deinstall. ${reset}"
+            continue
+         fi
+         
+         echo "$0 INFO: Adding package $package to the list of packaged to be audited."
+         
+         pkg_name[$package]="$package"
+         pkg_arch[$package]="$arch"
+         pkg_vers_with[$package]="$version_with"
+         pkg_vers_without[$package]="$version_without"
+         continue
+      fi
 
    done
 }
 
-check_package() {
+download_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
+   
+   ## We need to build a long line with all packages. Running apt-get download with one package over and over again
+   ## takes ages.   
+   for pkg in "${pkg_name[@]}"; do
+      local pkg_list=""$pkg_list" "$pkg"="${pkg_vers_with[$pkg]}""
+   done  
+
+   set -x
    
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
    ## TODO: Does this use verification? Temporarily remove archive key to see if verification would fail.
-   apt-get download ""$package"="$version""
+   ## TODO: Since we can not use quotes around $pkg_list we should check that nothing like $(echo test) can be executed.
+   ##       For testing, change the path of the dpkg status file to a file in your homefolder and prepare it with things
+   ##       like $(echo test).
+   sudo -E -u "$USERNAME" apt-get download $pkg_list
+   true "${cyan}$0 INFO: apt_get_return: $? ${reset}"
    
    ## Disable apt-cacher-ng.
-   export unset http_proxy
-  
-   ## Remove "1:", "2:", etc. from version number.
-   ## Not sure what 1:version in dpkg status file means.   
-   local second_char="${version:1:1}"   
-   if [ "$second_char" = ":" ] ;then
-      version="$(echo "$version" | awk -F ":" '{ print $2 }')"
-   fi
-
-   ## Extract the package including the DEBIAN folder.
-   dpkg-deb --raw-extract "$package"_"$version"_"$arch".deb "$TEMP_FOLDER"/"$package"_"$version"
-   
-   verify_package
+   export unset http_proxy  
 }
 
-verify_package() {
+extract_packages() {
+   trap "error_handler_unmount_verify_build" ERR INT TERM
+
+   for pkg in "${pkg_name[@]}"; do
+
+      ## Extract the package including the DEBIAN folder.
+      sudo -u "$USERNAME" \
+         dpkg-deb \
+            --raw-extract \
+            ""$pkg"_"${pkg_vers_without[$pkg]}"_"${pkg_arch[$pkg]}".deb" \
+            ""$TEMP_FOLDER"/"$pkg"_"${pkg_vers_without[$pkg]}""
+   
+   done   
+}
+
+verify_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
    
-   ## Comparing md5sums. Note: md5 should be fine here. Debian offers only md5, but since the whole package
-   ## gets verified with stronger hash sums, we can trust the md5.
-
-   mapfile -t lines < ""$TEMP_FOLDER"/"$package"_"$version"/DEBIAN/md5sums"
+   ## Loading and comparing md5sums from local machine, which is trusted while auditing.
+   ## Note: md5 should be fine here. Debian offers only md5 for package contents, but since the whole package
+   ## gets verified with stronger hash sums, we can trust the md5sums file.
+   ## TODO: Or not. The version inside the image could include a md5 collision.
    
-   for line in "${lines[@]}"; do
-      ## Example line: 539e96d4fba5635c346a904107b4244e  bin/bash
+   for pkg in "${pkg_name[@]}"; do
    
-      pkg_content_md5sum="$(echo "$line" | awk '{print $1}')"
-      pkg_content_filename="$(echo "$line" | awk '{print $2}')"    
+      mapfile -t lines < ""$TEMP_FOLDER"/"$pkg"_"${pkg_vers_without[$pkg]}"/DEBIAN/md5sums"
    
-      ## TODO
-      #md5_actual="$(md5sum "$CHROOT_FOLDER"/"$pkg_content_filename")"
-      md5_actual="$(md5sum /"$pkg_content_filename")"
-      ## Example md5_actual: 979992095c9402655134383ffbd4cbe8  /usr/share/man/man4/vmmouse.4.gz
+      #set +x
+   
+      for line in "${lines[@]}"; do
+         ## Example line: 539e96d4fba5635c346a904107b4244e  bin/bash
+   
+         local pkg_content_md5sum="$(echo "$line" | awk '{print $1}')"
+         local pkg_content_filename="$(echo "$line" | awk '{print $2}')"
+   
+         local md5_actual="$(md5sum ""$CHROOT_FOLDER"/"$pkg_content_filename"")"
+         ## Example md5_actual: 979992095c9402655134383ffbd4cbe8  /usr/share/man/man4/vmmouse.4.gz
             
-      md5_actual="$(echo "$md5_actual" | awk '{print $1}')"
-      ## Example md5_actual: 979992095c9402655134383ffbd4cbe8
+         local md5_actual="$(echo "$md5_actual" | awk '{print $1}')"
+         ## Example md5_actual: 979992095c9402655134383ffbd4cbe8
    
-      if [ "$pkg_content_md5sum" = "$md5_actual" ]; then
-         whonix_verification_remembered_file[$pkg_content_filenam]="0"
-      else
-         WHONIX_BUILD_VERIFY_MISMATCH="1"
-         whonix_verification_remembered_file[$pkg_content_filenam]="1"
-         true "${red}${bold}ERROR: Mismatch. md5 of /"$pkg_content_filename" should be "$pkg_content_md5sum" but is "$md5_actual" ${reset}"
-      fi
+         if [ "$pkg_content_md5sum" = "$md5_actual" ]; then
+            remembered_file[$pkg_content_filename]="0"
+         else
+            WHONIX_BUILD_VERIFY_MISMATCH="1"
+            remembered_file[$pkg_content_filename]="1"
+            true "${red}${bold}ERROR: Mismatch in package $pkd_${pkg_vers_without[$pkg]}. md5 of /$pkg_content_filename should be $pkg_content_md5sum but is $md5_actual. ${reset}"
+         fi
+   
+      done
    
    done
 }
 
 parse_dpkg_status_file
+download_packages
+extract_packages
+verify_packages
 
 ## Get out of this folder, so unmounting will work.
 cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
@@ -210,8 +298,8 @@ cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
 
 if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
    ## ok, no mismatch
-   true "${green}${bold}No mismatch found. ${reset}"   
+   true "${green}${bold}$0 INFO: No mismatch found. ${reset}"
 else
-   error "${red}${bold}ERROR: Mismatch found! See the read messages above to find out where."
+   error "${red}${bold}$0 ERROR: Mismatch found! See the read messages above to find out where."
 fi
 
