@@ -59,17 +59,11 @@ interactive-chroot-img() {
 
    echo "${cyan}INFO: Trying to make local APT repository available inside chroot, if already available (will fail open, if not)...${reset}" 
    
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo || true
+
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
-   mkdir --parents "$WHONIX_INITIAL_DEB_INSTALL_FOLDER" || true
-   mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR" || true
-   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER" || true
-   
-   cp "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/pubring.gpg "$CHROOT_FOLDER"/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg || true
-  
-   echo "deb file:"$DEB_INSTALL_FOLDER"/ local main" > "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL" || true
-   
    sync
 
    ## Info.
@@ -83,7 +77,7 @@ interactive-chroot-img() {
 
    echo "${green}INFO: Exited (0) interactive shell.${reset}"
    
-   rm --force "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    
    $CHROOT sync
    sync
