@@ -1045,4 +1045,29 @@ get_local_whonix_version() {
    
    ## Enter following MAC address: 0021004d8f08
    sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress1 0021004d8f08
+
    
+   ## Check if config-package-dev with debhelper support is installed.
+   ## (Build Dependency for Whonix Build Script for creating .deb packages.)
+   if [ ! -d /usr/share/doc/config-package-dev/examples/debhelper/ ]; then   
+      ## Temporarily adding debian testing (jessi) repository, because we need config-package-dev with debhelper support,
+      ## which is unfortunately only available since debian jessi.
+      local TEMP=/etc/apt/sources.list.d/whonixtestingtemp.list
+      echo "deb http://ftp.us.debian.org/debian testing main" > "$TEMP"
+
+      ## Update package lists and install config-package-dev from debian testing (jessi).
+      apt-get update \
+                   -o Dir::Etc::sourcelist="$TEMP" \
+                   -o Dir::Etc::sourceparts="-" \
+                   -o APT::Get::List-Cleanup="0"
+
+      apt-get -t testing install config-package-dev
+   
+      ## Removing temporary debian testing (jessi) repository.
+      rm --force "$TEMP"
+   
+      ## Update package lists again to get rid of debian testing (jessi) repository.
+      apt-get update \
+         --no-download \
+         --list-cleanup
+   fi
