@@ -39,7 +39,6 @@ sdwdate_defaults() {
    DEBUG=0
    USER=""
    DONT_SET_DATE=0
-   HTTP_USER_AGENT=""
    LOG_FILE=~/.sdwdate/log
    DONE_FILE=~/.sdwdate/done
    SUCCESS_FILE=~/.sdwdate/success
@@ -47,11 +46,10 @@ sdwdate_defaults() {
    TEMP_DIR="$(mktemp --directory)"
    PROXY=""
    CURL_PROXY=""
-   
+
+   HTTP_USER_AGENT=""
    #HTTP_USER_AGENT="$(/usr/bin/getTorbuttonUserAgent)"
    #HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0"
-   HTTP_USER_AGENT=""
-   CURL_USER_AGENT=""
 
    declare -g SDWDATE_POOL_PAL
    declare -g SDWDATE_POOL_NEUTRAL
@@ -167,8 +165,7 @@ sdwdate_parse_cmd_options() {
                shift
                ;;
            -a | --user_agent)
-               HTTP_USER_AGENT=$2
-               CURL_USER_AGENT="--user-agent $HTTP_USER_AGENT"
+               HTTP_USER_AGENT=$2               
                shift 2
                ;;
            -l | --log_file)
@@ -240,7 +237,13 @@ sdwdate_preparation() {
 
    declare -A -g SDWDATE_CURL_RETURN
    declare -A -g SDWDATE_CURL_PID
-   declare -A -g SDWDATE_DOWNLOAD_TOOK_TIME   
+   declare -A -g SDWDATE_DOWNLOAD_TOOK_TIME
+
+   if [ "$HTTP_USER_AGENT" = "" ]; then
+      CURL_USER_AGENT=""
+   else
+      CURL_USER_AGENT="--user-agent $HTTP_USER_AGENT"
+   fi
 }
 
 sdwdate_log() {
