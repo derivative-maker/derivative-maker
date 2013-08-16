@@ -52,17 +52,14 @@ install-meta-packages() {
    ## we have to apply our apt pinning configuration as well. Otherwise Whonix would be based on Testing, not Stable.
    cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/preferences.d/* "$CHROOT_FOLDER"/etc/apt/preferences.d/
    
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
+
+   ## Debugging.
+   $CHROOT apt-key finger   
+
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
-   mkdir --parents "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
-   mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR"
-   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
-   
-   cp "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/pubring.gpg "$CHROOT_FOLDER"/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg
-  
-   echo "deb file:"$DEB_INSTALL_FOLDER"/ local main" > "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
-   
    sync
    
    ## Need to update package lists at least once.
@@ -94,7 +91,7 @@ install-meta-packages() {
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
    
-   rm --force "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    
    $CHROOT apt-get update \
               --no-download \

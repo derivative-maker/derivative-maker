@@ -6,8 +6,7 @@
 ## - options inspired by tails_htp
 ## - log file layout inspired by tails_htp
 
-## TODO
-## - do not exit on non-fatal errors (for daemon)
+## TODO:
 ## - implement --user
 
 #set -x
@@ -20,7 +19,6 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         -d --debug                            debug
         --help                                print usage message and exit
         -q --quiet                            quiet
-        -u --user                             userid to run as
         -x --dont_set_date                    do not set the time (only show)
         -a --user_agent                       http user agent to use
         -l --log_file                         log to this file rather than to STDOUT
@@ -32,6 +30,8 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         --allowed_per_pool_failure_ratio      ratio (0.0-1.0) of allowed per-pool failure
         -p --proxy                            what to pass to curl's --socks5-hostname
         -i --interval                         continuously run every x minutes"
+
+#       -u --user                             userid to run as
 }
 
 sdwdate_defaults() {
@@ -39,7 +39,6 @@ sdwdate_defaults() {
    DEBUG=0
    USER=""
    DONT_SET_DATE=0
-   HTTP_USER_AGENT=""
    LOG_FILE=~/.sdwdate/log
    DONE_FILE=~/.sdwdate/done
    SUCCESS_FILE=~/.sdwdate/success
@@ -47,13 +46,15 @@ sdwdate_defaults() {
    TEMP_DIR="$(mktemp --directory)"
    PROXY=""
    CURL_PROXY=""
-   
+   INTERVAL=""
+
+   HTTP_USER_AGENT=""
    #HTTP_USER_AGENT="$(/usr/bin/getTorbuttonUserAgent)"
    #HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0"
-   HTTP_USER_AGENT=""
-   CURL_USER_AGENT=""
 
    declare -g SDWDATE_POOL_PAL
+   declare -g SDWDATE_POOL_NEUTRAL
+   declare -g SDWDATE_POOL_FOE   
    
    SDWDATE_POOL_PAL=(
       boum.org
@@ -70,8 +71,22 @@ sdwdate_defaults() {
       www.privacyinternational.org
       www.torproject.org
    )
-   
-   declare -g SDWDATE_POOL_NEUTRAL
+
+   SDWDATE_POOL_PAL=(
+      boum.org
+      chavez.indymedia.org
+      db.debian.org
+      epic.org
+      mail.riseup.net
+      sarava.org
+      squat.net
+      tachanka.org
+      www.1984.is
+      www.eff.org
+      www.immerda.ch
+      www.privacyinternational.org
+      www.torproject.org
+   )
    
    SDWDATE_POOL_NEUTRAL=(
       cve.mitre.org
@@ -89,8 +104,6 @@ sdwdate_defaults() {
       www.startpage.com
       www.xkcd.com
    )
-   
-   declare -g SDWDATE_POOL_FOE
    
    SDWDATE_POOL_FOE=(
       encrypted.google.com
@@ -115,6 +128,11 @@ sdwdate_read_config_folder() {
          ## If the last character is a ~, ignore that file, because it was created
          ## by some editor, which creates backup files.
          if [ "${i: -1}" = "~" ]; then
+            continue
+         fi
+         ## Skipping files such as .dpkg-old and .dpkg-dist.
+         if ( echo "$i" | grep -q ".dpkg-" ); then
+            true "skip $i"
             continue
          fi
          source "$i"
@@ -148,8 +166,7 @@ sdwdate_parse_cmd_options() {
                shift
                ;;
            -a | --user_agent)
-               HTTP_USER_AGENT=$2
-               CURL_USER_AGENT="--user-agent $HTTP_USER_AGENT"
+               HTTP_USER_AGENT=$2               
                shift 2
                ;;
            -l | --log_file)
@@ -218,6 +235,16 @@ sdwdate_preparation() {
    
    rm --force $DONE_FILE
    rm --force $SUCCESS_FILE
+
+   declare -A -g SDWDATE_CURL_RETURN
+   declare -A -g SDWDATE_CURL_PID
+   declare -A -g SDWDATE_DOWNLOAD_TOOK_TIME
+
+   if [ "$HTTP_USER_AGENT" = "" ]; then
+      CURL_USER_AGENT=""
+   else
+      CURL_USER_AGENT="--user-agent $HTTP_USER_AGENT"
+   fi
 }
 
 sdwdate_log() {
@@ -234,10 +261,12 @@ sdwdate_log() {
 }
 
 sdwdate_error_handler() {
+   local return_code="$?"
    sdwdate_log "\
 ############################################
 ## Error detected! Please report this bug! #
 ## 0: $0
+## return_code: $return_code
 ## BASH_COMMAND: $BASH_COMMAND
 ############################################"
    touch "$DONE_FILE"
@@ -250,10 +279,6 @@ sdwdate_download() {
    LINK="https://"$1""
    
    sdwdate_log "getUrlDateDiff: "$LINK""
-
-   declare -A -g SDWDATE_CURL_RETURN
-   declare -A -g SDWDATE_CURL_PID
-   declare -A -g SDWDATE_DOWNLOAD_TOOK_TIME
 
    SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
    
@@ -299,16 +324,16 @@ sdwdate_parse_date() {
       i="$(expr "$i" + "1")"      
       true "INFO: LINE: $LINE"
       
-      if [ "$i" -gt "10" ]; then
+      if [ "$i" -gt "20" ]; then
          sdwdate_log "Bogus reply from "$LINK" did not include the \"Date\" field."
          break
       fi
       
       local FIRST_WORD="${LINE%%:*}"
       ## twitter used Date in lower case
-      if [ "${FIRST_WORD,,}" = "date" ]; then
-         SDWDATE_PARSE_SUCCESS="0"
+      if [ "${FIRST_WORD,,}" = "date" ]; then         
          WEB_DATE_GMT="${LINE#*:}"
+         SDWDATE_PARSE_SUCCESS="0"
          break
       fi
    done < ""$TEMP_DIR"/"$SDWDATE_CURRENT_POOL""
@@ -339,12 +364,28 @@ sdwdate_loop() {
       
       if [ "$array_length" = "0" ]; then
          sdwdate_log "ERROR: $SDWDATE_CURRENT_POOL not configured!"
-         exit 1
+         
+         ## Check, if we are running in daemon mode.
+         if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
+            ## No daemon mode.
+            exit 1
+         else
+            ## Daemon mode.
+            return 1
+         fi
       fi
       
       if [ "$array_length" = "$array_length_remember" ]; then
          sdwdate_log "ERROR: No member of the $SDWDATE_CURRENT_POOL could not be reached."
-         exit 1
+         
+         ## Check, if we are running in daemon mode.
+         if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
+            ## No daemon mode.
+            exit 1
+         else
+            ## Daemon mode.
+            return 1
+         fi
       fi
       
       local temp="$(python -c "print $array_length*$ALLOWED_PER_POOL_FAILURE_RATIO")"
@@ -353,7 +394,15 @@ sdwdate_loop() {
       
       if [ "$array_length_remember" -ge "$allowed_member_failures" ]; then
          sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached."
-         exit 1
+         
+         ## Check, if we are running in daemon mode.
+         if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
+            ## No daemon mode.
+            exit 1
+         else
+            ## Daemon mode.
+            return 1
+         fi
       fi
       
       local random_integer="$(( ($(od -An -N2 -i /dev/random) )%($array_length) ))"
@@ -385,11 +434,9 @@ sdwdate_loop() {
          continue
       fi      
      
-      local OLD_UNIXTIME="$(date +%s)"
+      local OLD_UNIXTIME="$(date +%s)"     
       
-      declare -A -g SDWDATE_TIME_DIFF
-      
-      SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$OLD_UNIXTIME" - "$WEB_DATE_UNIXTIME")" || true
+      SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$WEB_DATE_UNIXTIME" - "$OLD_UNIXTIME")" || true
       
       ## TODO
       sdwdate_log ""$LINK" (took "${SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]}"s) => diff = "${SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]}" second(s)"
@@ -398,6 +445,8 @@ sdwdate_loop() {
       
       break
    done
+
+   return 0
 }
 
 sdwdate_pick() {
@@ -405,10 +454,17 @@ sdwdate_pick() {
    
    sdwdate_log "Running sdwdate."
    
-   declare -A -g SDWDATE_RESULT  
+   declare -A -g SDWDATE_RESULT
+   declare -A -g SDWDATE_TIME_DIFF
  
-   for SDWDATE_CURRENT_POOL in SDWDATE_POOL_PAL SDWDATE_POOL_NEUTRAL SDWDATE_POOL_FOE; do     
-      sdwdate_loop "$SDWDATE_CURRENT_POOL"
+   for SDWDATE_CURRENT_POOL in SDWDATE_POOL_PAL SDWDATE_POOL_NEUTRAL SDWDATE_POOL_FOE; do
+      sdwdate_loop_return="0"
+      sdwdate_loop "$SDWDATE_CURRENT_POOL" || { sdwdate_loop_return="$?" ; true; };
+
+      ## Do not continue, if an error was caught.
+      if [ ! "$sdwdate_loop_return" = "0" ]; then
+         return 0
+      fi
       
       SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]="$WEB_DATE_UNIXTIME"
       
@@ -442,11 +498,20 @@ sdwdate_set_new_time() {
    fi
    
    local OLD_UNIXTIME="$(date +%s)"
-   
-   local SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")"
 
-   ## Set new time. Syntax: date --set @1098181096
-   date --set "@"$SDWDATE_NEW_TIME"" > /dev/null   
+   ## Do not needlessly try to change time, when there is no difference.
+   if [ ! "$SDWDATE_MEDIAN_TIME" = "0" ]; then
+      local SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")"
+
+      sdwdate_log "Setting time to "$SDWDATE_NEW_TIME"..."
+   
+      ## Set new time. Syntax: date --set @1098181096
+      date --set "@"$SDWDATE_NEW_TIME"" > /dev/null
+   fi
+
+   #new_unixtime="$(date +%s)"
+   #check="$(expr $OLD_UNIXTIME - $new_unixtime)" || true
+   #sdwdate_log "check: $check"
 
    touch "$SUCCESS_FILE"
    touch "$DONE_FILE"
@@ -459,8 +524,15 @@ sdwdate_main() {
       sdwdate_parse_cmd_options ${1+"$@"}
       sdwdate_preparation
       sdwdate_pick
-      sdwdate_build_median
-      sdwdate_set_new_time
+
+      ## Do not continue, if an error was caught.
+      if [ ! "$sdwdate_loop_return" = "0" ]; then
+         true
+      else 
+         sdwdate_build_median
+         sdwdate_set_new_time
+      fi
+      
       if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
          break
       else

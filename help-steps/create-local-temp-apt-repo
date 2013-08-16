@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -x
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR"/pre
+source "$MYDIR"/variables
+
+create_local_temp_apt_repo() {
+   trap "error_handler_general" ERR INT TERM
+
+   ## Apt signing key.
+   gpg \
+      --no-default-keyring \
+      --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+      --export "$DEBEMAIL" \
+      | \
+      gpg \
+         --no-default-keyring \
+         --keyring "$CHROOT_FOLDER"/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg \
+         --import
+
+   ## For debugging.
+   gpg \
+      --no-default-keyring \
+      --keyring "$CHROOT_FOLDER"/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg \
+      --keyid-format "0xlong" \
+      --fingerprint
+      
+   mkdir --parents "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
+   mkdir --parents "$CHROOT_FOLDER"/"$EMPTY_DIR"
+   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$WHONIX_INITIAL_DEB_INSTALL_FOLDER"
+
+   echo "deb file:"$DEB_INSTALL_FOLDER"/ "$WHONIX_BUILD_APT_CODENAME" main" > "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
+   
+   ## Debugging.
+   cat "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
+} 
+
+create_local_temp_apt_repo
+

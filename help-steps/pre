@@ -4,12 +4,15 @@ set +x
 #set -x
 
 error_handler_general() {
+   local return_code="$?"
+
    ## Removing temporary debian testing (jessi) repository.
    rm --force /etc/apt/sources.list.d/whonixtestingtemp.list
    rm --force /etc/apt/apt.conf.d/90whonix-build-confold
 
    echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
+${red}${bold}return_code${reset}: $return_code
 ${red}${bold}ERROR $0: | caller: $(caller)${reset}
 "
 
@@ -20,6 +23,7 @@ trap "error_handler_general" ERR INT TERM
 
 error_handler_unchroot_unprevent_unmount() {
    echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting...${reset}"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting   
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img   
