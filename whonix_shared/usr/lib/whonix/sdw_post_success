@@ -26,37 +26,28 @@ source /usr/lib/whonix/whonixcheck/75_cleanup
 
 timesync_main() {
    trap "error_handler" ERR
-  
-   parse_cmd_options ${1+"$@"} ## help_parse-cmd-options 
+
+   RUN_BY_CRON="1"
+
+   parse_cmd_options ${1+"$@"} ## help_parse-cmd-options
    preparation ## 10_preparation
 
-   $output ${output_opts[@]} --forget
-   
+   ## no $output --forget
+
    if [ "$FUNCTION" = "" ]; then
       true
    else
       $FUNCTION
       return 0
    fi
- 
-   welcome ## 20_welcome
-   disclaimer ## 25_disclaimer
-   check_tor_enabled ## 17_check_tor_enabled
-   check_bootclockrandomization ## 67_check_clock
 
-   ## Time Sanity Check before sdwdate was executed
-   ## timesanitycheck was started at boot by /etc/init.d/timesanitycheck
-   check_timesanitycheck ## 67_check_clock
-
-   run_sdwdate # 30_run-sdwdate
-
-   run_timesanitycheck ## 67_check_clock
-
+   ## timesanitycheck
+   run_timesanitycheck ## 70_check-sdwdate
+   
    check_sdwdate ## 70_check-sdwdate
 
-   cleanup "1" ## 75_cleanup 
+   cleanup "1" ## 75_cleanup
 }
 
 timesync_main ${1+"$@"}
 
-## End of timesync script.

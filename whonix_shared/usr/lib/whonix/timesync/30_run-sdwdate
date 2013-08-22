@@ -1,0 +1,23 @@
+#!/bin/bash
+
+run_sdwdate() {
+   trap "error_handler" ERR
+
+   let "PROGRESS=$PROGRESS+5" || true
+   ## The 5% indicate, that the check has begun.
+   $output ${output_opts[@]} --progress "$PROGRESS"
+
+   if [ "$RUN_BY_CRON" = "1" ]; then
+      true "$SCRIPTNAME run_sdwdate: not restarting sdwdate, because started by sdwdate"
+   elif [ "$AUTOSTARTED" = "1" ]; then
+      true "$SCRIPTNAME run_sdwdate: not restarting sdwdate in this case, \
+because the /etc/init.d/sdwdate init script already started sdwdate."
+   else
+      ## When manually run...
+      sudo service sdwdate restartnd
+   fi
+
+   let "PROGRESS=$PROGRESS+1" || true
+   $output ${output_opts[@]} --progress "$PROGRESS"
+}
+

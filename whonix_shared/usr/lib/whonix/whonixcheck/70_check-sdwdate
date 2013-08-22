@@ -1,0 +1,159 @@
+#!/bin/bash
+
+check_sdwdate_status() {
+   trap "error_handler" ERR
+
+   local pid_file="/var/run/sdwdate/pid"
+   local done_file="/var/run/sdwdate/done"
+   local success_file="/var/run/sdwdate/success"
+   
+   if [ ! -f "$pid_file" ]; then
+      SDWDATE_STATUS="NO_PID_FILE"
+      return 0
+   fi
+
+   local ps_return="0"
+   ps -p "$(cat "$pid_file")" >/dev/null || { local ps_return="$?"; true; };
+
+   if [ ! "$ps_return" = "0" ]; then
+      SDWDATE_STATUS="NO_PID_PROCESS"
+      return 0
+   fi
+   
+   if [ -f "$success_file" ]; then
+      SDWDATE_STATUS="SUCCESS"
+      return 0
+   fi
+   
+   if [ -f "$done_file" ]; then
+      SDWDATE_STATUS="DONE"
+      return 0
+   fi
+   
+   SDWDATE_STATUS="RUNNING"
+}
+
+check_sdwdate() {
+   trap "error_handler" ERR
+
+   local HELPTEXT="See logfile: tail -f -n 20 /var/log/sdwdate
+See status files: cd /var/run/sdwdate && dir
+Try again: Start menu -> Applications -> System -> Whonix Timesync
+           or in Terminal: timesync
+Last resort: manually set the clock! (In UTC!):
+             sudo su
+             date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
+
+   local TIMESANITYCHECK_STATUS=0
+   ## There is an exception in /etc/sudoers.d/timesanitycheck.
+   sudo service timesanitycheck status || { local TIMESANITYCHECK_STATUS="$?" ; true; };
+ 
+   if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
+      TIMESANITYCHECK_STATUS_WORD="Success"
+   else
+      TIMESANITYCHECK_STATUS_WORD="Fail"
+   fi
+
+   let "PROGRESS=$PROGRESS+1" || true
+   ## sdwdate not reports status itself.
+   ## old: $output ${output_opts[@]} --progress "$PROGRESS"
+
+   TIME_END="$(date +%s)"
+   TIME_DIFF="$(expr "$TIME_END" - "$TIME_START")" || true
+   
+   ## sdwdate uses a timeout of 180 seconds per curl connection.
+   ## There are three curl connections in total, which would equal 540 seconds in total.
+   ## This timeout should not be hit often anyway. Only in case sdwdate neither returns
+   ## success nor failure.
+   WAIT_MIN="580"
+
+   #echo "check_sdwdate debug info: expr $WAIT_MIN - $TIME_DIFF"
+   WAIT_RESULT="$(expr "$WAIT_MIN" - "$TIME_DIFF")" || true
+   #echo "check_sdwdate debug info: WAIT_RESULT: $WAIT_RESULT"
+
+   check_sdwdate_status
+   #echo "SDWDATE_STATUS: $SDWDATE_STATUS"
+   
+   if [ "$SDWDATE_STATUS" = "NO_PID_FILE" ] || [ "$SDWDATE_STATUS" = "NO_PID_PROCESS" ]; then
+      ## If there is no pid file or no process after we restarted sdwdate, it is a bug.
+      local MSG="Network Time Synchronization (timesync) failed!!!
+TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"
+"$SDWDATE_STATUS" Please report this bug!
+
+$HELPTEXT"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   if [ "$SDWDATE_STATUS" = "SUCCESS" ]; then
+      local success_file="/var/run/sdwdate/success"
+      local SUCCESS_TIME="$(date -r "$success_file")" 
+      
+      if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
+         ## Ok.
+         local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful."
+         $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG" --passive
+         return 0
+      else
+         ## Something went wrong.
+         local MSG="The clock is not sane,
+although last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful.
+Please report this bug!
+
+Either timesync has a bug or this is an attack. Better manually set your clock!!!
+
+$HELPTEXT"
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         return 0
+      fi
+   fi
+   
+   if [ "$SDWDATE_STATUS" = "DONE" ]; then
+      if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
+         ## sdwdate done, but no success. The clock is sane. This should rarely happen,
+         ## only in case the internet connection was down at this point.
+         local MSG="Network Time Synchronization (timesync) done, but no success!!!
+Is your internet connection down?
+
+Test your internet connection: Start menu -> Applications -> System -> Whonixcheck
+                               or in Terminal: whonixcheck
+                               or in Terminal with debugging: whonixcheck -v
+
+$HELPTEXT"
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         return 0
+      else
+         local MSG="Network Time Synchronization (timesync) done, but no success!!!
+Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
+If your host clock is sane, please report a bug.
+
+$HELPTEXT"
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         return 0
+      fi
+   fi
+
+   #echo "check_sdwdate debug info: WAIT_RESULT: $WAIT_RESULT"
+
+   if [ "$WAIT_RESULT" -gt "0" ]; then
+      #echo "check_sdwdate debug info: Not done. Waiting up to $WAIT_RESULT more seconds."
+      sleep "7" &
+      wait "$!" || true
+      check_sdwdate
+      return 0
+   fi
+
+   ## This following code should get rarely hit, only in case of a bug,
+   ## only in case sdwdate does return neither success nor failure.
+   ## Should not happen, because sdwdate has its own timeout.
+   local MSG="Network Time Synchronization failed!!!
+SDWDATE_STATUS: "$SDWDATE_STATUS"
+TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"
+Please report this bug!
+
+$HELPTEXT"
+   $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+   return 0
+}
+
+

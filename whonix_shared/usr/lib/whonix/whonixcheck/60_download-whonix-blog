@@ -45,7 +45,7 @@ download_blog() {
    trap "error_handler" ERR
 
    local MSG="Whonix Blog Download: Downloading "$BLOG_NAME"..."
-   output "--info" "$MSG" "echo"
+   $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
 
    rm -f "$FEED_FILE"
    
@@ -61,14 +61,16 @@ download_blog() {
       --location \
       --output "$FEED_FILE" \
       "$BLOG_URL" \
-      || { DOWNLOAD_BLOG_RETURN="$?" ; true; };
+      &
+
+   wait "$!" || { DOWNLOAD_BLOG_RETURN="$?" ; true; };
       
    if [ "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
       return 0
    fi
 
    local MSG="Whonix Blog Download Result: Could not download "$BLOG_NAME". (curl return code: "$DOWNLOAD_BLOG_RETURN")"
-   output "--error" "$MSG" "both"
+   $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
 }
 
 parse_blog() {
@@ -94,13 +96,15 @@ parse_blog() {
          $RAWDOG_VERBOSE \
          --update \
          --write \
-         || { local RAWDOG_RETURN="$?" ; true; };
+         &
+
+    wait "$!" || { local RAWDOG_RETURN="$?" ; true; };
 
    if [ "$RAWDOG_RETURN" = "0" ]; then
       BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"      
    else
       local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (rawdog return code: "$RAWDOG_RETURN")"
-      output "--error" "$MSG" "both"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       return 0
    fi
    
@@ -112,20 +116,22 @@ parse_blog() {
          --write=plain \
          --output=/var/lib/whonix/whonixcheck/"$BLOG_TXT_FILE" \
          /var/lib/whonix/whonixcheck/"$BLOG_HTML_FILE" \
-         || { local PANDOC_RETURN="$?" ; true; };
+         &
+
+   wait "$!" || { local PANDOC_RETURN="$?" ; true; };
       
    if [ "$PANDOC_RETURN" = "0" ]; then
       true
    else
       local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (pandoc return code: "$PANDOC_RETURN")"
-      output "--error" "$MSG" "both"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       return 0
    fi 
   
    ## Lets make just one success message, not two.
    if [ "$BLOG_SUCCESS" = "2" ]; then
       local MSG="Whonix Blog Download Result: Success."
-      output "--info" "$MSG" "both"
+      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
       return 0
    fi
 }

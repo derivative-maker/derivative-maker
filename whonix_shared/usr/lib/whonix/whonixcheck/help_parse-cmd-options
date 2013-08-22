@@ -47,17 +47,13 @@ parse_cmd_options() {
                DISPLAY=":0"
                shift
                ;;
-           -i | --showcli)
-               SHOW_CLI="1"
-               shift
-               ;;
-           -x | --showx)
-               SHOW_X="1"
-               shift
-               ;;
            -n | --nosleep)
                NOSLEEP="1"
                shift
+               ;;
+           --sleepseconds)
+               SLEEP_SECONDS="$2"
+               shift 2
                ;;
            -l | --nochecklastrun)
                NOCHECKLASTRUN="1"
@@ -78,7 +74,7 @@ parse_cmd_options() {
            -*)
                echo "$SCRIPTNAME unknown option: $1" >&2
                EXIT_CODE="1"
-               cleanup
+               cleanup "1"
                return 0
                ;;
            *)
@@ -88,6 +84,13 @@ parse_cmd_options() {
    done   
 
    ## If there are input files (for example) that follow the options, they
-   ## will remain in the "$@" positional parameters.   
+   ## will remain in the "$@" positional parameters.
+   
+   if [ $AUTOSTARTED = "0" ]; then
+      ## Expand output_opts.
+      output_opt_extra_1="--instantecho"
+      temp=( "$output_opt_extra_1" )
+      output_opts=( "${output_opts[@]}" "$temp")
+   fi
 } 
 
