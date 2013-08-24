@@ -76,7 +76,14 @@ trap "tb_error_handler" ERR
 
 
 trap_sigterm() {
-   MSG="$SCRIPTNAME: sigterm received. Exiting."
+   MSG="$SCRIPTNAME: SIGTERM received. Exiting."
+
+   if [ "$LAST_CURL_PRGRS_PID" = "" ]; then
+      true
+   else
+      kill -1 "$LAST_CURL_PRGRS_PID"
+   fi
+   
    $output ${output_opts[@]} --progress "100"
    sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
    $output ${output_opts[@]} --channel "echo" --type "error" --title "$TITLE" --message "$MSG"
@@ -175,7 +182,11 @@ parse_cmd_options() {
 
    while :
    do
-       case $1 in             
+       case $1 in
+           --ordinary)
+               ORDINARY_PROGRESS_BAR="1"
+               shift
+               ;;
            --update)
                TB_UPDATE="1"
                shift
@@ -285,11 +296,7 @@ tb_preparation() {
 
    ## provides tbbversion function
    source /usr/lib/whonix/whonixcheck/help_tbbversion
-
-   ## provides $CURL variable
-   source /usr/lib/whonix/whonixcheck/help_uwt_tool
-   uwt_tool
-   
+  
    #debug "TB_LANG: $TB_LANG"
    
    for i in /etc/whonix.d/*; do
@@ -341,6 +348,31 @@ tb_preparation() {
    TITLE="Tor Browser Update Check (Whonix)"
 
    $output ${output_opts[@]} --forget
+
+   ## provides $CURL variable
+   source /usr/lib/whonix/whonixcheck/help_uwt_tool
+   uwt_tool
+
+   if [ "$ORDINARY_PROGRESS_BAR" = "1" ]; then
+      ## --ordinary enabled
+      CURL_PRGRS="$CURL"
+   else   
+      ## Curl progress wrapper.
+      CURL_PRGRS="/usr/lib/whonix/curl-prgrs"
+   fi
+
+   ## Debugging CURL_PRGRS.
+   #CURL_PRGRS="bash -x /usr/lib/whonix/curl-prgrs"
+
+   ## Debugging / disabling CURL_PRGRS.
+   #CURL_PRGRS="$CURL"
+
+   ## Export CURL variable, so it can be read by $CURL_PRGRS.
+   export CURL="$CURL"
+
+   ## Define what CURL_PRGRS is supposed to eval.
+   ## ($percent is a local variable provided by $CURL_PRGRS.)
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progress \"\$percent\""   
 }
 
 
@@ -365,6 +397,8 @@ tb_update_check() {
       NOTIFY_MSG="Checking Tor Browser version... Will take a moment..."
 
       $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+      sleep 1
+      $output ${output_opts[@]} --progress "5"
    fi
 
    if [ "$DEV_PASSTHROUGH" = "1" ]; then
@@ -373,28 +407,29 @@ tb_update_check() {
       CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
    fi
 
-   $output ${output_opts[@]} --progress "10"
    debug "INFO: Find out latest version..."
    LINK="https://check.torproject.org/RecommendedTBBVersions"
    debug "INFO: Downloading: "$LINK""
    
    mkdir --parents ~/.tb
+
+   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #debug "$0 CURL: $CURL"
    
    CURL_RETURN="0"
-   $CURL \
+   $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       --tlsv1 \
       --proto =https \
       --max-time 180 \
       --output ~/.tb/RecommendedTBBVersions \
-      --progress-bar \
       "$LINK" \
       &
 
-   wait "$!" || { CURL_RETURN="$?" ; true; };
-
-   $output ${output_opts[@]} --progress "95"
+   LAST_CURL_PRGRS_PID="$!"
+   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID=""
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
@@ -409,8 +444,6 @@ $DOWNLOAD_FAIL_HELP"
 
       exit 1
    fi
-
-   $output ${output_opts[@]} --progress "96"
 }
 
 
@@ -433,8 +466,6 @@ tb_download() {
 
       exit 1
    fi
-
-   $output ${output_opts[@]} --progress "97"
 
    ## Will fail if the file does not exist, i.e. Tor Browser not installed.
    ## Will not break the script.
@@ -510,12 +541,12 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    else
       $output ${output_opts[@]} --forget
 
-      NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
+      NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
 
       $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+      sleep 1
+      $output ${output_opts[@]} --progress "5"
    fi
-
-   $output ${output_opts[@]} --progress "5"
 
    if [ ! "$NOKILLTB" = "1" ]; then
       killall firefox || true
@@ -546,32 +577,35 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       CURL_FORCE_SSL="--tlsv1 --proto =https"   
    fi
 
-   $output ${output_opts[@]} --progress "10"
-
    debug "INFO: Downloading GPG signature..."
    TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
    TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
    debug "INFO: Downloading: "$TBB_SIG_LINK""
+
+   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #debug "$0 CURL: $CURL"   
    
    CURL_RETURN="0"
-   $CURL \
+   $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
       --max-time 180 \
       --output ~/.tb/"$TBB_SIG_FILENAME" \
-      --progress-bar \
       "$TBB_SIG_LINK" \
       &
 
-   wait "$!" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID="$!"
+   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID=""
+
+   $output ${output_opts[@]} --progress "100"   
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
-      MSG= "Failed to download: "$TBB_SIG_LINK"
+      MSG="Failed to download: "$TBB_SIG_LINK"
 
 $DOWNLOAD_FAIL_HELP"
-      $output ${output_opts[@]} --progress "100"
       sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
@@ -579,7 +613,11 @@ $DOWNLOAD_FAIL_HELP"
       exit 1
    fi
 
-   $output ${output_opts[@]} --progress "30"
+   $output ${output_opts[@]} --forget
+   NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
+   $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+   sleep 1
+   $output ${output_opts[@]} --progress "5"
 
    debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
    TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
@@ -587,16 +625,21 @@ $DOWNLOAD_FAIL_HELP"
    debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
    
    CURL_RETURN="0"
-   $CURL \
+
+   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #debug "$0 CURL: $CURL"   
+
+   $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
       --output ~/.tb/"$TBB_PACKAGE_FILENAME" \
-      --progress-bar \
       "$TBB_PACKAGE_LINK" \
       &
 
-   wait "$!" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID="$!"
+   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID=""
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
@@ -610,9 +653,7 @@ $DOWNLOAD_FAIL_HELP"
       $output ${output_opts[@]} --showx
 
       exit 1
-fi
-
-   $output ${output_opts[@]} --progress "90"
+   fi
 }
 
 tb_verify() {
@@ -655,12 +696,10 @@ tb_extract() {
 
    tar -xzvf ~/.tb/"$TBB_PACKAGE_FILENAME" -C ~/.tb/
 
-   $output ${output_opts[@]} --progress "91"
    ## The tor-browser_"$TB_LANG"/Docs folder should already exist.
    ## Just to make sure the script will not break in case the get changed by upstream.
    mkdir --parents ~/tor-browser_"$TB_LANG"/Docs
 
-   $output ${output_opts[@]} --progress "92"
    debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
    mv ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser ~/.tb/tor-browser_"$TB_LANG"/Docs/
 
@@ -671,7 +710,6 @@ tb_extract() {
    debug "Creating version file tor-browser_"$TB_LANG"/Docs/version."
    echo ""$TBBVERSION"" > ~/.tb/tor-browser_"$TB_LANG"/Docs/version
 
-   $output ${output_opts[@]} --progress "93"
    debug "INFO: Creating Unbundled Tor Browser startup script..."
    ## Using this until Tor Browser upstream patch #7266 gets accepted.
    ##    improve RelativeLink.sh script comments, patch attached
