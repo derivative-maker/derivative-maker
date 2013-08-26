@@ -1,27 +1,30 @@
 #!/bin/bash
 
 ex_funct() {
+   trap "error_handler" ERR
+
    rm --force "/var/run/whonix/whonixcheck/"$IDENTIFIER"_running"
    rm --force "/var/run/whonix/whonixcheck/"$IDENTIFIER"_waiting"
    rm --force "/var/run/whonix/whonixcheck/"$IDENTIFIER"_pid"
 
    $output ${output_opts[@]} --progress "100"
+   exit 0
 }
 
 trap_sigterm() {
-   ex_funct
+   trap "error_handler" ERR 
    
    echo "$SCRIPTNAME: SIGTERM received. Exiting."
-   exit 0
+   ex_funct
 }
 
 trap "trap_sigterm" SIGTERM
 
 trap_sigint() {
-   ex_funct
+   trap "error_handler" ERR
 
    echo "$SCRIPTNAME: SIGINT received. Exiting."
-   exit 0
+   ex_funct
 }
 
 trap "trap_sigint" SIGINT
@@ -57,9 +60,6 @@ cleanup() {
    fi
    
    cd ..
-   #if [ -d "$VERIFY_TEMPDIR" ]; then
-      #rm -r "$VERIFY_TEMPDIR"
-   #fi
   
    ## default exit code
    if [ "$EXIT_CODE" = "" ]; then

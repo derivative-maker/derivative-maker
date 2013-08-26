@@ -36,6 +36,7 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         -r --randomize                        randomize interval
         -n --noconfig                         ignore /etc/sdwdate.d/ config folder
         -w --dispatchpre                      exec before run
+        -y --dispatchprerequisite             check before run
         -x --dispatchpostsuccess              exec after successful run
         -z --dispatchpostfailure              exec after unsuccessful run
         --dispatch_pre_pal                    exec before run of curl
@@ -107,16 +108,20 @@ sdwdate_defaults() {
       RANDOMIZE=""
    fi
 
+   if [ "$DISPATCH_PREREQUISITE" = "" ]; then
+      DISPATCH_PREREQUISITE="true"
+   fi
+
    if [ "$DISPATCH_PRE" = "" ]; then
-      DISPATCH_PRE=""
+      DISPATCH_PRE="true"
    fi
 
    if [ "$DISPATCH_POST_SUCCESS" = "" ]; then
-      DISPATCH_POST_SUCCESS=""
+      DISPATCH_POST_SUCCESS="true"
    fi
 
    if [ "$DISPATCH_POST_FAILURE" = "" ]; then
-      DISPATCH_POST_FAILURE=""
+      DISPATCH_POST_FAILURE="true"
    fi   
 
    if [ "$HTTP_USER_AGENT" = "" ]; then
@@ -318,6 +323,10 @@ sdwdate_parse_cmd_options() {
                RANDOMIZE="1"
                shift 1
                ;;
+           -y | --dispatchprerequisite)
+               DISPATCH_PREREQUISITE=$2
+               shift 2
+               ;;               
            -w | --dispatchpre)
                DISPATCH_PRE=$2
                shift 2
@@ -712,6 +721,37 @@ sdwdate_set_new_time() {
    #check="$(expr $OLD_UNIXTIME - $new_unixtime)" || true
    #sdwdate_log "check: $check"
 }
+    
+sdwdate_dispatcher_prerequisite() {
+   trap "sdwdate_error_handler" ERR
+
+   if [ "$DISPATCH_PREREQUISITE" = "" ]; then
+      true "DISPATCH_PREREQUISITE is empty, skipping."
+   else
+      while true; do
+         local prerequisite_return_code="0"
+         eval $DISPATCH_PREREQUISITE || { local prerequisite_return_code="$?" ; true; };
+
+         if [ "$prerequisite_return_code" = "0" ]; then
+            ## Ok.
+            sdwdate_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, continuing..."
+            break            
+         elif [ "$prerequisite_return_code" = "1" ]; then
+            ## Error.
+            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code, requested explicit exiting..."
+         elif [ "$prerequisite_return_code" = "2" ]; then
+            ## Wait.
+            sdwdate_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, waiting..."
+            sleep 10 &
+            wait "$!" || true
+         else
+            ## Unexpected error.
+            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code, unexpected error, exiting..."
+         fi
+         
+      done
+   fi
+}
 
 sdwdate_dispatcher_pre() {
    trap "sdwdate_error_handler" ERR
@@ -776,6 +816,7 @@ sdwdate_main() {
       sdwdate_defaults
       sdwdate_preparation
 
+      sdwdate_dispatcher_prerequisite
       sdwdate_dispatcher_pre
       
       sdwdate_pick

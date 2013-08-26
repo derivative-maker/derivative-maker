@@ -1,31 +1,18 @@
 #!/bin/bash
 
-## TODO:
-## - protection against endless loops
+#whonix_shared/usr/lib/whonix/doutput --forget
 
-## Auto started, there is no output channel available.
-## Therefore store this output.
-# 
-## If whonixcheck was run by cron, regular echos will not be shown,
-## because whonixcheck was run automatically by cron and not manually from a terminal.
-## Therefore we use "write".
-## The required "mesg y" gets set in /etc/profile.d/20_mesg.sh.
+#whonix_shared/usr/lib/whonix/doutput --channel "both" --message "test message \\ \$ \(" --title "title goes here" --type "warning"
 
-#active vs passive popup?
+#whonix_shared/usr/lib/whonix/doutput --channel "both" --type "info" --title "test title" --message "wait a bit" --waitmessagecli
 
-#whonix_shared/usr/lib/whonix/output --forget
+#whonix_shared/usr/lib/whonix/doutput --showx
 
-#whonix_shared/usr/lib/whonix/output --channel "both" --message "test message \\ \$ \(" --title "title goes here" --type "warning"
+#whonix_shared/usr/lib/whonix/doutput --forgetwait
 
-#whonix_shared/usr/lib/whonix/output --channel "both" --type "info" --title "test title" --message "wait a bit" --waitmessagecli
+#whonix_shared/usr/lib/whonix/doutput --progressbar
 
-#whonix_shared/usr/lib/whonix/output --showx
-
-#whonix_shared/usr/lib/whonix/output --forgetwait
-
-#whonix_shared/usr/lib/whonix/output --progressbar
-
-#whonix_shared/usr/lib/whonix/output --progress 100
+#whonix_shared/usr/lib/whonix/doutput --progress 100
 
 SCRIPTNAME="$(basename $0)"
 
@@ -283,21 +270,42 @@ start_progress_bar() {
 output_write_to_tty() {
    ## Write to tty1.
    ## Using simple lock mechanism so messages from "write" do not get mixed up.
-   i="0"
-   while [ -f "/var/lib/whonix/whonixcheck/write_lock" ]; do
-      i="$(expr "$i" + "1")"
-      if [ "$i" -ge "3" ]; then
+   
+   if [ ! -f "/var/lib/whonix/whonixcheck/write_lock" ]; then
+      touch "/var/lib/whonix/whonixcheck/write_lock"
+      chmod g+w "/var/lib/whonix/whonixcheck/write_lock"
+      chmod o+w "/var/lib/whonix/whonixcheck/write_lock"
+   fi
+
+   local slept="0"
+   
+   while true; do
+   
+      local old_unixtime="$(date -r "/var/lib/whonix/whonixcheck/write_lock" +%s)"
+      local old_time="$(date -r "/var/lib/whonix/whonixcheck/write_lock")"
+
+      local current_unixtime="$(date +%s)"
+      local current_time="$(date)"
+
+      local result="$(expr "$current_unixtime" - "$old_unixtime")" || true
+
+      if [ "$result" -le "2" ]; then
+         sleep 1 &
+         wait "$!" || true
+      else
          break
       fi
-      sleep "1" &
-      wait "$!" || true
-      continue
+
+      ## Protection against endless loops.
+      local slept="$(expr "$slept" + "1")"
+      if [ "$slept" -ge "20" ]; then
+         break
+      fi
+
    done
+
    touch "/var/lib/whonix/whonixcheck/write_lock"
-   chmod g+w "/var/lib/whonix/whonixcheck/write_lock"
-   chmod o+w "/var/lib/whonix/whonixcheck/write_lock"
    echo "${1+"$@"}" | write user tty1 2>/dev/null || true
-   sleep "6" && rm --force "/var/lib/whonix/whonixcheck/write_lock" &
 }
 
 progress_bar() {
@@ -495,6 +503,15 @@ $MESSAGE" | sudo -u user tee --append "$file_x" > /dev/null
 show_output() {
    trap "error_handler" ERR
 
+   ## Protection against endless loops.
+   if [ "$LOOP_PROTECTION" = "" ]; then
+      LOOP_PROTECTION="0"
+   fi
+   LOOP_PROTECTION="$(expr "$LOOP_PROTECTION" + "1")"
+   if [ "$LOOP_PROTECTION" -ge "1000" ]; then
+      exit 1
+   fi
+
    if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive" ]; then
       PASSIVE="1"
    fi
@@ -536,7 +553,7 @@ show_output() {
                
                TITLE="$IDENTIFIER"
                
-               $0 --identifier "$IDENTIFIER" --progressbar --title "$TITLE" --message "$MESSAGE" &
+               $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
                
                sleep "3" &
                wait "$!" || true
