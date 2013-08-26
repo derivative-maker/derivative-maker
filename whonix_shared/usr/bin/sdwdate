@@ -440,6 +440,30 @@ sdwdate_log() {
    fi   
 }
 
+sdwdate_safe_log() {
+   trap "sdwdate_error_handler" ERR
+
+   if [ ! -f "$LOG_FILE" ]; then
+      sdwdate_log "$@"
+      return 0
+   fi
+
+   local last_line="$(awk '/./{line=$0} END{print line}' "$LOG_FILE")"
+   local no_repeat="Not duplicating last log entry."
+   
+   if [ "$last_line" = "$no_repeat" ]; then
+      echo "Last log entry is: $last_line"
+      return 0
+   fi
+   
+   if [ "$last_line" = "$@" ]; then
+      sdwdate_log "$no_repeat"
+      return 0
+   fi
+
+   sdwdate_log "$@"
+}
+
 sdwdate_error_handler() {
    local return_code="$?"
    sdwdate_log "\
@@ -741,7 +765,7 @@ sdwdate_dispatcher_prerequisite() {
             error "DISPATCH_PREREQUISITE returned $prerequisite_return_code, requested explicit exiting..."
          elif [ "$prerequisite_return_code" = "2" ]; then
             ## Wait.
-            sdwdate_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, waiting..."
+            sdwdate_safe_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, waiting..."
             sleep 10 &
             wait "$!" || true
          else
