@@ -145,8 +145,15 @@ while read -r; do
    var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" || { tor_ctrl_return="$?" ; true; }
    
    if [ ! "$tor_ctrl_return" = "0" ]; then
-      echo "$ID ERROR: tor-ctrl returned a non-zero exit code: $tor_ctrl_return. var: $var | Breaking..." >> /var/log/controlportfilt
-      break
+      echo "$ID ERROR: tor-ctrl returned a non-zero exit code: $tor_ctrl_return. var: $var | Let's try again..." >> /var/log/controlportfilt
+      
+      tor_ctrl_return="0"
+      var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" || { tor_ctrl_return="$?" ; true; }
+      
+      if [ ! "$tor_ctrl_return" = "0" ]; then
+         echo "$ID ERROR: tor-ctrl returned again a non-zero exit code: $tor_ctrl_return. var: $var | Breaking." >> /var/log/controlportfilt
+         break
+      fi
    fi
  
    ## split at newlines only
