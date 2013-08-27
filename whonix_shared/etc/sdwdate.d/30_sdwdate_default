@@ -1,58 +1,108 @@
-## sdwdate config file
+## Sdwdate Config File.
 
-## bash fragment
+## Bash Fragment.
 
+## Add this to curl as option.
 CURL_VERBOSE="--silent"
 
+## Enable/disable debugging.
+## 1 enabled.
+## 2 disabled.
 DEBUG=0
 
+## Run as the following user name.
+## Not implemented. Has no effect.
 USER=""
 
+## Do or do not actually change the date/time after successfully fetching it.
+## 0 set date.
+## 1 do not set date.
 DONT_SET_DATE=0
 
+## Http user agent.
 ## When set to "", uses curl's default.
-HTTP_USER_AGENT=""
-
-LOG_FILE=/var/log/sdwdate
-
-DONE_FILE=/var/run/sdwdate/done
-
-SUCCESS_FILE=/var/run/sdwdate/success
-
-ALLOWED_PER_POOL_FAILURE_RATIO=0.34
-
-TEMP_DIR="$(mktemp --directory)"
-
-PROXY="192.168.0.10:9108"
-
-INTERVAL="60"
-
-RANDOMIZE="1"
-
-DISPATCH_PREREQUISITE="/usr/lib/whonix/sdw_prerequisite"
-
-DISPATCH_PRE="/usr/lib/whonix/sdw_pre --autostart & disown"
-
-DISPATCH_POST_SUCCESS="/usr/lib/whonix/sdw_post_success --autostart & disown"
-
-DISPATCH_POST_FAILURE="/usr/lib/whonix/sdw_post_failure --autostart & disown"
-
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 15"
-
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 30"
-
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 45"
-
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 60"
-
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 65"
-
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 80"
-
-#HTTP_USER_AGENT=""
 #HTTP_USER_AGENT="$(/usr/bin/getTorbuttonUserAgent)"
 #HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0"
+HTTP_USER_AGENT=""
 
+## Log file.
+LOG_FILE=/var/log/sdwdate
+
+## Done file. Will be created after run no matter if failure or success.
+DONE_FILE=/var/run/sdwdate/done
+
+## Success file. Will only be created after a success.
+SUCCESS_FILE=/var/run/sdwdate/success
+
+## How many members per pool are allowed to fail.
+## If too many members are not reachable, time will not be adjusted.
+ALLOWED_PER_POOL_FAILURE_RATIO=0.34
+
+## Temporary directory for file downloads.
+TEMP_DIR="$(mktemp --directory)"
+
+## Which proxy curl should use.
+## If empty, no proxy will be used.
+PROXY="192.168.0.10:9108"
+
+## How often sdwdate should run in minutes.
+## 0 disables it and sdwdate exits after run.
+INTERVAL="60"
+
+## Randomize the interval above.
+## Minimum 10 minutes.
+## Maximum $INTERVAL minutes.
+## 0 disabled.
+## 1 enabled.
+RANDOMIZE="1"
+
+## Prerequisite before trying to connect to servers.
+## This is supposed to be a command to be `eval`uated and to exit with code
+## - 0, if sdwdate should continue.
+## - 1, if sdwdate should terminate itself due to an expected error.
+## - 2, if sdwdate should wait 10 seconds and then run the command again.
+## - Anything else, if sdwdate should terminate itself due to an unexpected error.
+## It may be useful to check if the network is already reachable.
+## When set to "", it will be skipped.
+DISPATCH_PREREQUISITE="/usr/lib/whonix/sdw_prerequisite"
+
+## This command will be `eval`uated after DISPATCH_PREREQUISITE and before running curl.
+## When set to "", it will be skipped.
+DISPATCH_PRE="/usr/lib/whonix/sdw_pre --autostart & disown"
+
+## This command will be `eval`uated when sdwdate succeeded.
+## When set to "", it will be skipped.
+DISPATCH_POST_SUCCESS="/usr/lib/whonix/sdw_post_success --autostart & disown"
+
+## This command will be `eval`uated when sdwdate failed.
+## When set to "", it will be skipped.
+DISPATCH_POST_FAILURE="/usr/lib/whonix/sdw_post_failure --autostart & disown"
+
+## This command will be `eval`uated before trying to connect to the pal pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 15"
+
+## This command will be `eval`uated before after connecting to the pal pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 30"
+
+## This command will be `eval`uated before trying to connect to the neutral pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 45"
+
+## This command will be `eval`uated before after connecting to the neutral pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 60"
+
+## This command will be `eval`uated before trying to connect to the foe pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 65"
+
+## This command will be `eval`uated before trying after connecting to the pal pool.
+## When set to "", it will be skipped.
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 80"
+
+## Pal pool.
 SDWDATE_POOL_PAL=(
    boum.org
    chavez.indymedia.org
@@ -69,6 +119,7 @@ SDWDATE_POOL_PAL=(
    www.torproject.org
 )
 
+## Neutral pool.
 SDWDATE_POOL_NEUTRAL=(
    cve.mitre.org
    en.wikipedia.org
@@ -86,6 +137,7 @@ SDWDATE_POOL_NEUTRAL=(
    www.xkcd.com
 )
 
+## Foe pool.
 SDWDATE_POOL_FOE=(
    encrypted.google.com
    github.com
@@ -102,4 +154,4 @@ SDWDATE_POOL_FOE=(
    www.sony.com
 )
 
-## end of sdwdate config file
+## End of sdwdate config file.
