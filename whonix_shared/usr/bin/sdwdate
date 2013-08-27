@@ -39,6 +39,7 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         -y --dispatchprerequisite             check before run
         -x --dispatchpostsuccess              exec after successful run
         -z --dispatchpostfailure              exec after unsuccessful run
+        -m --dispatchposterror                exec when an error is caught
         --dispatch_pre_pal                    exec before run of curl
         --dispatch_post_pal                   exec after run of curl
         --dispatch_pre_neutral                exec before run of curl
@@ -110,6 +111,10 @@ sdwdate_defaults() {
 
    if [ "$DISPATCH_PREREQUISITE" = "" ]; then
       DISPATCH_PREREQUISITE="true"
+   fi
+
+   if [ "$DISPATCH_POST_ERROR" = "" ]; then
+      DISPATCH_POST_ERROR="exit 1"
    fi
 
    if [ "$DISPATCH_PRE" = "" ]; then
@@ -326,7 +331,11 @@ sdwdate_parse_cmd_options() {
            -y | --dispatchprerequisite)
                DISPATCH_PREREQUISITE=$2
                shift 2
-               ;;               
+               ;;
+           -m | --dispatchposterror)
+               DISPATCH_POST_ERROR=$2
+               shift 2
+               ;;              
            -w | --dispatchpre)
                DISPATCH_PRE=$2
                shift 2
@@ -466,15 +475,24 @@ sdwdate_safe_log() {
 
 sdwdate_error_handler() {
    local return_code="$?"
-   sdwdate_log "\
+   
+   local error_message="\
 ############################################
 ## Error detected! Please report this bug! #
 ## 0: $0
 ## return_code: $return_code
 ## BASH_COMMAND: $BASH_COMMAND
 ############################################"
-   touch "$DONE_FILE"
-   exit 1
+
+   sdwdate_log "$error_message"
+   
+   true "DISPATCH_POST_ERROR: $DISPATCH_POST_ERROR"   
+
+   if [ "$DISPATCH_POST_ERROR" = "" ]; then
+      true
+   else
+      eval $DISPATCH_POST_ERROR
+   fi
 }
 
 trap "sdwdate_error_handler" ERR
