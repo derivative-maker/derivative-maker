@@ -55,7 +55,7 @@ output_sighup() {
 
    ## Check if still running.
    local ps_return="0"
-   ps -p "$PARENT_PID" >/dev/null || { local ps_return="$?"; true; };
+   ps -p "$PARENT_PID" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
 
    if [ "$ps_return" = "0" ]; then
       true "$FUNCNAME caught. Killing PARENT_PID $PARENT_PID."
@@ -328,7 +328,7 @@ progress_bar() {
 
    ## Check if zenity is still running.
    local ps_return="0"
-   ps -p "$ZENITY_PROGRESS_PID" >/dev/null || { local ps_return="$?"; true; };
+   ps -p "$ZENITY_PROGRESS_PID" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
 
    if [ "$ps_return" = "0" ]; then
       ## Zenity pid is still active.
@@ -632,8 +632,9 @@ $MESSAGE_CLI"
    if [ "$SHOW_X" = "1" ]; then
       if [ "$SHOW_WAIT_MESSAGE_ONLY_ONCE" = "1" ]; then
          true
-      else   
-         if [ "$PASSIVE" = "1" ] || [ "$LOOP" = "1" ]; then
+      else
+         ## TODO?: || [ "$LOOP" = "1" ]
+         if [ "$PASSIVE" = "1" ]; then
             kdialog --passivepopup "$MESSAGE_X" "20"
          else
             zenity \
@@ -670,6 +671,28 @@ $MESSAGE_X" \
 }
 
 forget_messages() {
+   trap "error_handler" ERR
+
+   if [ -p "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo" ]; then
+      local FIFO="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
+
+      if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" ]; then
+         ZENITY_PROGRESS_PID="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid")"
+
+         ## Check if zenity is still running.
+         local ps_return="0"
+         ps -p "$ZENITY_PROGRESS_PID" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
+
+         if [ "$ps_return" = "0" ]; then
+            ## Zenity pid is still active.
+
+            ## For extra security against freezing while trying to write to a non-existing pipe, lets use timeout.
+            ## || true to catch an error if the pipe no longer exists.
+            timeout 1 /bin/bash -c "echo "100" | sudo -u user tee "$FIFO" > /dev/null" || true
+         fi
+      fi
+   fi
+
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type"
@@ -677,10 +700,14 @@ forget_messages() {
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_progress"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
+   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"      
+   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
+   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid"   
 }
 
 forget_wait() {
+   trap "error_handler" ERR
+
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
 }

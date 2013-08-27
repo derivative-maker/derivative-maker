@@ -20,8 +20,16 @@ return_code: $return_code
    ## TODO: log.
 }
 
-timesync_main() {
+sdwdate_prerequisite() {
    trap "error_handler" ERR
+
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then
+      VM="Whonix-Gateway"
+   elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
+      VM="Whonix-Workstation"
+   else
+      VM="whonixcheck script could not determine if this is whonix_gateway or whonix_workstation. Please report this bug."
+   fi   
 
    ## Sets: TOR_ENABLED
    check_tor_enabled_do ## 17_check_tor_enabled
@@ -30,6 +38,9 @@ timesync_main() {
       ## Ok.
       true
    else
+      echo "Tor is disabled. Please enable Tor using whonixsetup. \
+Start Menu -> Applications -> System -> First Time Connection Setup or in Terminal: sudo whonixsetup"
+      
       ## Exit 2, so sdwdate will wait until this has been fixed.
       exit "2"
    fi
@@ -39,19 +50,40 @@ timesync_main() {
 
    tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { tor_bootstrap_percent="$?" ; true; }
 
+   local MSG="Tor is not yet fully bootstrapped. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
+
+   if [ "$tor_bootstrap_percent" = "254" ]; then
+      local MSG="Tor Bootstrap Result: \
+/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py ERROR ($tor_bootstrap_percent). Please report this bug!"
+   fi
+
+   if [ "$tor_bootstrap_percent" = "255" ]; then
+      if [ "$VM" = "Whonix-Gateway" ]; then
+         local MSG="Tor Bootstrap Result: \
+Tor's Control Port could not be reached. \
+Please report this bug!"
+      elif [ "$VM" = "Whonix-Workstation" ]; then
+         local MSG="Tor Bootstrap Result: \
+Tor's Control Port could not be reached. \
+Did you start Whonix-Gateway beforehand? \
+Please run whonixcheck on Whonix-Gateway."
+      else
+         local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
+      fi
+   fi
+   
    if [ "$tor_bootstrap_percent" = "100" ]; then
       ## Ok.
       ## Exit 0, so sdwdate will continue.
       exit "0"
    else
-      ## Tor not yet bootstrapped.
-
-      ## TODO: Log $tor_bootstrap_status.
+      ## Echo message, so sdwdate can integrate it into it's log.
+      echo "$MSG"
       
       ## Exit 2, so sdwdate will wait until this has been fixed.
       exit "2"
    fi
 }
 
-timesync_main ${1+"$@"}
+sdwdate_prerequisite ${1+"$@"}
 

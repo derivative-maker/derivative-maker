@@ -130,32 +130,32 @@ sdwdate_defaults() {
       #HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 6.1; rv:10.0) Gecko/20100101 Firefox/10.0"
    fi
 
-   if [ ${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_PRE
       SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]="true"
    fi
 
-   if [ ${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_POST
       SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]="true"
    fi
    
-   if [ ${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_PRE 
       SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]="true"
    fi
    
-   if [ ${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_POST
       SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]="true"
    fi
    
-   if [ ${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_PRE
       SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]="true"
    fi
 
-   if [ ${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]} = "" ]; then
+   if [ "${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_POST
       SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]="true"
    fi
@@ -754,7 +754,10 @@ sdwdate_dispatcher_prerequisite() {
    else
       while true; do
          local prerequisite_return_code="0"
-         eval $DISPATCH_PREREQUISITE || { local prerequisite_return_code="$?" ; true; };
+         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { local prerequisite_return_code="${PIPESTATUS[0]}" ; true; };         
+
+         true "prerequisite_return_code: $prerequisite_return_code"
+         true "prerequisite_return_stdout: $prerequisite_return_stdout"         
 
          if [ "$prerequisite_return_code" = "0" ]; then
             ## Ok.
@@ -762,15 +765,15 @@ sdwdate_dispatcher_prerequisite() {
             break            
          elif [ "$prerequisite_return_code" = "1" ]; then
             ## Error.
-            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code, requested explicit exiting..."
+            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code | $prerequisite_return_stdout | requested explicit exiting..."
          elif [ "$prerequisite_return_code" = "2" ]; then
             ## Wait.
-            sdwdate_safe_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, waiting..."
+            sdwdate_safe_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code | $prerequisite_return_stdout | waiting..."
             sleep 10 &
             wait "$!" || true
          else
             ## Unexpected error.
-            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code, unexpected error, exiting..."
+            error "DISPATCH_PREREQUISITE returned $prerequisite_return_code | $prerequisite_return_stdout | unexpected error, exiting..."
          fi
          
       done
@@ -840,8 +843,8 @@ sdwdate_main() {
       sdwdate_defaults
       sdwdate_preparation
 
-      sdwdate_dispatcher_prerequisite
       sdwdate_dispatcher_pre
+      sdwdate_dispatcher_prerequisite      
       
       sdwdate_pick
 
