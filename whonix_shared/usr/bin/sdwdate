@@ -13,6 +13,7 @@
 
 SCRIPTNAME="$(basename $0)"
 ownpid="$$"
+ID="$(uuidgen -r)"
 
 sdwdate_usage() {
    trap "sdwdate_error_handler" ERR
@@ -436,16 +437,21 @@ sdwdate_preparation() {
 
 sdwdate_log() {
    trap "sdwdate_error_handler" ERR
-
+   
+   if [ "$ID" = "" ] ; then
+      ID="No_ID"
+   fi
+   
    if [ "$QUIET" = "1" ]; then
       true
    else
-      echo "$@"
+      echo "$ID: $@"
    fi
+   
    if [ "$LOG_FILE" = "" ]; then
       true
    else
-      echo "$@" >> "$LOG_FILE"
+      echo "$ID: $@" >> "$LOG_FILE"
    fi   
 }
 
