@@ -273,42 +273,16 @@ output_write_to_tty() {
    ## Write to tty1.
    ## Using simple lock mechanism so messages from "write" do not get mixed up.
    
-   if [ ! -f "/var/lib/whonix/whonixcheck/write_lock" ]; then
-      touch "/var/lib/whonix/whonixcheck/write_lock"
-      chmod g+w "/var/lib/whonix/whonixcheck/write_lock"
-      chmod o+w "/var/lib/whonix/whonixcheck/write_lock"
-   fi
-
-   local slept="0"
-   
-   while true; do
-   
-      local old_unixtime="$(date -r "/var/lib/whonix/whonixcheck/write_lock" +%s)"
-      local old_time="$(date -r "/var/lib/whonix/whonixcheck/write_lock")"
-
-      local current_unixtime="$(date +%s)"
-      local current_time="$(date)"
-
-      local result="$(expr "$current_unixtime" - "$old_unixtime")" || true
-
-      if [ "$result" -le "2" ]; then
-         sleep 1 &
-         wait "$!" || true
-      else
-         break
-      fi
-
-      ## Protection against endless loops.
-      local slept="$(expr "$slept" + "1")"
-      if [ "$slept" -ge "20" ]; then
-         break
-      fi
-
-   done
-
-   touch "/var/lib/whonix/whonixcheck/write_lock"
-   echo "${1+"$@"}
+   (
+      flock --wait 10 --exclusive 200
+      
+      echo "${1+"$@"}
 $feel_free_to_press_enter_msg" | write user tty1 2>/dev/null || true
+
+      sleep 2
+
+   ) 200>"/var/lib/whonix/whonixcheck/write_lock" &
+   
 }
 
 progress_bar() {

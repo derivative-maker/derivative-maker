@@ -46,12 +46,23 @@ cleanup() {
    
    ## Close pipe, which was opened for zenity.
    #exec 3>&- || true
-
-   if [ "$AUTOSTARTED" = "1" ]; then
+   
+   if [ "$DAEMON" = "1" ]; then
+      ## Daemon mode.
+      
+      ## & so the daemon will continue to run even when the windows will not be closed.
+      $output ${output_opts[@]} --showx &
+      $output ${output_opts[@]} --showcli &
+   elif [ "$AUTOSTARTED" = "1" ]; then
+      ## Autostart.
+   
+      ## Not required to dispatch output, because
+      ## /etc/profile.d/40_whonixcheck.sh and /etc/xdg/autostart/whonixcheck.desktop
+      ## will keep care of this.
       true
    else
-      true
       ## Manual run.
+      true      
       
       $output ${output_opts[@]} --showx
 
