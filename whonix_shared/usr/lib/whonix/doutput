@@ -206,6 +206,10 @@ parse_cmd_options() {
                PASSIVE="1"
                shift
                ;;
+           --forceactive)
+               FORCE_ACTIVE="1"
+               shift
+               ;;               
            --autostart)
                AUTOSTART="1"
                shift
@@ -497,8 +501,12 @@ show_output() {
       exit 1
    fi
 
-   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive" ]; then
-      PASSIVE="1"
+   if [ "$FORCE_ACTIVE" = "1" ]; then
+      true "FORCE_ACTIVE is set to 1, enforcing active message."
+   else
+      if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive" ]; then
+         PASSIVE="1"
+      fi
    fi
 
    if [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done" ] || [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_recently_run" ]; then
@@ -682,16 +690,13 @@ output_wmctrl() {
    
    local counter="0"
    
-   while true; do
-      echo " " >> "$debuglog"
-      
+   while true; do    
       local temp="$(wmctrl -l)"      
       
       local grep_result="0"      
       echo "$temp" | grep --quiet "$TITLE" || { local grep_result="$?" ; true; };
       
       if [ "$grep_result" = "0" ]; then
-         echo "break" >> "$debuglog"
          break
       fi
       
@@ -702,7 +707,6 @@ output_wmctrl() {
       
       if [ "$counter" -ge "$max_wait" ]; then
          true "Giving up on wmctrl. Break."
-         #echo "Giving up on wmctrl. Break." >> "$debuglog"
          break
       fi
    done
