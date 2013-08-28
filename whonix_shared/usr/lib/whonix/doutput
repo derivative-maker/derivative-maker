@@ -269,10 +269,7 @@ start_progress_bar() {
    echo "$ZENITY_PROGRESS_PID" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" > /dev/null
 
    if [ "$LEFT_TOP" = "1" ]; then
-      ## Move windows to the left top, so they do not overlap.
-      ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
-      sleep .5
-      wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
+      output_wmctrl "$TITLE"
    fi   
    
    ## Waiting for SIGHUP.
@@ -541,7 +538,15 @@ show_output() {
                
                TITLE="$IDENTIFIER"
                
-               $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
+               ## Small hack.
+               ## It would be cleaner / more rich in features if the window position was defined by the upstream application
+               ## and if "whonixcheck" was not hardcoded here.
+               if [ "$IDENTIFIER" = "whonixcheck" ]; then
+                  ## Move windows to the left top, so they do not overlap.
+                  $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --lefttop &
+               else
+                  $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
+               fi
                
                sleep "3" &
                wait "$!" || true
@@ -638,10 +643,7 @@ $MESSAGE_X" \
                2>/dev/null &
 
             if [ "$LEFT_TOP" = "1" ]; then
-               ## Move windows to the left top, so they do not overlap.
-               ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
-               sleep .5
-               wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
+               output_wmctrl "$TITLE"
             fi
          fi                  
          SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
@@ -659,6 +661,53 @@ $MESSAGE_X" \
       
       return 0
    fi
+}
+
+output_wmctrl() {
+   ## Move windows to the left top, so they do not overlap.
+   ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
+
+   trap "error_handler" ERR
+
+   local TITLE="${1+"$@"}"
+
+   sleep .5
+   
+   if [ "$AUTOSTART" = "1" ]; then
+      ## Runs in background anyway, waiting a bit longer does not hurt.
+      local max_wait="120"
+   else
+      local max_wait="60"
+   fi
+   
+   local counter="0"
+   
+   while true; do
+      echo " " >> "$debuglog"
+      
+      local temp="$(wmctrl -l)"      
+      
+      local grep_result="0"      
+      echo "$temp" | grep --quiet "$TITLE" || { local grep_result="$?" ; true; };
+      
+      if [ "$grep_result" = "0" ]; then
+         echo "break" >> "$debuglog"
+         break
+      fi
+      
+      sleep "1" &
+      wait "$!" || true
+      
+      local counter="$(expr "$counter" + "1")" || true
+      
+      if [ "$counter" -ge "$max_wait" ]; then
+         true "Giving up on wmctrl. Break."
+         #echo "Giving up on wmctrl. Break." >> "$debuglog"
+         break
+      fi
+   done
+   
+   wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
 }
 
 forget_messages() {
