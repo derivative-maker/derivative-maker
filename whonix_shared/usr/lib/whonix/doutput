@@ -209,7 +209,11 @@ parse_cmd_options() {
            --autostart)
                AUTOSTART="1"
                shift
-               ;;               
+               ;;
+           --lefttop)
+               LEFT_TOP="1"
+               shift
+               ;;
            --)
                shift
                break
@@ -251,18 +255,25 @@ start_progress_bar() {
       --timeout "86400" \
       --no-markup \
       --window-icon "$ICON" \
-      --title=" $TITLE " \
+      --title="$TITLE" \
       --auto-kill \
       --auto-close \
       --progress 5 \
       --text "$MESSAGE" \
-      < "$FIFO" & ZENITY_PROGRESS_PID="$!"      
+      < "$FIFO" & ZENITY_PROGRESS_PID="$!"
 
    ## "2>/dev/null" is required to hide the output "Killed zenity --display..."
    ## later when it gets killed by the progress_bar function.
    exec 3>"$FIFO"
 
    echo "$ZENITY_PROGRESS_PID" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" > /dev/null
+
+   if [ "$LEFT_TOP" = "1" ]; then
+      ## Move windows to the left top, so they do not overlap.
+      ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
+      sleep .5
+      wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
+   fi   
    
    ## Waiting for SIGHUP.
    ## Happens when zentiy reached 100% or when cancel button is pressed.
@@ -624,8 +635,14 @@ $MESSAGE_CLI"
 $IDENTIFIER
 ----------------------------------------------------------------------
 $MESSAGE_X" \
-               2>/dev/null \
-               || true
+               2>/dev/null &
+
+            if [ "$LEFT_TOP" = "1" ]; then
+               ## Move windows to the left top, so they do not overlap.
+               ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
+               sleep .5
+               wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
+            fi
          fi                  
          SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
 
