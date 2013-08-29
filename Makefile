@@ -25,8 +25,6 @@ package:
 	
 unsignedpackage:
 	$(CURDIR)/help-steps/make-tarball
-	## Used by build-steps.d/1200_create-debian-packages.
-	## See comments in 1200_create-debian-packages for why signing is not required and secure.
 	dpkg-buildpackage -F -Zxz -z9 -tc -us -uc
 	
 lintian: debian/control
