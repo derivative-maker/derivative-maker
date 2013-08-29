@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_help() {
-: "
+echo "
 ## creates separate build folder
 ## "$HOMEVAR"/whonix_binary
 ##
@@ -27,12 +27,13 @@ script_help() {
 }
 
 whonix_build_cmdoptions() {
+   trap "error_handler_general" ERR INT TERM
+
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
    
    if [ "$*" = "" ]; then
-      true "${red}${bold}ERROR $0: no option chosen. Use --help.${reset}" >&2
-      exit 1
+      error "no option chosen. Use --help."
    fi
 
    while :
@@ -84,8 +85,7 @@ whonix_build_cmdoptions() {
                break
                ;;
            -*)
-               echo "${red}${bold}ERROR $0: unknown option: $1${reset}" >&2
-               exit 1
+               error "unknown option: $1"
                ;;
            *)
                break
@@ -97,39 +97,33 @@ whonix_build_cmdoptions() {
    ## will remain in the "$@" positional parameters. 
 
    if [ "$WHONIX_BUILD_ALL" = "1" ]; then
-      true "${red}${bold}ERROR $0: --all not yet implemented. (Help welcome!)${reset}" >&2
-      exit 1         
+      error "--all not yet implemented. (Help welcome!)"
    fi
    
    if [ ! "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
       if [ ! "$WHONIX_BUILD_MAIN_SCRIPT_STARTED" = "1" ]; then
          if [ "$WHONIX_BUILD_BUILD" = "1" ] && [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
-            true "${red}${bold}ERROR $0: You must either use --build or --clean.${reset}" >&2
-            exit 1         
+            error "You must either use --build or --clean."       
          fi
       fi
    fi
    
    if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      true "${red}${bold}ERROR $0: You can not combine --all with --torgateway. You must either use --all or --torgateway.${reset}" >&2
-      exit 1      
+      error "You can not combine --all with --torgateway. You must either use --all or --torgateway."
    fi
    
    if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      true "${red}${bold}ERROR $0: You can not combine --all with --torworkstation. You must either use --all or --torworkstation.${reset}" >&2
-      exit 1      
+      error "You can not combine --all with --torworkstation. You must either use --all or --torworkstation."
    fi
    
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      true "${red}${bold}ERROR $0: You can not combine --torgateway with --torworkstation. Use --all if that is what you want.${reset}" >&2
-      exit 1
+      error "You can not combine --torgateway with --torworkstation. Use --all if that is what you want."
    fi
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ] || [ "$WHONIX_BUILD_WORKSTATION" = "1" ] || [ "$WHONIX_BUILD_ALL" = "1" ]; then
       true
    else
-      true "${red}${bold}ERROR $0: You must add --torgateway or --torworkstation or --all.${reset}" >&2
-      exit 1
+      error "You must add --torgateway or --torworkstation or --all."
    fi
 }
 
