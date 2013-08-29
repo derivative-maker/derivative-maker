@@ -27,6 +27,21 @@ create-debian-packages() {
       true "${bold}${cyan}$0 INFO: WHONIX_BUILD_NEW_CHANGELOG_VERSION equals WHONIX_BUILD_OLD_CHANGELOG_VERSION, not creating new Debian packages. ${reset}"
       exit 0
    fi
+     
+   if [ -n "$(git status --porcelain)" ]; then
+      true "${bold}${red}$0 ERROR: Git reports uncommitted changes! ${reset}"   
+      true "${cyan}$0 INFO: Running \"git status\" for your convenience. ${reset}"
+      git status
+      true "${cyan}$0 INFO: Running git \"clean --dry-run -d --force --force\" for your convenience. ${reset}"
+      git clean --dry-run -d --force --force   
+      true "${cyan}$0 You most likely like to revert debian/control to run:${reset}
+    git checkout -- debian/control
+    make clean
+${cyan}or if you know what you are doing:${reset}
+    git clean --dry-run -d --force --force
+    git reset --hard"
+    error "Uncommitted changes! See above!"
+   fi
    
    true "${cyan}$0 INFO: Going to update "$WHONIX_BUILD_APT_CODENAME" APT repository... ${reset}"
    sleep 3
