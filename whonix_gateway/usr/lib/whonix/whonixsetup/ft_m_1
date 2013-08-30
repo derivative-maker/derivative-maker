@@ -43,18 +43,18 @@ fi
 ## Check if Tor was already enabled.
 ## This is to prevent getting ed from failing.
 while read LINE; do
-   if [ "$LINE" = '#DisableNetwork 1' ]; then
-      dialog --title "Success!" --msgbox '"DisableNetwork 1" was already commented out in /etc/tor/torrc. Tor should be activated.
+   if [ "$LINE" = 'DisableNetwork 0' ]; then
+      dialog --title "Success!" --msgbox '"DisableNetwork 0" was already commented in in /etc/tor/torrc. Tor should be activated.
 
-Note: whonixsetup activates Tor by commenting out "DisableNetwork 1" in /etc/tor/torrc. There is no need to run it multiple times, and it probably not the cause of network problems. You can manually check if "DisableNetwork 1" has been commented out in /etc/tor/torrc.
+Note: whonixsetup activates Tor by commenting in "DisableNetwork 0" in /etc/tor/torrc. There is no need to run it multiple times, and it probably not the cause of network problems. You can manually check if "DisableNetwork 0" has been commented in in /etc/tor/torrc.
 ' 640 480
       break
    fi
 done < "/etc/tor/torrc"
 
-## Comment out DisableNetwork 1 in /etc/tor/torrc
+## Comment in DisableNetwork 0 in /etc/tor/torrc.
 returncode=0
-ed -s /etc/tor/torrc <<< $',s/DisableNetwork 1/#DisableNetwork 1/g\nw' || { returncode=$? ; true; };
+ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 0/DisableNetwork 0/g\nw' || { returncode=$? ; true; };
 
 ## Ensure changes get written to the disk right now.
 sync
@@ -63,7 +63,7 @@ if [ ! "$returncode" = "0" ]; then
    TITLE="Info:"
 
    MSG="
-Could not comment out \"DisableNetwork 1\" in /etc/tor/torrc. Did you commented out or completely removed \"DisableNetwork 1\" in /etc/tor/torrc already? This is not necessarily a problem.
+Could not comment in \"DisableNetwork 0\" in /etc/tor/torrc. Did you commented in or completely removed \"DisableNetwork 0\" in /etc/tor/torrc already? This is not necessarily a problem.
 
 Will try to reload Tor now and check its status afterward...
 "

@@ -62,14 +62,14 @@ fi
 ## looking like ####DisableNetwork 1 (if the user chooses
 ## this option multiple times).
 while read LINE; do
-   if [ "$LINE" = "DisableNetwork 1" ]; then      
-      dialog --title "Success!" --msgbox '"DisableNetwork 1" was already set in /etc/tor/torrc.
+   if [ "$LINE" = "#DisableNetwork 0" ]; then      
+      dialog --title "Success!" --msgbox '"DisableNetwork 0" was already commented out in /etc/tor/torrc.
 So Tor should now be disabled.
 
-whonixsetup really only deactivates Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.
+whonixsetup really only deactivates Tor by commenting out "DisableNetwork 0" in /etc/tor/torrc.
 Running it multiple times in a row archives nothing.
 In case of network problems, this is probably not the cause.
-You can confirm that by manually checking if "DisableNetwork 1" has been commented in /etc/tor/torrc.
+You can confirm that by manually checking if "DisableNetwork 0" has been commented out in /etc/tor/torrc.
 ' 640 480
 
       dialog --title "Info" --msgbox 'Checking if Tor is still running and stopping it if necessary...' 640 480
@@ -82,11 +82,14 @@ done < "/etc/tor/torrc"
 
 dialog --title "Info" --msgbox 'Trying to disable Tor...
 
-Technically speaking, this will comment in "DisableNetwork 1" in /etc/tor/torrc.
+Technically speaking, this will comment out "DisableNetwork 0" in /etc/tor/torrc.
 ' 640 480
 
+## Comment out DisableNetwork 0 in /etc/tor/torrc.
 returncode=0
-ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 1/DisableNetwork 1/g\nw' || { returncode=$? ; true; };
+ed -s /etc/tor/torrc <<< $',s/DisableNetwork 0/#DisableNetwork 0/g\nw' || { returncode=$? ; true; };
+
+## Ensure changes get written to the disk right now.
 sync
 
 if [ "$returncode" = "0" ]; then
@@ -96,15 +99,15 @@ if [ "$returncode" = "0" ]; then
 
    dialog --title "Success!" --msgbox 'Tor has been deactivated.
 
-(Technically speaking, whonixsetup deactivated Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc.)' 640 480
+(Technically speaking, whonixsetup deactivated Tor by commenting out "DisableNetwork 0" in /etc/tor/torrc.)' 640 480
 else
    dialog --title "ERROR!" --msgbox 'Tor could not be deactivated. Please report this bug!
 
-(Technically speaking, whonixsetup could not deactivate Tor by commenting in "DisableNetwork 1" in /etc/tor/torrc (ed failed).)' 640 480
+(Technically speaking, whonixsetup could not deactivate Tor by commenting out "DisableNetwork 0" in /etc/tor/torrc (ed failed).)' 640 480
 
    dialog --title "WARNING" --msgbox 'Will at least stop Tor...
    
-Warning: Since Tor could not be deactivated in /etc/tor/torrc, Tor will be reconnect, next time you reboot or restart Tor. You are advised to manually add "DisableNetwork 1" in /etc/tor/torrc and to run "sudo service tor stop" to ensure, that Tor will not start, if that is what you want.' 640 480
+Warning: Since Tor could not be deactivated in /etc/tor/torrc, Tor will be reconnect, next time you reboot or restart Tor. You are advised to manually comment out "DisableNetwork 0" in /etc/tor/torrc and to run "sudo service tor stop" to ensure, that Tor will not start, if that is what you want.' 640 480
 
    stop_tor
    true "INFO: Ok, exit 1, so whonixsetup will end."
