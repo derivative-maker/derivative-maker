@@ -42,43 +42,49 @@ fi
 
 ## Check if Tor was already enabled.
 ## This is to prevent getting ed from failing.
+already_commented_in="0"
 while read LINE; do
    if [ "$LINE" = 'DisableNetwork 0' ]; then
+      already_commented_in="1"
       dialog --title "Success!" --msgbox '"DisableNetwork 0" was already commented in in /etc/tor/torrc. Tor should be activated.
 
 Note: whonixsetup activates Tor by commenting in "DisableNetwork 0" in /etc/tor/torrc. There is no need to run it multiple times, and it probably not the cause of network problems. You can manually check if "DisableNetwork 0" has been commented in in /etc/tor/torrc.
+
+Will try to reload Tor now and check its status afterward...
 ' 640 480
       break
    fi
 done < "/etc/tor/torrc"
 
-## Comment in DisableNetwork 0 in /etc/tor/torrc.
-returncode=0
-ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 0/DisableNetwork 0/g\nw' || { returncode=$? ; true; };
+if [ "$already_commented_in" = "0" ]; then
+   ## Comment in DisableNetwork 0 in /etc/tor/torrc.
+   returncode=0
+   ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 0/DisableNetwork 0/g\nw' || { returncode=$? ; true; };
 
-## Ensure changes get written to the disk right now.
-sync
+   ## Ensure changes get written to the disk right now.
+   sync
 
-if [ ! "$returncode" = "0" ]; then
-   TITLE="Info:"
+   if [ ! "$returncode" = "0" ]; then
+      TITLE="Info:"
 
-   MSG="
+      MSG="
 Could not comment in \"DisableNetwork 0\" in /etc/tor/torrc. Did you commented in or completely removed \"DisableNetwork 0\" in /etc/tor/torrc already? This is not necessarily a problem.
 
 Will try to reload Tor now and check its status afterward...
 "
 
-else
-   TITLE="Info:"
+   else
+      TITLE="Info:"
 
-   MSG="
+      MSG="
 Tor has been activated in /etc/tor/torrc.
 
 Will try to reload Tor now and check its status afterward...
 "
-fi
+   fi
 
-dialog --title "$TITLE" --msgbox "$MSG" 640 480
+   dialog --title "$TITLE" --msgbox "$MSG" 640 480
+fi
 
 returncode=0
 service tor status || { returncode=$? ; true; };
