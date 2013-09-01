@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+## hardcoded
+version="117adretemp"
+
+cd "$WHONIX_BINARY"
+
+sha512sum --check sha512sum
+
+## create Whonix-Gateway.ova.asc
+gpg --detach-sign --armor --yes "Whonix-Gateway-"$version".ova"
+
+## create Whonix-Workstation.ova.asc
+gpg --detach-sign --armor --yes "Whonix-Workstation-"$version".ova"
+
+## Verify, that signing worked.
+gpg --verify "Whonix-Gateway-"$version".ova.asc"
+
+## Verify, that signing worked.
+gpg --verify "Whonix-Workstation-"$version".ova.asc"
