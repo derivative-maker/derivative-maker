@@ -8,7 +8,7 @@ from stem.control import Controller
 
 if os.path.exists("/usr/share/whonix/whonix_workstation"):
   p=9151
-elif os.path.exists("/usr/share/whonix/whonix_workstation"):
+elif os.path.exists("/usr/share/whonix/whonix_gateway"):
   ## Control Port Filter Proxy listens on 9052 on Whonix-Gateway
   p=9052
 else:
