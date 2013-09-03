@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -x
+
+error_handler() {
+   echo "FAILED!"
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+
+## disable cmd line parser, since not needed
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
+
+source variables
+
+#project="testprojectwh"
+#project="whonix"
+project="whonixdevelopermetafiles"
+
+## hardcoded
+version="118adretemp"
+
+## Test.
+rsync \
+   --dry-run \
+   --partial \
+   --progress \
+   --verbose \
+   "$WHONIX_BINARY"/*.ova \
+   "$WHONIX_BINARY"/*.asc \
+   adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/whonix-"$version"/
+   
+true "Press any key to continue."
+read temp
+
+while true; do
+
+   rsync_return="0"
+   rsync \
+      --partial \
+      --progress \
+      --verbose \
+      "$WHONIX_BINARY"/*.ova \
+      "$WHONIX_BINARY"/*.asc \
+      adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/whonix-"$version"/ \
+      || { rsync_return="$?" ; true; };
+
+   if [ "$rsync_return" = "0" ]; then
+      break
+   fi
+   
+   sleep 10
+
+done
