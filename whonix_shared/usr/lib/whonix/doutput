@@ -329,30 +329,26 @@ fallbacks() {
    ## Check if zenity is installed.
    ## - This is not the case for cli users,
    ##   who removed zenity or custom builds which never had zenity installed.
-   if [ "$(which zenity)" = "" ]; then
+   if [ "$(which "zenity")" = "" ]; then
       ## zenity is not installed.
-      #echo "help_output: zenity not found."
       zenity() {
          ## dummy
          true
       }
-      return 0
    fi
 
-   ## Only use progress meter if we are running in X.
-   if [ ! "$DISPLAY" ]; then
-      zenity() {
+   if [ "$(which "wmctrl")" = "" ]; then
+      ## wmctrl is not installed.
+      wmctrl() {
          ## dummy
          true
       }
-      return 0
    fi
 
    ## check if kdialog is installed
    ## - that is not the case for CLI Custom-Workstation users
    ## - that is also not the case on Whonix-Gateway
-   if [ "$(which kdialog)" = "" ]; then
-      #echo "help_output: kdialog not found."
+   if [ "$(which "kdialog")" = "" ]; then
       kdialog() {
          ## dummy
          true
@@ -648,7 +644,7 @@ $MESSAGE_CLI"
 $IDENTIFIER
 ----------------------------------------------------------------------
 $MESSAGE_X" \
-               2>/dev/null &
+               >/dev/null 2>/dev/null &
 
             if [ "$LEFT_TOP" = "1" ]; then
                output_wmctrl "$TITLE"
@@ -690,8 +686,9 @@ output_wmctrl() {
    
    local counter="0"
    
-   while true; do    
-      local temp="$(wmctrl -l)"      
+   while true; do
+      ## "2>/dev/null" to hide output "Can not open display.", when not yet available.
+      local temp="$(wmctrl -l 2>/dev/null)"
       
       local grep_result="0"      
       echo "$temp" | grep --quiet "$TITLE" || { local grep_result="$?" ; true; };
@@ -711,7 +708,7 @@ output_wmctrl() {
       fi
    done
    
-   wmctrl -r "$TITLE" -e 0,0,0,-1,-1 || true
+   wmctrl -r "$TITLE" -e 0,0,0,-1,-1 >/dev/null 2>/dev/null || true
 }
 
 forget_messages() {

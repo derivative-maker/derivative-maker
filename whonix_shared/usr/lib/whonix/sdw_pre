@@ -16,16 +16,18 @@ SCRIPTNAME="$(basename $0)"
 IDENTIFIER="timesync"
 
 source /usr/lib/whonix/whonixcheck/help_error-handler
+source /usr/lib/whonix/whonixcheck/help_parse-cmd-options
 source /usr/lib/whonix/whonixcheck/10_preparation
 source /usr/lib/whonix/whonixcheck/30_welcome
 source /usr/lib/whonix/whonixcheck/67_check_clock
 source /usr/lib/whonix/whonixcheck/70_check-sdwdate
 source /usr/lib/whonix/whonixcheck/75_cleanup
 
-timesync_main() {
+sdw_pre_main() {
    trap "error_handler" ERR
 
    preparation ## 10_preparation
+   parse_cmd_options "${1+"$@"}" ## help_parse-cmd-options
 
    $output ${output_opts[@]} --forget
 
@@ -45,5 +47,5 @@ timesync_main() {
    #cleanup ## 75_cleanup
 }
 
-timesync_main ${1+"$@"}
+sdw_pre_main "${1+"$@"}"
 
