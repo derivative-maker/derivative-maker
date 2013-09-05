@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This file is part of Whonix
-# Copyright (C) 2012, 2013 adrelanos <adrelanos at riseup dot net>
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
 ## This file gets deleted by the vm script at the end.
