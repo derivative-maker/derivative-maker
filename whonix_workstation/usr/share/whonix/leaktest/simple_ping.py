@@ -1,5 +1,9 @@
 #! /usr/bin/env python
 
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 # Since it will be useful to know something about the script,
 # for the later tests, the terms are defined here:
 # (A discussion of Python language structure is beyond

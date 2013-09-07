@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 set -x
 
 true "Currently running script: $0"
@@ -62,9 +66,14 @@ general_setup() {
    ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
    sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
 
-   ## Disable clipboard sharing. Only matters if guest additions are installed which is recommended against.
-   ## Just in case.
+   ## Disable clipboard sharing. Only matters if guest additions are installed which is recommended against. Just in case.
    sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --clipboard disabled
+   
+   ## Disable Drag'n'Drop support. Only matters if guest additions are installed which is recommended against. Just in case.
+   ## TODO: Get ride of || true.
+   ## || true to make this work on Debian Wheezy. We do not yet have the requirement to build on Debian Jessi.
+   ## This VirtualBox feature was introduced first in the version which is also in Debian Jessi.
+   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --draganddrop disabled || true
 }
 
 

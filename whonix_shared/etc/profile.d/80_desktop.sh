@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 ## Whonix /etc/profile.d/80_desktop.sh
 
 if [ ! "$(tty)" = "/dev/tty1" ]; then
@@ -137,7 +141,7 @@ This can be disabled or configured in /etc/whonix.d/ configuration folder."
    fi
 
    if [ -e "/usr/share/whonix/whonix_gateway" ]; then
-      echo "If your host has little RAM, you are advised to reduce Whonix-Gateway RAM to 128 MB. No graphical desktop environment will be started in that case. A Whonix-Gateway without graphical desktop environment works as good as one with, it's just not that convenient. If you want, you can sometimes start a graphical desktop environment and sometimes only a terminal by toggling how much RAM is available to Whonix-Gateway. Documentation about this feature can be found here: https://whonix.org/wiki/Desktop"
+      echo "If your host has little RAM, you are advised to reduce Whonix-Gateway RAM to 128 MB. No graphical desktop environment will be started in that case. A Whonix-Gateway without graphical desktop environment works as good as one with, it's just not that convenient. If you want, you can sometimes start a graphical desktop environment and sometimes only a terminal by toggling how much RAM is available to Whonix-Gateway. Documentation about this feature can be found here: https://www.whonix.org/wiki/Desktop"
    fi
 
    sleep "$whonixdesktop_wait_seconds"

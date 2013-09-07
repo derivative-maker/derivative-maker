@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 download_whonix_news() {
    trap "error_handler" ERR
 
@@ -23,12 +27,12 @@ download_whonix_news() {
    ## --location is required since sf.net uses redirects to mirrors.
    
    for LINK in "${!WHONIX_NEWS_LINK_LIST[@]}"; do
-      FILENAME="${WHONIX_NEWS_LINK_LIST[$LINK]}"
+      FILENAME="${WHONIX_NEWS_LINK_LIST["$LINK"]}"
 
-      true "link: $LINK"
+      true "link: "$LINK""
       true "filename: $FILENAME"
 
-      DOWNLOAD_NEWS_RETURN[$LINK]="0"
+      DOWNLOAD_NEWS_RETURN["$LINK"]="0"
 
       $CURL \
          $CURL_VERBOSE \
@@ -40,11 +44,12 @@ download_whonix_news() {
          "$LINK" \
          &
 
-      wait "$!" || { DOWNLOAD_NEWS_RETURN[$LINK]="$?" ; true; };
+      wait "$!" || { DOWNLOAD_NEWS_RETURN["$LINK"]="$?" ; true; };
 
-      if [ ! "${DOWNLOAD_NEWS_RETURN[$LINK]}" = "0" ]; then
-         local MSG="Whonix News Result: Could not download Whonix News File "$FILENAME". (curl return code: "${DOWNLOAD_NEWS_RETURN[$LINK]}")"
+      if [ ! "${DOWNLOAD_NEWS_RETURN["$LINK"]}" = "0" ]; then
+         local MSG="Whonix News Result: Could not download Whonix News File "$FILENAME". (curl return code: "${DOWNLOAD_NEWS_RETURN["$LINK"]}")"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         return 0
       fi
    
    done
@@ -87,34 +92,34 @@ General Whonix News OpenPGP Verification Error. Please report this bug!"
    fi
 
    for LINK in "${!WHONIX_NEWS_LINK_LIST[@]}"; do
-      FILENAME="${WHONIX_NEWS_LINK_LIST[$LINK]}"
+      FILENAME="${WHONIX_NEWS_LINK_LIST["$LINK"]}"
       base_name="$(basename "$FILENAME" ".asc")"
       
       ## If news could not be downloaded, do not try to verify it.
-      if [ ! "${DOWNLOAD_NEWS_RETURN[$LINK]}" = "0" ]; then
+      if [ ! "${DOWNLOAD_NEWS_RETURN["$LINK"]}" = "0" ]; then
          continue
       fi      
       
-      NEWS_VERIFY_RETURN[$LINK]="0"
+      NEWS_VERIFY_RETURN["$LINK"]="0"
       
-      true "d NEWS_VERIFY_RETURN[$LINK]: ${NEWS_VERIFY_RETURN[$LINK]}"
+      true "d NEWS_VERIFY_RETURN["$LINK"]: ${NEWS_VERIFY_RETURN["$LINK"]}"
      
       gpg \
          --homedir "$VERIFY_TEMPDIR" \
          --output ""$VERIFY_TEMPDIR"/news/"$base_name"" \
          --decrypt ""$VERIFY_TEMPDIR"/news/"$FILENAME"" \
          2>/dev/null \
-         || { NEWS_VERIFY_RETURN[$LINK]="$?" ; true; };
+         || { NEWS_VERIFY_RETURN["$LINK"]="$?" ; true; };
          
-      true "e NEWS_VERIFY_RETURN[$LINK]: ${NEWS_VERIFY_RETURN[$LINK]}"         
+      true "e NEWS_VERIFY_RETURN["$LINK"]: ${NEWS_VERIFY_RETURN["$LINK"]}"         
 
-      if [ "${NEWS_VERIFY_RETURN[$LINK]}" = "0" ]; then
+      if [ "${NEWS_VERIFY_RETURN["$LINK"]}" = "0" ]; then
          local MSG="Whonix News Download: Successfully verified "$FILENAME" via OpenPGP."
          $output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
       else
          local MSG="Whonix News Download Result:
 Could not OpenPGP verify authenticity of Whonix News "$FILENAME"!!!
-(gpg return code: "${NEWS_VERIFY_RETURN[$LINK]}")
+(gpg return code: "${NEWS_VERIFY_RETURN["$LINK"]}")
 This is either a Whonix Bug or an attack on Whonix!!!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       fi

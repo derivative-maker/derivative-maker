@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 import sys
 import os.path
 import stem
