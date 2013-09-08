@@ -1,3 +1,5 @@
+//# Modified for Whonix, see COPYING for copying conditions.
+
 loadTemplate("org.kde.plasma-desktop.defaultPanel")
 
 for (var i = 0; i < screenCount; ++i) {
@@ -25,4 +27,3 @@ for (var i = 0; i < screenCount; ++i) {
         tasks.writeConfig("showOnlyCurrentScreen", true);
     }
 }
-
