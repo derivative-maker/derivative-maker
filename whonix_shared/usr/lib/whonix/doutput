@@ -531,8 +531,12 @@ show_output() {
     
       if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli" ]; then
          ## At least we got a waiting message.
-         MESSAGE_CLI="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli)"
-         MESSAGE_X="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x)"
+         MESSAGE_CLI="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli")"
+         if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x" ]; then
+            MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x")"
+         else
+            MESSAGE_X=""
+         fi
          LOOP="1"
          HAD_WAITING_MESSAGE="1"
 
@@ -551,14 +555,18 @@ show_output() {
                
                TITLE="$IDENTIFIER"
                
-               ## Small hack.
-               ## It would be cleaner / more rich in features if the window position was defined by the upstream application
-               ## and if "whonixcheck" was not hardcoded here.
-               if [ "$IDENTIFIER" = "whonixcheck" ]; then
-                  ## Move windows to the left top, so they do not overlap.
-                  $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --lefttop &
+               if [ "$MESSAGE" = "" ]; then
+                  true "MESSAGE is empty, skipping."
                else
-                  $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
+                  ## Small hack.
+                  ## It would be cleaner / more rich in features if the window position was defined by the upstream application
+                  ## and if "whonixcheck" was not hardcoded here.
+                  if [ "$IDENTIFIER" = "whonixcheck" ]; then
+                     ## Move windows to the left top, so they do not overlap.
+                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --lefttop &
+                  else
+                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
+                  fi
                fi
                
                sleep "3" &
@@ -588,7 +596,9 @@ show_output() {
    if [ -e "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" ]; then
       TYPE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type")"
    else
-      error "ERROR: No type stored."
+      ## TODO
+      #error "ERROR: No type stored."
+      TYPE="info"
    fi
 
    local temp="?"
@@ -604,9 +614,13 @@ show_output() {
       local temp="Info"
    fi
 
-   local TITLE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title")"
-   local TITLE="$temp $TITLE"
-   
+   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title" ]; then
+      local TITLE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title")"
+      local TITLE="$temp $TITLE"
+   else
+      local TITLE="$temp"
+   fi
+
    ## was started with --showcli
    ## (was automatically started by /etc/profile.d/)
    if [ "$SHOW_CLI" = "1" ]; then 
