@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+root_check() {
+   trap "error_handler" ERR
+
+   if [ ! "$ROOT_CHECK" = "0" ]; then
+      if [ "$(id -u)" != "0" ]; then
+         local MSG="Ok, not running as root."
+         $output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
+      else
+         local MSG="Please do not run whonixcheck as root."
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         EXIT_CODE="1"
+         cleanup "1"
+         return 0
+      fi
+   fi
+}
