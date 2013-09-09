@@ -11,6 +11,37 @@ if [ ! "$(tty)" = "/dev/tty1" ]; then
 else
    scriptname="/etc/profile.d/80_desktop.sh RAM Adjusted Desktop Starter"
 
+   error_handler() {
+      echo "$scriptname ERROR: ret: $?"
+      echo "$scriptname ERROR: BASH_COMMAND: $BASH_COMMAND"
+   }
+
+   maybe_start_whonixsetup() {
+      ## Checking if Tor has been enabled.
+      ## (For now, always 1 (yes) on Whonix-Workstatio, so is skipped on WHonix-Workstation.)
+      ## And if Tor has not been enabled, auto start whonixsetup.
+      ## This function only gets called, if we are not booting into a graphical desktop environment.
+      ## Eventually auto starting whonixsetup in a graphical desktop environment is implemented
+      ## through /etc/xdg/...
+
+      source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
+
+      ## disable trap /usr/lib/whonix/whonixcheck/17_check_tor_enabled may have enabled
+      trap "" ERR
+
+      ## Check if Tor is enabled.
+      ## returns: TOR_ENABLED
+      check_tor_enabled_do
+
+      ## disable trap of check_tor_enabled_do
+      trap "" ERR
+
+      if [ "$TOR_ENABLED" = "0" ]; then
+         ## This has a sudoers exception in /etc/sudoers.d/whonixsetup.
+         sudo /usr/bin/whonixsetup
+      fi
+   }
+
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
@@ -75,6 +106,7 @@ $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
          set +x
       fi
+      maybe_start_whonixsetup
       return 0
    fi
 
@@ -115,6 +147,7 @@ whonixdesktop_start_display_manager is set to 0 in /etc/whonix.d/ \
 configuration folder, not starting a desktop environment."
          set +x
       fi
+      maybe_start_whonixsetup
       return 0
    fi
 
@@ -125,6 +158,7 @@ configuration folder, not starting a desktop environment."
 because there is only "$total_ram" MB total RAM. (A minimum of \
 "$whonixdesktop_minium_ram" MB total RAM is configured in /etc/whonix.d/ \
 configuration folder.)"
+         maybe_start_whonixsetup
          return 0
       fi
    fi
@@ -144,11 +178,20 @@ This can be disabled or configured in /etc/whonix.d/ configuration folder."
       echo "If your host has little RAM, you are advised to reduce Whonix-Gateway RAM to 128 MB. No graphical desktop environment will be started in that case. A Whonix-Gateway without graphical desktop environment works as good as one with, it's just not that convenient. If you want, you can sometimes start a graphical desktop environment and sometimes only a terminal by toggling how much RAM is available to Whonix-Gateway. Documentation about this feature can be found here: https://www.whonix.org/wiki/Desktop"
    fi
 
-   sleep "$whonixdesktop_wait_seconds"
+   ## Fallback.
+   sleep_return="0"
 
-   ## There is a /etc/sudoers.d/kdm exception for this.
-   sudo /usr/sbin/service "$whonixdesktop_display_manager" start
-   ret="$?"
+   ## Returns 0, if sleep was not terminated (CTRL + C not pressed) , otherwise 1.
+   /usr/lib/whonix/desktop_sleep "$whonixdesktop_wait_seconds" || { sleep_return="$?" ; true; };
+
+   if [ "$sleep_return" = "0" ]; then
+      ## There is a /etc/sudoers.d/kdm exception for this.
+      sudo /usr/sbin/service "$whonixdesktop_display_manager" start
+      ret="$?"
+   else
+      ## We will not boot into a graphical desktop environment.
+      maybe_start_whonixsetup
+   fi
 
    if [ "$whonixdesktop_debug" = 1 ]; then
       true "$scriptname INFO: End."
