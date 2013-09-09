@@ -22,6 +22,7 @@ IDENTIFIER="timesync"
 source /usr/lib/whonix/whonixcheck/help_error-handler
 source /usr/lib/whonix/whonixcheck/help_parse-cmd-options
 source /usr/lib/whonix/whonixcheck/10_preparation
+source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
 source /usr/lib/whonix/whonixcheck/30_welcome
 source /usr/lib/whonix/whonixcheck/67_check_clock
 source /usr/lib/whonix/whonixcheck/70_check-sdwdate
@@ -41,6 +42,14 @@ sdw_pre_main() {
       $FUNCTION
       return 0
    fi
+   
+   ## returns: TOR_ENABLED
+   check_tor_enabled_do ## 17_check_tor_enabled
+
+   if [ "$TOR_ENABLED" = "0" ]; then
+      true "TOR_ENABLED is 0. Whonixsetup has not been run yet. Exit 0, to prevent showing a progress bar before whonixsetup."
+      exit 0
+   fi
 
    welcome ## 30_welcome
    
@@ -52,4 +61,3 @@ sdw_pre_main() {
 }
 
 sdw_pre_main "${1+"$@"}"
-
