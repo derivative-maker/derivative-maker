@@ -38,6 +38,7 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         --allowed_per_pool_failure_ratio      ratio (0.0-1.0) of allowed per-pool failure
         -p --proxy                            what to pass to curl's --socks5-hostname
         -i --interval                         continuously run every x minutes
+        --mininterval                         wait minimum between intervals
         -r --randomize                        randomize interval
         -n --noconfig                         ignore /etc/sdwdate.d/ config folder
         -w --dispatchpre                      exec before run
@@ -104,6 +105,10 @@ sdwdate_defaults() {
 
    if [ "$INTERVAL" = "" ]; then
       INTERVAL=""
+   fi
+
+   if [ "$MIN_INTERVAL" = "" ]; then
+      MIN_INTERVAL="10"
    fi
 
    if [ "$NOCONFIG" = "" ]; then
@@ -323,6 +328,10 @@ sdwdate_parse_cmd_options() {
                ;;
            -i | --interval)
                INTERVAL=$2
+               shift 2
+               ;;
+           --mininterval)
+               MIN_INTERVAL=$2
                shift 2
                ;;
            -n | --noconfig)
@@ -903,8 +912,8 @@ sdwdate_main() {
 
          if [ "$RANDOMIZE" = "1" ]; then
             local minutes="$(( ($(od -An -N2 -i /dev/random) )%($INTERVAL) ))"
-            if [ "9" -ge "$minutes" ]; then
-               local minutes="$(expr "$minutes" + "10")"
+            if [ "$MIN_INTERVAL" -ge "$minutes" ]; then
+               local minutes="$(expr "$minutes" + "$MIN_INTERVAL")"
             fi
          else
             local minutes="$INTERVAL"
