@@ -161,13 +161,13 @@ FEATUREBLOG_LINK="https://anonymousoperatingsystem.wordpress.com/"
 IMPORTANTBLOG_OFFLINE_FILE="/var/lib/whonix/whonixcheck/important_blog.txt"
 IMPORTANTBLOG_OFFLINE_LINK="file://"$IMPORTANTBLOG_OFFLINE_FILE""
 
-IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE="/var/lib/whonix/whonixcheck/import_blog_not_available.txt"
+IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE="/usr/share/whonix/import_blog_not_available.txt"
 IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://"$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE""
 
 FEATUREBLOG_OFFLINE_FILE="/var/lib/whonix/whonixcheck/feature_blog.txt"
 FEATUREBLOG_OFFLINE_LINK="file://"$FEATUREBLOG_OFFLINE_FILE""
 
-FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE="/var/lib/whonix/whonixcheck/feature_blog_not_available.txt"
+FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE="/usr/share/whonix/feature_blog_not_available.txt"
 FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://"$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE""
 
 
@@ -796,31 +796,23 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 tb_start_recommend() {
    root_check
    tb_preparation
-
-   LINK="$IMPORTANTBLOG_OFFLINE_LINK"
-   debug "INFO: Link set to $LINK"
  
    if [ ! -e "$IMPORTANTBLOG_OFFLINE_FILE" ]; then
-      echo "Whonix Important Blog has not been downloaded yet. It should be done, next time whonixcheck runs." > "$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE"
-      chmod g+rw "$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE"
-      chmod o+rw "$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE"
       LINK="$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK"
+   else
+      LINK="$IMPORTANTBLOG_OFFLINE_LINK"
    fi
-   
-   tb_start_new_tab
-   
-   LINK="$FEATUREBLOG_OFFLINE_LINK"
    debug "INFO: Link set to $LINK"
- 
-   if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
-      echo "Whonix Feature Blog has not been downloaded yet. It should be done, next time whonixcheck runs." > "$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE"
-      chmod g+rw "$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK"
-      chmod o+rw "$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK"
-      LINK="$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK"
-   fi 
-   
    tb_start_new_tab
-   
+
+   if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
+      LINK="$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK"
+   else
+      LINK="$FEATUREBLOG_OFFLINE_LINK"
+   fi
+   debug "INFO: Link set to $LINK"   
+   tb_start_new_tab
+
    exit 0
 }  
 
