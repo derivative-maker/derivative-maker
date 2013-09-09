@@ -330,19 +330,23 @@ progress_bar() {
 }
 
 fallbacks() {
+   if [ "$DISPLAY" = "" ]; then
+      NO_X="1"
+   fi
+
    ## Check if zenity is installed.
    ## - This is not the case for cli users,
    ##   who removed zenity or custom builds which never had zenity installed.
-   if [ "$(which "zenity")" = "" ]; then
-      ## zenity is not installed.
+   if [ "$(which "zenity")" = "" ] || [ "$DISPLAY" = "" ]; then
+      ## zenity is not installed or no X server running.
       zenity() {
          ## dummy
          true
       }
    fi
 
-   if [ "$(which "wmctrl")" = "" ]; then
-      ## wmctrl is not installed.
+   if [ "$(which "wmctrl")" = "" ] || [ "$DISPLAY" = "" ]; then
+      ## wmctrl is not installed or no X server running.
       wmctrl() {
          ## dummy
          true
@@ -352,7 +356,8 @@ fallbacks() {
    ## check if kdialog is installed
    ## - that is not the case for CLI Custom-Workstation users
    ## - that is also not the case on Whonix-Gateway
-   if [ "$(which "kdialog")" = "" ]; then
+   if [ "$(which "kdialog")" = "" ] || [ "$DISPLAY" = "" ]; then
+      ## kdialog not installed or no X server running.
       kdialog() {
          ## dummy
          true
@@ -676,6 +681,11 @@ output_wmctrl() {
    ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
 
    trap "error_handler" ERR
+
+   if [ "$NO_X" = "1" ]; then
+      true "NO_X is set to 1, do not try wmctrl, return 0 from output_wmctrl."
+      return 0
+   fi
 
    local TITLE="${1+"$@"}"
 
