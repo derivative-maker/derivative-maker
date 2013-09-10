@@ -42,6 +42,9 @@ cpf_pid="$$"
 
 echo "$ID INFO: Getting connection... cpf_pid: "$cpf_pid"" >> "$LOG"
 
+kill_after="5s"
+timeout_after="5s"
+
 ## {{{ /etc/controlportfilt.d
 
 if [ -d /etc/controlportfilt.d ]; then
@@ -160,24 +163,38 @@ while read -r; do
    fi   
 
    tor_ctrl_return="0"
-   echo "$ID INFO: will run: tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
-   var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
+   echo "$ID INFO: will run: timeout --kill-after=\"$kill_after\" \"$timeout_after\" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
+   var="$(timeout --kill-after="$kill_after" "$timeout_after" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
    wait "$!" || { tor_ctrl_return="$?" ; true; }
    
+   ## `timeout` returns:
+   ## - 124 if sigterm was sufficient
+   ## - 137 if needed to use kill.
+
    if [ ! "$tor_ctrl_return" = "0" ]; then
-      echo "$ID ERROR: tor-ctrl returned a non-zero exit code: "$tor_ctrl_return". var: "$var" | Let's try again..." >> "$LOG"
+      if [ "$tor_ctrl_return" = "124" ] || [ "$tor_ctrl_return" = "137" ]; then
+         temp_msg="timeout"
+      else
+         temp_msg="no timeout"
+      fi
+      echo "$ID ERROR: tor-ctrl returned a non-zero exit code ("$temp_msg"): "$tor_ctrl_return". var: "$var" | Let's try again..." >> "$LOG"
       
       tor_ctrl_return="0"
-      echo "$ID INFO: will run: tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
-      var="$(tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
+      echo "$ID INFO: will run: timeout --kill-after=\"$kill_after\" \"$timeout_after\" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
+      var="$(timeout --kill-after="$kill_after" "$timeout_after" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
       wait "$!" || { tor_ctrl_return="$?" ; true; }
       
       if [ ! "$tor_ctrl_return" = "0" ]; then
-         echo "$ID ERROR: tor-ctrl returned again a non-zero exit code: "$tor_ctrl_return". var: "$var" | Breaking." >> "$LOG"
+         if [ "$tor_ctrl_return" = "124" ] || [ "$tor_ctrl_return" = "137" ]; then
+            temp_msg="timeout"
+         else
+            temp_msg="no timeout"
+         fi
+         echo "$ID ERROR: tor-ctrl returned again a non-zero exit code ("$temp_msg"): "$tor_ctrl_return". var: "$var" | Breaking." >> "$LOG"
          break
       fi
    fi
- 
+
    ## split at newlines only
    IFS='
 '
