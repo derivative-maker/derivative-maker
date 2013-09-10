@@ -6,6 +6,57 @@
 
 set -x
 
+ID="$(uuidgen -r)"
+LOG="/var/log/controlportfilt"
+OWN_PID="$$"
+
+echo "$ID $0 INFO: Starting... pid: "$OWN_PID"" >> "$LOG"
+
+echo "$OWN_PID" > "/var/run/controlportfilt/own_pid"
+rm --force "/var/run/controlportfilt/error"
+
+error_handler() {
+   local return_code="$?"
+   local bash_command="$BASH_COMMAND"
+   if [ "$ID" = "" ] ; then
+      ID="No_ID"
+   fi
+   echo "$ID $0 ERROR: return_code: $return_code | bash_command: $bash_command" >> "$LOG"
+
+   /sbin/start-stop-daemon \
+      --stop \
+      --quiet \
+      --pidfile "/var/run/controlportfilt/tcpserver_pid" \
+      --signal 2 \
+      --retry 2
+   
+   touch "/var/run/controlportfilt/error"
+   rm --force "/var/run/controlportfilt/ownrunning"
+   rm --force "/var/run/controlportfilt/tcpserver_pid"
+   rm --force "/var/run/controlportfilt/own_pid"
+   exit 1
+}
+
+trap "error_handler" ERR
+
+trap_sigint() {
+   echo "$ID $0 INFO: SIGINT received. Exiting." > "$LOG"
+   
+   /sbin/start-stop-daemon \
+      --stop \
+      --quiet \
+      --pidfile "/var/run/controlportfilt/tcpserver_pid" \
+      --signal 2 \
+      --retry 2
+   
+   rm --force "/var/run/controlportfilt/ownrunning"
+   rm --force "/var/run/controlportfilt/tcpserver_pid"
+   rm --force "/var/run/controlportfilt/own_pid"
+   exit 0
+}
+
+trap "trap_sigint" SIGINT
+
 tcpserver \
    -v \
    -1 \
@@ -13,5 +64,27 @@ tcpserver \
    -H \
    0 \
    9052 \
-   /bin/bash -x -c /usr/lib/whonix/cpf-tcpserver
+   /bin/bash -x -c /usr/lib/whonix/cpf-tcpserver &
 
+tcpserver_pid="$!"
+
+echo "$ID $0 INFO: Started. tcpserver_pid: "$tcpserver_pid" Waiting for connections..." >> "$LOG"
+
+touch "/var/run/controlportfilt/ownrunning"
+
+echo "$tcpserver_pid" > "/var/run/controlportfilt/tcpserver_pid"
+
+tcpserver_return="0"
+wait "$tcpserver_pid" || { tcpserver_return="$?" ; true; };
+
+rm --force "/var/run/controlportfilt/ownrunning"
+rm --force "/var/run/controlportfilt/tcpserver_pid"
+rm --force "/var/run/controlportfilt/own_pid"
+
+if [ "$tcpserver_return" = "0" ]; then
+   echo "$ID $0 INFO: End with exit code (0): "$tcpserver_return"" >> "$LOG"
+   exit "0"
+else
+   echo "$ID $0 ERROR: End with exit code (x): "$tcpserver_return"" >> "$LOG"
+   exit "$tcpserver_return"
+fi

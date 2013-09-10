@@ -64,7 +64,7 @@ do_start()
       --make-pidfile \
       --pidfile $PIDFILE \
       --chuid debian-tor:debian-tor \
-      --exec $DAEMON -- \
+      --exec "$DAEMON" -- \
       $DAEMON_ARGS \
          || return 2
 
@@ -84,19 +84,35 @@ do_stop()
    #   2 if daemon could not be stopped
    #   other if a failure occurred
 
-   for i in "$(pgrep -u debian-tor --full $DAEMON)"; do
+   for i in "$(pgrep -u debian-tor --full "$DAEMON")"; do
       if [ ! "$i" = "" ]; then
-         kill -9 $i
+         echo "$i" > "/var/run/controlportfilt/temp"
+
+         /sbin/start-stop-daemon \
+            --stop \
+            --quiet \
+            --pidfile "/var/run/controlportfilt/temp" \
+            --signal 2 \
+            --retry 5
+
       fi
    done
 
-   for i in "$(pgrep -u debian-tor --full cpf-tcpserver)"; do
+   for i in "$(pgrep -u debian-tor --full "cpf-tcpserver")"; do
       if [ ! "$i" = "" ]; then
-         kill -9 $i
+         echo "$i" > "/var/run/controlportfilt/temp"
+
+         /sbin/start-stop-daemon \
+            --stop \
+            --quiet \
+            --pidfile "/var/run/controlportfilt/temp" \
+            --signal 2 \
+            --retry 5
+
       fi
    done
 
-   rm -f $PIDFILE
+   rm -f "$PIDFILE"
    return 0
 }
 
