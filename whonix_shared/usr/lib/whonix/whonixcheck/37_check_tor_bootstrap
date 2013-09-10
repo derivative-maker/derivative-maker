@@ -7,8 +7,34 @@
 check_tor_bootstrap() {
    trap "error_handler" ERR
 
+   ## Small check if Control Port Filter Proxy is functional.
+   ## Only testing on Whonix-Gateway, because Control Port Filter Proxy only
+   ## runs on Whonix-Gateway.
+   i="0"
+   if [ "$VM" = "Whonix-Gateway" ]; then
+      while [ ! -f "/var/run/controlportfilt/ownrunning" ]; do
+         i="$(expr "$i" + "1")" || true
+         if [ "$i" -ge "30" ]; then
+            break
+         fi
+         sleep "1" &
+         wait "$!"         
+      done
+      if [ ! -f "/var/run/controlportfilt/ownrunning" ]; then
+         local MSG="Control Port Filter Proxy Test Result:
+File /var/run/controlportfilt/ownrunning does not exist. Please report this bug!"
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         EXIT_CODE="1"
+         cleanup "1"
+         return 0
+      else
+         local MSG="Control Port Filter Proxy Test Result: Ok."
+      fi
+   fi
+
    ## Sometimes it does not work on the first run. Small hack.
-   /usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py >/dev/null || true
+   local temp_return="0"
+   local temp_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { local temp_return="$?" ; true; }
    
    if [ "$TOR_BOOTSTRAP_TIME_START" = "" ]; then
       TOR_BOOTSTRAP_TIME_START="$(date +%s)"
@@ -164,5 +190,4 @@ Run whonixcheck on Whonix-Gatway as well."
    EXIT_CODE="1"
    cleanup "1"
    return 0
-} 
-
+}
