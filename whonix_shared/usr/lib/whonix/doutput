@@ -627,13 +627,17 @@ show_output() {
       if [ "$SHOW_WAIT_MESSAGE_ONLY_ONCE" = "1" ]; then
          true
       else
-         output_write_to_tty "$TITLE
+         if [ "$MESSAGE_CLI" = "" ]; then
+            true "MESSAGE_CLI is empty."
+         else
+            output_write_to_tty "$TITLE
 $MESSAGE_CLI"
-         SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
+            SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
 
-         #if [ "$LOOP" = "0" ]; then
-            #rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
-         #fi
+            #if [ "$LOOP" = "0" ]; then
+               #rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
+            #fi
+         fi
       fi
 
       if [ "$LOOP" = "1" ]; then
@@ -654,23 +658,27 @@ $MESSAGE_CLI"
          if [ "$PASSIVE" = "1" ]; then
             kdialog --passivepopup "$MESSAGE_X" "20"
          else
-            zenity \
-               --display="$display" \
-               --height=600 \
-               --width=800 \
-               --timeout 86400 \
-               --no-markup \
-               --window-icon "$ICON" \
-               --title="$TITLE" \
-               "--"$TYPE"" \
-               --text "
+            if [ "$MESSAGE_X" = "" ]; then
+               true "MESSAGE_X is empty."
+            else
+               zenity \
+                  --display="$display" \
+                  --height=600 \
+                  --width=800 \
+                  --timeout 86400 \
+                  --no-markup \
+                  --window-icon "$ICON" \
+                  --title="$TITLE" \
+                  "--"$TYPE"" \
+                    --text "
 $IDENTIFIER
 ----------------------------------------------------------------------
 $MESSAGE_X" \
-               >/dev/null 2>/dev/null &
+                  >/dev/null 2>/dev/null &
 
-            if [ "$LEFT_TOP" = "1" ]; then
-               output_wmctrl "$TITLE"
+               if [ "$LEFT_TOP" = "1" ]; then
+                  output_wmctrl "$TITLE"
+               fi
             fi
          fi                  
          SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
