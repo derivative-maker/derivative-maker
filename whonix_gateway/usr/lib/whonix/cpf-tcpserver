@@ -30,9 +30,6 @@ trap_sigint() {
 
 trap "trap_sigint" SIGINT
 
-OIFS="$IFS"
-IFS="$OIFS"
-
 ## Do not use echos for user or debug output,
 ## because those are send back to the client, which gets confused.
 
@@ -86,20 +83,16 @@ done
 ## }}}
 
 write_back() {
-   IFS="$OIFS"
    printf "${1+"$@"}\r\n"
    echo "$ID BACK: ${1+"$@"}" >> "$LOG"
 }
 
 received() {
-   IFS="$OIFS"
    true "${1+"$@"}"
    echo "$ID GOT: ${1+"$@"}" >> "$LOG"
 }
 
 while read -r; do
-
-   IFS="$OIFS"
 
    cleaned_reply="$REPLY"
  
@@ -160,83 +153,93 @@ while read -r; do
       true "Got \"$cleaned_reply\" let us lie and forge the answer to make Tor Button happy."
       write_back '250-net/listeners/socks="127.0.0.1:9150"'
       continue
-   fi   
+   fi
 
-   tor_ctrl_return="0"
-   echo "$ID INFO: will run: timeout --kill-after=\"$kill_after\" \"$timeout_after\" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
-   var="$(timeout --kill-after="$kill_after" "$timeout_after" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
-   wait "$!" || { tor_ctrl_return="$?" ; true; }
-   
    ## `timeout` returns:
    ## - 124 if sigterm was sufficient
    ## - 137 if needed to use kill.
 
-   if [ ! "$tor_ctrl_return" = "0" ]; then
-      if [ "$tor_ctrl_return" = "124" ] || [ "$tor_ctrl_return" = "137" ]; then
-         temp_msg="timeout"
-      else
-         temp_msg="no timeout"
-      fi
-      echo "$ID ERROR: tor-ctrl returned a non-zero exit code ("$temp_msg"): "$tor_ctrl_return". var: "$var" | Let's try again..." >> "$LOG"
-      
-      tor_ctrl_return="0"
-      echo "$ID INFO: will run: timeout --kill-after=\"$kill_after\" \"$timeout_after\" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c \"$cleaned_reply\"" >> "$LOG"
-      var="$(timeout --kill-after="$kill_after" "$timeout_after" tor-ctrl -v -s 0 -P 9051 -a /var/run/tor/control.authcookie -c "$cleaned_reply")" &
-      wait "$!" || { tor_ctrl_return="$?" ; true; }
-      
-      if [ ! "$tor_ctrl_return" = "0" ]; then
-         if [ "$tor_ctrl_return" = "124" ] || [ "$tor_ctrl_return" = "137" ]; then
-            temp_msg="timeout"
-         else
-            temp_msg="no timeout"
-         fi
-         echo "$ID ERROR: tor-ctrl returned again a non-zero exit code ("$temp_msg"): "$tor_ctrl_return". var: "$var" | Breaking." >> "$LOG"
-         break
-      fi
+   TMP="$(mktemp --directory)"
+   IN=""$TMP"/in"
+   OUT=""$TMP"/out"
+
+   mkfifo "$IN"
+   mkfifo "$OUT"
+
+   nc 127.0.0.1 9051 < "$OUT" > "$IN" &
+   NC_PID="$!"
+
+   ## CookieAuthFileGroupReadable is set to 1 by Tor default.
+   ## User "user" is a part of the group "debian-tor".
+   cookie="$(xxd -c 32 -g 0 /var/run/tor/control.authcookie | awk '{print $2}')"
+
+   ## Open Tor control port connection.
+   timeout --kill-after=2s 2s echo "AUTHENTICATE "$cookie"" > "$OUT" &
+   wait "$!"
+
+   ## Send command.
+   timeout --kill-after=2s 2s echo "$cleaned_reply" > "$OUT" &
+   wait "$!"
+
+   ## Close Tor control port connection.
+   timeout --kill-after=2s 2s echo "QUIT" > "$OUT" &
+   wait "$!"
+
+   ## Get results.
+   var="$(timeout --kill-after=2s 2s cat "$IN")"
+
+   ## Debugging, can be out commented.
+   ps_return="0"
+   ps -p "$NC_PID" >/dev/null 2>/dev/null || { ps_return="$?"; true; };
+   true "ps_return: $ps_return"
+
+   if [ "$var" = "" ]; then
+      write_back "$ID ERROR: var is empty."
+      break
    fi
 
-   ## split at newlines only
-   IFS='
-'
-
-   for line in $var; do
+   previous_line=""
+   line=""
    
-      #true "line: $line"
+   true "var: $var"
 
-      #set +x
-      if [ "$line" = "Trying 127.0.0.1..." ]; then
-         previous_line="$line"
-         continue
-      fi     
-      if [ "$line" = "Connected to 127.0.0.1." ]; then
-         previous_line="$line"
-         continue
-      fi    
-      if [ "$line" =  "Escape character is '^]'." ]; then
-         previous_line="$line"
-         continue
-      fi
-      if [ "$line" = "250 closing connection" ]; then
-         previous_line="$line"
-         continue
-      fi
-      if [ "$line" = "250 OK" ]; then
-         if [ "$previous_line" = "Escape character is '^]'." ]; then
-            previous_line="$line"
-            continue
-         fi         
-      fi
-      #set -x
+   echo "$var" > ""$TMP"/temp"
 
-      write_back "$line"
-      
-      previous_line="$line"
-   done
+   ## Get the first line.
+   first="$(cat ""$TMP"/temp" | sed -n 1,1p)"
+   first="$(echo "$first" | tr '\r' ' ')"
+   first="$(echo "$first" | tr '\n' ' ')"
+   first="$(echo "$first" | sed -e "s/ \{1,\}$//")"
 
-   IFS="$OIFS"
+   if [ "$first" = "250 OK" ]; then
+      true
+   else
+      echo "$ID ERROR: authentication error. first: $first" >> "$LOG"
+      write_back "$first"
+      break
+   fi
+
+   ## Get the second line.
+   second="$(cat ""$TMP"/temp" | sed -n 2,2p)"
+   second="$(echo "$second" | tr '\r' ' ')"
+   second="$(echo "$second" | tr '\n' ' ')"
+   second="$(echo "$second" | sed -e "s/ \{1,\}$//")"
+   
+   write_back "$second"
+
+   if [ "$second" = "250 OK" ]; then      
+      ## Only got a "250 OK", that's all.
+      continue
+   fi
+
+   ## Get the third line.
+   third="$(cat ""$TMP"/temp" | sed -n 3,3p)"
+   third="$(echo "$third" | tr '\r' ' ')"
+   third="$(echo "$third" | tr '\n' ' ')"
+   third="$(echo "$third" | sed -e "s/ \{1,\}$//")"
+
+   write_back "$third"
 
 done
 
-IFS="$OIFS"
-
-echo "$ID INFO: End. " >> "$LOG"
+echo "$ID INFO: End." >> "$LOG"
