@@ -34,7 +34,8 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this bug!
 
    ## Sometimes it does not work on the first run. Small hack.
    local temp_return="0"
-   local temp_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { local temp_return="$?" ; true; }
+   local temp_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" &
+   wait "$!" || { local temp_return="$?" ; true; }
    
    if [ "$TOR_BOOTSTRAP_TIME_START" = "" ]; then
       TOR_BOOTSTRAP_TIME_START="$(date +%s)"
@@ -43,7 +44,8 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this bug!
    TOR_BOOTSTRAP_TIME_PASSED="$(expr "$TOR_BOOTSTRAP_TIME_NOW" - "$TOR_BOOTSTRAP_TIME_START")" || true
    
    tor_bootstrap_percent="0"
-   tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { tor_bootstrap_percent="$?" ; true; }
+   tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" &
+   wait "$!" || { tor_bootstrap_percent="$?" ; true; }
    
    local MSG="tor_bootstrap_percent: $tor_bootstrap_percent"
    #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
