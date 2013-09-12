@@ -191,7 +191,7 @@ here: https://www.whonix.org/wiki/Desktop"
    ## Returns 0, if sleep was not terminated (CTRL + C not pressed) , otherwise 1.
    /usr/lib/whonix/desktop_sleep "$whonixdesktop_wait_seconds" || { sleep_return="$?" ; true; };
 
-   if [ "$sleep_return2" = "0" ]; then
+   if [ "$sleep_return" = "0" ]; then
       service_return2="0"
       ## There is a /etc/sudoers.d/kdm exception for this.
       sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
