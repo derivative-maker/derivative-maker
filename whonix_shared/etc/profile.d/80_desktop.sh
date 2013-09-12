@@ -197,7 +197,7 @@ here: https://www.whonix.org/wiki/Desktop"
       sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
 
       if [ "$service_return2" = "0" ]; then
-         "$scriptname INFO: "$whonixdesktop_display_manager" already running, not starting."
+         echo "$scriptname INFO: "$whonixdesktop_display_manager" already running, not starting."
       else
          service_return3="0"
          ## There is a /etc/sudoers.d/kdm exception for this.
