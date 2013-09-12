@@ -97,10 +97,10 @@ else
       return 0
    fi
 
-   which "$whonixdesktop_display_manager" >/dev/null
-   ret="$?"
+   which_return="0"
+   which "$whonixdesktop_display_manager" >/dev/null || { which_return="$?" ; true; };
 
-   if [ ! "$ret" = "0" ]; then
+   if [ ! "$which_return" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
          true "$scriptname INFO: display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
@@ -111,11 +111,11 @@ configuration folder does not exist. Not starting a desktop environment."
       return 0
    fi
 
+   service_return1="0"   
    ## There is a /etc/sudoers.d/kdm exception for this.
-   sudo service "$whonixdesktop_display_manager" status >/dev/null
-   ret="$?"
+   sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return1="$?" ; true; };
 
-   if [ "$ret" = "0" ]; then
+   if [ "$service_return1" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
          true "$scriptname INFO: \
 Not starting kdm, already running."
@@ -191,10 +191,24 @@ here: https://www.whonix.org/wiki/Desktop"
    ## Returns 0, if sleep was not terminated (CTRL + C not pressed) , otherwise 1.
    /usr/lib/whonix/desktop_sleep "$whonixdesktop_wait_seconds" || { sleep_return="$?" ; true; };
 
-   if [ "$sleep_return" = "0" ]; then
+   if [ "$sleep_return2" = "0" ]; then
+      service_return2="0"
       ## There is a /etc/sudoers.d/kdm exception for this.
-      sudo /usr/sbin/service "$whonixdesktop_display_manager" start
-      ret="$?"
+      sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
+
+      if [ "$service_return2" = "0" ]; then
+         "$scriptname INFO: "$whonixdesktop_display_manager" already running, not starting."
+      else
+         service_return3="0"
+         ## There is a /etc/sudoers.d/kdm exception for this.
+         sudo service "$whonixdesktop_display_manager" start || { service_return3="$?" ; true; };
+         
+         if [ "$service_return3" = 0 ]; then
+            true "$scriptname INFO: Successfully started "$whonixdesktop_display_manager"."
+         else
+            echo "$scriptname ERROR: Could not start "$whonixdesktop_display_manager". Please report this bug!"
+         fi
+      fi
    else
       ## We will not boot into a graphical desktop environment.
       echo "$scriptname INFO: Manually aborted start of login manager \
