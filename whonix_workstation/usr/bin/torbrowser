@@ -79,8 +79,8 @@ trap "tb_error_handler" ERR
 
 
 
-trap_sigterm() {
-   MSG="$SCRIPTNAME: SIGTERM received. Exiting."
+trap_tb() {
+   MSG="$SCRIPTNAME: SIG-(TERM/INT) received. Exiting."
 
    if [ "$LAST_CURL_PRGRS_PID" = "" ]; then
       true
@@ -99,7 +99,8 @@ trap_sigterm() {
    exit 1
 }
 
-trap "trap_sigterm" SIGTERM
+trap "trap_tb" SIGTERM
+trap "trap_tb" SIGINT
 
 
 
@@ -210,6 +211,7 @@ parse_cmd_options() {
                TB_FORCE_INSTALL="1"
                DEV_BUILD_PASSTHROUGH="1"
                DEV_PASSTHROUGH="1"
+               ORDINARY_PROGRESS_BAR="1"
                shift
                ;;
            --clearnet)
@@ -339,7 +341,11 @@ tb_preparation() {
 
    rm --force "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
 
-   output="sudo -u user /usr/lib/whonix/doutput"
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      output="true"
+   else
+      output="sudo -u user /usr/lib/whonix/doutput"
+   fi
 
    output_opt_1="--icon $ICON"
    output_opt_2="--display $display"
