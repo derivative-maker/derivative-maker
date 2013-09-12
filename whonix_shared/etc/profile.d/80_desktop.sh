@@ -37,6 +37,7 @@ else
       trap "" ERR
 
       if [ "$TOR_ENABLED" = "0" ]; then
+         echo "$scriptname INFO: Tor has not been enabled yet. Starting whonixsetup..."
          ## This has a sudoers exception in /etc/sudoers.d/whonixsetup.
          sudo /usr/bin/whonixsetup
       fi
@@ -190,6 +191,9 @@ This can be disabled or configured in /etc/whonix.d/ configuration folder."
       ret="$?"
    else
       ## We will not boot into a graphical desktop environment.
+      echo "$scriptname INFO: Manually aborted start of login manager \
+(graphical desktop environment) "$whonixdesktop_display_manager"."
+
       maybe_start_whonixsetup
    fi
 
