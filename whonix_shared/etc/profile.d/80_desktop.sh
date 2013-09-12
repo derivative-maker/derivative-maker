@@ -189,6 +189,7 @@ here: https://www.whonix.org/wiki/Desktop"
    sleep_return="0"
 
    ## Returns 0, if sleep was not terminated (CTRL + C not pressed) , otherwise 1.
+   ## This is implemented in a separate script, because `sh` does not support `trap`s.
    /usr/lib/whonix/desktop_sleep "$whonixdesktop_wait_seconds" || { sleep_return="$?" ; true; };
 
    if [ "$sleep_return" = "0" ]; then
