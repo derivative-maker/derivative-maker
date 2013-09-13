@@ -185,78 +185,61 @@ parse_dpkg_status_file() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
    ## Check which packages are claimed to be installed within the build.
-   local dpkg_status_file=""$CHROOT_FOLDER"/var/lib/dpkg/status"
-   mapfile -t lines < "$dpkg_status_file"
-   
-   #set +x
-   
-   echo "${cyan}$0 INFO: Parsing $dpkg_status_file... ${reset}"
-   
+   local dpkg_status_folder=""$CHROOT_FOLDER"/var/lib/dpkg"
+
+   echo "${cyan}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
+
    local i=0
-  
-   for line in "${lines[@]}"; do
-      ## example line: Package: bash
-      
-      local first="$(echo "$line" | awk '{print $1}')"   
- 
-      if [ "${first,,}" = "package:" ]; then
-         local i="$(expr "$i" + 1)"
-         
-         ## Debugging.
-         ## TODO: Out comment.
-         #if [ "$i" -ge "10" ]; then
-            #echo "${red}$0: XXXXXXXXXXXXXX ${reset}"
-            #break
-         #fi
-      
-         local package="$(echo "$line" | awk '{print $2}')"
+
+   set +x
+
+   while read -r package status arch version_with; do
+      i="$(expr "$i" + 1)"
+
+      if [ "$status" = "ii" ]; then
+         ## Ok.
+         true
+      elif [ "$status" = "un" ]; then
+         ## Skip uninstalled packages.
          continue
+      elif [ "$status" = "rc" ]; then
+         ## Skip uninstalled packages.
+         continue
+      elif [ "$status" = "hi" ]; then
+         ## TODO: hi?
+         continue
+      else
+         echo "$i: $package | $version_with | $arch | $status"
+         echo "${red}$0 ERROR: status of $package is $status ${reset}"
+         error
       fi
-      
-      if [ "${first,,}" = "status:" ]; then
-         local status="$(echo "$line" | awk '{print $2}')"
-         continue
-      fi      
-      
-      if [ "${first,,}" = "architecture:" ]; then
-         local arch="$(echo "$line" | awk '{print $2}')"
-         continue
+
+      ## Remove "1:", "2:", etc. from version number.
+      ## Not sure what 1:version in dpkg status file means.
+      local second_char="${version_with:1:1}"
+      if [ "$second_char" = ":" ] ;then
+         local version_without="$(echo "$version_with" | awk -F ":" '{ print $2 }')"
+      else
+         local version_without="$version_with"
       fi
-   
-      if [ "${first,,}" = "version:" ]; then
-         local version_with="$(echo "$line" | awk '{print $2}')"
-         
-         ## Remove "1:", "2:", etc. from version number.
-         ## Not sure what 1:version in dpkg status file means.   
-         local second_char="${version_with:1:1}"
-         if [ "$second_char" = ":" ] ;then
-            local version_without="$(echo "$version_with" | awk -F ":" '{ print $2 }')"
-         else
-            local version_without="$version_with"
-         fi
-         
-         local first_six_chars="${package:0:6}"
-         if [ "${first_six_chars,,}" = "whonix" ]; then
-            ## Files coming with Whonix are checked against Whonix source code.
-            echo "${cyan}$0 INFO: Skipping $package, because it begins with \"whonix\". ${reset}"
-            continue
-         fi
-         
-         if [ "${status,,}" = "deinstall" ]; then
-            echo "${cyan}$0 INFO: Skipping $package, because status is deinstall. ${reset}"
-            continue
-         fi
-         
-         echo "$0 INFO: Adding package $package to the list of packaged to be audited."
-         
-         pkg_name[$package]="$package"
-         pkg_arch[$package]="$arch"
-         pkg_vers_with[$package]="$version_with"
-         pkg_vers_without[$package]="$version_without"
+
+      local first_six_chars="${package:0:6}"
+      if [ "${first_six_chars,,}" = "whonix" ]; then
+         ## Files coming with Whonix are checked against Whonix source code.
+         echo "${cyan}$0 INFO: Skipping $package, because it begins with \"whonix\". ${reset}"
          continue
       fi
 
-   done
+      echo "$i INFO: Adding package $package | $version_without | $arch | $status | to the list of packages to be audited."
+
+      pkg_name[$package]="$package"
+      pkg_arch[$package]="$arch"
+      pkg_vers_with[$package]="$version_with"
+      pkg_vers_without[$package]="$version_without"
+
+   done < <(dpkg-query --admindir="$dpkg_status_folder" --showformat="\${Package}\t\${db:Status-Abbrev}\t\${Architecture}\t\${Version}\n" --show \*)
+
+   set -x
 }
 
 download_packages() {
