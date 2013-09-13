@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+set -x
+
+error_handler() {
+   echo "
+###########################################################
+## chroot script: ERROR detected. Please report this bug! #
+###########################################################
+"
+
+   exit 1
+} 
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+case $WHONIX_BUILD_SKIP_SCRIPTS in
+   *$own_filename*) true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
+                    exit 0
+                    ;;
+esac
+
+ARCH="$(uname --machine)"
+
+true "$0 INFO: Architecture $ARCH detected."
+
+if [ ! "$ARCH" = "i686" ]; then
+   true "$0 INFO: Architecture $ARCH is not i686, not installing linux-image-686-pae."
+   true "         (This is because, trying to install linux-image-686-pae on x86_64 would fail?)"
+   exit 0
+fi
+
+## Enable apt-cacher-ng proxy.
+export http_proxy="http://127.0.0.1:3142" 
+
+## This is a chroot-script and not a postinst.d script. Once it's installed on the user's
+## system, apt-get will keep care of upgrading it. The user is free to uninstall it.
+## (In case the user uses the 486 kernel or something entirely different.)
+
+## Install 686 pae kernel.
+apt-get --yes install linux-image-686-pae
+
+## Disable apt-cacher-ng proxy.
+export unset http_proxy
