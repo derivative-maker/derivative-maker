@@ -35,7 +35,7 @@ source variables
 ## - /home/user/whonix_binary/verification/Whonix-Workstation.ovf has to be manually audited.
 
 ## TODO: Read which version to check or filename from command line?
-WHONIX_BUILD_WHONIX_VERSION_NEW="0.5.6"
+WHONIX_BUILD_WHONIX_VERSION_NEW="137adretemp"
 
 WHONIX_BUILD_VERIFY_OLD_PWD="$(pwd)"
 
@@ -53,31 +53,36 @@ declare -A -g pkg_vers_with
 declare -A -g pkg_vers_without
 declare -A -g pkg_arch
 
-if [ -f ""$TEMP_FOLDER"/"$VMNAME".img" ]; then
-   ## Unpacking not required, skipping.
-   true
-else
-   if [ ! -f ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" ]; then
-      ## Unpack .ova.
-      error "${red}${bold}ERROR: ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova" does not exist. ${reset}"
-   else
-      sudo -u "$USERNAME" tar -xvf ""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
-   fi
-fi
-
-if [ ! -f ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" ]; then
-   error "${red}${bold}ERROR: "$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk does not exist. ${reset}"
-fi
-
 ## export, so help-steps/(un)mount-img opens this one.
 export WHONIX_BUILD_MOUNT_IMG_FILE=""$TEMP_FOLDER"/"$VMNAME".img"
 
 if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
-   ## Converting .vmdk to .img not required, skipping.
-   true
+   true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
+else
+   ## Unpack .ova...
+   ova=""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
+   if [ ! -f "$ova" ]; then
+      error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
+   else
+      true "${bold}${cyan}INFO: Unpacking .ova... ${reset}"
+      sudo -u "$USERNAME" tar -xvf "$ova"
+      true "${bold}${cyan}INFO: Unpacked .ova. ${reset}"
+   fi
+fi
+
+vmdk=""$TEMP_FOLDER"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW"-disk1.vmdk"
+
+if [ ! -f "$vmdk" ]; then
+   error "${red}${bold}ERROR: "$vmdk" does not exist. ${reset}"
+fi
+
+if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
+   true "${bold}${cyan}INFO: Converting .vmdk to .img not required, already done, skipping. ${reset}"
 else
    ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
-   sudo -u "$USERNAME" qemu-img convert ""$TEMP_FOLDER"/"$VMNAME"-disk1.vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+   true "${bold}${cyan}INFO: Converting vmdk to img... ${reset}"
+   sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+   true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
 fi
 
 error_handler_unmount_verify_build() {
@@ -95,21 +100,23 @@ trap "error_handler_unmount_verify_build" ERR INT TERM
 ## Mount "$TEMP_FOLDER"/"$VMNAME".img
 "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 
+## TODO: not required?
 ## archive keyring
-gpg \
-   --fingerprint \
-   --no-default-keyring \
-   --keyring \
-   /etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg
+#gpg \
+   #--fingerprint \
+   #--no-default-keyring \
+   #--keyring \
+   #/etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg
 
+## TODO: not required?   
 ## verify Packages file against archive keyring
 ## TODO: Get rid of || true. The file seems to be signed with two keys, but one is missing.
-gpg \
-   --verify \
-   --no-default-keyring \
-   --keyring \
-   /etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg \
-   /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease || true
+#gpg \
+   #--verify \
+   #--no-default-keyring \
+   #--keyring \
+   #/etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg \
+#   /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease || true
 
 ## Print the md5sum of the Packages file which is listed in the Release file.
 ## TODO: Is this required?
@@ -146,8 +153,8 @@ verify_whonix_source_files_helper() {
       local tmp="/"$temp""
       local chroot_file="$CHROOT_FOLDER"/"$temp"
       
+      #echo "${cyan}INFO${reset}: tmp: $tmp"
       echo "${cyan}INFO${reset}: Diffing original "$i" with "$chroot_file"..."
-      echo "${cyan}INFO${reset}: tmp: $tmp"
       
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?"; true; };
@@ -187,37 +194,34 @@ parse_dpkg_status_file() {
    ## Check which packages are claimed to be installed within the build.
    local dpkg_status_folder=""$CHROOT_FOLDER"/var/lib/dpkg"
 
-   echo "${cyan}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
+   echo "${cyan}${bold}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
 
    local i=0
 
    set +x
+   
+   ## TODO:
+   ## Prepare a dpkg status file which includes malformed content,
+   ## such as `$(echo a)` to check if no code gets executed.
 
    while read -r package status arch version_with; do
-      i="$(expr "$i" + 1)"
+      i="$(expr "$i" + "1")"
 
-      if [ "$status" = "ii" ]; then
+      local status_second_char="${status:1:1}"
+
+      if [ "$status_second_char" = "i" ]; then
          ## Ok.
          true
-      elif [ "$status" = "un" ]; then
-         ## Skip uninstalled packages.
-         continue
-      elif [ "$status" = "rc" ]; then
-         ## Skip uninstalled packages.
-         continue
-      elif [ "$status" = "hi" ]; then
-         ## TODO: hi?
-         continue
       else
-         echo "$i: $package | $version_with | $arch | $status"
-         echo "${red}$0 ERROR: status of $package is $status ${reset}"
+         echo "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status"
+         echo "${red}${bold}$0 ERROR: status of $package is $status ${reset}"
          error
       fi
 
       ## Remove "1:", "2:", etc. from version number.
       ## Not sure what 1:version in dpkg status file means.
-      local second_char="${version_with:1:1}"
-      if [ "$second_char" = ":" ] ;then
+      local version_second_char="${version_with:1:1}"
+      if [ "$version_second_char" = ":" ] ;then
          local version_without="$(echo "$version_with" | awk -F ":" '{ print $2 }')"
       else
          local version_without="$version_with"
@@ -226,11 +230,11 @@ parse_dpkg_status_file() {
       local first_six_chars="${package:0:6}"
       if [ "${first_six_chars,,}" = "whonix" ]; then
          ## Files coming with Whonix are checked against Whonix source code.
-         echo "${cyan}$0 INFO: Skipping $package, because it begins with \"whonix\". ${reset}"
+         echo "${cyan}${bold}$0 INFO $i: Skipping $package, because it begins with \"whonix\". ${reset}"
          continue
       fi
 
-      echo "$i INFO: Adding package $package | $version_without | $arch | $status | to the list of packages to be audited."
+      echo "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | to the list of packages to be audited. ${reset}"
 
       pkg_name[$package]="$package"
       pkg_arch[$package]="$arch"
@@ -261,7 +265,7 @@ download_packages() {
    ##       For testing, change the path of the dpkg status file to a file in your homefolder and prepare it with things
    ##       like $(echo test).
    sudo -E -u "$USERNAME" apt-get download $pkg_list
-   true "${cyan}$0 INFO: apt_get_return: $? ${reset}"
+   true "${cyan}${bold}$0 INFO: apt_get_return: $? ${reset}"
    
    ## Disable apt-cacher-ng.
    export unset http_proxy  
@@ -269,6 +273,8 @@ download_packages() {
 
 extract_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
+   
+   true "${cyan}${bold}$0 INFO: Extracting packages... ${reset}"
 
    for pkg in "${pkg_name[@]}"; do
 
@@ -279,11 +285,15 @@ extract_packages() {
             ""$pkg"_"${pkg_vers_without[$pkg]}"_"${pkg_arch[$pkg]}".deb" \
             ""$TEMP_FOLDER"/"$pkg"_"${pkg_vers_without[$pkg]}""
    
-   done   
+   done
+   
+   true "${cyan}${bold}$0 INFO: Extracted packages. ${reset}"
 }
 
 verify_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
+   
+   true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"
    
    ## Loading and comparing md5sums from local machine, which is trusted while auditing.
    ## Note: md5 should be fine here. Debian offers only md5 for package contents, but since the whole package
@@ -321,12 +331,14 @@ verify_packages() {
    done
 
    set -x
+   
+   true "${cyan}${bold}$0 INFO: Verified packages. (This does indicate neither failure nor success. Results at the end.) ${reset}"
 }
 
 forgotten_files() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
-   local folder=""$CHROOT_FOLDER""
+   local folder="$CHROOT_FOLDER"
    
    local j="0"
 
