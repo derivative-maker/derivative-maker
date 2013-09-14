@@ -27,6 +27,66 @@ cd ..
 create-debian-packages() {
    trap "error_handler_general" ERR INT TERM
    
+   ## We need to create a local signing key for signing our local APT repository. Otherwise,
+   ## apt-get would complain, that the package can not be verified. In theory, signing is not
+   ## required, because the local APT repository never touches any networks. However, ignoring
+   ## this warning while installing the meta package, which pull the other packages, could
+   ## make apt-get ignore if those packages can not be verified either. Shipping an already
+   ## created gpg snake oil (because known to the public) secret key is no option either,
+   ## because anyone could get this key, which also needs to be added to apt-key. In that case,
+   ## anyone could sign packages with this snake oil key. Therefore we play it safe and
+   ## create a local signing key on the build machine.
+   
+   ## We only automatically create am auto local signing key, in case the builder did not
+   ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
+   ## help-steps/variables.
+   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
+      true "${cyan}$0 INFO: Using ${under}auto local signing key method${eunder}... ${reset}"
+   
+      ## Check, if we previously already created a local OpenPGP signing key.
+      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
+         true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
+   
+         sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+   
+         ## chmod 700, so gpg will not complain about folder permissions
+         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"   
+
+         ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
+      
+         echo "
+            Key-Type: RSA
+            Key-Length: 4096
+            Subkey-Type: RSA
+            Subkey-Length: 4096
+            Name-Real: Whonix auto generated local APT signing key
+            Name-Email: whonix@local-signing.key
+            Expire-Date: 0
+         " | sudo -E -u "$USERNAME" gpg \
+                                    --no-default-keyring \
+                                    --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+                                    --batch \
+                                    --gen-key
+      
+         sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
+      
+         true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
+      else
+         true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
+      fi
+   else
+      true "${cyan}$0 INFO: Using ${under}custom signing key method${eunder}... ${reset}"
+   fi
+   
+   ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
+   ## a build log, this will help with debugging.
+   sudo -E -u "$USERNAME" gpg \
+                          --no-default-keyring \
+                          --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+                          --keyid-format "0xlong" \
+                          --fingerprint \
+                          --list-secret-keys
+   
    if [ "$WHONIX_BUILD_NEW_CHANGELOG_VERSION" = "$WHONIX_BUILD_OLD_CHANGELOG_VERSION" ]; then   
       true "${bold}${cyan}$0 INFO: WHONIX_BUILD_NEW_CHANGELOG_VERSION equals WHONIX_BUILD_OLD_CHANGELOG_VERSION, not creating new Debian packages. ${reset}"
       exit 0
@@ -74,67 +134,7 @@ ${cyan}or if you know what you are doing:${reset}
          "local auto bump version, build from git head: "$WHONIX_BUILD_CURRENT_GIT_HEAD""
 
    true "${cyan}$0 INFO: Bumped version number in debian/changelog. ${reset}"
-
-   ## We need to create a local signing key for signing our local APT repository. Otherwise,
-   ## apt-get would complain, that the package can not be verified. In theory, signing is not
-   ## required, because the local APT repository never touches any networks. However, ignoring
-   ## this warning while installing the meta package, which pull the other packages, could
-   ## make apt-get ignore if those packages can not be verified either. Shipping an already
-   ## created gpg snake oil (because known to the public) secret key is no option either,
-   ## because anyone could get this key, which also needs to be added to apt-key. In that case,
-   ## anyone could sign packages with this snake oil key. Therefore we play it safe and
-   ## create a local signing key on the build machine.
-   
-   ## We only automatically create am auto local signing key, in case the builder did not
-   ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
-   ## help-steps/variables.
-   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      true "${cyan}$0 INFO: Using auto local signing key method... ${reset}"
-   
-      ## Check, if we previously already created a local OpenPGP signing key.
-      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
-         true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
-   
-         sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
-   
-         ## chmod 700, so gpg will not complain about folder permissions
-         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"   
-
-         ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
-      
-         echo "
-            Key-Type: RSA
-            Key-Length: 4096
-            Subkey-Type: RSA
-            Subkey-Length: 4096
-            Name-Real: Whonix auto generated local APT signing key
-            Name-Email: whonix@local-signing.key
-            Expire-Date: 0
-         " | sudo -E -u "$USERNAME" gpg \
-                                    --no-default-keyring \
-                                    --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                                    --batch \
-                                    --gen-key
-      
-         sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
-      
-         true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
-      else
-         true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
-      fi
-   else
-      true "${cyan}$0 INFO: Using custom signing key method... ${reset}"
-   fi
-   
-   ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
-   ## a build log, this will help with debugging.
-   sudo -E -u "$USERNAME" gpg \
-                          --no-default-keyring \
-                          --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                          --keyid-format "0xlong" \
-                          --fingerprint \
-                          --list-secret-keys
-   
+  
    true "${cyan}$0 INFO: Creating deb packages... ${reset}"
    
    sudo -E -u user \
@@ -158,7 +158,7 @@ ${cyan}or if you know what you are doing:${reset}
    true "${cyan}$0 INFO: Created deb packages. ${reset}"
 
    if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then   
-      true "${cyan}$0 INFO: Purging local APT repository... ${reset}"
+      true "${cyan}$0 INFO: Purging ${under}local${eunder} APT repository... ${reset}"
    
       sudo -E -u "$USERNAME" \
          reprepro \
@@ -167,12 +167,12 @@ ${cyan}or if you know what you are doing:${reset}
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             removematched "$WHONIX_BUILD_APT_CODENAME" "*"
          
-      true "${cyan}$0 INFO: Done, purged "$WHONIX_BUILD_APT_CODENAME" APT repository. ${reset}"
+      true "${cyan}$0 INFO: Done, purged ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository. ${reset}"
    else
-      true "${cyan}$0 INFO: Not purging APT repository, because distribution is "$WHONIX_BUILD_APT_CODENAME". ${reset}"
+      true "${cyan}$0 INFO: Not purging APT repository, because distribution is ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder}. ${reset}"
    fi
    
-   true "${cyan}$0 INFO: Creating "$WHONIX_BUILD_APT_CODENAME" APT repository... ${reset}"
+   true "${cyan}$0 INFO: Creating ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository... ${reset}"
    true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
          
    sudo -E -u "$USERNAME" \
@@ -203,7 +203,7 @@ ${cyan}or if you know what you are doing:${reset}
 #         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
 #         includedeb "$WHONIX_BUILD_APT_CODENAME" ../*.deb         
    
-   true "${cyan}$0 INFO: Done, created "$WHONIX_BUILD_APT_CODENAME" APT repository. ${reset}"
+   true "${cyan}$0 INFO: Done, created ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository. ${reset}"
 } 
 
 true "${bold}INFO: Currently running script: $0 ${reset}"
