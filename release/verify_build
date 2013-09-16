@@ -33,6 +33,9 @@ source variables
 ##   could also use `apt-get autoclean` to get rid of those files before finalizing the image.
 ## - Check the dpkg status file if it contains all packages and their dependencies of those as claimed
 ##   in <whonix source code>/debian/control and <whonix source code>/grml_packages.
+## - Test with a modified symlink within the image or debian verification folder.
+## - Test with a modified checksum within the image or debian verification folder.
+## - Recommended exercise: use your own variables to check if really no file was forgotten.
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
@@ -49,7 +52,7 @@ WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
-set_plus_x() {
+maybe_set_plus_x() {
    if [ "$MINUX_X_SET" = "1" ]; then
       set +x
    fi
@@ -168,7 +171,7 @@ verify_whonix_source_files_helper() {
       local temp="${i#"$1"}"
       local chroot_file="$CHROOT_FOLDER/$temp"
       
-      echo "${cyan}INFO${reset}: Diffing original "$i" with "$chroot_file"..."
+      echo "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (temp: \"$temp\")..."
       
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
@@ -212,7 +215,7 @@ parse_dpkg_status_file() {
 
    local i=0
 
-   set_plus_x
+   maybe_set_plus_x
    
    ## TODO:
    ## Prepare a dpkg status file which includes malformed content,
@@ -266,7 +269,7 @@ download_packages() {
    
    ## We need to build a long line with all packages.
    ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.
-   set_plus_x
+   maybe_set_plus_x
    
    for pkg in "${pkg_name[@]}"; do
       local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
@@ -313,6 +316,8 @@ extract_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
    
    true "${cyan}${bold}$0 INFO: Extracting packages... ${reset}"
+   
+   maybe_set_plus_x
 
    for pkg in "${pkg_name[@]}"; do
    
@@ -343,7 +348,7 @@ verify_packages() {
    
    true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"  
   
-   set_plus_x
+   maybe_set_plus_x
    
    for pkg in "${pkg_name[@]}"; do   
 
@@ -372,8 +377,8 @@ verify_packages() {
          ## Fallbacks.
          fail="1"
          local symlink="0"
-         local i_link=""
-         local chroot_file_link=""
+         local i_link="no symlink"
+         local chroot_file_link="no symlink"
          
          ## Check if $i is a symlink.
          if [ -h "$i" ]; then
@@ -388,12 +393,12 @@ verify_packages() {
          fi
 
          if [ "$symlink" = "1" ]; then
-            echo "${cyan}INFO${reset}: comparing symlink of \"$i\" with \"$chroot_file\"..."
+            true "${cyan}INFO${reset}: comparing symlink of \"$i\" with \"$chroot_file\"..."
             if [ "$i_link" = "$chroot_file_link" ]; then
                ## Ok.
                true "${cyan}INFO${reset}: ok, symlink of \"$i\" matches \"$chroot_file\."
             else
-               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". symlink of \"$chroot_file\" should be \"$i_link\" but is \"$chroot_file_link\". ${reset}"
+               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". \"$chroot_file\" should symlink to \"$i_link\" but links to \"$chroot_file_link\". ${reset}"
             fi
          else         
             true "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"..."
@@ -435,7 +440,7 @@ forgotten_files() {
    
    local j="0"
 
-   set_plus_x
+   maybe_set_plus_x
 
    while read i; do
       local j="$(expr "$j" + "1")"
@@ -454,13 +459,13 @@ forgotten_files() {
       #echo "${cyan}INFO${reset}: i: $i temp: $temp"
 
       if [ "${remembered_file[$temp]}" = "0" ]; then
-         true "${cyan}INFO: Already known as good file: $i || temp: $temp ${reset}"         
+         true "${cyan}INFO: $j Already known as good file i: $i || temp: $temp ${reset}"         
          continue
       elif [ "${remembered_file[$temp]}" = "1" ]; then
-         echo "${cyan}INFO: Already known as bad file, i: $i || temp: $temp ${reset}"
+         echo "${cyan}INFO: $j Already known as bad file i: $i || temp: $temp ${reset}"
          continue
       else
-         echo "${bold}${red}ERROR: Forgotten file i: $i || temp: $temp ${reset}"
+         echo "${bold}${red}ERROR: $j Forgotten file i: $i || temp: $temp ${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
          remembered_file[$temp]="1"
          continue
