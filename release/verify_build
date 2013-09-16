@@ -166,7 +166,7 @@ verify_whonix_source_files_helper() {
          continue
       fi
       local temp="${i#"$1"}"
-      local chroot_file="$CHROOT_FOLDER"/"$temp"
+      local chroot_file="$CHROOT_FOLDER/$temp"
       
       echo "${cyan}INFO${reset}: Diffing original "$i" with "$chroot_file"..."
       
@@ -378,21 +378,55 @@ verify_packages() {
             local temp="${i#"$extract_folder"}"
             local chroot_file="$CHROOT_FOLDER/$temp"
          fi
-
-         echo "${cyan}INFO${reset}: checking \"$i\" with \"$chroot_file\"..."
          
-         local a="$(sha512sum "$i")"
-         read -r checksum_pkg _ <<< "$a"
+         ## Fallbacks.
+         fail="1"
+         local symlink="0"
+         local i_link=""
+         local chroot_file_link=""
          
-         local b="$(sha512sum "$chroot_file")"
-         read -r checksum_image _ <<< "$b"
+         ## Check if $i is a symlink.
+         if [ -h "$i" ]; then
+            local symlink="1"
+            local i_link="$(readlink "$i")"
+         fi
 
-         if [ "$checksum_pkg" = "$checksum_image" ]; then
-            remembered_file[$temp]="0"
-         else
-            WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-            remembered_file[$temp]="1"
-            echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". checksum of \"$chroot_file\" should be \"$checksum_pkg\" but is \"$checksum_image\". ${reset}"
+         ## Check if $chroot_file is a symlink.
+         if [ -h "$chroot_file" ]; then
+            local symlink="1"
+            local chroot_file_link="$(readlink "$chroot_file")"
+         fi
+
+         if [ "$symlink" = "1" ]; then
+            echo "${cyan}INFO${reset}: comparing symlink of \"$i\" with \"$chroot_file\"..."
+            if [ "$i_link" = "$chroot_file_link" ]; then
+               ## Ok.
+               true "${cyan}INFO${reset}: ok, symlink of \"$i\" matches \"$chroot_file\."
+            else
+               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". symlink of \"$chroot_file\" should be \"$i_link\" but is \"$chroot_file_link\". ${reset}"
+            fi
+         else         
+            true "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"..."
+
+            local a="$(sha512sum "$i")"
+            read -r checksum_pkg _ <<< "$a"
+
+            local b="$(sha512sum "$chroot_file")"
+            read -r checksum_image _ <<< "$b"
+
+            if [ "$checksum_pkg" = "$checksum_image" ]; then
+               local fail="0"
+            else
+               local fail="1"
+               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". checksum of \"$chroot_file\" should be \"$checksum_pkg\" but is \"$checksum_image\". ${reset}"
+            fi
+            
+            if [ "$fail" = "0" ]; then
+                remembered_file[$temp]="0"
+            else
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$temp]="1"
+            fi
          fi
    
       done < <(find "$extract_folder")
@@ -431,21 +465,20 @@ forgotten_files() {
          continue
       fi
       local temp="${i#"$folder"}"
-      local chroot_file="$CHROOT_FOLDER"/"$temp"
+      local chroot_file="$CHROOT_FOLDER/$temp"
 
-      #echo "${cyan}INFO${reset}: i: "$i" temp: "$temp""
+      #echo "${cyan}INFO${reset}: i: $i temp: $temp"
 
-      if [ "${remembered_file["$temp"]}" = "0" ]; then
-         echo "${cyan}INFO: Already known as good file: $i || temp: $temp ${reset}"         
+      if [ "${remembered_file[$temp]}" = "0" ]; then
+         true "${cyan}INFO: Already known as good file: $i || temp: $temp ${reset}"         
          continue
-      elif [ "${remembered_file["$temp"]}" = "1" ]; then
+      elif [ "${remembered_file[$temp]}" = "1" ]; then
          echo "${cyan}INFO: Already known as bad file, i: $i || temp: $temp ${reset}"
          continue
       else
-         ## TODO: enable
-         #echo "${bold}${red}ERROR: Forgotten file i: $i || temp: $temp ${reset}"
+         echo "${bold}${red}ERROR: Forgotten file i: $i || temp: $temp ${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-         remembered_file["$temp"]="1"
+         remembered_file[$temp]="1"
          continue
       fi
    done < <(find "$folder")
