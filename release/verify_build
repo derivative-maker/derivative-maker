@@ -52,9 +52,17 @@ WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
+debug="1"
+
 maybe_set_plus_x() {
    if [ "$MINUX_X_SET" = "1" ]; then
       set +x
+   fi
+}
+
+debug_echo() {
+   if [ "$debug" = 1 ]; then
+      echo "$*"
    fi
 }
 
@@ -129,6 +137,9 @@ unset http_proxy
 
 verify_whonix_source_files_helper() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
+   
+   ## Setting +x because the for loops otherwise causes too much output.
+   maybe_set_plus_x
 
    while read i; do
       if [ -d "$i" ]; then
@@ -142,7 +153,7 @@ verify_whonix_source_files_helper() {
       local absolute_file_name="${i#"$1"}"
       local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
       
-      true "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (absolute_file_name: \"$absolute_file_name\")..."
+      debug_echo "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (absolute_file_name: \"$absolute_file_name\")..."
       
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
@@ -155,13 +166,12 @@ verify_whonix_source_files_helper() {
          remembered_file[$absolute_file_name]="1"
       fi
    done < <(find "$1")
+   
+   set -x
 }
 
 verify_whonix_source_files() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
-
-   ## Setting +x because the for loops otherwise causes too much output.
-   set +x
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_gateway"
@@ -172,8 +182,6 @@ verify_whonix_source_files() {
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
-
-   set -x
 }
 
 parse_dpkg_status_file() {
@@ -201,8 +209,8 @@ parse_dpkg_status_file() {
          ## Ok.
          true
       else
-         true "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status | $bp"
-         true "${red}${bold}$0 INFO: status of $package is $status ${reset}"         
+         debug_echo "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status | $bp"
+         debug_echo "${red}${bold}$0 INFO: status of $package is $status ${reset}"         
          continue
       fi
 
@@ -218,11 +226,11 @@ parse_dpkg_status_file() {
       local first_six_chars="${package:0:6}"
       if [ "${first_six_chars,,}" = "whonix" ]; then
          ## Files coming with Whonix have already been checked against Whonix source code in function verify_whonix_source_files.
-         true "${cyan}${bold}$0 INFO $i: Skipping $package, because it begins with \"whonix\". ${reset}"
+         debug_echo "${cyan}${bold}$0 INFO $i: Skipping $package, because it begins with \"whonix\". ${reset}"
          continue
       fi
 
-      true "${cyan}$0 INFO: $i Adding package: $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
+      debug_echo "${cyan}$0 INFO: $i Adding package: $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
 
       pkg_name[$package]="$package"
       pkg_arch[$package]="$arch"
@@ -369,16 +377,16 @@ verify_packages() {
          fi
 
          if [ "$symlink" = "1" ]; then
-            true "${cyan}INFO${reset}: comparing symlink of \"$i\" with \"$chroot_file\"..."
+            debug_echo "${cyan}INFO${reset}: comparing symlink of \"$i\" with \"$chroot_file\"..."
             if [ "$i_link" = "$chroot_file_link" ]; then
                ## Ok.
-               true "${cyan}INFO${reset}: ok, symlink of \"$i\" matches \"$chroot_file\."
+               debug_echo "${cyan}INFO${reset}: ok, symlink of \"$i\" matches \"$chroot_file\."
             else
                local fail="1"
                echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". \"$chroot_file\" should symlink to \"$i_link\" but symlinks to \"$chroot_file_link\". ${reset}"
             fi
          else         
-            true "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"..."
+            debug_echo "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"..."
 
             local a="$(sha512sum "$i")"
             read -r checksum_pkg _ <<< "$a"
@@ -436,7 +444,7 @@ forgotten_files() {
       #echo "${cyan}INFO${reset}: i: $i absolute_file_name: $absolute_file_name"
 
       if [ "${remembered_file[$absolute_file_name]}" = "0" ]; then
-         true "${cyan}INFO: $j Already known as good file i: $i || absolute_file_name: $absolute_file_name ${reset}"         
+         debug_echo "${cyan}INFO: $j Already known as good file i: $i || absolute_file_name: $absolute_file_name ${reset}"         
          continue
       elif [ "${remembered_file[$absolute_file_name]}" = "1" ]; then
          echo "${cyan}INFO: $j Already known as bad file i: $i || absolute_file_name: $absolute_file_name ${reset}"
