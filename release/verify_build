@@ -58,10 +58,10 @@ maybe_set_plus_x() {
    fi
 }
 
-TEMP_FOLDER=""$WHONIX_BINARY"/verification"
-sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER"
-sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER/status"
-cd "$TEMP_FOLDER"
+temp_folder="$WHONIX_BINARY/verification"
+sudo -u "$USERNAME" mkdir --parents "$temp_folder"
+sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
+cd "$temp_folder"
 
 declare -A -g remembered_file
 
@@ -72,7 +72,7 @@ declare -A -g pkg_arch
 declare -A -g pkg_bp
 
 ## export, so help-steps/(un)mount-img opens this one.
-export WHONIX_BUILD_MOUNT_IMG_FILE="$TEMP_FOLDER/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
+export WHONIX_BUILD_MOUNT_IMG_FILE="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
 
 if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
    true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
@@ -88,7 +88,7 @@ else
    fi
 fi
 
-vmdk="$TEMP_FOLDER/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
+vmdk="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
 
 if [ ! -f "$vmdk" ]; then
    error "${red}${bold}ERROR: "$vmdk" does not exist. ${reset}"
@@ -244,7 +244,7 @@ download_packages() {
    maybe_set_plus_x
    
    for pkg in "${pkg_name[@]}"; do
-      local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
+      local status_file="$temp_folder/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
       
       if [ -f "$status_file" ]; then
          continue
@@ -293,7 +293,7 @@ extract_packages() {
 
    for pkg in "${pkg_name[@]}"; do
    
-      local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
+      local status_file="$temp_folder/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
 
       if [ -f "$status_file" ]; then
          continue
@@ -301,7 +301,7 @@ extract_packages() {
 
       ## Extract the package including the DEBIAN folder.
       
-      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"      
+      local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"      
 
       sudo -u "$USERNAME" \
          dpkg-deb \
@@ -328,7 +328,7 @@ verify_packages() {
    
    for pkg in "${pkg_name[@]}"; do   
 
-      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
+      local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
    
       while read i; do
          if [ -d "$i" ]; then
