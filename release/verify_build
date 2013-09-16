@@ -171,7 +171,7 @@ verify_whonix_source_files_helper() {
       local temp="${i#"$1"}"
       local chroot_file="$CHROOT_FOLDER/$temp"
       
-      echo "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (temp: \"$temp\")..."
+      true "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (temp: \"$temp\")..."
       
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
@@ -193,11 +193,11 @@ verify_whonix_source_files() {
    set +x
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_gateway/"
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_gateway"
+      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared"
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_workstation/"
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared/"
+      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_workstation"
+      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared"
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
@@ -246,12 +246,12 @@ parse_dpkg_status_file() {
 
       local first_six_chars="${package:0:6}"
       if [ "${first_six_chars,,}" = "whonix" ]; then
-         ## Files coming with Whonix are checked against Whonix source code.
-         echo "${cyan}${bold}$0 INFO $i: Skipping $package, because it begins with \"whonix\". ${reset}"
+         ## Files coming with Whonix have already been checked against Whonix source code in function verify_whonix_source_files.
+         true "${cyan}${bold}$0 INFO $i: Skipping $package, because it begins with \"whonix\". ${reset}"
          continue
       fi
 
-      echo "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
+      true "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
 
       pkg_name[$package]="$package"
       pkg_arch[$package]="$arch"
@@ -322,13 +322,15 @@ extract_packages() {
    for pkg in "${pkg_name[@]}"; do
    
       local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
-      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
 
       if [ -f "$status_file" ]; then
          continue
       fi
 
       ## Extract the package including the DEBIAN folder.
+      
+      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"      
+
       sudo -u "$USERNAME" \
          dpkg-deb \
             --raw-extract \
@@ -339,6 +341,8 @@ extract_packages() {
          touch "$status_file"
 
    done
+   
+   set -x
    
    true "${cyan}${bold}$0 INFO: Extracted packages. ${reset}"
 }
@@ -398,7 +402,8 @@ verify_packages() {
                ## Ok.
                true "${cyan}INFO${reset}: ok, symlink of \"$i\" matches \"$chroot_file\."
             else
-               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". \"$chroot_file\" should symlink to \"$i_link\" but links to \"$chroot_file_link\". ${reset}"
+               local fail="1"
+               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". \"$chroot_file\" should symlink to \"$i_link\" but symlinks to \"$chroot_file_link\". ${reset}"
             fi
          else         
             true "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"..."
@@ -413,11 +418,11 @@ verify_packages() {
                local fail="0"
             else
                local fail="1"
-               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". checksum of \"$chroot_file\" should be \"$checksum_pkg\" but is \"$checksum_image\". ${reset}"
+               echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". checksum of \"$chroot_file\" should be \"$checksum_pkg\" but is checksum of \"$i\" is \"$checksum_image\". ${reset}"
             fi
             
             if [ "$fail" = "0" ]; then
-                remembered_file[$temp]="0"
+               remembered_file[$temp]="0"
             else
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$temp]="1"
@@ -490,6 +495,7 @@ cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
 if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
    ## ok, no mismatch
    true "${green}${bold}$0 INFO: No mismatch found. ${reset}"
+   exit 0
 else
    true "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
    exit 1
