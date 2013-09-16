@@ -72,13 +72,13 @@ declare -A -g pkg_arch
 declare -A -g pkg_bp
 
 ## export, so help-steps/(un)mount-img opens this one.
-export WHONIX_BUILD_MOUNT_IMG_FILE=""$TEMP_FOLDER"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".img"
+export WHONIX_BUILD_MOUNT_IMG_FILE="$TEMP_FOLDER/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
 
 if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
    true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
 else
    ## Unpack .ova...
-   ova=""$WHONIX_BINARY"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".ova"
+   ova="$WHONIX_BINARY/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.ova"
    if [ ! -f "$ova" ]; then
       error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
    else
@@ -88,7 +88,7 @@ else
    fi
 fi
 
-vmdk=""$TEMP_FOLDER"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW"-disk1.vmdk"
+vmdk="$TEMP_FOLDER/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
 
 if [ ! -f "$vmdk" ]; then
    error "${red}${bold}ERROR: "$vmdk" does not exist. ${reset}"
@@ -118,39 +118,10 @@ trap "error_handler_unmount_verify_build" ERR INT TERM
 ## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
 "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 
-## TODO: not required?
-## archive keyring
-#gpg \
-   #--fingerprint \
-   #--no-default-keyring \
-   #--keyring \
-   #/etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg
-
-## TODO: not required?   
-## verify Packages file against archive keyring
-## TODO: Get rid of || true. The file seems to be signed with two keys, but one is missing.
-#gpg \
-   #--verify \
-   #--no-default-keyring \
-   #--keyring \
-   #/etc/apt/trusted.gpg.d/debian-archive-wheezy-automatic.gpg \
-#   /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease || true
-
-## Print the md5sum of the Packages file which is listed in the Release file.
-## TODO: Is this required?
-#sed -n "s,main/binary-i386/Packages$,,p" /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_InRelease
-
-## Print the md5sum of the Packages file itself.
-## TODO: Is this required?
-#md5sum /var/lib/apt/lists/ftp.us.debian.org_debian_dists_testing_main_binary-i386_Packages
-## should work as well:
-#sha1sum
-#sha256sum
-
 ## Enable apt-cacher-ng.
 export http_proxy="http://127.0.0.1:3142"
 
-## TODO: Fails with Whonix apt repository enabled, because of apt-cacher-ng. Contacted author.
+## TODO: Fails with Whonix apt repository enabled, because of a bug in apt-cacher-ng. Contacted author.
 #apt-get update
    
 ## Disable apt-cacher-ng.
@@ -168,20 +139,20 @@ verify_whonix_source_files_helper() {
          echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
          continue
       fi
-      local temp="${i#"$1"}"
-      local chroot_file="$CHROOT_FOLDER/$temp"
+      local absolute_file_name="${i#"$1"}"
+      local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
       
-      true "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (temp: \"$temp\")..."
+      true "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (absolute_file_name: \"$absolute_file_name\")..."
       
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
 
       if [ "$diff_return" = "0" ]; then
-         remembered_file[$temp]="0"
+         remembered_file[$absolute_file_name]="0"
       else
          echo "${red}${bold}ERROR: Diff returned "$diff_return" for "$chroot_file"...${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-         remembered_file[$temp]="1"
+         remembered_file[$absolute_file_name]="1"
       fi
    done < <(find "$1")
 }
@@ -230,8 +201,8 @@ parse_dpkg_status_file() {
          ## Ok.
          true
       else
-         #echo "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status | $bp"
-         #echo "${red}${bold}$0 INFO: status of $package is $status ${reset}"         
+         true "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status | $bp"
+         true "${red}${bold}$0 INFO: status of $package is $status ${reset}"         
          continue
       fi
 
@@ -251,7 +222,7 @@ parse_dpkg_status_file() {
          continue
       fi
 
-      true "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
+      true "${cyan}$0 INFO: $i Adding package: $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
 
       pkg_name[$package]="$package"
       pkg_arch[$package]="$arch"
@@ -266,9 +237,10 @@ parse_dpkg_status_file() {
 
 download_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
-   
+
    ## We need to build a long line with all packages.
-   ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.
+   ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.   
+
    maybe_set_plus_x
    
    for pkg in "${pkg_name[@]}"; do
@@ -371,11 +343,11 @@ verify_packages() {
          fi
 
          if [ "$folder_name" = "DEBIAN" ]; then
-            local temp="/var/lib/dpkg/info/${pkg_bp[$pkg]}.$base_name"
-            local chroot_file="$CHROOT_FOLDER/$temp"
+            local absolute_file_name="/var/lib/dpkg/info/${pkg_bp[$pkg]}.$base_name"
+            local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
          else
-            local temp="${i#"$extract_folder"}"
-            local chroot_file="$CHROOT_FOLDER/$temp"
+            local absolute_file_name="${i#"$extract_folder"}"
+            local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
          fi
          
          ## Fallbacks.
@@ -422,10 +394,10 @@ verify_packages() {
             fi
             
             if [ "$fail" = "0" ]; then
-               remembered_file[$temp]="0"
+               remembered_file[$absolute_file_name]="0"
             else
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-               remembered_file[$temp]="1"
+               remembered_file[$absolute_file_name]="1"
             fi
          fi
    
@@ -458,21 +430,21 @@ forgotten_files() {
          echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
          continue
       fi
-      local temp="${i#"$folder"}"
-      local chroot_file="$CHROOT_FOLDER/$temp"
+      local absolute_file_name="${i#"$folder"}"
+      local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
 
-      #echo "${cyan}INFO${reset}: i: $i temp: $temp"
+      #echo "${cyan}INFO${reset}: i: $i absolute_file_name: $absolute_file_name"
 
-      if [ "${remembered_file[$temp]}" = "0" ]; then
-         true "${cyan}INFO: $j Already known as good file i: $i || temp: $temp ${reset}"         
+      if [ "${remembered_file[$absolute_file_name]}" = "0" ]; then
+         true "${cyan}INFO: $j Already known as good file i: $i || absolute_file_name: $absolute_file_name ${reset}"         
          continue
-      elif [ "${remembered_file[$temp]}" = "1" ]; then
-         echo "${cyan}INFO: $j Already known as bad file i: $i || temp: $temp ${reset}"
+      elif [ "${remembered_file[$absolute_file_name]}" = "1" ]; then
+         echo "${cyan}INFO: $j Already known as bad file i: $i || absolute_file_name: $absolute_file_name ${reset}"
          continue
       else
-         echo "${bold}${red}ERROR: $j Forgotten file i: $i || temp: $temp ${reset}"
+         echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-         remembered_file[$temp]="1"
+         remembered_file[$absolute_file_name]="1"
          continue
       fi
    done < <(find "$folder")
