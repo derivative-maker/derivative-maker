@@ -4,6 +4,12 @@
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
+[ -o xtrace ]
+## returns:
+## - 0, if -x is set
+## - 1, if -x is not set
+MINUX_X_SET="$?"
+
 set -x
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -43,6 +49,12 @@ WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
+set_plus_x() {
+   if [ "$MINUX_X_SET" = "1" ]; then
+      set +x
+   fi
+}
+
 TEMP_FOLDER=""$WHONIX_BINARY"/verification"
 sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER"
 sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER/status"
@@ -54,6 +66,7 @@ declare -A -g pkg_name
 declare -A -g pkg_vers_with
 declare -A -g pkg_vers_without
 declare -A -g pkg_arch
+declare -A -g pkg_bp
 
 ## export, so help-steps/(un)mount-img opens this one.
 export WHONIX_BUILD_MOUNT_IMG_FILE=""$TEMP_FOLDER"/"$VMNAME"-"$WHONIX_BUILD_WHONIX_VERSION_NEW".img"
@@ -199,13 +212,13 @@ parse_dpkg_status_file() {
 
    local i=0
 
-   set +x
+   set_plus_x
    
    ## TODO:
    ## Prepare a dpkg status file which includes malformed content,
    ## such as `$(echo a)` to check if no code gets executed.
 
-   while read -r package status arch version_with; do
+   while read -r package status arch version_with bp; do
       i="$(expr "$i" + "1")"
 
       local status_second_char="${status:1:1}"
@@ -214,10 +227,8 @@ parse_dpkg_status_file() {
          ## Ok.
          true
       else
-         echo "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status"
-         echo "${red}${bold}$0 ERROR: status of $package is $status ${reset}"
-         ## TODO
-         #error
+         #echo "${cyan}${bold}$0 INFO: $i: $package | $version_with | $arch | $status | $bp"
+         #echo "${red}${bold}$0 INFO: status of $package is $status ${reset}"         
          continue
       fi
 
@@ -237,14 +248,20 @@ parse_dpkg_status_file() {
          continue
       fi
 
-      echo "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | to the list of packages to be audited. ${reset}"
+      echo "${cyan}$0 INFO: $i Adding package $package | $version_without | $arch | $status | $bp | to the list of packages to be audited. ${reset}"
 
       pkg_name[$package]="$package"
       pkg_arch[$package]="$arch"
       pkg_vers_with[$package]="$version_with"
       pkg_vers_without[$package]="$version_without"
+      pkg_bp[$package]="$bp"
+      
+      ## TODO: remove
+      if [ "$i" -gt "20" ]; then
+         break
+      fi
 
-   done < <(dpkg-query --admindir="$dpkg_status_folder" --showformat="\${Package}\t\${db:Status-Abbrev}\t\${Architecture}\t\${Version}\n" --show \*)
+   done < <(dpkg-query --admindir="$dpkg_status_folder" --showformat="\${Package}\t\${db:Status-Abbrev}\t\${Architecture}\t\${Version}\t\${binary:Package}\n" --show \*)
 
    set -x
 }
@@ -254,6 +271,8 @@ download_packages() {
    
    ## We need to build a long line with all packages.
    ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.
+   set_plus_x
+   
    for pkg in "${pkg_name[@]}"; do
       local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
       
@@ -290,7 +309,6 @@ download_packages() {
    ## 137adretemp:
    ## http://snapshot.debian.org/archive/debian/?year=2013;month=9  2013-09-13 03:54:37
    ## deb http://snapshot.debian.org/archive/debian/20130913T035437Z/ testing main
-
    
    ## Disable apt-cacher-ng.
    unset http_proxy  
@@ -335,7 +353,7 @@ verify_packages() {
    ## gets verified with stronger hash sums, we can trust the md5sums file.
    ## TODO: Or not. The version inside the image could include a md5 collision.
    
-   set +x
+   set_plus_x
    
    for pkg in "${pkg_name[@]}"; do   
 
@@ -354,8 +372,8 @@ verify_packages() {
          fi
 
          if [ "$folder_name" = "DEBIAN" ]; then
-            local temp="/var/lib/dpkg/info"
-            local chroot_file="$CHROOT_FOLDER/$temp/$pkg.$base_name"
+            local temp="/var/lib/dpkg/info/${pkg_bp[$pkg]}.$base_name"
+            local chroot_file="$CHROOT_FOLDER/$temp"
          else
             local temp="${i#"$extract_folder"}"
             local chroot_file="$CHROOT_FOLDER/$temp"
@@ -393,7 +411,7 @@ forgotten_files() {
    
    local j="0"
 
-   set +x
+   set_plus_x
 
    while read i; do
       local j="$(expr "$j" + "1")"
@@ -455,4 +473,3 @@ else
    true "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
    exit 1
 fi
-
