@@ -20,15 +20,13 @@ source variables
 
 ## TODO:
 ## - This is a work in progress.
-## - Mismatch variable. Default 0 and set to 1 if a single mismatching file was found.
 ## - Some TODOs below need to activated.
 ## - dpkg diverted (symlinked) files may be an issue and may need to be followed.
 ## - Other symlinked files may be an issue.
-## - Code from build-steps.d/2100_verify-files should be reused to check scripts and config files shipped by Whonix source code.
-## - We could verify files in /var/cache/apt/archives, but this is probably not necessary since we could also use apt-get autoclean
-##   to get rid of those packages before creating an image.
-## - Check the dpkg status file if it contains all packages their dependencies of those as claimed
-##   in <whonix source code>/debian/control.
+## - We could verify files in /var/cache/apt/archives, but this is probably not necessary since we
+##   could also use `apt-get autoclean` to get rid of those files before finalizing the image.
+## - Check the dpkg status file if it contains all packages and their dependencies of those as claimed
+##   in <whonix source code>/debian/control and <whonix source code>/grml_packages.
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
@@ -37,13 +35,17 @@ source variables
 ## TODO: Read which version to check or filename from command line?
 WHONIX_BUILD_WHONIX_VERSION_NEW="137adretemp"
 
+## TODO: Allow older source folder to be audited by newer build verification script.
+#WHONIX_SOURCE_FOLDER=""
+
 WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 
-## Default to "no mismatch found" (0) and set to "mismatch found" (1) as soon we catch a single one.
+## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
 TEMP_FOLDER=""$WHONIX_BINARY"/verification"
 sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER"
+sudo -u "$USERNAME" mkdir --parents "$TEMP_FOLDER/status"
 cd "$TEMP_FOLDER"
 
 declare -A -g remembered_file
@@ -141,32 +143,31 @@ unset http_proxy
 verify_whonix_source_files_helper() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
-   for i in $(find "$1"); do
+   while read i; do
       if [ -d "$i" ]; then
          continue
       fi
-      if [ "$(basename "$i")" = ".directory" ]; then
+      local base_name="${i##*/}"
+      if [ "$base_name" = ".directory" ]; then
          echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
          continue
       fi
       local temp="${i#"$1"}"
-      local tmp="/"$temp""
       local chroot_file="$CHROOT_FOLDER"/"$temp"
       
-      #echo "${cyan}INFO${reset}: tmp: $tmp"
       echo "${cyan}INFO${reset}: Diffing original "$i" with "$chroot_file"..."
       
       local diff_return="0"
-      diff "$i" "$chroot_file" || { local diff_return="$?"; true; };
+      diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
 
       if [ "$diff_return" = "0" ]; then
-         remembered_file["$tmp"]="0"
+         remembered_file[$temp]="0"
       else
          echo "${red}${bold}ERROR: Diff returned "$diff_return" for "$chroot_file"...${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-         remembered_file["$tmp"]="1"
+         remembered_file[$temp]="1"
       fi
-   done
+   done < <(find "$1")
 }
 
 verify_whonix_source_files() {
@@ -192,7 +193,7 @@ parse_dpkg_status_file() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
    ## Check which packages are claimed to be installed within the build.
-   local dpkg_status_folder=""$CHROOT_FOLDER"/var/lib/dpkg"
+   local dpkg_status_folder="$CHROOT_FOLDER/var/lib/dpkg"
 
    echo "${cyan}${bold}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
 
@@ -254,7 +255,13 @@ download_packages() {
    ## We need to build a long line with all packages.
    ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.
    for pkg in "${pkg_name[@]}"; do
-      local pkg_list=""$pkg_list" "$pkg"="${pkg_vers_with[$pkg]}""
+      local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
+      
+      if [ -f "$status_file" ]; then
+         continue
+      fi
+
+      local pkg_list="$pkg_list $pkg=${pkg_vers_with[$pkg]}"
    done  
 
    set -x
@@ -266,8 +273,14 @@ download_packages() {
    ## TODO: Since we can not use quotes around $pkg_list we should check that nothing like $(echo test) can be executed.
    ##       For testing, change the path of the dpkg status file to a file in your homefolder and prepare it with things
    ##       like $(echo test).
-   sudo -E -u "$USERNAME" \
-      apt-get download $pkg_list
+   if [ "$pkg_list" = "" ]; then
+      true "${cyan}${bold}$0 INFO: Already downloaded all required packages. ${reset}"
+   else
+      sudo -E -u "$USERNAME" \
+         apt-get download $pkg_list
+
+      true "${cyan}${bold}$0 INFO: apt_get_return: $? ${reset}"
+   fi
 
    ## TODO: Use snapshot.debian.org?
    ## E: Version '3.8.5-1' for 'logrotate' was not found
@@ -278,7 +291,6 @@ download_packages() {
    ## http://snapshot.debian.org/archive/debian/?year=2013;month=9  2013-09-13 03:54:37
    ## deb http://snapshot.debian.org/archive/debian/20130913T035437Z/ testing main
 
-   true "${cyan}${bold}$0 INFO: apt_get_return: $? ${reset}"
    
    ## Disable apt-cacher-ng.
    unset http_proxy  
@@ -290,14 +302,24 @@ extract_packages() {
    true "${cyan}${bold}$0 INFO: Extracting packages... ${reset}"
 
    for pkg in "${pkg_name[@]}"; do
+   
+      local status_file="$TEMP_FOLDER/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
+      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
+
+      if [ -f "$status_file" ]; then
+         continue
+      fi
 
       ## Extract the package including the DEBIAN folder.
       sudo -u "$USERNAME" \
          dpkg-deb \
             --raw-extract \
-            ""$pkg"_"${pkg_vers_without[$pkg]}"_"${pkg_arch[$pkg]}".deb" \
-            ""$TEMP_FOLDER"/"$pkg"_"${pkg_vers_without[$pkg]}""
-   
+            "${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}.deb" \
+            "$extract_folder"
+
+      sudo -u "$USERNAME" \
+         touch "$status_file"
+
    done
    
    true "${cyan}${bold}$0 INFO: Extracted packages. ${reset}"
@@ -313,33 +335,49 @@ verify_packages() {
    ## gets verified with stronger hash sums, we can trust the md5sums file.
    ## TODO: Or not. The version inside the image could include a md5 collision.
    
-   for pkg in "${pkg_name[@]}"; do
+   set +x
    
-      mapfile -t lines < ""$TEMP_FOLDER"/"$pkg"_"${pkg_vers_without[$pkg]}"/DEBIAN/md5sums"
+   for pkg in "${pkg_name[@]}"; do   
+
+      local extract_folder="$TEMP_FOLDER/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
    
-      #set +x
-   
-      for line in "${lines[@]}"; do
-         ## Example line: 539e96d4fba5635c346a904107b4244e  bin/bash
-   
-         local pkg_content_md5sum="$(echo "$line" | awk '{print $1}')"
-         local pkg_content_filename="$(echo "$line" | awk '{print $2}')"
-   
-         local md5_actual="$(md5sum ""$CHROOT_FOLDER"/"$pkg_content_filename"")"
-         ## Example md5_actual: 979992095c9402655134383ffbd4cbe8  /usr/share/man/man4/vmmouse.4.gz
-            
-         local md5_actual="$(echo "$md5_actual" | awk '{print $1}')"
-         ## Example md5_actual: 979992095c9402655134383ffbd4cbe8
-   
-         if [ "$pkg_content_md5sum" = "$md5_actual" ]; then
-            remembered_file["$pkg_content_filename"]="0"
+      while read i; do
+         if [ -d "$i" ]; then
+            continue
+         fi
+         local base_name="${i##*/}"
+         local dir_name="${i%/*}"
+         local folder_name=${dir_name##*/}
+
+         if [ "$base_name" = "control" ]; then
+            continue
+         fi
+
+         if [ "$folder_name" = "DEBIAN" ]; then
+            local temp="/var/lib/dpkg/info"
+            local chroot_file="$CHROOT_FOLDER/$temp/$pkg.$base_name"
+         else
+            local temp="${i#"$extract_folder"}"
+            local chroot_file="$CHROOT_FOLDER/$temp"
+         fi
+
+         echo "${cyan}INFO${reset}: checking \"$i\" with \"$chroot_file\"..."
+         
+         local a="$(sha512sum "$i")"
+         read -r checksum_pkg _ <<< "$a"
+         
+         local b="$(sha512sum "$chroot_file")"
+         read -r checksum_image _ <<< "$b"
+
+         if [ "$checksum_pkg" = "$checksum_image" ]; then
+            remembered_file[$temp]="0"
          else
             WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-            remembered_file["$pkg_content_filename"]="1"
-            true "${red}${bold}ERROR: Mismatch in package $pkd_${pkg_vers_without[$pkg]}. md5 of /$pkg_content_filename should be $pkg_content_md5sum but is $md5_actual. ${reset}"
+            remembered_file[$temp]="1"
+            echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". checksum of \"$chroot_file\" should be \"$checksum_pkg\" but is \"$checksum_image\". ${reset}"
          fi
    
-      done
+      done < <(find "$extract_folder")
    
    done
 
@@ -357,7 +395,7 @@ forgotten_files() {
 
    set +x
 
-   for i in $(find "$folder"); do
+   while read i; do
       local j="$(expr "$j" + "1")"
 
       ## Debugging.
@@ -369,7 +407,8 @@ forgotten_files() {
       if [ -d "$i" ]; then
          continue
       fi
-      if [ "$(basename "$i")" = ".directory" ]; then
+      local base_name="${i##*/}"
+      if [ "$base_name" = ".directory" ]; then
          echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
          continue
       fi
@@ -385,12 +424,13 @@ forgotten_files() {
          echo "${cyan}INFO: Already known as bad file, i: $i || temp: $temp ${reset}"
          continue
       else
+         ## TODO: enable
          #echo "${bold}${red}ERROR: Forgotten file i: $i || temp: $temp ${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
          remembered_file["$temp"]="1"
          continue
       fi
-   done
+   done < <(find "$folder")
 
    set -x
 }
@@ -412,6 +452,7 @@ if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
    ## ok, no mismatch
    true "${green}${bold}$0 INFO: No mismatch found. ${reset}"
 else
-   error "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
+   true "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
+   exit 1
 fi
 
