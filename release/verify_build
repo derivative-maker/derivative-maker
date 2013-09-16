@@ -256,11 +256,6 @@ parse_dpkg_status_file() {
       pkg_vers_without[$package]="$version_without"
       pkg_bp[$package]="$bp"
       
-      ## TODO: remove
-      if [ "$i" -gt "20" ]; then
-         break
-      fi
-
    done < <(dpkg-query --admindir="$dpkg_status_folder" --showformat="\${Package}\t\${db:Status-Abbrev}\t\${Architecture}\t\${Version}\t\${binary:Package}\n" --show \*)
 
    set -x
@@ -346,13 +341,8 @@ extract_packages() {
 verify_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
    
-   true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"
-   
-   ## Loading and comparing md5sums from local machine, which is trusted while auditing.
-   ## Note: md5 should be fine here. Debian offers only md5 for package contents, but since the whole package
-   ## gets verified with stronger hash sums, we can trust the md5sums file.
-   ## TODO: Or not. The version inside the image could include a md5 collision.
-   
+   true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"  
+  
    set_plus_x
    
    for pkg in "${pkg_name[@]}"; do   
@@ -449,13 +439,7 @@ forgotten_files() {
 
    while read i; do
       local j="$(expr "$j" + "1")"
-
-      ## Debugging.
-      ## TODO: Out comment.
-      if [ "$j" -gt "10000" ]; then
-         break
-      fi
-      
+     
       if [ -d "$i" ]; then
          continue
       fi
@@ -496,7 +480,6 @@ forgotten_files
 ## Get out of this folder, so unmounting will work.
 cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
 
-## TODO: activate
 "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
 
 if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
