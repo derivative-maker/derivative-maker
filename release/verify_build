@@ -44,9 +44,6 @@ source variables
 ## TODO: Read which version to check or filename from command line?
 WHONIX_BUILD_WHONIX_VERSION_NEW="137adretemp"
 
-## TODO: Allow older source folder to be audited by newer build verification script.
-#WHONIX_SOURCE_FOLDER=""
-
 WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
@@ -69,6 +66,31 @@ debug_echo() {
 temp_folder="$WHONIX_BINARY/verification"
 sudo -u "$USERNAME" mkdir --parents "$temp_folder"
 sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
+
+if [ ! -f "$temp_folder/status/whonix_source_code_copied" ]; then
+   true "${bold}${cyan}INFO: Making a copy of Whonix source code, which we will use for verification... ${reset}"
+   sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+   sudo -u "$USERNAME" touch "$temp_folder/status/whonix_source_code_copied"
+else
+   true "${bold}${cyan}INFO: We already have a copy of Whonix source code. ${reset}"
+fi
+
+whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+true "${bold}${cyan}INFO: Get into snapshot of Whonix source code... ${reset}"
+cd "$whonix_source"
+
+true "${bold}${cyan}INFO: Git reset --hard uncommitted changes, so git checkout will work. \
+(This is useful in case you tweaked the verification script without committing your changes. Feel free to comment this out.) ${reset}"
+sudo -u "$USERNAME" git reset --hard
+
+true "${bold}${cyan}INFO: Git OpenPGP verify the Whonix version we want to audit... (Feel free to comment this out.) ${reset}"
+sudo -u "$USERNAME" git tag -v "$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+true "${bold}${cyan}INFO: Git checkout the Whonix version we want to audit... ${reset}"
+sudo -u "$USERNAME" git checkout "$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+true "${bold}${cyan}INFO: Get into the verification folder, so \"apt-get download\" stores its downloads there.... ${reset}"
 cd "$temp_folder"
 
 declare -A -g remembered_file
@@ -174,11 +196,11 @@ verify_whonix_source_files() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_gateway"
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared"
+      verify_whonix_source_files_helper "$whonix_source/whonix_gateway"
+      verify_whonix_source_files_helper "$whonix_source/whonix_shared"
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_workstation"
-      verify_whonix_source_files_helper "$WHONIX_SOURCE_FOLDER/whonix_shared"
+      verify_whonix_source_files_helper "$whonix_source/whonix_workstation"
+      verify_whonix_source_files_helper "$whonix_source/whonix_shared"
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
