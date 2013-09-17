@@ -456,7 +456,7 @@ forgotten_files() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
    local folder="$CHROOT_FOLDER"
-   
+
    local j="0"
 
    maybe_set_plus_x
@@ -468,6 +468,8 @@ forgotten_files() {
          continue
       fi
       local base_name="${i##*/}"
+      local dir_name="${i%/*}"
+      #local folder_name=${dir_name##*/}      
       
       #if [ "$base_name" = ".directory" ]; then
          #echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
@@ -517,13 +519,24 @@ forgotten_files() {
             ## Check if file is empty, to catch empty log files.
             if [[ -s "$i" ]]; then
                ## Empty file.
-               echo "${cyan}INFO $j Forgotten file i: $i is empty || absolute_file_name: $absolute_file_name ${reset}"
+               echo "${cyan}INFO $j forgotten file i: $i is empty || absolute_file_name: $absolute_file_name ${reset}"
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
                continue
             else
+               if [[ "$dir_name" == "/etc/apparmor.d/local" ]]; then
+                  local apparmor_text="# Site-specific additions and overrides for $base_name.
+# For more details, please see /etc/apparmor.d/local/README."
+                  local file_content="$(cat "$filename")"
+                  if [[ "$file_content" == "$apparmor_text" ]]; then
+                     echo "${cyan}INFO $j forgotten file i: $i contains only local apparmor default comment || absolute_file_name: $absolute_file_name ${reset}"
+                     remembered_file[$absolute_file_name]="0"                     
+                     continue
+                  fi
+               fi
+            
                ## Non-empty file.
-               echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
+               echo "${bold}${red}ERROR: $j forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
                continue
