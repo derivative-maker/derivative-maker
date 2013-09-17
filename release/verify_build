@@ -513,10 +513,21 @@ forgotten_files() {
             fi
          else
             ## no symlink found...
-            echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
-            WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-            remembered_file[$absolute_file_name]="1"
-            continue
+
+            ## Check if file is empty, to catch empty log files.
+            if [[ -s "$i" ]]; then
+               ## Empty file.
+               echo "${cyan}INFO $j Forgotten file i: $i is empty || absolute_file_name: $absolute_file_name ${reset}"
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$absolute_file_name]="1"
+               continue
+            else
+               ## Non-empty file.
+               echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$absolute_file_name]="1"
+               continue
+            fi
          fi
          
       fi
