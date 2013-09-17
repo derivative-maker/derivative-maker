@@ -392,7 +392,7 @@ verify_packages() {
          fi
          
          ## Fallbacks.
-         fail="1"
+         local fail="1"
          local symlink="0"
          local i_link="no symlink"
          local chroot_file_link="no symlink"
@@ -400,13 +400,13 @@ verify_packages() {
          ## Check if $i is a symlink.
          if [ -h "$i" ]; then
             local symlink="1"
-            local i_link="$(readlink "$i")"
+            local i_link="$(readlink -f "$i")"
          fi
 
          ## Check if $chroot_file is a symlink.
          if [ -h "$chroot_file" ]; then
             local symlink="1"
-            local chroot_file_link="$(readlink "$chroot_file")"
+            local chroot_file_link="$(readlink -f "$chroot_file")"
          fi
 
          if [ "$symlink" = "1" ]; then
@@ -486,10 +486,39 @@ forgotten_files() {
          echo "${cyan}INFO: $j Already known as bad file i: $i || absolute_file_name: $absolute_file_name ${reset}"
          continue
       else
-         echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
-         WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-         remembered_file[$absolute_file_name]="1"
-         continue
+         ## Fallbacks.
+         local i_link="no symlink"
+         
+         ## Check if $i is a symlink.
+         if [ -h "$i" ]; then
+            ## symlink found...
+            
+            ## readlink -f returns a absolute file name
+            local i_link="$(readlink -f "$i")"
+            
+            if [ "${remembered_file[$i_link]}" = "0" ]; then
+               echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
+               remembered_file[$absolute_file_name]="0"
+               continue
+            elif [ "${remembered_file[$i_link]}" = "1" ]; then
+               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to known bad file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$absolute_file_name]="1"
+               continue
+            else
+               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to forgotten file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$absolute_file_name]="1"
+               continue
+            fi
+         else
+            ## no symlink found...
+            echo "${bold}${red}ERROR: $j Forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
+            WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+            remembered_file[$absolute_file_name]="1"
+            continue
+         fi
+         
       fi
    done < <(find "$folder")
 
