@@ -351,6 +351,18 @@ extract_packages() {
 verify_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
    
+   ## We don't use the DEBIAN/md5sums, because md5 is no longer considered safe. Maybe you
+   ## consider it still safe enough, but I would like to dodge that discussion. Hopefully,
+   ## you do agree, that it won't be safe in a few years? For that reason, we are using
+   ## sha512. Note, DEBIAN/md5sums is safe, with the threat model of apt-get's in mind. When
+   ## apt-get downloads packages, the repository release file is signed with a stronger hash
+   ## and DEBIAN/md5sums is only used to verify if the individual files are intact. But what
+   ## we do here is different. The md5sums created from files of the untrusted system could
+   ## be maliciously prepared to contain a backdoor and a md5 hash collisions. Therefore
+   ## we rather build a sha512 checksum and compare it with a sha512 checksum we compare
+   ## ourselves. If Debian were to ship a DEBIAN/sha512sums (or sha256sums) file some day,
+   ## we could of course use that file instead.
+   
    true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"  
   
    maybe_set_plus_x
