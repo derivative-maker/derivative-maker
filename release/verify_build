@@ -492,31 +492,50 @@ forgotten_files() {
       else
          ## Fallbacks.
          local i_link="no symlink"
+         local i_link_f="no symlink"
          
          ## Check if $i is a symlink.
          if [ -h "$i" ]; then
-            ## symlink found...
+            ## Symlink found...
             
-            ## readlink -f returns a absolute file name
-            local i_link="$(readlink -f "$i")"
+            ## Not using readlink with -f, so we can compare the relative links.
+            local i_link="$(readlink "$i")"
             
-            if [ "${remembered_file[$i_link]}" = "0" ]; then
-               echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
-               remembered_file[$absolute_file_name]="0"
-               continue
-            elif [ "${remembered_file[$i_link]}" = "1" ]; then
-               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to known bad file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
-               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
-               remembered_file[$absolute_file_name]="1"
-               continue
-            else
-               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to forgotten file: $i_link || absolute_file_name: $absolute_file_name ${reset}"
+            ## readlink -f returns a absolute file name.
+            local i_link_f="$(readlink -f "$i")"
+
+            if [ "${remembered_file[$i_link]}" = "1" ]; then
+               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to known bad file (i_link): $i_link || absolute_file_name: $absolute_file_name ${reset}"
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
                continue
             fi
+
+            if [ "${remembered_file[$i_link_f]}" = "1" ]; then
+               echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to known bad file (i_link_f): $i_link_f || absolute_file_name: $absolute_file_name ${reset}"
+               WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+               remembered_file[$absolute_file_name]="1"
+               continue
+            fi        
+
+            if [ "${remembered_file[$i_link]}" = "0" ]; then
+               echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file (i_link): $i_link || absolute_file_name: $absolute_file_name ${reset}"
+               remembered_file[$absolute_file_name]="0"
+               continue
+            fi
+            
+            if [ "${remembered_file[$i_link_f]}" = "0" ]; then
+               echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file (i_link_f): $i_link_f || absolute_file_name: $absolute_file_name ${reset}"
+               remembered_file[$absolute_file_name]="0"
+               continue
+            fi
+            
+            echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to forgotten i_link: $i_link || i_link_f: $i_link_f || absolute_file_name: $absolute_file_name ${reset}"
+            WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+            remembered_file[$absolute_file_name]="1"
+            continue            
          else
-            ## no symlink found...
+            ## No symlink found...
 
             ## Check if file is empty, to catch empty log files.
             if [[ -s "$i" ]]; then
@@ -526,6 +545,8 @@ forgotten_files() {
                remembered_file[$absolute_file_name]="1"
                continue
             else
+               ## Non-empty file.
+
                if [[ "$dir_name" == "/etc/apparmor.d/local" ]]; then
                   local apparmor_text="# Site-specific additions and overrides for $base_name.
 # For more details, please see /etc/apparmor.d/local/README."
@@ -537,12 +558,12 @@ forgotten_files() {
                   fi
                fi
             
-               ## Non-empty file.
                echo "${bold}${red}ERROR: $j forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
                continue
             fi
+            
          fi
          
       fi
