@@ -488,11 +488,6 @@ forgotten_files() {
       local dir_name_absolute="${dir_name#"$CHROOT_FOLDER"}"
       #local folder_name=${dir_name##*/}
       
-      #if [ "$base_name" = ".directory" ]; then
-         #echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
-         #continue
-      #fi
-      
       local absolute_file_name="${i#"$folder"}"
       local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
 
@@ -561,13 +556,13 @@ forgotten_files() {
                if [[ "$dir_name_absolute" == "/etc/apparmor.d/local" ]]; then
                   ## Replace slash (/) with dot (.),
                   ## for example /usr/bin/ping -> .usr.bin.ping
-                  local base_name_dotted="${base_name//\//.}"
+                  local absolute_file_name_dotted="${absolute_file_name//\//.}"
                   ## Remove leading dot (.),
                   ## for example .usr.bin.ping -> usr.bin.ping
-                  local base_name_dotted="${x/./}"
-                  local apparmor_text="# Site-specific additions and overrides for $base_name_dotted.
+                  local absolute_file_name_dotted="${absolute_file_name_dotted/./}"
+                  local apparmor_text="# Site-specific additions and overrides for $absolute_file_name_dotted.
 # For more details, please see /etc/apparmor.d/local/README."
-                  local file_content="$(cat "$filename")"
+                  local file_content="$(cat "$i")"
                   if [[ "$file_content" == "$apparmor_text" ]]; then
                      echo "${cyan}INFO: $j forgotten file i: $i contains only local apparmor default comment || absolute_file_name: $absolute_file_name ${reset}"
                      remembered_file[$absolute_file_name]="0"                     
