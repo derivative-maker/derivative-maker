@@ -55,83 +55,8 @@ WHONIX_BUILD_VERIFY_OLD_PWD="$PWD"
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
 
+## Enable (1) or disable (0) debug_echo's.
 debug="0"
-
-debug_echo() {
-   if [ "$debug" = 1 ]; then
-      echo "$*"
-   fi
-}
-
-temp_folder="$WHONIX_BINARY/verification"
-sudo -u "$USERNAME" mkdir --parents "$temp_folder"
-sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
-
-if [ ! -f "$temp_folder/status/whonix_source_code_copied" ]; then
-   true "${bold}${cyan}INFO: Making a copy of Whonix source code, which we will use for verification... ${reset}"
-   sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
-   sudo -u "$USERNAME" touch "$temp_folder/status/whonix_source_code_copied"
-else
-   true "${bold}${cyan}INFO: We already have a copy of Whonix source code. ${reset}"
-fi
-
-whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
-
-true "${bold}${cyan}INFO: Get into snapshot of Whonix source code... ${reset}"
-cd "$whonix_source"
-
-true "${bold}${cyan}INFO: Git reset --hard uncommitted changes, so git checkout will work. \
-(This is useful in case you tweaked the verification script without committing your changes. Feel free to comment this out.) ${reset}"
-sudo -u "$USERNAME" git reset --hard
-
-true "${bold}${cyan}INFO: Git OpenPGP verify the Whonix version we want to audit... (Feel free to comment this out.) ${reset}"
-sudo -u "$USERNAME" git tag -v "$WHONIX_BUILD_WHONIX_VERSION_NEW"
-
-true "${bold}${cyan}INFO: Git checkout the Whonix version we want to audit... ${reset}"
-sudo -u "$USERNAME" git checkout "$WHONIX_BUILD_WHONIX_VERSION_NEW"
-
-true "${bold}${cyan}INFO: Get into the verification folder, so \"apt-get download\" stores its downloads there.... ${reset}"
-cd "$temp_folder"
-
-declare -A -g remembered_file
-
-declare -A -g pkg_name
-declare -A -g pkg_vers_with
-declare -A -g pkg_vers_without
-declare -A -g pkg_arch
-declare -A -g pkg_bp
-
-## export, so help-steps/(un)mount-img opens this one.
-export WHONIX_BUILD_MOUNT_IMG_FILE="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
-
-if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
-   true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
-else
-   ## Unpack .ova...
-   ova="$WHONIX_BINARY/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.ova"
-   if [ ! -f "$ova" ]; then
-      error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
-   else
-      true "${bold}${cyan}INFO: Unpacking .ova... ${reset}"
-      sudo -u "$USERNAME" tar -xvf "$ova"
-      true "${bold}${cyan}INFO: Unpacked .ova. ${reset}"
-   fi
-fi
-
-vmdk="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
-
-if [ ! -f "$vmdk" ]; then
-   error "${red}${bold}ERROR: "$vmdk" does not exist. ${reset}"
-fi
-
-if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
-   true "${bold}${cyan}INFO: Converting .vmdk to .img not required, already done, skipping. ${reset}"
-else
-   ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
-   true "${bold}${cyan}INFO: Converting vmdk to img... ${reset}"
-   sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
-   true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
-fi
 
 error_handler_unmount_verify_build() {
    ## Get out of this folder, so unmounting will work.
@@ -142,20 +67,100 @@ error_handler_unmount_verify_build() {
 
 trap "error_handler_unmount_verify_build" ERR INT TERM
 
-## TODO: Remove
-"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img || true
+debug_echo() {
+   if [ "$debug" = 1 ]; then
+      echo "$*"
+   fi
+}
 
-## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
-"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
+preparation() {
+   trap "error_handler_general" ERR INT TERM
 
-## Enable apt-cacher-ng.
-export http_proxy="http://127.0.0.1:3142"
+   temp_folder="$WHONIX_BINARY/verification"
+   sudo -u "$USERNAME" mkdir --parents "$temp_folder"
+   sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
 
-## TODO: Fails with Whonix apt repository enabled, because of a bug in apt-cacher-ng. Contacted author.
-#apt-get update
+   if [ ! -f "$temp_folder/status/whonix_source_code_copied" ]; then
+      true "${bold}${cyan}INFO: Making a copy of Whonix source code, which we will use for verification... ${reset}"
+      sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+      sudo -u "$USERNAME" touch "$temp_folder/status/whonix_source_code_copied"
+   else
+      true "${bold}${cyan}INFO: We already have a copy of Whonix source code. ${reset}"
+   fi
+
+   whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+   true "${bold}${cyan}INFO: Get into snapshot of Whonix source code... ${reset}"
+   cd "$whonix_source"
+
+   true "${bold}${cyan}INFO: Git reset --hard uncommitted changes, so git checkout will work. \
+(This is useful in case you tweaked the verification script without committing your changes. Feel free to comment this out.) ${reset}"
+   sudo -u "$USERNAME" git reset --hard
+
+   true "${bold}${cyan}INFO: Git OpenPGP verify the Whonix version we want to audit... (Feel free to comment this out.) ${reset}"
+   sudo -u "$USERNAME" git tag -v "$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+   true "${bold}${cyan}INFO: Git checkout the Whonix version we want to audit... ${reset}"
+   sudo -u "$USERNAME" git checkout "$WHONIX_BUILD_WHONIX_VERSION_NEW"
+
+   true "${bold}${cyan}INFO: Get into the verification folder, so \"apt-get download\" stores its downloads there.... ${reset}"
+   cd "$temp_folder"
+
+   declare -A -g remembered_file
+
+   declare -A -g pkg_name
+   declare -A -g pkg_vers_with
+   declare -A -g pkg_vers_without
+   declare -A -g pkg_arch
+   declare -A -g pkg_bp
    
-## Disable apt-cacher-ng.
-unset http_proxy
+   ## TODO: Remove
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img || true
+
+   ## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
+
+   ## Enable apt-cacher-ng.
+   export http_proxy="http://127.0.0.1:3142"
+
+   ## TODO: Fails with Whonix apt repository enabled, because of a bug in apt-cacher-ng. Contacted author.
+   #apt-get update
+   
+   ## Disable apt-cacher-ng.
+   unset http_proxy   
+
+   ## export, so help-steps/(un)mount-img opens this one.
+   export WHONIX_BUILD_MOUNT_IMG_FILE="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
+
+   if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
+      true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
+   else
+      ## Unpack .ova...
+      ova="$WHONIX_BINARY/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.ova"
+      if [ ! -f "$ova" ]; then
+         error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
+      else
+         true "${bold}${cyan}INFO: Unpacking .ova... ${reset}"
+         sudo -u "$USERNAME" tar -xvf "$ova"
+         true "${bold}${cyan}INFO: Unpacked .ova. ${reset}"
+      fi
+   fi
+
+   vmdk="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
+
+   if [ ! -f "$vmdk" ]; then
+      error "${red}${bold}ERROR: "$vmdk" does not exist. ${reset}"
+   fi
+
+   if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
+      true "${bold}${cyan}INFO: Converting .vmdk to .img not required, already done, skipping. ${reset}"
+   else
+      ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
+      true "${bold}${cyan}INFO: Converting vmdk to img... ${reset}"
+      sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+      true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
+   fi
+}
 
 verify_whonix_source_files_helper() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
@@ -594,23 +599,27 @@ forgotten_files() {
    set -x
 }
 
+end() {
+   ## Get out of this folder, so unmounting will work.
+   cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
+
+   if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
+      ## ok, no mismatch
+      true "${green}${bold}$0 INFO: No mismatch found. ${reset}"
+      exit 0
+   else
+      true "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
+      exit 1
+   fi
+}
+
+preparation
 verify_whonix_source_files
 parse_dpkg_status_file
 download_packages
 extract_packages
 verify_packages
 forgotten_files
-
-## Get out of this folder, so unmounting will work.
-cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
-
-"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
-
-if [ "$WHONIX_BUILD_VERIFY_MISMATCH" = "0" ]; then
-   ## ok, no mismatch
-   true "${green}${bold}$0 INFO: No mismatch found. ${reset}"
-   exit 0
-else
-   true "${red}${bold}$0 ERROR: $WHONIX_BUILD_VERIFY_MISMATCH files mismatched! See the red messages above to find out which files. ${reset}"
-   exit 1
-fi
+end
