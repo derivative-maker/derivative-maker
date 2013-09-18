@@ -36,6 +36,12 @@ source variables
 ## - Test with a modified symlink within the image or debian verification folder.
 ## - Test with a modified checksum within the image or debian verification folder.
 ## - Recommended exercise: use your own variables to check if really no file was forgotten.
+## - /boot/grub/video_fb.mod is copied from /usr/lib/grub/i386-pc
+##   dpkg -L grub-pc-bin | grep video_fb
+##   /usr/lib/grub/i386-pc/video_fb.mod
+## - bootloader: Edwin said "I think it is based on /usr/lib/grub/i386-pc/boot.img, but with some offsets adjusted."
+
+
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
@@ -154,6 +160,8 @@ unset http_proxy
 verify_whonix_source_files_helper() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
    
+   local i
+   
    ## Setting +x because the for loops otherwise causes too much output.
    maybe_set_plus_x
 
@@ -209,6 +217,8 @@ parse_dpkg_status_file() {
    echo "${cyan}${bold}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
 
    local i=0
+   
+   local package status arch version_with bp
 
    maybe_set_plus_x
    
@@ -364,6 +374,7 @@ verify_packages() {
    for pkg in "${pkg_name[@]}"; do   
 
       local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
+      local i
    
       while read i; do
          if [ -d "$i" ]; then
@@ -419,9 +430,11 @@ verify_packages() {
             debug_echo "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"... (absolute_file_name: \"$absolute_file_name\")"
 
             local a="$(sha512sum "$i")"
+            local checksum_pkg
             read -r checksum_pkg _ <<< "$a"
 
             local b="$(sha512sum "$chroot_file")"
+            local checksum_image
             read -r checksum_image _ <<< "$b"
 
             if [ "$checksum_pkg" = "$checksum_image" ]; then
@@ -453,6 +466,7 @@ forgotten_files() {
 
    local folder="$CHROOT_FOLDER"
 
+   local i
    local j="0"
 
    maybe_set_plus_x
@@ -465,7 +479,9 @@ forgotten_files() {
       fi
       local base_name="${i##*/}"
       local dir_name="${i%/*}"
-      #local folder_name=${dir_name##*/}      
+      ## Remove for example /home/user/whonix_binary/Whonix-Gateway_image
+      local dir_name_absolute="${dir_name#"$CHROOT_FOLDER"}"
+      #local folder_name=${dir_name##*/}
       
       #if [ "$base_name" = ".directory" ]; then
          #echo "${bold}${cyan}INFO: skipping to diff $i. ${reset}"
@@ -537,7 +553,7 @@ forgotten_files() {
             if [[ -s "$i" ]]; then
                ## Non-empty file.
 
-               if [[ "$dir_name" == "/etc/apparmor.d/local" ]]; then
+               if [[ "$dir_name_absolute" == "/etc/apparmor.d/local" ]]; then
                   ## Replace slash (/) with dot (.),
                   ## for example /usr/bin/ping -> .usr.bin.ping
                   local base_name_dotted="${base_name//\//.}"
