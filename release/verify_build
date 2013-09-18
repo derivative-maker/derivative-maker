@@ -26,11 +26,6 @@ source variables
 
 ## TODO:
 ## - This is a work in progress.
-## - Some TODOs below need to activated.
-## - dpkg diverted (symlinked) files may be an issue and may need to be followed.
-## - Other symlinked files may be an issue.
-## - We could verify files in /var/cache/apt/archives, but this is probably not necessary since we
-##   could also use `apt-get autoclean` to get rid of those files before finalizing the image.
 ## - Check the dpkg status file if it contains all packages and their dependencies of those as claimed
 ##   in <whonix source code>/debian/control and <whonix source code>/grml_packages.
 ## - Test with a modified symlink within the image or debian verification folder.
@@ -40,8 +35,6 @@ source variables
 ##   dpkg -L grub-pc-bin | grep video_fb
 ##   /usr/lib/grub/i386-pc/video_fb.mod
 ## - bootloader: Edwin said "I think it is based on /usr/lib/grub/i386-pc/boot.img, but with some offsets adjusted."
-
-
 
 ## TODO lower priority:
 ## - Older packages can still be downloaded http://snapshot.debian.org/. Use it so verification still works long time after release.
@@ -431,7 +424,7 @@ verify_packages() {
                local fail="1"
                echo "${red}${bold}ERROR: Mismatch in package \"${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}\". \"$chroot_file\" should symlink to \"$i_link\" but symlinks to \"$chroot_file_link\". ${reset}"
             fi
-         else         
+         else
             debug_echo "${cyan}INFO${reset}: comparing checksum of \"$i\" with \"$chroot_file\"... (absolute_file_name: \"$absolute_file_name\")"
 
             local a="$(sha512sum "$i")"
@@ -563,6 +556,32 @@ forgotten_files() {
                      continue
                   else
                      echo "${bold}${red}ERROR: $j forgotten file i: $i || absolute_file_name: $absolute_file_name || base_name: $base_name || file_content: $file_content  ${reset}"
+                     WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
+                     remembered_file[$absolute_file_name]="1"
+                     continue
+                  fi
+               fi
+
+               ## Files in /boot/grub are copied from /usr/lib/grub/i386-pc.
+               if [[ "$dir_name_absolute" == "/boot/grub" ]]; then
+                  ## For example i: /boot/grub/video_fb.mod
+                  
+                  local grub_file="/usr/lib/grub/i386-pc/$base_name"
+                  
+                  local a="$(sha512sum "$grub_file")"
+                  local checksum_pkg
+                  read -r checksum_pkg _ <<< "$a"
+
+                  local b="$(sha512sum "$i")"
+                  local checksum_image
+                  read -r checksum_image _ <<< "$b"
+                  
+                  if [ "$checksum_pkg" = "$checksum_image" ]; then
+                     echo "${cyan}INFO: $j forgotten file i: $i matches grub_file: $grub_file || absolute_file_name: $absolute_file_name ${reset}"
+                     remembered_file[$absolute_file_name]="0"
+                     continue
+                  else
+                     echo "${bold}${red}ERROR: $j forgotten file i: $i does not match grub_file: $grub_file || absolute_file_name: $absolute_file_name ${reset}"
                      WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                      remembered_file[$absolute_file_name]="1"
                      continue
