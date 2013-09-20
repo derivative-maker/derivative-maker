@@ -50,25 +50,29 @@ install-meta-packages() {
    
    ## We have to manually fix /etc/apt/sources.list, because the list which comes with
    ## grml-debootstrap is incomplete (does not complain debian security repository) and points to 127.0.0.1.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list.whonix "$CHROOT_FOLDER"/etc/apt/sources.list
+   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/sources.list.whonix" "$CHROOT_FOLDER/etc/apt/sources.list"
    
-   ## Since "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/sources.list.whonix includes both, stable and testing repositories,
-   ## we have to apply our apt pinning configuration as well. Otherwise Whonix would be based on Testing, not Stable.
-   cp "$WHONIX_SOURCE_FOLDER"/whonix_shared/etc/apt/preferences.d/* "$CHROOT_FOLDER"/etc/apt/preferences.d/
+   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/preferences.d/"* "$CHROOT_FOLDER/etc/apt/preferences.d/"
+
+   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/apt.conf.d/"* "$CHROOT_FOLDER/etc/apt/apt.conf.d/"
    
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
    ## Debugging.
-   $CHROOT apt-key finger   
+   $CHROOT apt-key finger
 
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
    sync
-   
-   ## Need to update package lists at least once.
+
+   ## Reading apt repository containing snapshot.debian.org.
    $CHROOT apt-get update
+                   -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_BUILD_BASE" \
+                   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
+                   -o APT::Get::List-Cleanup="0"
    
+   ## Reading local temporary apt repository containing Whonix's packages.
    $CHROOT apt-get update \
                    -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_TEMP_BUILD_BASE" \
                    -o Dir::Etc::sourceparts="$EMPTY_DIR" \
@@ -97,6 +101,7 @@ install-meta-packages() {
    
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    
+   ## Forget about repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT apt-get update \
               --no-download \
               --list-cleanup
@@ -116,5 +121,3 @@ install-meta-packages() {
 
 true "${bold}INFO: Currently running script: $0${reset}"
 install-meta-packages
-
- 
