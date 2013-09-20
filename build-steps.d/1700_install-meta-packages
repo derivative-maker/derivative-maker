@@ -66,25 +66,20 @@ install-meta-packages() {
 
    sync
    
-   mkdir --parents "$WHONIX_SOURCES_LIST_BUILD_FOLDER"
+   mkdir --parents "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
    cp "$WHONIX_SOURCES_LIST_BUILD_SOURCE" "$WHONIX_SOURCES_LIST_BUILD_FULL"
    
    sync
-   
+
    ## Info.
+   ls -la "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
+   cat "$WHONIX_SOURCES_LIST_TEMP_BUILD_FULL"
    cat "$WHONIX_SOURCES_LIST_BUILD_FULL"
 
-   ## Reading apt repository containing snapshot.debian.org.
+   ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT apt-get update \
-                   -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_BUILD_BASE" \
-                   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
-                   -o APT::Get::List-Cleanup="0"
-   
-   ## Reading local temporary apt repository containing Whonix's packages.
-   $CHROOT apt-get update \
-                   -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_TEMP_BUILD_BASE" \
-                   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
-                   -o APT::Get::List-Cleanup="0"
+                   -o Dir::Etc::sourcelist="$EMPTY_DIR" \
+                   -o Dir::Etc::sourceparts="$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
 
    $CHROOT apt-get --yes --no-install-recommends install whonix-shared-packages-dependencies
    $CHROOT apt-get --yes --no-install-recommends install whonix-shared-packages-recommended
@@ -109,7 +104,7 @@ install-meta-packages() {
    
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    
-   ## Forget about repository containing snapshot.debian.org and repository containing Whonix's packages.
+   ## Forget about apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT apt-get update \
               --no-download \
               --list-cleanup
