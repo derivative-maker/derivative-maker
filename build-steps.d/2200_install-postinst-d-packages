@@ -48,19 +48,18 @@ install-postinst-d-packages() {
    export http_proxy="http://127.0.0.1:3142"
 
    sync
+   
+   local apt_opts="-o Dir::Etc::sourcelist=$EMPTY_DIR -o Dir::Etc::sourceparts=$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
 
    ## Reading local temporary apt repository containing Whonix's packages.
-   $CHROOT apt-get update \
-                   -o Dir::Etc::sourcelist="$WHONIX_SOURCES_LIST_TEMP_BUILD_BASE" \
-                   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
-                   -o APT::Get::List-Cleanup="0"
+   $CHROOT apt-get $apt_opts -o APT::Get::List-Cleanup="0" update
 
    sync   
    
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      $CHROOT apt-get --yes --no-install-recommends install whonix-gateway-postinst
+      $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-gateway-postinst
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      $CHROOT apt-get --yes --no-install-recommends install whonix-workstation-postinst
+      $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-workstation-postinst
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
