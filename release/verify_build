@@ -36,9 +36,6 @@ source variables
 ## - Test with a modified symlink within the image or debian verification folder.
 ## - Test with a modified checksum within the image or debian verification folder.
 ## - Recommended exercise: use your own variables to check if really no file was forgotten.
-## - /boot/grub/video_fb.mod is copied from /usr/lib/grub/i386-pc
-##   dpkg -L grub-pc-bin | grep video_fb
-##   /usr/lib/grub/i386-pc/video_fb.mod
 ## - bootloader: Edwin said "I think it is based on /usr/lib/grub/i386-pc/boot.img, but with some offsets adjusted."
 
 ## TODO lower priority:
@@ -75,18 +72,18 @@ preparation() {
    trap "error_handler_general" ERR INT TERM
 
    temp_folder="$WHONIX_BINARY/verification"
+   whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+   
    sudo -u "$USERNAME" mkdir --parents "$temp_folder"
    sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
 
    if [ ! -f "$temp_folder/status/whonix_source_code_copied" ]; then
       true "${bold}${cyan}INFO: Making a copy of Whonix source code, which we will use for verification... ${reset}"
-      sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
+      sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$whonix_source"
       sudo -u "$USERNAME" touch "$temp_folder/status/whonix_source_code_copied"
    else
       true "${bold}${cyan}INFO: We already have a copy of Whonix source code. ${reset}"
    fi
-
-   whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
 
    true "${bold}${cyan}INFO: Get into snapshot of Whonix source code... ${reset}"
    cd "$whonix_source"
@@ -112,12 +109,6 @@ preparation() {
    declare -A -g pkg_arch
    declare -A -g pkg_bp
    
-   ## TODO: Remove
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img || true
-
-   ## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
-
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
@@ -133,7 +124,6 @@ preparation() {
    if [ -f "$WHONIX_BUILD_MOUNT_IMG_FILE" ]; then
       true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
    else
-      ## Unpack .ova...
       ova="$WHONIX_BINARY/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.ova"
       if [ ! -f "$ova" ]; then
          error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
@@ -158,6 +148,9 @@ preparation() {
       sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
       true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
    fi
+   
+   ## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img 
 }
 
 verify_whonix_source_files_helper() {
@@ -242,8 +235,7 @@ parse_dpkg_status_file() {
          continue
       fi
 
-      ## Remove "1:", "2:", etc. from version number.
-      ## Not sure what 1:version in dpkg status file means.
+      ## Remove epoch, i.e. "1:", "2:", etc. from version number.
       local version_second_char="${version_with:1:1}"
       if [ "$version_second_char" = ":" ] ;then
          local version_without="$(echo "$version_with" | awk -F ":" '{ print $2 }')"
@@ -366,7 +358,7 @@ verify_packages() {
    ## and DEBIAN/md5sums is only used to verify if the individual files are intact. But what
    ## we do here is different. The md5sums created from files of the untrusted system could
    ## be maliciously prepared to contain a backdoor and a md5 hash collisions. Therefore
-   ## we rather build a sha512 checksum and compare it with a sha512 checksum we compare
+   ## we rather build a sha512 checksum and compare it with a sha512 checksum we created
    ## ourselves. If Debian were to ship a DEBIAN/sha512sums (or sha256sums) file some day,
    ## we could of course use that file instead.
    
