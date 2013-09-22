@@ -1,0 +1,177 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## Usage:
+## From Whonix Source Code Folder...
+##    TODO
+
+[ -o xtrace ]
+## returns:
+## - 0, if -x is set
+## - 1, if -x is not set
+MINUS_X_SET="$?"
+
+set -x
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+
+cd help-steps
+source pre
+source variables
+
+## TODO: Read which version to check or filename from command line?
+WHONIX_BUILD_WHONIX_VERSION_NEW="137adretemp"
+
+## Default to "no mismatch found" (0) and and increase for every mismatch found.
+WHONIX_BUILD_VERIFY_MISMATCH="0"
+
+## Enable (1) or disable (0) debug_echo's.
+debug="0"
+
+unmount_img() {
+   umount "$mount_folder_our"
+   sync   
+ 
+   kpartx -d "$img_our"
+   sync
+
+   # Delete temporary folder.
+   # It did not contain anything. It was only a mount point.
+   rm -r "$mount_folder_our"
+   sync
+   
+   umount "$mount_folder_their"
+   sync   
+ 
+   kpartx -d "$img_their"
+   sync
+
+   # Delete temporary folder.
+   # It did not contain anything. It was only a mount point.
+   rm -r "$mount_folder_their"
+   sync  
+}
+
+error_handler() {
+   local return_code="$?"
+   local bash_command="$BASH_COMMAND"
+   
+   unmount_img
+   
+   echo "
+${red}${bold}bash_command${reset}: $bash_command
+${red}${bold}return_code${reset}: $return_code
+"
+}
+
+trap "error_handler" ERR INT TERM
+
+debug_echo() {
+   if [ "$debug" = 1 ]; then
+      echo "$*"
+   fi
+}
+
+preparation() {
+   trap "error_handler" ERR INT TERM
+
+   declare -A -g remembered_file_our_i
+   declare -A -g remembered_file_our_hash
+   declare -A -g remembered_file_their_i
+   declare -A -g remembered_file_their_hash
+   
+   temp_folder="$WHONIX_BINARY/verification"   
+   sudo -u "$USERNAME" mkdir --parents "$temp_folder"
+
+   img_our="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
+
+   if [ -f "$img_our" ]; then
+      true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
+   else
+      ova_our="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.ova"
+      if [ ! -f "$ova_our" ]; then
+         error "${red}${bold}ERROR: $ova_our does not exist. ${reset}"
+      else
+         true "${bold}${cyan}INFO: Unpacking our ova: $ova_our... ${reset}"
+         sudo -u "$USERNAME" tar -xvf "$ova_our"
+         true "${bold}${cyan}INFO: Unpacked ova_our. ${reset}"
+      fi
+   fi
+
+   vmdk_our="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW-disk1.vmdk"
+
+   if [ ! -f "$vmdk_our" ]; then
+      error "${red}${bold}ERROR: vmdk_our: "$vmdk_our" does not exist. ${reset}"
+   fi
+
+   if [ -f "$img_our" ]; then
+      true "${bold}${cyan}INFO: Converting our_vmdk to .img not required, already done, skipping. ${reset}"
+   else
+      ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
+      true "${bold}${cyan}INFO: Converting our_vmdk to img... ${reset}"
+      sudo -u "$USERNAME" qemu-img convert "$vmdk_our" -O raw "$img_our"
+      true "${bold}${cyan}INFO: Converted our_vmdk to img. ${reset}"
+   fi
+   
+   kpartx -av "$img_our"
+   sync
+   
+   mkdir --parents "$mount_folder_our"
+   sync
+   
+   mount /dev/mapper/loop0p1 "$mount_folder_our"
+   sync   
+}
+
+parse_our_image() {
+   trap "error_handler" ERR INT TERM
+
+   local i
+   
+   while read i; do
+      echo "i: $i"
+      remembered_file_our_i[$i]="$i"
+      local a="$(sha512sum "$i")"
+      local checksum_our
+      read -r checksum_our _ <<< "$a"
+      remembered_file_our_hash[$i]="$checksum_our"
+   done < <(find "$mount_folder_our")  
+}
+
+parse_their_image() {
+   trap "error_handler" ERR INT TERM
+
+   local i
+   
+   while read i; do
+      echo "i: $i"
+      remembered_file_their_i[$i]="$i"
+      local a="$(sha512sum "$i")"
+      local checksum_their
+      read -r checksum_their _ <<< "$a"
+      remembered_file_their_hash[$i]="$checksum_their"
+   done < <(find "$mount_folder_their")   
+}
+
+compare_images() {
+   trap "error_handler" ERR INT TERM
+
+}
+
+end() {
+   trap "error_handler" ERR INT TERM
+
+   unmount_img
+}
+
+preparation
+parse_our_image
+parse_their_image
+compare_images
+end
