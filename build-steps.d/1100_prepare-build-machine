@@ -54,6 +54,9 @@ prepare-build-machine() {
       local extra_apt_opt="--option Dpkg::Options=force-confold"
    fi
    
+   true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment extra_apt_timeout.${reset}"
+   extra_apt_timeout="--option Acquire::http::Timeout=180 --option Acquire::ftp::Timeout=180 --option Acquire::Retries=3"
+   
    ## Using an apt cache to speed up downloading
    ## If you want to build multiple times (for debugging etc.),
    ## it makes sense to install a local apt proxy on your build machine.
@@ -73,8 +76,8 @@ prepare-build-machine() {
    
    if [ ! "$ret" = "0" ]; then
       ## Update package lists and install apt-cacher-ng.
-      apt-get update 
-      apt-get install $extra_apt_opt --yes apt-cacher-ng
+      apt-get $extra_apt_timeout update 
+      apt-get install $extra_apt_timeout $extra_apt_opt --yes apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
@@ -89,7 +92,7 @@ prepare-build-machine() {
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
-      apt-get update
+      apt-get $extra_apt_timeout update
       apt-get $extra_apt_opt --yes dist-upgrade
    fi
    
@@ -129,7 +132,7 @@ prepare-build-machine() {
    ##      dh-apparmor
    ## - required for "make clean"
    ##      gawk
-   apt-get install $extra_apt_opt --yes \
+   apt-get install $extra_apt_timeout $extra_apt_opt --yes \
       sudo \
       ruby-ronn \
       diffutils \
@@ -158,7 +161,7 @@ prepare-build-machine() {
       ##      grml-debootstrap kpartx mksh parted qemu-utils
       ## - for creating VirtualBox VM images
       ##      virtualbox   
-      apt-get install $extra_apt_opt --yes \
+      apt-get install $extra_apt_timeout $extra_apt_opt --yes \
          qemu-utils \
          grml-debootstrap \
          parted \
@@ -168,7 +171,7 @@ prepare-build-machine() {
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
       #######################################################################         
-      apt-get install $extra_apt_opt --yes \
+      apt-get install $extra_apt_timeout $extra_apt_opt --yes \
          virtualbox
    fi
 
