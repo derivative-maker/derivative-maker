@@ -51,11 +51,7 @@ prepare-build-machine() {
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Always keep old configuration file. Do not prompt to install new config files.
-      echo '
-         Dpkg::Options {
-            "--force-confold";
-         }
-      ' > /etc/apt/apt.conf.d/90whonix-build-confold
+      local extra_apt_opt="--option Dpkg::Options=force-confold"
    fi
    
    ## Using an apt cache to speed up downloading
@@ -78,7 +74,7 @@ prepare-build-machine() {
    if [ ! "$ret" = "0" ]; then
       ## Update package lists and install apt-cacher-ng.
       apt-get update 
-      apt-get install --yes apt-cacher-ng
+      apt-get install $extra_apt_opt --yes apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
@@ -94,7 +90,7 @@ prepare-build-machine() {
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
       apt-get update
-      apt-get --yes dist-upgrade
+      apt-get $extra_apt_opt --yes dist-upgrade
    fi
    
    ###############################################   
@@ -133,7 +129,7 @@ prepare-build-machine() {
    ##      dh-apparmor
    ## - required for "make clean"
    ##      gawk
-   apt-get install --yes \
+   apt-get install $extra_apt_opt --yes \
       sudo \
       ruby-ronn \
       diffutils \
@@ -162,7 +158,7 @@ prepare-build-machine() {
       ##      grml-debootstrap kpartx mksh parted qemu-utils
       ## - for creating VirtualBox VM images
       ##      virtualbox   
-      apt-get install --yes \
+      apt-get install $extra_apt_opt --yes \
          qemu-utils \
          grml-debootstrap \
          parted \
@@ -172,7 +168,7 @@ prepare-build-machine() {
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
       #######################################################################         
-      apt-get install --yes \
+      apt-get install $extra_apt_opt --yes \
          virtualbox
    fi
 
@@ -184,11 +180,8 @@ prepare-build-machine() {
    #sudo apt-get autoclean
    
    ## Disable apt-cacher-ng proxy.
-   unset http_proxy
-   
-   rm --force /etc/apt/apt.conf.d/90whonix-build-confold
+   unset http_proxy   
 } 
 
 true "${bold}INFO: Currently running script: $0${reset}"
 prepare-build-machine
-
