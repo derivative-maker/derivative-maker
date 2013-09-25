@@ -26,7 +26,7 @@ cd ..
 
 create-debian-packages() {
    trap "error_handler_general" ERR INT TERM
-   
+
    ## We need to create a local signing key for signing our local APT repository. Otherwise,
    ## apt-get would complain, that the package can not be verified. In theory, signing is not
    ## required, because the local APT repository never touches any networks. However, ignoring
@@ -36,24 +36,24 @@ create-debian-packages() {
    ## because anyone could get this key, which also needs to be added to apt-key. In that case,
    ## anyone could sign packages with this snake oil key. Therefore we play it safe and
    ## create a local signing key on the build machine.
-   
+
    ## We only automatically create am auto local signing key, in case the builder did not
    ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
    ## help-steps/variables.
    if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
       true "${cyan}$0 INFO: Using ${under}auto local signing key method${eunder}... ${reset}"
-   
+
       ## Check, if we previously already created a local OpenPGP signing key.
       if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
          true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
-   
+
          sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
-   
+
          ## chmod 700, so gpg will not complain about folder permissions
-         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"   
+         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
 
          ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
-      
+
          echo "
             Key-Type: RSA
             Key-Length: 4096
@@ -68,9 +68,9 @@ create-debian-packages() {
                                     --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
                                     --batch \
                                     --gen-key
-      
+
          sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done
-      
+
          true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
       else
          true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
@@ -78,7 +78,7 @@ create-debian-packages() {
    else
       true "${cyan}$0 INFO: Using ${under}custom signing key method${eunder}... ${reset}"
    fi
-   
+
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    sudo -E -u "$USERNAME" gpg \
@@ -87,14 +87,14 @@ create-debian-packages() {
                           --keyid-format "0xlong" \
                           --fingerprint \
                           --list-secret-keys
-   
-   if [ "$WHONIX_BUILD_NEW_CHANGELOG_VERSION" = "$WHONIX_BUILD_OLD_CHANGELOG_VERSION" ]; then   
+
+   if [ "$WHONIX_BUILD_NEW_CHANGELOG_VERSION" = "$WHONIX_BUILD_OLD_CHANGELOG_VERSION" ]; then
       true "${bold}${cyan}$0 INFO: WHONIX_BUILD_NEW_CHANGELOG_VERSION equals WHONIX_BUILD_OLD_CHANGELOG_VERSION, not creating new Debian packages. ${reset}"
       exit 0
    fi
-     
+
    if [ -n "$(git status --porcelain)" ]; then
-      true "${bold}${red}$0 ERROR: Git reports uncommitted changes! ${reset}"   
+      true "${bold}${red}$0 ERROR: Git reports uncommitted changes! ${reset}"
       true "${cyan}$0 INFO: Running \"git status\" for your convenience. ${reset}"
       git status
       true "${cyan}$0 INFO: Running git \"clean --dry-run -d --force --force\" for your convenience. ${reset}"
@@ -109,7 +109,7 @@ ${cyan}or if you know what you are doing:${reset}
 
       error "Uncommitted changes! See above!"
    fi
-   
+
    true "${cyan}$0 INFO: Going to update ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository... ${reset}"
    sleep 3
 
@@ -123,10 +123,10 @@ ${cyan}or if you know what you are doing:${reset}
    true "${cyan}$0 INFO: Cleaned old packages. ${reset}"
 
    true "${cyan}$0 INFO: Automatically bumping version number in debian/changelog... ${reset}"
-   
+
    ## bump changelog version numbers
    ## whonix is written in lower case,
-   ## because that's the name of the file in /etc/dpkg/origins/ 
+   ## because that's the name of the file in /etc/dpkg/origins/
    sudo -E -u "$USERNAME" \
       debchange \
          --vendor "whonix" \
@@ -170,7 +170,7 @@ ${cyan}or if you know what you are doing:${reset}
 
    #sudo -E -u user \
       #debuild -p"gpg --no-default-keyring --homedir $WHONIX_LOCAL_SIGNING_KEY_FOLDER --default-key $DEBEMAIL"
-      
+
    sudo -E -u user \
       debuild \
          -p"gpg \
@@ -180,45 +180,45 @@ ${cyan}or if you know what you are doing:${reset}
             --default-key "$DEBEMAIL"
             " \
          -sa
-   
+
    true "${cyan}$0 INFO: Created deb packages. ${reset}"
 
-   if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then   
+   if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
       true "${cyan}$0 INFO: Purging ${under}local${eunder} APT repository... ${reset}"
-   
+
       sudo -E -u "$USERNAME" \
          reprepro \
             -V \
             -V \
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             removematched "$WHONIX_BUILD_APT_CODENAME" "*"
-         
+
       true "${cyan}$0 INFO: Done, purged ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository. ${reset}"
    else
       true "${cyan}$0 INFO: Not purging APT repository, because distribution is ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder}. ${reset}"
    fi
-   
+
    true "${cyan}$0 INFO: Creating ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository... ${reset}"
    true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
-         
+
    sudo -E -u "$USERNAME" \
       reprepro \
          -V \
          -V \
          $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
          includedsc "$WHONIX_BUILD_APT_CODENAME" ../*.dsc
-         
+
    true "${cyan}$0 INFO: Done, imported .dsc file. ${reset}"
 
    true "${cyan}$0 INFO: Importing .changes file... ${reset}"
-         
+
    sudo -E -u "$USERNAME" \
       reprepro \
          -V \
          -V \
          $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
          include "$WHONIX_BUILD_APT_CODENAME" ../*.changes
-         
+
    true "${cyan}$0 INFO: Done, imported .changes file. ${reset}"
 
 ## Old method. We do not need to import .deb files for now.
@@ -227,10 +227,10 @@ ${cyan}or if you know what you are doing:${reset}
 #         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
 #         --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
 #         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-#         includedeb "$WHONIX_BUILD_APT_CODENAME" ../*.deb         
-   
+#         includedeb "$WHONIX_BUILD_APT_CODENAME" ../*.deb
+
    true "${cyan}$0 INFO: Done, created ${under}"$WHONIX_BUILD_APT_CODENAME"${eunder} APT repository. ${reset}"
-} 
+}
 
 true "${bold}INFO: Currently running script: $0 ${reset}"
 

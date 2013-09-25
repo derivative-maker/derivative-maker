@@ -23,14 +23,14 @@ SOURCEFOLDERS='whonix_shared whonix_gateway whonix_workstation'
 for sf in $SOURCEFOLDERS; do
 
     set +x
-    
+
     for i in $(find "$CURDIR/bash_completion/$sf"); do
          if [ -d "$i" ]; then
             continue
          fi
-         
+
          bc_file="bash_completion/$sf/$(basename $i)"
-         
+
          case $sf in
 	    whonix_shared)
 		echo $bc_file >> $CURDIR/debian/whonix-shared-files.bash-completion
@@ -42,88 +42,87 @@ done
 for i in $(find "$CURDIR/man"); do
 
    set +x
-   
+
    if [ -d "$i" ]; then
       continue
    fi
- 
+
    temp="${i#"$CURDIR/man/"}"
 
    source_folder="$(dirname "$temp")"
-   
+
    filename_without_ron_file_extension="$(basename "$i" ".ronn")"
-   
+
    mkdir --parents "$CURDIR"/debian/tmp-man/"$source_folder"
-   
+
    echo "${bold}${cyan}INFO: Creating man page "$CURDIR"/debian/tmp-man/"$source_folder"/"$filename_without_ron_file_extension" ${reset}"
-   
+
    ronn \
       --manual="Whonix Documentation" \
       --organization="Whonix" \
       <$i \
       > "$CURDIR"/debian/tmp-man/"$source_folder"/"$filename_without_ron_file_extension"
-      
+
 done
 
-for sf in $SOURCEFOLDERS; do  
-   
+for sf in $SOURCEFOLDERS; do
+
       set +x
-   
+
       for i in $(find "$CURDIR/$sf"); do
          if [ -d "$i" ]; then
             continue
-         fi        
-         
+         fi
+
          ## path without source folder in it
          temp="${i#"$CURDIR/$sf"}"
-         
-         filename="$(basename "$temp")"         
-         
+
+         filename="$(basename "$temp")"
+
          if [ "$filename" = ".directory" ]; then
              echo "${bold}${cyan}INFO: Skipping .directory file: $i ${reset}"
              continue
-         fi     
+         fi
 
-         if [ "$sf" = "whonix_shared" ]; then         
+         if [ "$sf" = "whonix_shared" ]; then
             if [ "$(dirname "$temp")" = "/etc/init.d" ]; then
                echo "${green}cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".init ${reset}"
                cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-shared-files."$filename".init
                echo "${bold}${green}dh_installinit --no-start --package="whonix-shared-files" --name="$filename" ${reset}"
-               dh_installinit --package="whonix-shared-files" --name="$filename"            
+               dh_installinit --package="whonix-shared-files" --name="$filename"
                continue
             fi
          fi
-         
-         if [ "$sf" = "whonix_gateway" ]; then         
+
+         if [ "$sf" = "whonix_gateway" ]; then
             if [ "$(dirname "$temp")" = "/etc/init.d" ]; then
                echo "${green}cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-gateway-files."$filename".init ${reset}"
                cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-gateway-files."$filename".init
                echo "${bold}${green}dh_installinit --no-start --package="whonix-gateway-files" --name="$filename" ${reset}"
-               dh_installinit --package="whonix-gateway-files" --name="$filename"            
+               dh_installinit --package="whonix-gateway-files" --name="$filename"
                continue
             fi
          fi
-         
-         if [ "$sf" = "whonix_workstation" ]; then         
+
+         if [ "$sf" = "whonix_workstation" ]; then
             if [ "$(dirname "$temp")" = "/etc/init.d" ]; then
                echo "${green}cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-workstation-files."$filename".init ${reset}"
                cp --preserve "$CURDIR"/"$sf"/$temp "$CURDIR"/debian/whonix-workstation-files."$filename".init
                echo "${bold}${green}dh_installinit --no-start --package="whonix-workstation-files" --name="$filename" ${reset}"
-               dh_installinit --package="whonix-workstation-files" --name="$filename"            
+               dh_installinit --package="whonix-workstation-files" --name="$filename"
                continue
             fi
-         fi             
-         
+         fi
+
          mkdir --parents "$CURDIR"/debian/tmp/"$sf"/"$(dirname "$temp")"
-       
+
          #echo "cp --preserve "$i" "$CURDIR"/debian/tmp/"$sf"/"$temp""
          cp --preserve "$i" "$CURDIR"/debian/tmp/"$sf"/"$temp"
 
-      done     
+      done
 
 done
 
 set -x
 
 exit 0
-

@@ -21,15 +21,15 @@ source variables
 
 install-postinst-d-packages() {
    trap "error_handler_unchroot_unprevent_unmount" ERR INT TERM
-   
+
    if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
       error "${red}${bold}$0 ERROR: "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
-   fi   
+   fi
 
    sync
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img   
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/prevent-daemons-from-starting   
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/prevent-daemons-from-starting
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-img
 
    sync
@@ -48,12 +48,12 @@ install-postinst-d-packages() {
    export http_proxy="http://127.0.0.1:3142"
 
    sync
-   
+
    ## Reading local temporary apt repository containing Whonix's packages.
    $CHROOT apt-get $apt_opts -o APT::Get::List-Cleanup="0" update
 
-   sync   
-   
+   sync
+
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-gateway-postinst
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
@@ -61,20 +61,20 @@ install-postinst-d-packages() {
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
-   
+
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
-   
+
    ## Forget about repository containing Whonix's packages.
    #$CHROOT apt-get --no-download --list-cleanup update
 
-   $CHROOT sync   
-   sync 
-   
-   ## Disable apt-cacher-ng.
-   unset http_proxy   
+   $CHROOT sync
+   sync
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img   
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting   
+   ## Disable apt-cacher-ng.
+   unset http_proxy
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
 
    sync

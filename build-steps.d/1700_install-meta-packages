@@ -26,8 +26,8 @@ install-meta-packages() {
    if [ "$WHONIX_BUILD_FAST2" = "1" ]; then
       echo "${bold}${cyan}INFO: run with --fast2 switch, skipping $0. ${reset}"
       exit 0
-   fi   
-   
+   fi
+
    if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
       error "${red}${bold}$0 ERROR: "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
    fi
@@ -44,18 +44,18 @@ install-meta-packages() {
    $CHROOT update-grub -v
    $CHROOT sync
    sync
-   
+
    ## backup exiting /etc/apt/sources.list, might be useful for bare metal users
    cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
-   
+
    ## We have to manually fix /etc/apt/sources.list, because the list which comes with
    ## grml-debootstrap is incomplete (does not complain debian security repository) and points to 127.0.0.1.
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/sources.list.whonix" "$CHROOT_FOLDER/etc/apt/sources.list"
-   
+
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/preferences.d/"* "$CHROOT_FOLDER/etc/apt/preferences.d/"
 
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/apt.conf.d/90whonix-timeout" "$CHROOT_FOLDER/etc/apt/apt.conf.d/"
-   
+
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
    ## Debugging.
@@ -65,10 +65,10 @@ install-meta-packages() {
    export http_proxy="http://127.0.0.1:3142"
 
    sync
-   
+
    mkdir --parents "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/usr/share/whonix/build_sources.list" "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
-   
+
    sync
 
    ## Info.
@@ -83,36 +83,36 @@ install-meta-packages() {
    $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-shared-packages-recommended
 
    $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-shared-desktop
-   
+
    $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-shared-desktop-kde
 
-   $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-shared-kde-accessibility   
-      
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then 
+   $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-shared-kde-accessibility
+
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-gateway-packages-dependencies
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-gateway-packages-recommended
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-workstation-packages-dependencies
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-workstation-packages-recommended
-      
+
       $CHROOT apt-get $apt_opts --yes --no-install-recommends install whonix-workstation-default-applications
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
-   
+
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
-   
+
    ## Forget about repository containing Whonix's packages.
    #$CHROOT apt-get --no-download --list-cleanup update
-   
+
    $CHROOT sync
    sync
-   
+
    ## Disable apt-cacher-ng.
-   unset http_proxy   
+   unset http_proxy
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting   
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
 
    sync
