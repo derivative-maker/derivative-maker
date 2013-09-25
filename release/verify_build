@@ -56,7 +56,7 @@ debug="0"
 error_handler_unmount_verify_build() {
    ## Get out of this folder, so unmounting will work.
    cd "$WHONIX_BUILD_VERIFY_OLD_PWD"
-   
+
    error_handler_unmount
 }
 
@@ -73,7 +73,7 @@ preparation() {
 
    temp_folder="$WHONIX_BINARY/verification"
    whonix_source="$temp_folder/Whonix-$WHONIX_BUILD_WHONIX_VERSION_NEW"
-   
+
    sudo -u "$USERNAME" mkdir --parents "$temp_folder"
    sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
 
@@ -108,15 +108,15 @@ preparation() {
    declare -A -g pkg_vers_without
    declare -A -g pkg_arch
    declare -A -g pkg_bp
-   
+
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
    ## TODO: Fails with Whonix apt repository enabled, because of a bug in apt-cacher-ng. Contacted author.
    #apt-get update
-   
+
    ## Disable apt-cacher-ng.
-   unset http_proxy   
+   unset http_proxy
 
    ## export, so help-steps/(un)mount-img opens this one.
    export WHONIX_BUILD_MOUNT_IMG_FILE="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
@@ -148,16 +148,16 @@ preparation() {
       sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
       true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
    fi
-   
+
    ## Mount $WHONIX_BUILD_MOUNT_IMG_FILE
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img 
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 }
 
 verify_whonix_source_files_helper() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
-   
+
    local i
-   
+
    ## Setting +x because the for loops otherwise causes too much output.
    maybe_set_plus_x
 
@@ -172,9 +172,9 @@ verify_whonix_source_files_helper() {
       fi
       local absolute_file_name="${i#"$1"}"
       local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
-      
+
       debug_echo "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (absolute_file_name: \"$absolute_file_name\")..."
-      
+
       local diff_return="0"
       diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
 
@@ -186,7 +186,7 @@ verify_whonix_source_files_helper() {
          remembered_file[$absolute_file_name]="1"
       fi
    done < <(find "$1")
-   
+
    set -x
 }
 
@@ -213,11 +213,11 @@ parse_dpkg_status_file() {
    echo "${cyan}${bold}$0 INFO: Parsing $dpkg_status_folder... ${reset}"
 
    local i=0
-   
+
    local package status arch version_with bp
 
    maybe_set_plus_x
-   
+
    ## TODO:
    ## Prepare a dpkg status file which includes malformed content,
    ## such as `$(echo a)` to check if no code gets executed.
@@ -257,7 +257,7 @@ parse_dpkg_status_file() {
       pkg_vers_with[$package]="$version_with"
       pkg_vers_without[$package]="$version_without"
       pkg_bp[$package]="$bp"
-      
+
    done < <(dpkg-query --admindir="$dpkg_status_folder" --showformat="\${Package}\t\${db:Status-Abbrev}\t\${Architecture}\t\${Version}\t\${binary:Package}\n" --show \*)
 
    set -x
@@ -267,22 +267,22 @@ download_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
 
    ## We need to build a long line with all packages.
-   ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.   
+   ## Otherwise, running `apt-get download` with only one package by line over and over again would takes ages.
 
    maybe_set_plus_x
-   
+
    for pkg in "${pkg_name[@]}"; do
       local status_file="$temp_folder/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
-      
+
       if [ -f "$status_file" ]; then
          continue
       fi
 
       local pkg_list="$pkg_list $pkg=${pkg_vers_with[$pkg]}"
-   done  
+   done
 
    set -x
-   
+
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
@@ -307,20 +307,20 @@ download_packages() {
    ## 137adretemp:
    ## http://snapshot.debian.org/archive/debian/?year=2013;month=9  2013-09-13 03:54:37
    ## deb http://snapshot.debian.org/archive/debian/20130913T035437Z/ testing main
-   
+
    ## Disable apt-cacher-ng.
-   unset http_proxy  
+   unset http_proxy
 }
 
 extract_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
-   
+
    true "${cyan}${bold}$0 INFO: Extracting packages... ${reset}"
-   
+
    maybe_set_plus_x
 
    for pkg in "${pkg_name[@]}"; do
-   
+
       local status_file="$temp_folder/status/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}_extracted"
 
       if [ -f "$status_file" ]; then
@@ -328,8 +328,8 @@ extract_packages() {
       fi
 
       ## Extract the package including the DEBIAN folder.
-      
-      local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"      
+
+      local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
 
       sudo -u "$USERNAME" \
          dpkg-deb \
@@ -341,15 +341,15 @@ extract_packages() {
          touch "$status_file"
 
    done
-   
+
    set -x
-   
+
    true "${cyan}${bold}$0 INFO: Extracted packages. ${reset}"
 }
 
 verify_packages() {
    trap "error_handler_unmount_verify_build" ERR INT TERM
-   
+
    ## We don't use the DEBIAN/md5sums, because md5 is no longer considered safe. Maybe you
    ## consider it still safe enough, but I would like to dodge that discussion. Hopefully,
    ## you do agree, that it won't be safe in a few years? For that reason, we are using
@@ -361,16 +361,16 @@ verify_packages() {
    ## we rather build a sha512 checksum and compare it with a sha512 checksum we created
    ## ourselves. If Debian were to ship a DEBIAN/sha512sums (or sha256sums) file some day,
    ## we could of course use that file instead.
-   
-   true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"  
-  
+
+   true "${cyan}${bold}$0 INFO: Verifying packages... ${reset}"
+
    maybe_set_plus_x
-   
-   for pkg in "${pkg_name[@]}"; do   
+
+   for pkg in "${pkg_name[@]}"; do
 
       local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
       local i
-   
+
       while read i; do
          if [ -d "$i" ]; then
             continue
@@ -390,13 +390,13 @@ verify_packages() {
             local absolute_file_name="${i#"$extract_folder"}"
             local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
          fi
-         
+
          ## Fallbacks.
          local fail="1"
          local symlink="0"
          local i_link="no symlink"
          local chroot_file_link="no symlink"
-         
+
          ## Check if $i is a symlink.
          if [ -h "$i" ]; then
             local symlink="1"
@@ -448,11 +448,11 @@ verify_packages() {
          fi
 
       done < <(find "$extract_folder")
-   
+
    done
 
    set -x
-   
+
    true "${cyan}${bold}$0 INFO: Verified packages. (This does indicate neither failure nor success. Results at the end.) ${reset}"
 }
 
@@ -468,7 +468,7 @@ forgotten_files() {
 
    while read i; do
       local j="$(expr "$j" + "1")"
-     
+
       if [ -d "$i" ]; then
          continue
       fi
@@ -477,14 +477,14 @@ forgotten_files() {
       ## Remove for example /home/user/whonix_binary/Whonix-Gateway_image
       local dir_name_absolute="${dir_name#"$CHROOT_FOLDER"}"
       #local folder_name=${dir_name##*/}
-      
+
       local absolute_file_name="${i#"$folder"}"
       local chroot_file="$CHROOT_FOLDER/$absolute_file_name"
 
       #debug_echo "${cyan}INFO${reset}: i: $i absolute_file_name: $absolute_file_name"
 
       if [ "${remembered_file[$absolute_file_name]}" = "0" ]; then
-         debug_echo "${cyan}INFO: $j Already known as good file i: $i || absolute_file_name: $absolute_file_name ${reset}"         
+         debug_echo "${cyan}INFO: $j Already known as good file i: $i || absolute_file_name: $absolute_file_name ${reset}"
          continue
       elif [ "${remembered_file[$absolute_file_name]}" = "1" ]; then
          debug_echo "${cyan}INFO: $j Already known as bad file i: $i || absolute_file_name: $absolute_file_name ${reset}"
@@ -493,14 +493,14 @@ forgotten_files() {
          ## Fallbacks.
          local i_link="no symlink"
          local i_link_f="no symlink"
-         
+
          ## Check if $i is a symlink.
          if [ -h "$i" ]; then
             ## Symlink found...
-            
+
             ## Not using readlink with -f, so we can compare the relative links.
             local i_link="$(readlink "$i")"
-            
+
             ## readlink -f returns a absolute file name.
             local i_link_f="$(readlink -f "$i")"
             ## Remove for example /home/user/whonix_binary/Whonix-Gateway_image from the symlink.
@@ -518,24 +518,24 @@ forgotten_files() {
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
                continue
-            fi        
+            fi
 
             if [ "${remembered_file[$i_link]}" = "0" ]; then
                debug_echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file (i_link): $i_link || absolute_file_name: $absolute_file_name ${reset}"
                remembered_file[$absolute_file_name]="0"
                continue
             fi
-            
+
             if [ "${remembered_file[$i_link_f]}" = "0" ]; then
                debug_echo "${cyan}INFO: $j forgotten file i: $i symlinks to known good file (i_link_f): $i_link_f || absolute_file_name: $absolute_file_name ${reset}"
                remembered_file[$absolute_file_name]="0"
                continue
             fi
-            
+
             echo "${bold}${red}ERROR: $j forgotten file i: $i symlinks to forgotten i_link: $i_link || i_link_f: $i_link_f || absolute_file_name: $absolute_file_name ${reset}"
             WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
             remembered_file[$absolute_file_name]="1"
-            continue            
+            continue
          else
             ## No symlink found...
 
@@ -549,7 +549,7 @@ forgotten_files() {
                   local file_content="$(cat "$i")"
                   if [[ "$file_content" == "$apparmor_text" ]]; then
                      debug_echo "${cyan}INFO: $j forgotten file i: $i contains only local apparmor default comment || absolute_file_name: $absolute_file_name ${reset}"
-                     remembered_file[$absolute_file_name]="0"                     
+                     remembered_file[$absolute_file_name]="0"
                      continue
                   else
                      echo "${bold}${red}ERROR: $j forgotten file i: $i || absolute_file_name: $absolute_file_name || base_name: $base_name || file_content: $file_content  ${reset}"
@@ -562,9 +562,9 @@ forgotten_files() {
                ## Files in /boot/grub are copied from /usr/lib/grub/i386-pc.
                if [[ "$dir_name_absolute" == "/boot/grub" ]]; then
                   ## For example i: /boot/grub/video_fb.mod
-                  
+
                   local grub_file="/usr/lib/grub/i386-pc/$base_name"
-                  
+
                   local a="$(sha512sum "$grub_file")"
                   local checksum_pkg
                   read -r checksum_pkg _ <<< "$a"
@@ -572,7 +572,7 @@ forgotten_files() {
                   local b="$(sha512sum "$i")"
                   local checksum_image
                   read -r checksum_image _ <<< "$b"
-                  
+
                   if [ "$checksum_pkg" = "$checksum_image" ]; then
                      debug_echo "${cyan}INFO: $j forgotten file i: $i matches grub_file: $grub_file || absolute_file_name: $absolute_file_name ${reset}"
                      remembered_file[$absolute_file_name]="0"
@@ -584,7 +584,7 @@ forgotten_files() {
                      continue
                   fi
                fi
-            
+
                echo "${bold}${red}ERROR: $j forgotten file i: $i || absolute_file_name: $absolute_file_name ${reset}"
                WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
                remembered_file[$absolute_file_name]="1"
@@ -595,9 +595,9 @@ forgotten_files() {
                remembered_file[$absolute_file_name]="0"
                continue
             fi
-            
+
          fi
-         
+
       fi
    done < <(find "$folder")
 

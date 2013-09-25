@@ -36,8 +36,8 @@ debug="0"
 
 unmount_img() {
    umount "$mount_folder_our"
-   sync   
- 
+   sync
+
    kpartx -d "$img_our"
    sync
 
@@ -45,25 +45,25 @@ unmount_img() {
    # It did not contain anything. It was only a mount point.
    rm -r "$mount_folder_our"
    sync
-   
+
    umount "$mount_folder_their"
-   sync   
- 
+   sync
+
    kpartx -d "$img_their"
    sync
 
    # Delete temporary folder.
    # It did not contain anything. It was only a mount point.
    rm -r "$mount_folder_their"
-   sync  
+   sync
 }
 
 error_handler() {
    local return_code="$?"
    local bash_command="$BASH_COMMAND"
-   
+
    unmount_img
-   
+
    echo "
 ${red}${bold}bash_command${reset}: $bash_command
 ${red}${bold}return_code${reset}: $return_code
@@ -85,8 +85,8 @@ preparation() {
    declare -A -g remembered_file_our_hash
    declare -A -g remembered_file_their_i
    declare -A -g remembered_file_their_hash
-   
-   temp_folder="$WHONIX_BINARY/verification"   
+
+   temp_folder="$WHONIX_BINARY/verification"
    sudo -u "$USERNAME" mkdir --parents "$temp_folder"
 
    img_our="$temp_folder/$VMNAME-$WHONIX_BUILD_WHONIX_VERSION_NEW.img"
@@ -118,22 +118,22 @@ preparation() {
       sudo -u "$USERNAME" qemu-img convert "$vmdk_our" -O raw "$img_our"
       true "${bold}${cyan}INFO: Converted our_vmdk to img. ${reset}"
    fi
-   
+
    kpartx -av "$img_our"
    sync
-   
+
    mkdir --parents "$mount_folder_our"
    sync
-   
+
    mount /dev/mapper/loop0p1 "$mount_folder_our"
-   sync   
+   sync
 }
 
 parse_our_image() {
    trap "error_handler" ERR INT TERM
 
    local i
-   
+
    while read i; do
       echo "i: $i"
       remembered_file_our_i[$i]="$i"
@@ -141,14 +141,14 @@ parse_our_image() {
       local checksum_our
       read -r checksum_our _ <<< "$a"
       remembered_file_our_hash[$i]="$checksum_our"
-   done < <(find "$mount_folder_our")  
+   done < <(find "$mount_folder_our")
 }
 
 parse_their_image() {
    trap "error_handler" ERR INT TERM
 
    local i
-   
+
    while read i; do
       echo "i: $i"
       remembered_file_their_i[$i]="$i"
@@ -156,7 +156,7 @@ parse_their_image() {
       local checksum_their
       read -r checksum_their _ <<< "$a"
       remembered_file_their_hash[$i]="$checksum_their"
-   done < <(find "$mount_folder_their")   
+   done < <(find "$mount_folder_their")
 }
 
 compare_images() {
