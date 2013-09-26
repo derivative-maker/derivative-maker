@@ -37,7 +37,17 @@ else
       trap "" ERR
 
       if [ "$TOR_ENABLED" = "0" ]; then
+         ## Sleep, so the following message comes after "waiting for results from timesync"
+         ## and to prevent the background message "waiting for results from timesync" from
+         ## interfering with whonixsetup.
+         sleep 5
+
          echo "$scriptname INFO: Tor has not been enabled yet. Starting whonixsetup..."
+
+         ## Sleep just for the look and feel, so the following message comes after, so the previous
+         ## message can be read.
+         sleep 5
+
          ## This has a sudoers exception in /etc/sudoers.d/whonixsetup.
          sudo /usr/bin/whonixsetup
       fi
@@ -55,7 +65,7 @@ else
          if ( echo "$i" | grep -q ".dpkg-" ); then
             true "skip $i"
             continue
-         fi         
+         fi
          source "$i"
       fi
    done
@@ -88,9 +98,9 @@ else
    if [ -z "$whonixdesktop_autostart_decision_feature" ]; then
       whonixdesktop_autostart_decision_feature=1
    fi
-   
+
    if [ ! "$whonixdesktop_autostart_decision_feature" = "1" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then  
+      if [ "$whonixdesktop_debug" = 1 ]; then
          true "$scriptname INFO: whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
          set +x
       fi
@@ -111,7 +121,7 @@ configuration folder does not exist. Not starting a desktop environment."
       return 0
    fi
 
-   service_return1="0"   
+   service_return1="0"
    ## There is a /etc/sudoers.d/kdm exception for this.
    sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return1="$?" ; true; };
 
@@ -203,7 +213,7 @@ here: https://www.whonix.org/wiki/Desktop"
          service_return3="0"
          ## There is a /etc/sudoers.d/kdm exception for this.
          sudo service "$whonixdesktop_display_manager" start || { service_return3="$?" ; true; };
-         
+
          if [ "$service_return3" = 0 ]; then
             true "$scriptname INFO: Successfully started "$whonixdesktop_display_manager"."
          else
