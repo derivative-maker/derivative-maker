@@ -12,34 +12,34 @@ get_local_whonix_version() {
    ## fallback
    INSTALLED_WHONIX_VERSION="Could not read Whonix Deb Version File. (Code: 1) Please report this bug!"
 
-   if [ -f "/usr/share/whonix/whonix_gateway" ]; then  
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then
       INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-gateway-postinst")"
    elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
       INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-workstation-postinst")"
    fi
-   
+
    ## Example: INSTALLED_WHONIX_VERSION="2:6-debpackage1"
-   
+
    ## Remove epoch from INSTALLED_WHONIX_VERSION.
    INSTALLED_WHONIX_VERSION="$(echo "$INSTALLED_WHONIX_VERSION" | awk -F ":" '{ print $2 }')"
-   
+
    ## Example: INSTALLED_WHONIX_VERSION="6-debpackage1"
-   
+
    ## fallback
    if [ "$INSTALLED_WHONIX_VERSION" = "" ]; then
-      INSTALLED_WHONIX_VERSION="Could not read Whonix Deb Version File. (Code: 2) Please report this bug!" 
+      INSTALLED_WHONIX_VERSION="Could not read Whonix Deb Version File. (Code: 2) Please report this bug!"
    fi
-   
+
    ## fallback
    WHONIX_BUILD_VERSION="Could not read Whonix Build Version File. (Code: 1) Please report this bug!"
-    
+
    if [ -f "/usr/share/whonix/build_version" ]; then
       WHONIX_BUILD_VERSION="$(cat "/usr/share/whonix/build_version")"
    fi
-   
+
    ## fallback
    if [ "$WHONIX_BUILD_VERSION" = "" ]; then
-      WHONIX_BUILD_VERSION="Could not read Whonix Build Version File. (Code: 2) Please report this bug!"   
+      WHONIX_BUILD_VERSION="Could not read Whonix Build Version File. (Code: 2) Please report this bug!"
    fi
 }
 
@@ -51,12 +51,12 @@ preparation() {
       kill -15 "$oldpid" > /dev/null 2>&1 || true
       kill -9 "$oldpid" > /dev/null 2>&1 || true
    fi
-   
+
    rm --force "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_done"
    rm --force "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_recently_run"
    sudo -u user touch "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_running"
    echo "$BASHPID" | sudo -u user tee /var/run/whonix/whonixcheck/""$SCRIPTNAME"_pid" > /dev/null
-   
+
    sync
 
    if [ "$display" = "" ]; then
@@ -75,15 +75,15 @@ preparation() {
    output_opt_4="--instantecho"
    output_opt_5="--nonewlinecli"
 
-   output_opts=( "$output_opt_1" "$output_opt_2" "$output_opt_3" "$output_opt_4" "$output_opt_5")   
-   
+   output_opts=( "$output_opt_1" "$output_opt_2" "$output_opt_3" "$output_opt_4" "$output_opt_5")
+
    if [ "$IDENTIFIER" = "whonixcheck" ]; then
       ## Expand output_opts.
       output_opt_extra_1="--lefttop"
       temp=( "$output_opt_extra_1" )
       output_opts=( "${output_opts[@]}" "$temp")
    fi
-   
+
    USERNAME="user"
    WHONIX_HOMEPAGE="https://www.whonix.org"
    VERIFY_TEMPDIR="$(mktemp --directory)"
@@ -94,7 +94,7 @@ preparation() {
    ## Prepare temporary directory.
    mkdir --parents "$VERIFY_TEMPDIR"
    chmod 700 "$VERIFY_TEMPDIR"
-   
+
    if [ -f "/usr/share/whonix/whonix_gateway" ]; then
       VM="Whonix-Gateway"
       vm_lower_case_short="gateway"
@@ -108,13 +108,13 @@ preparation() {
       vm_lower_case_short="error"
       GATEWAY_IP="192.168.0.10"
    fi
- 
+
    ## ARCH="x86_64"
    ## ARCH="i686"
    ARCH="$(uname --machine)"
-  
+
    TITLE="$IDENTIFIER $VM $INSTALLED_WHONIX_VERSION Info $(date)"
-   
+
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
@@ -127,11 +127,10 @@ preparation() {
          if ( echo "$i" | grep -q ".dpkg-" ); then
             true "skip $i"
             continue
-         fi         
+         fi
          source "$i"
       fi
-   done   
-   
+   done
+
    TIME_START="$(date +%s)"
 }
- 

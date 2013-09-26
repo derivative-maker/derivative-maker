@@ -6,13 +6,13 @@
 
 check_tor_socks_or_trans_port() {
    trap "error_handler" ERR
-   
+
    ## debugging hints
    #CURL=echo
-   #VERIFY_TEMPDIR=/home/user   
-   
+   #VERIFY_TEMPDIR=/home/user
+
    local LINK="https://check.torproject.org"
-     
+
    if [ "$1" = "SocksPort" ]; then
       if [ "$WHONIXCHECK_DISABLE_SOCKS_PORT_TEST" = "1" ]; then
          local MSG="SocksPort Test: Not testing Tor's SocksPort, because you set WHONIXCHECK_DISABLE_SOCKS_PORT_TEST=\"1\" to deactivate this."
@@ -24,11 +24,11 @@ check_tor_socks_or_trans_port() {
       $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
 
       local SOCKS_PORT_WHONIXCHECK="9110"
-     
+
       CHECK_TOR_RESULT_SOCKS_PORT="0"
-      
+
       CHECK_TOR_OUT_FILE="check_tpo_tor_socksport.html"
-      
+
       ## Ensuring normal curl activity can not be linked to whonixcheck,
       ## by using a SocksPort, which is solely used by whonixcheck.
       $CURL \
@@ -53,8 +53,8 @@ https://check.torproject.org was not reachable.
 You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle.
 (curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
 
-         elif [ "$VM" = "Whonix-Workstation" ]; then         
-         
+         elif [ "$VM" = "Whonix-Workstation" ]; then
+
             local MSG="\
 SocksPort Test Result:
 https://check.torproject.org was not reachable.
@@ -62,9 +62,9 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
 (curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
 
          else
-         
+
             local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
-            
+
          fi
 
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
@@ -75,9 +75,9 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
       if [ "$WHONIXCHECK_DISABLE_TRANS_PORT_TEST" = "1" ]; then
          local MSG="TransPort Test: Not testing Tor's TransPort, because you set WHONIXCHECK_DISABLE_TRANS_PORT_TEST=\"1\" to deactivate this."
          $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
-         return 0      
+         return 0
       fi
-      
+
       ## Do not test for stream isolation if Tor detection failed.
       ## This variable may be set to 1, during the first run of this function.
       if [ "$NOT_USING_TOR" = "1" ]; then
@@ -85,18 +85,18 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
          $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
          return 0
       fi
-      
+
       if [ ! "$CHECK_TOR_RESULT_SOCKS_PORT" = "0" ]; then
          local MSG="\
 TransPort Test:
 Not checking Tor's TransPort, because SocksPort test failed already."
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
          return 0
-      fi      
-   
+      fi
+
       local MSG="TransPort Test: Testing Tor's TransPort..."
       $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
-   
+
       CHECK_TOR_RESULT_TRANS_PORT="0"
 
       CHECK_TOR_OUT_FILE="check_tpo_tor_transport.html"
@@ -112,7 +112,7 @@ Not checking Tor's TransPort, because SocksPort test failed already."
          "$LINK" &
 
       wait "$!" || { CHECK_TOR_RESULT_TRANS_PORT="$?" ; true; };
-     
+
       if [ ! "$CHECK_TOR_RESULT_TRANS_PORT" = "0" ]; then
          local MSG="\
 TransPort Test Result:
@@ -133,7 +133,7 @@ Tor's TransPort was not reachable.
 
    local TOR_OR_NOT=""
    local TOR_OR_NOT="$(grep --no-messages "Congratulations" ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"")"
-   
+
    local IP="IP not detected (1). Please report this bug!"
    local IP="$(grep --no-messages "IP" ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"")"
    if [ "$IP" = "" ]; then
@@ -161,7 +161,7 @@ Tor's TransPort was not reachable.
          local MSG="TransPort Test Result: Connected to Tor. IP: $IP"
       elif [ "$1" = "SocksPort" ]; then
          local MSG="SocksPort Test Result: Connected to Tor. IP: $IP"
-      fi      
+      fi
       $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
       return 0
    else

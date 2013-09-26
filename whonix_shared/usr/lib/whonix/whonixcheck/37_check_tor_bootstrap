@@ -18,7 +18,7 @@ check_tor_bootstrap() {
             break
          fi
          sleep "1" &
-         wait "$!"         
+         wait "$!"
       done
       if [ ! -f "/var/run/controlportfilt/ownrunning" ]; then
          local MSG="Control Port Filter Proxy Test Result:
@@ -35,31 +35,31 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this bug!
    local kill_after="5s"
    local timeout_after="5s"
    local script="/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py"
- 
+
    ## Sometimes it does not work on the first run. Small hack.
    local temp_return="0"
    local temp_status="$(timeout --kill-after="$kill_after" "$timeout_after" "$script")" &
    wait "$!" || { local temp_return="$?" ; true; }
-  
+
    if [ "$TOR_BOOTSTRAP_TIME_START" = "" ]; then
       TOR_BOOTSTRAP_TIME_START="$(date +%s)"
    fi
    TOR_BOOTSTRAP_TIME_NOW="$(date +%s)"
    TOR_BOOTSTRAP_TIME_PASSED="$(expr "$TOR_BOOTSTRAP_TIME_NOW" - "$TOR_BOOTSTRAP_TIME_START")" || true
-   
+
    tor_bootstrap_percent="0"
    tor_bootstrap_status="$(timeout --kill-after="$kill_after" "$timeout_after" "$script")" &
    wait "$!" || { tor_bootstrap_percent="$?" ; true; }
-   
+
    ## `timeout` returns:
    ## - 124 if sigterm was sufficient
-   ## - 137 if needed to use kill.   
+   ## - 137 if needed to use kill.
 
    local MSG="tor_bootstrap_percent: $tor_bootstrap_percent"
    #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
    local MSG="tor_bootstrap_status: $tor_bootstrap_status"
    #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
-   
+
    if [ "$tor_bootstrap_percent" = "254" ]; then
       local MSG="Tor Bootstrap Result:
 "$script" ERROR ($tor_bootstrap_percent). Please report this bug!"
@@ -68,7 +68,7 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this bug!
       cleanup "1"
       return 0
    fi
-   
+
    if [ "$tor_bootstrap_percent" = "255" ] || [ "$tor_bootstrap_percent" = "124" ] || [ "$tor_bootstrap_percent" = "137" ]; then
       if [ "$VM" = "Whonix-Gateway" ]; then
          local MSG="Tor Bootstrap Result:
@@ -87,56 +87,56 @@ Please run whonixcheck on Whonix-Gateway."
       cleanup "1"
       return 0
    fi
-   
+
    if [ "$tor_bootstrap_percent" = "100" ]; then
       local MSG="Tor Bootstrap Result: Connected to Tor."
       $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
       return 0
-   fi    
-   
-   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -lt "60" ]; then   
+   fi
+
+   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -lt "60" ]; then
       if [ "$tor_bootstrap_percent" -lt "100" ]; then
          if [ "$PROGRESS" = "" ]; then
             PROGRESS="5"
          fi
          PROGRESS="$(expr $PROGRESS + 1)" || true
-         
+
          if [ "$TOR_BOOTSTRAP_PERCENT_OLD" = "" ]; then
             TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
          fi
-      
+
          if [ "$TOR_BOOTSTRAP_PERCENT_OLD" = "$tor_bootstrap_percent" ]; then
-            ## no progress has been made   
+            ## no progress has been made
             TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
-      
+
             local MSG="Tor Bootstrap Result: Bootstrapping for $TOR_BOOTSTRAP_TIME_PASSED seconds. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
             $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
-      
+
             $output ${output_opts[@]} --progress "$PROGRESS"
-      
+
             sleep "2" &
             wait "$!" || true
-      
+
             check_tor_bootstrap
             return 0
          else
             ## progress has been made
             TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
-         
+
             local MSG="Tor Bootstrap Result: Bootstrapping $TOR_BOOTSTRAP_TIME_PASSED seconds. Progress has been made. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
             $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
-      
+
             $output ${output_opts[@]} --progress "$PROGRESS"
-      
+
             sleep "2" &
             wait "$!" || true
-      
+
             check_tor_bootstrap
-            return 0         
+            return 0
          fi
       fi
    fi
-   
+
    if [ "$VM" = "Whonix-Gateway" ]; then
 
       local MSG="\
@@ -160,7 +160,7 @@ The Tor Browser Bundle is great for testing if you live in a censored area or no
 2)
 Try again: Start menu -> Applications -> System -> Whonix Check
            or in Terminal: whonixcheck
-           or in Terminal with debugging: bash -x whonixcheck --verbose         
+           or in Terminal with debugging: bash -x whonixcheck --verbose
 
 3)
 Use arm, connection page two, to see if Tor is connected:
@@ -193,7 +193,7 @@ Run whonixcheck on Whonix-Gatway as well."
    else
 
       local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
-            
+
    fi
 
    $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"

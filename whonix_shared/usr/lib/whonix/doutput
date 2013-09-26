@@ -44,7 +44,7 @@ error_handler() {
 "
    echo "$MSG"
    exit 1
-} 
+}
 
 output_sighup() {
    trap "error_handler" ERR
@@ -55,7 +55,7 @@ output_sighup() {
       if [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_pid" ]; then
          PARENT_PID="$(cat "/var/run/whonix/whonixcheck/"$IDENTIFIER"_pid")"
       fi
-   fi   
+   fi
 
    ## Check if still running.
    local ps_return="0"
@@ -96,7 +96,7 @@ parse_cmd_options() {
                if [ "$IDENTIFIER" = "" ]; then
                   echo "$0 ERROR: variable IDENTIFIER is empty."
                   exit 1
-               fi               
+               fi
                ;;
            --display)
                display="$2"
@@ -104,15 +104,15 @@ parse_cmd_options() {
                if [ "$display" = "" ]; then
                   echo "$0 ERROR: variable display is empty."
                   exit 1
-               fi               
-               ;;               
+               fi
+               ;;
            --parentpid)
                PARENT_PID="$2"
                shift 2
                if [ "$PARENT_PID" = "" ]; then
                   echo "$0 ERROR: variable PARENT_PID is empty."
                   exit 1
-               fi               
+               fi
                ;;
            --progressbar)
                PROGRESSBAR="1"
@@ -124,15 +124,15 @@ parse_cmd_options() {
                if [ "$PROGRESS" = "" ]; then
                   echo "$0 ERROR: variable PROGRESS is empty."
                   exit 1
-               fi                      
-               ;;               
+               fi
+               ;;
            --type)
                TYPE="$2"
                shift 2
                if [ "$TYPE" = "" ]; then
                   echo "$0 ERROR: variable TYPE is empty."
                   exit 1
-               fi                      
+               fi
                ;;
            --channel)
                CHANNEL="$2"
@@ -140,7 +140,7 @@ parse_cmd_options() {
                if [ "$CHANNEL" = "" ]; then
                   echo "$0 ERROR: variable CHANNEL is empty."
                   exit 1
-               fi                      
+               fi
                ;;
            --message)
                MESSAGE="$2"
@@ -148,7 +148,7 @@ parse_cmd_options() {
                if [ "$MESSAGE" = "" ]; then
                   echo "$0 ERROR: variable MESSAGE is empty."
                   exit 1
-               fi               
+               fi
                ;;
            --title)
                TITLE="$2"
@@ -156,7 +156,7 @@ parse_cmd_options() {
                if [ "$TITLE" = "" ]; then
                   echo "$0 ERROR: variable TITLE is empty."
                   exit 1
-               fi               
+               fi
                ;;
            --waitmessagecli)
                WAIT_MESSAGE_CLI=1
@@ -165,7 +165,7 @@ parse_cmd_options() {
            --waitmessagex)
                WAIT_MESSAGE_X=1
                shift
-               ;;               
+               ;;
            --instantecho)
                INSTANT_ECHO="1"
                shift
@@ -173,7 +173,7 @@ parse_cmd_options() {
            --instanttty)
                INSTANT_TTY="1"
                shift
-               ;;             
+               ;;
            --nonewlinex)
                NONEWLINEX="1"
                shift
@@ -189,7 +189,7 @@ parse_cmd_options() {
            --forgetwait)
                FORGET_WAIT="1"
                shift
-               ;;               
+               ;;
            --showcli)
                SHOW_CLI="1"
                shift
@@ -213,7 +213,7 @@ parse_cmd_options() {
            --forceactive)
                FORCE_ACTIVE="1"
                shift
-               ;;               
+               ;;
            --autostart)
                AUTOSTART="1"
                shift
@@ -255,7 +255,7 @@ start_progress_bar() {
 
    ## Clean up eventual old progress bar.
    rm --force "$FIFO"
-   
+
    sudo -u user mkfifo "$FIFO"
 
    zenity \
@@ -278,27 +278,27 @@ start_progress_bar() {
 
    if [ "$LEFT_TOP" = "1" ]; then
       output_wmctrl "$TITLE"
-   fi   
-   
+   fi
+
    ## Waiting for SIGHUP.
    ## Happens when zentiy reached 100% or when cancel button is pressed.
-   wait   
+   wait
 }
 
 output_write_to_tty() {
    ## Write to tty1.
    ## Using simple lock mechanism so messages from "write" do not get mixed up.
-   
+
    (
       flock --wait 10 --exclusive 200
-      
+
       echo "${1+"$@"}
 $feel_free_to_press_enter_msg" | write user tty1 2>/dev/null || true
 
       sleep 2
 
    ) 200>"/var/lib/whonix/whonixcheck/write_lock" &
-   
+
 }
 
 progress_bar() {
@@ -427,7 +427,7 @@ output() {
 
    touch "$file_x"
    chmod g+w "$file_x"
-   chmod o+w "$file_x"   
+   chmod o+w "$file_x"
 
    if [ "$WAIT_MESSAGE_CLI" = "1" ]; then
       local file_cli="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
@@ -437,7 +437,7 @@ output() {
    if [ "$WAIT_MESSAGE_X" = "1" ]; then
       local file_cli="/dev/null"
       local file_x="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
-   fi   
+   fi
 
    if [ "$CHANNEL" = "debug" ]; then
       if [ "$VERBOSE" = "1" ]; then
@@ -469,7 +469,7 @@ $MESSAGE" | sudo -u user tee --append "$file_cli" > /dev/null
       else
          echo "
 $MESSAGE" | sudo -u user tee --append "$file_x" > /dev/null
-      fi  
+      fi
    elif [ "$CHANNEL" = "both" ]; then
       if [ "$INSTANT_ECHO" = "1" ]; then
          echo "$MESSAGE"
@@ -521,14 +521,14 @@ show_output() {
          true "Done or recently_run, but /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli does not exist. Probably already received --forget command."
          return 0
       fi
-      
+
       MESSAGE_CLI="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli)"
       MESSAGE_X="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x)"
       LOOP="0"
       SHOW_WAIT_MESSAGE_ONLY_ONCE="0"
    else
-      ## Not done.      
-    
+      ## Not done.
+
       if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli" ]; then
          ## At least we got a waiting message.
          MESSAGE_CLI="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli")"
@@ -547,14 +547,14 @@ show_output() {
                sleep "3" &
                wait "$!" || true
                show_output
-               
+
             else
                STARTED_AUTOSTART_PROGRESS_BAR="1"
 
                MESSAGE="$MESSAGE_X"
-               
+
                TITLE="$IDENTIFIER"
-               
+
                if [ "$MESSAGE" = "" ]; then
                   true "MESSAGE is empty, skipping."
                else
@@ -568,17 +568,17 @@ show_output() {
                      $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
                   fi
                fi
-               
+
                sleep "3" &
                wait "$!" || true
-         
+
                $0 --identifier "$IDENTIFIER" --progress "5"
 
                show_output
                return 0
             fi
          fi
-         
+
       else
          ## Haven't even got a waiting message yet. Let's make our own, unless we already have a waiting message.
          if [ ! "$HAD_WAITING_MESSAGE" = "1" ]; then
@@ -586,10 +586,10 @@ show_output() {
                echo "Waiting for results from $IDENTIFIER..."
                ONE_TIME_WAITING_ECHO="1"
             fi
-         fi         
+         fi
          sleep "3" &
          wait "$!" || true
-         show_output         
+         show_output
       fi
    fi
 
@@ -623,7 +623,7 @@ show_output() {
 
    ## was started with --showcli
    ## (was automatically started by /etc/profile.d/)
-   if [ "$SHOW_CLI" = "1" ]; then 
+   if [ "$SHOW_CLI" = "1" ]; then
       if [ "$SHOW_WAIT_MESSAGE_ONLY_ONCE" = "1" ]; then
          true
       else
@@ -680,7 +680,7 @@ $MESSAGE_X" \
                   output_wmctrl "$TITLE"
                fi
             fi
-         fi                  
+         fi
          SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
 
          #if [ "$LOOP" = "0" ]; then
@@ -693,7 +693,7 @@ $MESSAGE_X" \
          wait "$!" || true
          show_output
       fi
-      
+
       return 0
    fi
 }
@@ -712,38 +712,38 @@ output_wmctrl() {
    local TITLE="${1+"$@"}"
 
    sleep .5
-   
+
    if [ "$AUTOSTART" = "1" ]; then
       ## Runs in background anyway, waiting a bit longer does not hurt.
       local max_wait="120"
    else
       local max_wait="60"
    fi
-   
+
    local counter="0"
-   
+
    while true; do
       ## "2>/dev/null" to hide output "Can not open display.", when not yet available.
       local temp="$(wmctrl -l 2>/dev/null)"
-      
-      local grep_result="0"      
+
+      local grep_result="0"
       echo "$temp" | grep --quiet "$TITLE" || { local grep_result="$?" ; true; };
-      
+
       if [ "$grep_result" = "0" ]; then
          break
       fi
-      
+
       sleep "1" &
       wait "$!" || true
-      
+
       local counter="$(expr "$counter" + "1")" || true
-      
+
       if [ "$counter" -ge "$max_wait" ]; then
          true "Giving up on wmctrl. Break."
          break
       fi
    done
-   
+
    wmctrl -r "$TITLE" -e 0,0,0,-1,-1 >/dev/null 2>/dev/null || true
 }
 
@@ -777,9 +777,9 @@ forget_messages() {
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_progress"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"      
+   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
    rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid"   
+   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid"
 }
 
 forget_wait() {
@@ -820,4 +820,3 @@ if [ "$FORGET_WAIT" = "1" ]; then
 fi
 
 output
-
