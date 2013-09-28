@@ -20,4 +20,4 @@ ip.dst = target
 #loop through all IP packet types
 for ip_type in range(0,255):
         ip.proto = ip_type
-        send(ip/data) 
+        send(ip/data)

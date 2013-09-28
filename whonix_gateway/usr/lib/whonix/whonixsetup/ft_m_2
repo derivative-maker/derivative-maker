@@ -16,7 +16,7 @@ error_handler() {
 "
    echo "$MSG"
    exit 1
-} 
+}
 
 trap "error_handler" ERR
 
@@ -31,15 +31,15 @@ stop_tor() {
       service tor status || { returncode=$? ; true; };
       sync
       sleep 1
-      
-      if [ "$returncode" = "0" ]; then      
-         dialog --title "Info" --msgbox 'Tor still running. Stopping it now...' 640 480      
-      
+
+      if [ "$returncode" = "0" ]; then
+         dialog --title "Info" --msgbox 'Tor still running. Stopping it now...' 640 480
+
          returncode=0
          service tor stop || { returncode=$? ; true; };
          sync
          sleep 1
-         
+
          dialog --title "Info" --msgbox 'Stopped Tor.' 640 480
       else
          dialog --title "Info" --msgbox 'Tor was already stopped.' 640 480
@@ -66,7 +66,7 @@ fi
 ## looking like ####DisableNetwork 1 (if the user chooses
 ## this option multiple times).
 while read LINE; do
-   if [ "$LINE" = "#DisableNetwork 0" ]; then      
+   if [ "$LINE" = "#DisableNetwork 0" ]; then
       dialog --title "Success!" --msgbox '"DisableNetwork 0" was already out commented in /etc/tor/torrc.
 So Tor should now be disabled.
 
@@ -112,12 +112,11 @@ else
 (Technically speaking, whonixsetup could not deactivate Tor by commenting out "DisableNetwork 0" in /etc/tor/torrc (ed failed).)' 640 480
 
    dialog --title "WARNING" --msgbox 'Will at least stop Tor...
-   
+
 Warning: Since Tor could not be deactivated in /etc/tor/torrc, Tor will be reconnect, next time you reboot or restart Tor. You are advised to manually comment out "DisableNetwork 0" in /etc/tor/torrc and to run "sudo service tor stop" to ensure, that Tor will not start, if that is what you want.' 640 480
 
    stop_tor
    true "INFO: Ok, exit 1, so whonixsetup will end."
-   ## Signal for whonixsetup to break the while loop.   
+   ## Signal for whonixsetup to break the while loop.
    exit 1
 fi
-

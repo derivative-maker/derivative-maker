@@ -36,37 +36,37 @@ if [ $(which kdialog) = "" ]; then
       ## dummy
       true
    }
-fi   
+fi
 
 output() {
    trap "error_handler" ERR
 
    ## (1) ZENITY_TYPE, (2) APPEND_MESSAGE, (3) OUTPUT_CHANNEL
-   #echo "$SCRIPTNAME output: $1 ||| $2 ||| $3 |||"   
+   #echo "$SCRIPTNAME output: $1 ||| $2 ||| $3 |||"
 
    true "ZENITY_TYPE: $ZENITY_TYPE"
 
-   if [ "$SHOW_CLI" = "1" ]; then  
+   if [ "$SHOW_CLI" = "1" ]; then
       #echo "$SCRIPTNAME no output for --showcli: $1 | $2 | $3"
       return 0
-   fi   
-   
-   if [ "$SHOW_X" = "1" ]; then  
+   fi
+
+   if [ "$SHOW_X" = "1" ]; then
       #echo "$SCRIPTNAME no output for --showx: $1 | $2 | $3"
       return 0
-   fi    
-   
+   fi
+
    if [ "$ZENITY_TYPE" = "" ]; then
       ZENITY_TYPE="$1"
       echo "$1" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
    fi
-   
+
    if [ "$1" = "--error" ]; then
       ZENITY_TYPE="$1"
       echo "$1" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
    fi
-   
-   if [ "$1" = "--warning" ]; then   
+
+   if [ "$1" = "--warning" ]; then
       if [ "$ZENITY_TYPE" = "--error" ]; then
          ## Never downgrade from warning to info.
          echo "--error" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
@@ -75,8 +75,8 @@ output() {
          echo "$1" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
       fi
    fi
-   
-   if [ "$1" = "--info" ]; then   
+
+   if [ "$1" = "--info" ]; then
       if [ "$ZENITY_TYPE" = "--error" ]; then
          ## Never downgrade from error to info.
          echo "--error" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
@@ -84,33 +84,33 @@ output() {
          ## Never downgrade from warning to info.
          echo "--warning" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
       else
-         echo "--info" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"      
+         echo "--info" > "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type"
       fi
    fi
- 
+
    #echo "$SCRIPTNAME output ZENITY_TYPE: $ZENITY_TYPE"
- 
+
    ## If whonixcheck was run by cron, regular echos will not be shown,
    ## because whonixcheck was run automatically by cron and not manually from a terminal.
    ## Therefore we use "write".
    ## The required "mesg y" gets set in /etc/profile.d/20_mesg.sh.
-  
+
    if [ "$3" = "debug" ]; then
       if [ "$VERBOSE" = "1" ]; then
          if [ "$RUN_BY_CRON" = 1 ]; then
             echo "$2" | write user tty1 2>/dev/null || true
-         else   
+         else
             echo "$2"
          fi
       else
-         true "$2"      
+         true "$2"
       fi
    elif [ "$3" = "echo" ]; then
       if [ "$AUTOSTARTED" = "1" ]; then
          ## Auto started, there is no output channel available.
          ## Therefore store this output.
          echo "$2" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_cli
-      else 
+      else
          echo "$2"
       fi
    elif [ "$3" = "both" ]; then
@@ -131,9 +131,9 @@ $2" >> /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_x
 
 show_output() {
    trap "error_handler" ERR
-   
+
    if [ "$AUTOSTARTED" = "1" ]; then
-      if [ ! "$RUN_BY_CRON" = "1" ]; then 
+      if [ ! "$RUN_BY_CRON" = "1" ]; then
          true "$SCRIPTNAME show_output: started with --autostart, but not with --cron,"
          true "   therefore no output, thats the job of --showcli and --showx."
          return 0
@@ -143,7 +143,7 @@ show_output() {
    if [ -e "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type" ]; then
       ZENITY_TYPE="$(cat "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_type")"
    fi
-   
+
    ## fallback
    if [ "$ZENITY_TYPE" = "" ]; then
       ZENITY_TYPE="--info"
@@ -151,34 +151,34 @@ show_output() {
       true "$MSG"
       #echo "$MSG"
    fi
-   
+
    #echo "$SCRIPTNAME show_output ZENITY_TYPE: $ZENITY_TYPE"
 
-   local temp="?"   
+   local temp="?"
    if [ "$ZENITY_TYPE" = "--error" ]; then
       local temp="ERROR"
    fi
    if [ "$ZENITY_TYPE" = "--warning" ]; then
       local temp="WARNING"
-   fi   
-   if [ "$ZENITY_TYPE" = "--info" ]; then
-      local temp="Info" 
    fi
-   
+   if [ "$ZENITY_TYPE" = "--info" ]; then
+      local temp="Info"
+   fi
+
    local TITLE=" $temp - $SCRIPTNAME $VM $INSTALLED_WHONIX_VERSION $(date)"
-   
+
    ## was started with --showcli
    ## (was automatically started by /etc/profile.d/)
    if [ "$SHOW_CLI" = "1" ]; then
       if [ -e /var/run/whonix/whonixcheck/""$SCRIPTNAME"_running" ]; then
-      
+
          if [ "$WAITING_MSG" = "" ]; then
             if [ -e /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting" ]; then
                WAITING_MSG="$(cat /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting")"
                echo "$WAITING_MSG" | write user tty1 2>/dev/null || true
             fi
          fi
-         
+
          true "$SCRIPTNAME show_output: $SCRIPTNAME still running, trying again in 3 seconds..."
          sleep 3 || true
          show_output
@@ -190,34 +190,34 @@ $ZENITY_MESSAGE" | write user tty1 2>/dev/null || true
          return 0
       fi
    fi
-   
+
    ## was started with --showx
    ## (was automatically started by /etc/xdg/autostart/)
    if [ "$SHOW_X" = "1" ]; then
       if [ -e /var/run/whonix/whonixcheck/""$SCRIPTNAME"_running" ]; then
-      
+
          if [ -e "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress" ]; then
             local STORED_PROGRESS="$(cat "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress")"
             welcome ## 30_welcome
-            progress_bar "$STORED_PROGRESS"            
+            progress_bar "$STORED_PROGRESS"
          fi
-      
+
          if [ "$WAITING_MSG" = "" ]; then
             if [ -e /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting" ]; then
-               WAITING_MSG="$(cat /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting")"               
+               WAITING_MSG="$(cat /var/run/whonix/whonixcheck/""$SCRIPTNAME"_waiting")"
 
                #notify-send --expire-time ""$DELAY"000" "$SCRIPTNAME" "$WAITING_MSG" || true
-               kdialog --passivepopup "$WAITING_MSG" "$DELAY" 2>/dev/null || true               
+               kdialog --passivepopup "$WAITING_MSG" "$DELAY" 2>/dev/null || true
             fi
          fi
-         
+
          true "$SCRIPTNAME show_output: $SCRIPTNAME still running, trying again in 3 seconds..."
          sleep 3 || true
          show_output
          return 0
       else
          ZENITY_MESSAGE="$(cat /var/lib/whonix/whonixcheck/"$SCRIPTNAME"_message_x)" || true
-         
+
          if [ "$ZENITY_MESSAGE" = "" ]; then
             local temp="0"
             if [ -e "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_recently_run" ]; then
@@ -226,30 +226,30 @@ $ZENITY_MESSAGE" | write user tty1 2>/dev/null || true
             rm -f /var/run/whonix/whonixcheck/"$SCRIPTNAME"_recently_run
             ZENITY_MESSAGE="ZENITY_MESSAGE is empty. ($SCRIPTNAME) ($temp) Please report this bug!"
          fi
-         
+
          ## In case show_output is called, it's always the end of all checks.
          ## Therefore setting progress bar to 100 percent.
          progress_bar 100
-         
+
          ## When whonixcheck was recently run, nothing important has to be reported,
          ## it just says "whonixcheck was recently run, no need to run again", in that case,
          ## use kdialog --passivepopup, because that is non-intrusive and will automatically fade out.
          ## (When whonixcheck is manually started, zenity is always used.)
          if [ -e "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_recently_run" ]; then
-            kdialog --passivepopup "$ZENITY_MESSAGE" "20"       
+            kdialog --passivepopup "$ZENITY_MESSAGE" "20"
             return 0
-         fi         
+         fi
 
          ## When timesync is automatically started and nothing important has to be reported,
          ## use kdialog --passivepopup, because that is non-intrusive and will automatically fade out.
          ## (When timesync is manually started, zenity is always used.)
          if [ "$SCRIPTNAME" = "timesync" ]; then
             if [ "$ZENITY_TYPE" = "--info" ]; then
-               kdialog --passivepopup "$ZENITY_MESSAGE" "20"         
+               kdialog --passivepopup "$ZENITY_MESSAGE" "20"
                return 0
             fi
-         fi         
-       
+         fi
+
          zenity \
             --display="$DISPLAY" \
             --height=600 \
@@ -265,11 +265,11 @@ $SCRIPTNAME
 $ZENITY_MESSAGE" \
             2>/dev/null \
             || true
-         
+
          return 0
       fi
    fi
-   
+
    if [ "$ZENITY_MESSAGE" = "" ]; then
       ## In case there is nothing in the queue (called by cleanup function),
       ## do nothing.
@@ -281,26 +281,26 @@ $ZENITY_MESSAGE" \
    ## and there is nothing important to tell, say nothing. Otherwise there
    ## would be such a popup every hour.
    if [ "$SCRIPTNAME" = "timesync" ]; then
-      if [ "$RUN_BY_CRON" = "1" ]; then 
+      if [ "$RUN_BY_CRON" = "1" ]; then
          if [ "$ZENITY_TYPE" = "--info" ]; then
             true ## Do nothing.
             true "$SCRIPTNAME show_output: timesync run by cron, nothing important to tell, do nothing."
             ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
             ## should go into a new queue.
-            ZENITY_MESSAGE=""               
+            ZENITY_MESSAGE=""
             return 0
          fi
       fi
    fi
-   
+
    true "$SCRIPTNAME show_output RUN_BY_CRON: $RUN_BY_CRON"
-   
+
    if [ "$RUN_BY_CRON" = 1 ]; then
       echo "$TITLE
 $ZENITY_MESSAGE
 " | write user tty1 2>/dev/null || true
    fi
-   
+
    ## Only attempt a graphical notification if X is running.
    if [ "$DISPLAY" ]; then
       zenity \
@@ -318,11 +318,11 @@ $SCRIPTNAME
          2>/dev/null \
          || true
    fi
-   
+
    ## Resetting ZENITY_MESSAGE. All collected messages have been shown and eventual new messages
    ## should go into a new queue.
-   ZENITY_MESSAGE=""   
-} 
+   ZENITY_MESSAGE=""
+}
 
 progress_bar() {
    trap "error_handler" ERR
@@ -331,8 +331,8 @@ progress_bar() {
    ## So just write the progress into a file, so --showx can read it.
    if [ "$AUTOSTARTED" = "1" ]; then
       echo "$1" > "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"
-      return 0   
-   fi   
+      return 0
+   fi
 
    ## Check if zenity is installed.
    ## - This is not the case for cli users,
@@ -371,14 +371,13 @@ progress_bar() {
 
    ## Debugging:
    #echo "$SCRIPTNAME progress_bar: $1"
-   
+
    if [ "$1" = "100" ]; then
       KILLED_ZENITY_BAR="1"
       kill -9 "$ZENITY_PROGRESS_PID" || true
       rm -f "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"
    else
       echo "$1" >&3 || true
-      echo "$1" > "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"   
-   fi  
+      echo "$1" > "/var/run/whonix/whonixcheck/"$SCRIPTNAME"_progress"
+   fi
 }
-

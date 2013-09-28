@@ -9,7 +9,7 @@ SCRIPTNAME="$(basename $0)"
 error_handler() {
    BUG="1"
    show_output
-  
+
    local MSG="\
 ###############################################################################
 ## $SCRIPTNAME script bug.
@@ -25,7 +25,7 @@ error_handler() {
 "
    echo "$MSG"
    exit 1
-} 
+}
 
 trap "error_handler" ERR
 
@@ -68,14 +68,14 @@ man $SCRIPTNAME"
    ## be overruled with the WHONIX_APT_REPOSITORY_DISTRUST_ENV variable,
    ## see: man $SCRIPTNAME
    DISABLE="0"
-   
+
    while :
    do
        case $1 in
            -h | --help | -\?)
                echo "$HELP_MSG"
                exit 0
-               ;;               
+               ;;
            -v | --verbose)
                echo "$SCRIPTNAME verbose output..."
                set -x
@@ -83,7 +83,7 @@ man $SCRIPTNAME"
                shift
                ;;
            -e | --enable)
-               DISABLE="0"               
+               DISABLE="0"
                shift
                ;;
            -d | --disable)
@@ -102,10 +102,10 @@ man $SCRIPTNAME"
                break
                ;;
        esac
-   done   
+   done
 
    ## If there are input files (for example) that follow the options, they
-   ## will remain in the "$@" positional parameters.  
+   ## will remain in the "$@" positional parameters.
 }
 
 add_keys() {
@@ -135,7 +135,7 @@ revoke_keys() {
          --keyid-format "0xlong" \
          --fingerprint \
          2>/dev/null \
-         | awk -F: '$1 == "fpr" {print $10;}'\         
+         | awk -F: '$1 == "fpr" {print $10;}'\
          ); do
             echo "INFO $0: Removing FINGERPRINT: $FINGERPRINT..."
             apt-key del "$FINGERPRINT" #>/dev/null 2>/dev/null
@@ -146,19 +146,19 @@ main_function() {
    root_check
    read_config
    parse_cmd_options ${1+"$@"}
-   
+
    if [ "$WHONIX_APT_REPOSITORY_DISTRUST_CONFIG" = "1" ]; then
       echo "INFO $0: WHONIX_APT_REPOSITORY_DISTRUST_CONFIG is set to 1, revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
-      DISABLE="1"   
+      DISABLE="1"
    fi
 
    if [ "$WHONIX_APT_REPOSITORY_DISTRUST_ENV" = "1" ]; then
       echo "INFO $0: Environment variable WHONIX_APT_REPOSITORY_DISTRUST_ENV is set to 1, revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
       DISABLE="1"
    fi
-   
-   if [ "$DISABLE" = "1" ]; then   
-      echo "INFO $0: Revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."   
+
+   if [ "$DISABLE" = "1" ]; then
+      echo "INFO $0: Revoking all Whonix apt keys in /usr/share/whonix/keys/whonix-keys.d/* and /usr/share/whonix/keys/whonix-keys-revoked.d/*..."
       revoke_keys "/usr/share/whonix/keys/whonix-keys.d/*"
       revoke_keys "/usr/share/whonix/keys/whonix-keys-revoked.d/*"
       echo "INFO $0: Revoked all Whonix apt keys. Feel free to manually verify using \"sudo apt-key finger\". Showing output of \"apt-key finger\"..."
@@ -182,17 +182,17 @@ main_function() {
          CODENAME="$WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV"
       elif [ ! "$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG" = "" ]; then
          echo "INFO $0: WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG is set in /etc/whonix.d configuration folder, using "$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG" apt repository."
-         CODENAME="$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG"      
+         CODENAME="$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG"
       fi
 
       if [ "$CODENAME" = "" ]; then
          echo "INFO $0: No distribution defined, defaulting to stable apt repository."
          CODENAME="stable"
       fi
-      
+
       echo "INFO $0: Using distribution "$CODENAME" (version of Whonix) as apt repository."
       echo "INFO $0: Creating /etc/apt/sources.list.d/whonix.list..."
-   
+
       echo "\
 # This file is part of Whonix
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
@@ -224,4 +224,3 @@ deb http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/ "$C
 }
 
 main_function ${1+"$@"}
-

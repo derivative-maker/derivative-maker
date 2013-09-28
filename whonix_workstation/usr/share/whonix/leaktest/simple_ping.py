@@ -28,7 +28,7 @@ data = "testing"
 # These define two variables, that are set to the object types IP
 # and ICMP respectively. These objects in Scapy define the protocol
 # type for IP (default IPv4) [1] and ICMP [2] respectively.
-# And will send packets on the wire of these types when used. 
+# And will send packets on the wire of these types when used.
 ip = IP()
 icmp = ICMP()
 
@@ -56,5 +56,5 @@ test_ping = sr1(ip/icmp/data)
 if isinstance(test_ping, types.NoneType):
         print "No response"
 else:
-# Prints a short report on the packet received (if any). 
+# Prints a short report on the packet received (if any).
         test_ping.summary()
