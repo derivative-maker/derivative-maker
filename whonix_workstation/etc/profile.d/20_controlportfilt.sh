@@ -36,13 +36,12 @@ if [ ! "$CONTROL_PORT_FILTER_PROXY" = "0" ]; then
    export TOR_CONTROL_HOST="127.0.0.1"
 
    export TOR_CONTROL_PORT="9151"
-   
+
    ## this is to satisfy Tor Button just filled up with anything
    export TOR_CONTROL_PASSWD="password"
-   
+
 fi
 
 #set +x
 
 ## End of Whonix /etc/profile.d/20_controlportfilt.sh
-
