@@ -62,7 +62,7 @@ sdwdate_defaults() {
    if [ "$CURL_VERBOSE" = "" ]; then
       CURL_VERBOSE="--silent"
    fi
-   
+
    if [ "$DEBUG" = "" ]; then
       DEBUG="0"
    fi
@@ -70,7 +70,7 @@ sdwdate_defaults() {
    if [ "$USER" = "" ]; then
       USER=""
    fi
-   
+
    if [ "$DONT_SET_DATE" = "" ]; then
       DONT_SET_DATE="0"
    fi
@@ -137,7 +137,7 @@ sdwdate_defaults() {
 
    if [ "$DISPATCH_POST_FAILURE" = "" ]; then
       DISPATCH_POST_FAILURE="true"
-   fi   
+   fi
 
    if [ "$HTTP_USER_AGENT" = "" ]; then
       HTTP_USER_AGENT=""
@@ -154,17 +154,17 @@ sdwdate_defaults() {
       declare -A -g SDWDATE_CURL_DISPATCH_POST
       SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]="true"
    fi
-   
+
    if [ "${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]}" = "" ]; then
-      declare -A -g SDWDATE_CURL_DISPATCH_PRE 
+      declare -A -g SDWDATE_CURL_DISPATCH_PRE
       SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]="true"
    fi
-   
+
    if [ "${SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_POST
       SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]="true"
    fi
-   
+
    if [ "${SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]}" = "" ]; then
       declare -A -g SDWDATE_CURL_DISPATCH_PRE
       SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]="true"
@@ -177,7 +177,7 @@ sdwdate_defaults() {
 
    if [ "$SDWDATE_POOL_PAL" = "" ]; then
       declare -g SDWDATE_POOL_PAL
-      
+
       SDWDATE_POOL_PAL=(
          boum.org
          chavez.indymedia.org
@@ -194,10 +194,10 @@ sdwdate_defaults() {
          www.torproject.org
       )
    fi
-   
+
    if [ "$SDWDATE_POOL_NEUTRAL" = "" ]; then
       declare -g SDWDATE_POOL_NEUTRAL
-      
+
       SDWDATE_POOL_NEUTRAL=(
          cve.mitre.org
          en.wikipedia.org
@@ -218,7 +218,7 @@ sdwdate_defaults() {
 
    if [ "$SDWDATE_POOL_FOE" = "" ]; then
       declare -g SDWDATE_POOL_FOE
-      
+
       SDWDATE_POOL_FOE=(
          encrypted.google.com
          github.com
@@ -262,7 +262,7 @@ sdwdate_read_config_folder() {
       fi
    done
 }
-                                  
+
 sdwdate_parse_cmd_options() {
    trap "sdwdate_error_handler" ERR
 
@@ -275,7 +275,7 @@ sdwdate_parse_cmd_options() {
            -h | --help | -\?)
                sdwdate_usage
                exit 0
-               ;;               
+               ;;
            -d | --debug)
                DEBUG=1
                CURL_VERBOSE=""
@@ -291,37 +291,37 @@ sdwdate_parse_cmd_options() {
                shift
                ;;
            -a | --user_agent)
-               HTTP_USER_AGENT=$2               
+               HTTP_USER_AGENT=$2
                shift 2
                ;;
            -l | --log_file)
                LOG_FILE=$2
                shift 2
-               ;;               
+               ;;
            -D | --done_file)
                DONE_FILE=$2
                shift 2
-               ;;                   
+               ;;
            -T | --success_file)
                SUCCESS_FILE=$2
                shift 2
-               ;;                        
+               ;;
            -P | --pal_pool)
                PAL_POOL=$2
                shift 2
-               ;;     
+               ;;
            -N | --neutral_pool)
                NEUTRAL_POOL=$2
                shift 2
-               ;;     
+               ;;
            -F | --foe_pool)
                FOE_POOL=$2
                shift 2
-               ;;     
+               ;;
            -A | --allowed_per_pool_failure_ratio)
                ALLOWED_PER_POOL_FAILURE_RATIO=$2
                shift 2
-               ;;     
+               ;;
            -p | --proxy)
                PROXY=$2
                shift 2
@@ -349,7 +349,7 @@ sdwdate_parse_cmd_options() {
            -m | --dispatchposterror)
                DISPATCH_POST_ERROR=$2
                shift 2
-               ;;              
+               ;;
            -w | --dispatchpre)
                DISPATCH_PRE=$2
                shift 2
@@ -385,7 +385,7 @@ sdwdate_parse_cmd_options() {
            --dispatch_post_foe)
                SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]=$2
                shift 2
-               ;;        
+               ;;
            -q | --quiet)
                QUIET=1
                shift
@@ -402,10 +402,10 @@ sdwdate_parse_cmd_options() {
                break
                ;;
        esac
-   done   
+   done
 
    ## If there are input files (for example) that follow the options, they
-   ## will remain in the "$@" positional parameters.                                                 
+   ## will remain in the "$@" positional parameters.
 }
 
 sdwdate_preparation() {
@@ -414,7 +414,7 @@ sdwdate_preparation() {
    mkdir --parents $(dirname $LOG_FILE)
    mkdir --parents $(dirname $DONE_FILE)
    mkdir --parents $(dirname $SUCCESS_FILE)
-   
+
    rm --force "$DONE_FILE"
    rm --force "$SUCCESS_FILE"
 
@@ -445,27 +445,27 @@ sdwdate_preparation() {
          sdwdate_log "$FUNCNAME: Can not find curl. Please report this bug!"
          exit 1
       fi
-   fi    
+   fi
 }
 
 sdwdate_log() {
    trap "sdwdate_error_handler" ERR
-   
+
    if [ "$ID" = "" ] ; then
       ID="No_ID"
    fi
-   
+
    if [ "$QUIET" = "1" ]; then
       true
    else
       echo "$ID: $@"
    fi
-   
+
    if [ "$LOG_FILE" = "" ]; then
       true
    else
       echo "$ID: $@" >> "$LOG_FILE"
-   fi   
+   fi
 }
 
 sdwdate_safe_log() {
@@ -478,12 +478,12 @@ sdwdate_safe_log() {
 
    local last_line="$(awk '/./{line=$0} END{print line}' "$LOG_FILE")"
    local no_repeat="Not duplicating last log entry."
-   
+
    if [ "$last_line" = "$no_repeat" ]; then
       echo "Last log entry is: $last_line"
       return 0
    fi
-   
+
    if [ "$last_line" = "$@" ]; then
       sdwdate_log "$no_repeat"
       return 0
@@ -494,7 +494,7 @@ sdwdate_safe_log() {
 
 sdwdate_error_handler() {
    local return_code="$?"
-   
+
    local error_message="\
 ############################################
 ## Error detected! Please report this bug! #
@@ -504,8 +504,8 @@ sdwdate_error_handler() {
 ############################################"
 
    sdwdate_log "$error_message"
-   
-   true "DISPATCH_POST_ERROR: $DISPATCH_POST_ERROR"   
+
+   true "DISPATCH_POST_ERROR: $DISPATCH_POST_ERROR"
 
    if [ "$DISPATCH_POST_ERROR" = "" ]; then
       true
@@ -528,7 +528,7 @@ trap "sdwdate_signal_sigint" SIGINT
 
 sdwdate_download() {
    trap "sdwdate_error_handler" ERR
-   
+
    LINK="https://"$1""
 
    if [ "$PROXY" = "" ]; then
@@ -536,11 +536,11 @@ sdwdate_download() {
    else
       CURL_PROXY="--socks5-hostname $PROXY"
    fi
-   
+
    sdwdate_log "getUrlDateDiff: "$LINK""
 
    SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
-   
+
    local TIME_START="$(date +%s)"
 
    if [ "${SDWDATE_CURL_DISPATCH_PRE[$SDWDATE_CURRENT_POOL]}" = "" ]; then
@@ -548,7 +548,7 @@ sdwdate_download() {
    else
       eval ${SDWDATE_CURL_DISPATCH_PRE[$SDWDATE_CURRENT_POOL]}
    fi
-   
+
    ## --fail not required, because also 404 would include head, which is all we need
    $CURL \
       --tlsv1 \
@@ -561,14 +561,14 @@ sdwdate_download() {
       --output ""$TEMP_DIR"/"$SDWDATE_CURRENT_POOL"" \
       "$LINK" \
       &
-      
+
    SDWDATE_CURL_PID[$SDWDATE_CURRENT_POOL]="$!"
-   
+
    SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
    wait "${SDWDATE_CURL_PID[$SDWDATE_CURRENT_POOL]}" || { SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="$?" ; true; };
- 
-   true "INFO: SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}"   
-   
+
+   true "INFO: SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}"
+
    local TIME_END="$(date +%s)"
 
    if [ "${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}" = "" ]; then
@@ -576,9 +576,9 @@ sdwdate_download() {
    else
       eval ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}
    fi
-   
+
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
-   
+
    if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
       sdwdate_log "No file could be downloaded from "$LINK"."
    fi
@@ -586,23 +586,23 @@ sdwdate_download() {
 
 sdwdate_parse_date() {
    trap "sdwdate_error_handler" ERR
-   
+
    SDWDATE_PARSE_SUCCESS="1"
 
    local i=0
    local LINE
    while read LINE; do
-      i="$(expr "$i" + "1")"      
+      i="$(expr "$i" + "1")"
       true "INFO: LINE: $LINE"
-      
+
       if [ "$i" -gt "20" ]; then
          sdwdate_log "Bogus reply from "$LINK" did not include the \"Date\" field."
          break
       fi
-      
+
       local FIRST_WORD="${LINE%%:*}"
       ## twitter used Date in lower case
-      if [ "${FIRST_WORD,,}" = "date" ]; then         
+      if [ "${FIRST_WORD,,}" = "date" ]; then
          WEB_DATE_GMT="${LINE#*:}"
          SDWDATE_PARSE_SUCCESS="0"
          break
@@ -612,30 +612,30 @@ sdwdate_parse_date() {
 
 sdwdate_convert_to_unixtime() {
    trap "sdwdate_error_handler" ERR
-   
+
    SDWDATE_CONVERT_SUCCESS="0"
 
    WEB_DATE_UNIXTIME="$(date --date="$WEB_DATE_GMT" +"%s")" || { SDWDATE_CONVERT_SUCCESS="$?" ; true; };
-   
-   if [ ! "$SDWDATE_CONVERT_SUCCESS" = "0" ]; then   
+
+   if [ ! "$SDWDATE_CONVERT_SUCCESS" = "0" ]; then
       sdwdate_log "Bogus reply from "$LINK". Could not convert to unixtime."
    fi
 }
 
 sdwdate_loop() {
    trap "sdwdate_error_handler" ERR
-   
+
    eval "array=(\${$SDWDATE_CURRENT_POOL[@]})"
-   
+
    while true; do
       declare -A -g remember
-   
+
       local array_length="${#array[@]}"
       local array_length_remember="${#remember[@]}"
-      
+
       if [ "$array_length" = "0" ]; then
          sdwdate_log "ERROR: $SDWDATE_CURRENT_POOL not configured!"
-         
+
          ## Check, if we are running in daemon mode.
          if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
             ## No daemon mode.
@@ -645,10 +645,10 @@ sdwdate_loop() {
             return 1
          fi
       fi
-      
+
       if [ "$array_length" = "$array_length_remember" ]; then
          sdwdate_log "ERROR: No member of the $SDWDATE_CURRENT_POOL could not be reached."
-         
+
          ## Check, if we are running in daemon mode.
          if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
             ## No daemon mode.
@@ -658,14 +658,14 @@ sdwdate_loop() {
             return 1
          fi
       fi
-      
+
       local temp="$(python -c "print $array_length*$ALLOWED_PER_POOL_FAILURE_RATIO")"
       ## adjust upward / downward
       local allowed_member_failures="$(printf "%.f" "$temp")"
-      
+
       if [ "$array_length_remember" -ge "$allowed_member_failures" ]; then
          sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached."
-         
+
          ## Check, if we are running in daemon mode.
          if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
             ## No daemon mode.
@@ -675,45 +675,45 @@ sdwdate_loop() {
             return 1
          fi
       fi
-      
+
       local random_integer="$(( ($(od -An -N2 -i /dev/random) )%($array_length) ))"
-      
+
       if [ "${remember[$random_integer]}" = "1" ]; then
          continue
       fi
-      
+
       sdwdate_download "${array[$random_integer]}"
-   
+
       if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
          remember[$random_integer]=1
          continue
-      fi   
-   
+      fi
+
       ## sets: SDWDATE_PARSE_SUCCESS
       sdwdate_parse_date
-      
+
       if [ ! "$SDWDATE_PARSE_SUCCESS" = "0" ]; then
          remember[$random_integer]=1
          continue
-      fi          
-      
+      fi
+
       ## sets: WEB_DATE_UNIXTIME
       sdwdate_convert_to_unixtime
-      
+
       if [ ! "$SDWDATE_CONVERT_SUCCESS" = "0" ]; then
          remember[$random_integer]=1
          continue
-      fi      
-     
-      local OLD_UNIXTIME="$(date +%s)"     
-      
+      fi
+
+      local OLD_UNIXTIME="$(date +%s)"
+
       SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$WEB_DATE_UNIXTIME" - "$OLD_UNIXTIME")" || true
-      
+
       ## TODO
       sdwdate_log ""$LINK" (took "${SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]}"s) => diff = "${SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]}" second(s)"
-      
+
       unset remember
-      
+
       break
    done
 
@@ -722,10 +722,10 @@ sdwdate_loop() {
 
 sdwdate_pick() {
    trap "sdwdate_error_handler" ERR
-   
+
    declare -A -g SDWDATE_RESULT
    declare -A -g SDWDATE_TIME_DIFF
- 
+
    for SDWDATE_CURRENT_POOL in SDWDATE_POOL_PAL SDWDATE_POOL_NEUTRAL SDWDATE_POOL_FOE; do
       sdwdate_loop_return="0"
       sdwdate_loop "$SDWDATE_CURRENT_POOL" || { sdwdate_loop_return="$?" ; true; };
@@ -734,26 +734,26 @@ sdwdate_pick() {
       if [ ! "$sdwdate_loop_return" = "0" ]; then
          return 0
       fi
-      
+
       SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]="$WEB_DATE_UNIXTIME"
-      
+
       true "INFO: SDWDATE_RESULT[$SDWDATE_CURRENT_POOL] = ${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]} | $(date --date "@"${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]}"")"
    done
 }
 
 sdwdate_build_median() {
    trap "sdwdate_error_handler" ERR
-   
+
    temp="$(expr "${SDWDATE_TIME_DIFF[SDWDATE_POOL_PAL]}" + "${SDWDATE_TIME_DIFF[SDWDATE_POOL_NEUTRAL]}")" || true
    temp="$(expr "$temp" + "${SDWDATE_TIME_DIFF[SDWDATE_POOL_FOE]}")" || true
-   
+
    SDWDATE_MEDIAN_TIME="$(expr "$temp" / "3")" || true
-   
+
    local OLD_UNIXTIME="$(date +%s)"
    local OLD_TIME="$(date)"
-   
-   true "INFO: $0 OLD: $OLD_UNIXTIME | $OLD_TIME"  
-  
+
+   true "INFO: $0 OLD: $OLD_UNIXTIME | $OLD_TIME"
+
    sdwdate_log "Median diff: "$SDWDATE_MEDIAN_TIME" second(s)"
 }
 
@@ -763,7 +763,7 @@ sdwdate_set_new_time() {
    if [ "$DONT_SET_DATE" = "1" ]; then
       return
    fi
-   
+
    local OLD_UNIXTIME="$(date +%s)"
 
    ## Do not needlessly try to change time, when there is no difference.
@@ -771,7 +771,7 @@ sdwdate_set_new_time() {
       local SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")"
 
       sdwdate_log "Setting time to "$SDWDATE_NEW_TIME"..."
-   
+
       ## Set new time. Syntax: date --set @1098181096
       date --set "@"$SDWDATE_NEW_TIME"" > /dev/null
    fi
@@ -780,7 +780,7 @@ sdwdate_set_new_time() {
    #check="$(expr $OLD_UNIXTIME - $new_unixtime)" || true
    #sdwdate_log "check: $check"
 }
-    
+
 sdwdate_dispatcher_prerequisite() {
    trap "sdwdate_error_handler" ERR
 
@@ -789,15 +789,15 @@ sdwdate_dispatcher_prerequisite() {
    else
       while true; do
          local prerequisite_return_code="0"
-         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { local prerequisite_return_code="${PIPESTATUS[0]}" ; true; };         
+         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { local prerequisite_return_code="${PIPESTATUS[0]}" ; true; };
 
          true "prerequisite_return_code: $prerequisite_return_code"
-         true "prerequisite_return_stdout: $prerequisite_return_stdout"         
+         true "prerequisite_return_stdout: $prerequisite_return_stdout"
 
          if [ "$prerequisite_return_code" = "0" ]; then
             ## Ok.
             sdwdate_log "DISPATCH_PREREQUISITE returned $prerequisite_return_code, continuing..."
-            break            
+            break
          elif [ "$prerequisite_return_code" = "1" ]; then
             ## Error.
             error "DISPATCH_PREREQUISITE returned $prerequisite_return_code | $prerequisite_return_stdout | requested explicit exiting..."
@@ -810,7 +810,7 @@ sdwdate_dispatcher_prerequisite() {
             ## Unexpected error.
             error "DISPATCH_PREREQUISITE returned $prerequisite_return_code | $prerequisite_return_stdout | unexpected error, exiting..."
          fi
-         
+
       done
    fi
 }
@@ -834,7 +834,7 @@ sdwdate_failed() {
 
 sdwdate_success() {
    trap "sdwdate_error_handler" ERR
-   
+
    touch "$SUCCESS_FILE"
    touch "$DONE_FILE"
 }
@@ -866,7 +866,7 @@ sdwdate_main() {
 
    while true; do
       sdwdate_log "Running sdwdate..."
-   
+
       local grep_return="$?"
       echo "${1+"$@"}" | grep --quiet "\-\-noconfig" || { local grep_return="$?" ; true; };
 
@@ -883,15 +883,15 @@ sdwdate_main() {
       sdwdate_preparation
 
       sdwdate_dispatcher_pre
-      sdwdate_dispatcher_prerequisite      
-      
+      sdwdate_dispatcher_prerequisite
+
       sdwdate_pick
 
       ## Do not continue, if an error was caught.
       if [ ! "$sdwdate_loop_return" = "0" ]; then
          sdwdate_failed
          sdwdate_dispatcher_post_failure
-      else 
+      else
          sdwdate_build_median
          sdwdate_set_new_time
          sdwdate_success
@@ -920,9 +920,9 @@ sdwdate_main() {
          fi
 
          local seconds="$(expr "$minutes" \* "60")"
-         
+
          sdwdate_log "Sleeping for $minutes minutes."
-      
+
          sleep "$seconds" &
          local sleeppid="$!"
 
@@ -930,7 +930,7 @@ sdwdate_main() {
          wait "$sleeppid"
 
          continue
-      fi      
+      fi
    done
 }
 
