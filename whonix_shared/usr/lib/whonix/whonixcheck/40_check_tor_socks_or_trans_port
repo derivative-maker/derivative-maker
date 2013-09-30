@@ -45,21 +45,22 @@ check_tor_socks_or_trans_port() {
       wait "$!" || { CHECK_TOR_RESULT_SOCKS_PORT="$?" ; true; };
 
       if [ ! "$CHECK_TOR_RESULT_SOCKS_PORT" = "0" ]; then
+         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
          if [ "$VM" = "Whonix-Gateway" ]; then
 
             local MSG="\
 SocksPort Test Result:
 https://check.torproject.org was not reachable.
 You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle.
-(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
+(curl return code: "$curl_status_message")"
 
          elif [ "$VM" = "Whonix-Workstation" ]; then
-
+            local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
             local MSG="\
 SocksPort Test Result:
 https://check.torproject.org was not reachable.
 You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle.
-(curl return code: "$CHECK_TOR_RESULT_SOCKS_PORT")"
+(curl return code: "$curl_status_message")"
 
          else
 
@@ -114,10 +115,11 @@ Not checking Tor's TransPort, because SocksPort test failed already."
       wait "$!" || { CHECK_TOR_RESULT_TRANS_PORT="$?" ; true; };
 
       if [ ! "$CHECK_TOR_RESULT_TRANS_PORT" = "0" ]; then
+         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_TRANS_PORT")"
          local MSG="\
 TransPort Test Result:
 Tor's TransPort was not reachable.
-(curl return code: "$CHECK_TOR_RESULT_TRANS_PORT")
+(curl return code: "$curl_status_message")
 
 (
  If you disabled Tor's TransPort, please disable this check, see whonixcheck /etc/whonix.d/30_whonixcheck_default configuration file.

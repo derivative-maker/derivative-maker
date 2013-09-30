@@ -2,10 +2,9 @@
 
 # Modified for Whonix, see COPYING for copying conditions.
 
-## Unfinished!
-
 curl_return_codes() {
-local X="
+   local codes="
+0 Success.
 1 Unsupported protocol. This build of curl has no support for this protocol.
 2 Failed to initialize.
 3 URL malformed. The syntax was not correct.
@@ -82,4 +81,34 @@ local X="
 87 unable to parse FTP file list
 88 FTP chunk callback reported error
 "
+
+   if [ "$1" = "" ]; then
+      exit 1
+   fi
+
+   local line
+
+   OIFS="$IFS"
+   IFS='
+'
+
+   for line in $codes; do
+      local number
+      IFS="$OIFS"
+      read number _ <<< "$line"
+      true "number: $number | line: $line"
+      if [ "$number" = "$1" ]; then
+         ## return code found.
+         echo "$line"
+         exit 0
+      fi
+   done
+
+   IFS="$OIFS"
+
+   ## return code not found.
+   echo "$1 unknown curl return code, please report this!"
+   exit 0
 }
+
+curl_return_codes ${1+"$@"}
