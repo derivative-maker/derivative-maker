@@ -36,11 +36,26 @@ check_timesanitycheck() {
    local returncode="0"
    sudo service timesanitycheck status || { local returncode="$?" ; true; };
 
+   ## When autostarted...
+   if [ "$AUTOSTARTED" = "1" ]; then
+      ## returncode 2 means, that timesanitycheck has neither created a success nor a fail file (yet).
+      if [ "$returncode" = "2" ]; then
+         local MSG="It may have happened, that sdwdate was run before timesanitycheck.
+Let us wait a few seconds and try checking timesanitycheck status again."
+         #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
+         sleep "10" &
+         wait "$!"
+         ## There is an exception in /etc/sudoers.d/timesanitycheck.
+         local returncode="0"
+         sudo service timesanitycheck status || { local returncode="$?" ; true; };
+      fi
+   fi
+
    if [ "$returncode" = "0" ]; then
       local MSG="timesanitycheck success."
       #$output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
    else
-      local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!!
+      local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!! (code: $returncode)
 Last 6 lines of /var/log/timesanitycheck.log:
 $(tail -n 6 /var/log/timesanitycheck.log)
 
