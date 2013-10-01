@@ -20,6 +20,26 @@ source variables
 create-debian-img() {
    trap "error_handler_general" ERR INT TERM
 
+   local vboxmanage_return="0"
+   ## Do not use sudo -E or it will fail.
+   sudo -u "$USERNAME" VBoxManage showvminfo "$VMNAME" >/dev/null 2>/dev/null || { local vboxmanage_return="$?" ; true; };
+
+   if [ "$vboxmanage_return" = "0" ]; then
+      true "${bold}${red}$0 ERROR: $VMNAME already exists! ${reset}"
+      true "${cyan}$0 You most likely want to delete already existing Virtual Machines.
+(Feel free to comment this check out, if you know what you are doing.)
+To delete $VMNAME, run:${reset}
+    sudo ./whonix_build --clean $vmname_lowercase_long_option
+
+To delete both virtual machines, use:
+
+    sudo ./whonix_build --clean --tor-gateway
+    sudo ./whonix_build --clean --tor-workstation
+
+${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from VirtualBox as well!"
+      error "$VMNAME already exists!"
+   fi
+
    mkdir --parents "$WHONIX_BINARY/"
    chown --recursive "$USERNAME":"$USERNAME" "$WHONIX_BINARY/"
 
