@@ -10,36 +10,36 @@ get_local_whonix_version() {
    trap "error_handler" ERR
 
    ## fallback
-   INSTALLED_WHONIX_VERSION="Could not read Whonix Deb Version File. (Code: 1) Please report this bug!"
+   whonix_deb_package_version="Could not read Whonix Deb Version File. (Code: 1) Please report this bug!"
 
    if [ -f "/usr/share/whonix/whonix_gateway" ]; then
-      INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-gateway-postinst")"
+      whonix_deb_package_version="$(dpkg-query --show --showformat='${Version}' "whonix-gateway-postinst")"
    elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
-      INSTALLED_WHONIX_VERSION="$(dpkg-query --show --showformat='${Version}' "whonix-workstation-postinst")"
+      whonix_deb_package_version="$(dpkg-query --show --showformat='${Version}' "whonix-workstation-postinst")"
    fi
 
-   ## Example: INSTALLED_WHONIX_VERSION="2:6-debpackage1"
+   ## Example: whonix_deb_package_version="2:6-debpackage1"
 
-   ## Remove epoch from INSTALLED_WHONIX_VERSION.
-   INSTALLED_WHONIX_VERSION="$(echo "$INSTALLED_WHONIX_VERSION" | awk -F ":" '{ print $2 }')"
+   ## Remove epoch from whonix_deb_package_version.
+   whonix_deb_package_version="$(echo "$whonix_deb_package_version" | awk -F ":" '{ print $2 }')"
 
-   ## Example: INSTALLED_WHONIX_VERSION="6-debpackage1"
+   ## Example: whonix_deb_package_version="6-debpackage1"
 
    ## fallback
-   if [ "$INSTALLED_WHONIX_VERSION" = "" ]; then
-      INSTALLED_WHONIX_VERSION="Could not read Whonix Deb Version File. (Code: 2) Please report this bug!"
+   if [ "$whonix_deb_package_version" = "" ]; then
+      whonix_deb_package_version="Could not read Whonix Deb Version File. (Code: 2) Please report this bug!"
    fi
 
    ## fallback
-   WHONIX_BUILD_VERSION="Could not read Whonix Build Version File. (Code: 1) Please report this bug!"
+   whonix_build_version="Could not read Whonix Build Version File. (Code: 1) Please report this bug!"
 
    if [ -f "/usr/share/whonix/build_version" ]; then
-      WHONIX_BUILD_VERSION="$(cat "/usr/share/whonix/build_version")"
+      whonix_build_version="$(cat "/usr/share/whonix/build_version")"
    fi
 
    ## fallback
-   if [ "$WHONIX_BUILD_VERSION" = "" ]; then
-      WHONIX_BUILD_VERSION="Could not read Whonix Build Version File. (Code: 2) Please report this bug!"
+   if [ "$whonix_build_version" = "" ]; then
+      whonix_build_version="Could not read Whonix Build Version File. (Code: 2) Please report this bug!"
    fi
 }
 
@@ -88,7 +88,7 @@ preparation() {
    WHONIX_HOMEPAGE="https://www.whonix.org"
    VERIFY_TEMPDIR="$(mktemp --directory)"
 
-   ## returns: INSTALLED_WHONIX_VERSION
+   ## returns: whonix_deb_package_version
    get_local_whonix_version
 
    ## Prepare temporary directory.
@@ -113,7 +113,7 @@ preparation() {
    ## ARCH="i686"
    ARCH="$(uname --machine)"
 
-   TITLE="$IDENTIFIER $VM $INSTALLED_WHONIX_VERSION Info $(date)"
+   TITLE="$IDENTIFIER $VM $whonix_deb_package_version Info $(date)"
 
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then

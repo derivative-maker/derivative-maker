@@ -24,10 +24,10 @@ download_whonix_news() {
    local temp="whonix_${vm_lower_case_short}_valid_deb_versions.asc"
    WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
 
-   local temp="whonix_${vm_lower_case_short}_${WHONIX_BUILD_VERSION}_build_news.asc"
+   local temp="whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc"
    WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
 
-   local temp="whonix_${vm_lower_case_short}_${INSTALLED_WHONIX_VERSION}_deb_news.asc"
+   local temp="whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc"
    WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
 
    ## sf.net does not support ssl.
@@ -155,19 +155,19 @@ check_whonix_debian_version() {
 
    while read LINE; do
       #true "$i: $LINE"
-      if [ "$INSTALLED_WHONIX_VERSION" = "$LINE" ]; then
+      if [ "$whonix_deb_package_version" = "$LINE" ]; then
          outdated_deb="0"
       fi
    done < "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_deb_versions"
 
    if [ "$outdated_deb" = "0" ]; then
       ## Up to date...
-      local MSG="Whonix News Download Result: Installed Whonix Debian Package $INSTALLED_WHONIX_VERSION is up to date."
+      local MSG="Whonix News Download Result: Installed Whonix Debian Package $whonix_deb_package_version is up to date."
       $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
    else
       ## Outdated...
       local MSG="Whonix News Download Result:
-Installed Whonix Debian Package $INSTALLED_WHONIX_VERSION is outdated! You can automatically update using Whonix's internal updater. Please update using:
+Installed Whonix Debian Package $whonix_deb_package_version is outdated! You can automatically update using Whonix's internal updater. Please update using:
 sudo apt-get update && sudo apt-get dist-upgrade"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
    fi
@@ -194,19 +194,19 @@ check_whonix_build_version() {
 
    while read LINE; do
       #true "$i: $LINE"
-      if [ "$WHONIX_BUILD_VERSION" = "$LINE" ]; then
+      if [ "$whonix_build_version" = "$LINE" ]; then
          outdated_build="0"
       fi
    done < "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_build_versions"
 
    if [ "$outdated_build" = "0" ]; then
       ## Up to date...
-      local MSG="Whonix News Download Result: Installed Whonix Build $WHONIX_BUILD_VERSION is up to date."
+      local MSG="Whonix News Download Result: Installed Whonix Build $whonix_build_version is up to date."
       $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
    else
       ## Outdated...
       local MSG="Whonix News Download Result:
-Whonix Build $WHONIX_BUILD_VERSION is outdated!
+Whonix Build $whonix_build_version is outdated!
 Sorry, automatically updating this Whonix version is not possible. You have to manually download a new Whonix image."
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
    fi
@@ -220,16 +220,16 @@ check_whonix_debian_news() {
    fi
 
    ## If news could not be downloaded, do not check Whonix news.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${INSTALLED_WHONIX_VERSION}_deb_news.asc/download]}" = "0" ]; then
+   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc/download]}" = "0" ]; then
       return 0
    fi
 
    ## If news verification failed, do not check Whonix news.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${INSTALLED_WHONIX_VERSION}_deb_news.asc/download]}" = "0" ]; then
+   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc/download]}" = "0" ]; then
       return 0
    fi
 
-   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${INSTALLED_WHONIX_VERSION}_deb_news")"
+   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news")"
 
    if [ "$MSG" = "" ]; then
       true
@@ -244,16 +244,16 @@ check_whonix_build_news() {
    fi
 
    ## If news could not be downloaded, do not check Whonix news.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${WHONIX_BUILD_VERSION}_build_news.asc/download]}" = "0" ]; then
+   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc/download]}" = "0" ]; then
       return 0
    fi
 
    ## If news verification failed, do not check Whonix news.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${WHONIX_BUILD_VERSION}_build_news.asc/download]}" = "0" ]; then
+   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc/download]}" = "0" ]; then
       return 0
    fi
 
-   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${WHONIX_BUILD_VERSION}_build_news")"
+   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news")"
 
    if [ "$MSG" = "" ]; then
       true
