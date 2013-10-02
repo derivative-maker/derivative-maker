@@ -46,7 +46,7 @@ error_handler() {
    exit 1
 }
 
-output_sighup() {
+output_ex() {
    trap "error_handler" ERR
 
    ## This function is called when the cancel button in zenity gets pressed.
@@ -62,16 +62,28 @@ output_sighup() {
    ps -p "$PARENT_PID" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
 
    if [ "$ps_return" = "0" ]; then
-      true "$FUNCNAME caught. Killing PARENT_PID $PARENT_PID."
+      true "$output_signal_caught caught. Killing PARENT_PID $PARENT_PID."
       kill -SIGTERM "$PARENT_PID"
    else
-      true "$FUNCNAME caught. Not killing PARENT_PID $PARENT_PID, because it is already terminated."
+      true "$output_signal_caught caught. Not killing PARENT_PID $PARENT_PID, because it is already terminated."
    fi
 
    exit 0
 }
 
+output_sighup() {
+   output_signal_caught="SIGHUP"
+   output_ex
+}
+
 trap "output_sighup" SIGHUP
+
+output_sigterm() {
+   output_signal_caught="SIGTERM"
+   output_ex
+}
+
+trap "output_sigterm" SIGTERM
 
 parse_cmd_options() {
    trap "error_handler" ERR
@@ -563,9 +575,9 @@ show_output() {
                   ## and if "whonixcheck" was not hardcoded here.
                   if [ "$IDENTIFIER" = "whonixcheck" ]; then
                      ## Move windows to the left top, so they do not overlap.
-                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --lefttop &
+                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" --lefttop &
                   else
-                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" &
+                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" &
                   fi
                fi
 
