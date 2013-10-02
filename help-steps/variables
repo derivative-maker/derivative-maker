@@ -95,18 +95,18 @@ WHONIX_SOURCES_LIST_TEMP_BUILD_BASE="$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whon
 ## export, so chroot-scripts-post.d can read it
 export apt_opts="-o Dir::Etc::sourcelist=$EMPTY_DIR -o Dir::Etc::sourceparts=$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
 
-## {{{ WHONIX_BUILD_CLOSEST_GIT_TAG
+## {{{ whonix_build_closest_git_tag
 
-WHONIX_BUILD_CLOSEST_GIT_TAG="$(git describe --abbrev=0)"
+whonix_build_closest_git_tag="$(git describe --abbrev=0)"
 
-## example WHONIX_BUILD_CLOSEST_GIT_TAG:
+## example whonix_build_closest_git_tag:
 ## 6
 
-echo "WHONIX_BUILD_CLOSEST_GIT_TAG: $WHONIX_BUILD_CLOSEST_GIT_TAG"
+echo "whonix_build_closest_git_tag: $whonix_build_closest_git_tag"
 
 ## }}}
 
-## {{{ WHONIX_BUILD_OLD_CHANGELOG_VERSION
+## {{{ whonix_build_old_changelog_version
 
 OIFS="${IFS}"
 NIFS=$'\n'
@@ -114,7 +114,7 @@ NIFS=$'\n'
 IFS="${NIFS}"
 
 ## fallback
-export WHONIX_BUILD_OLD_CHANGELOG_VERSION="ERROR. Please report this bug! WHONIX_BUILD_OLD_CHANGELOG_VERSION could not be determined."
+export whonix_build_old_changelog_version="ERROR. Please report this bug! whonix_build_old_changelog_version could not be determined."
 
 cd "$WHONIX_SOURCE_FOLDER"
 
@@ -123,30 +123,30 @@ for LINE in $(dpkg-parsechangelog); do
    second="$(echo $LINE | awk '{print $2}')"
    first="$(echo $first | awk '{print tolower($0)}')"
    if [ "$first" = "version:" ]; then
-      export WHONIX_BUILD_OLD_CHANGELOG_VERSION="$second"
+      export whonix_build_old_changelog_version="$second"
       break
    fi
 done
 
 IFS="${OIFS}"
 
-echo "WHONIX_BUILD_OLD_CHANGELOG_VERSION: $WHONIX_BUILD_OLD_CHANGELOG_VERSION"
+echo "whonix_build_old_changelog_version: $whonix_build_old_changelog_version"
 
 ## }}}
 
-## {{{ WHONIX_BUILD_WHONIX_VERSION_OLD
+## {{{ whonix_build_whonix_version_old
 
 ## Deactivated. No longer required.
 
-#WHONIX_BUILD_WHONIX_VERSION_OLD="$WHONIX_BUILD_OLD_CHANGELOG_VERSION"
-#WHONIX_BUILD_WHONIX_VERSION_OLD="$(echo "$WHONIX_BUILD_WHONIX_VERSION_OLD" | tr "-" " ")"
-#WHONIX_BUILD_WHONIX_VERSION_OLD="$(echo "$WHONIX_BUILD_WHONIX_VERSION_OLD" | awk '{print $1}')"
+#whonix_build_whonix_version_old="$whonix_build_old_changelog_version"
+#whonix_build_whonix_version_old="$(echo "$whonix_build_whonix_version_old" | tr "-" " ")"
+#whonix_build_whonix_version_old="$(echo "$whonix_build_whonix_version_old" | awk '{print $1}')"
 
-#echo "WHONIX_BUILD_WHONIX_VERSION_OLD: $WHONIX_BUILD_WHONIX_VERSION_OLD"
+#echo "whonix_build_whonix_version_old: $whonix_build_whonix_version_old"
 
 ## }}}
 
-## {{{ WHONIX_BUILD_WHONIX_VERSION_NEW
+## {{{ whonix_build_whonix_version_new
 
 temp="$(git describe --abbrev=1000000000)"
 
@@ -154,33 +154,33 @@ temp="$(git describe --abbrev=1000000000)"
 ## 7-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
 ## Using `export`, so whonix_shared/usr/share/whonix/chroot-scripts-post.d/70_log_build_version can read it.
-export WHONIX_BUILD_WHONIX_VERSION_NEW="$(echo "$temp" | sed 's/-/./g')"
+export whonix_build_whonix_version_new="$(echo "$temp" | sed 's/-/./g')"
 
-## Example WHONIX_BUILD_WHONIX_VERSION_NEW:
+## Example whonix_build_whonix_version_new:
 ## 7.13.g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
-#echo "WHONIX_BUILD_WHONIX_VERSION_NEW: $WHONIX_BUILD_WHONIX_VERSION_NEW"
+echo "whonix_build_whonix_version_new: $whonix_build_whonix_version_new"
 
 ## }}}
 
-## {{{ WHONIX_BUILD_OLD_DEB_REVISION_VERSION
+## {{{ whonix_build_old_deb_revision_version
 
 ## Deactivated. No longer required.
 
-#WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$WHONIX_BUILD_OLD_CHANGELOG_VERSION"
-#WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | tr "-" " ")"
-#WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | awk '{print $2}')"
-#WHONIX_BUILD_OLD_DEB_REVISION_VERSION="$(echo "$WHONIX_BUILD_OLD_DEB_REVISION_VERSION" | sed 's/debpackage//g')"
+#whonix_build_old_deb_revision_version="$whonix_build_old_changelog_version"
+#whonix_build_old_deb_revision_version="$(echo "$whonix_build_old_deb_revision_version" | tr "-" " ")"
+#whonix_build_old_deb_revision_version="$(echo "$whonix_build_old_deb_revision_version" | awk '{print $2}')"
+#whonix_build_old_deb_revision_version="$(echo "$whonix_build_old_deb_revision_version" | sed 's/debpackage//g')"
 
-#echo "WHONIX_BUILD_OLD_DEB_REVISION_VERSION: ${WHONIX_BUILD_OLD_DEB_REVISION_VERSION}"
+#echo "whonix_build_old_deb_revision_version: ${whonix_build_old_deb_revision_version}"
 
 ## }}}
 
 ## {{{ whonix_build_new_deb_revision_version
 
-#whonix_build_new_deb_revision_version=$(expr ${WHONIX_BUILD_OLD_DEB_REVISION_VERSION} + 1) || true
+#whonix_build_new_deb_revision_version=$(expr ${whonix_build_old_deb_revision_version} + 1) || true
 
-#whonix_build_new_deb_revision_version="${WHONIX_BUILD_OLD_DEB_REVISION_VERSION}"
+#whonix_build_new_deb_revision_version="${whonix_build_old_deb_revision_version}"
 
 #echo "whonix_build_new_deb_revision_version: $whonix_build_new_deb_revision_version"
 
@@ -188,21 +188,23 @@ export WHONIX_BUILD_WHONIX_VERSION_NEW="$(echo "$temp" | sed 's/-/./g')"
 
 ## {{{ whonix_build_new_changelog_version
 
+whonix_build_new_deb_revision_version="1"
+
 ## You can learn more about epoch here:
 ## http://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
 whonix_build_debian_version_epoch="2"
 
-whonix_build_new_changelog_version="$whonix_build_debian_version_epoch:$WHONIX_BUILD_WHONIX_VERSION_NEW-debpackage$whonix_build_new_deb_revision_version"
+whonix_build_new_changelog_version="${whonix_build_debian_version_epoch}:${whonix_build_closest_git_tag}-debpackage${whonix_build_new_deb_revision_version}"
 
 echo "whonix_build_new_changelog_version: $whonix_build_new_changelog_version"
 
 ## }}}
 
-## {{{ WHONIX_BUILD_CURRENT_GIT_HEAD
+## {{{ whonix_build_current_git_head
 
-WHONIX_BUILD_CURRENT_GIT_HEAD="$(git rev-parse HEAD)"
+whonix_build_current_git_head="$(git rev-parse HEAD)"
 
-#echo "WHONIX_BUILD_CURRENT_GIT_HEAD: $WHONIX_BUILD_CURRENT_GIT_HEAD"
+#echo "whonix_build_current_git_head: $whonix_build_current_git_head"
 
 ## }}}
 
