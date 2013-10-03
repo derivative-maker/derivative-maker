@@ -124,12 +124,24 @@ ${cyan}or if you know what you are doing:${reset}
 
    true "${cyan}$0 INFO: Automatically bumping version number in debian/changelog... ${reset}"
 
+   local operating_system="$(lsb_release --short --i)"
+
+   ## debchange in Ubuntu somehow does not support --vendor, only --distributor.
+   ## Small workaround for travis-ci (using Ubuntu).
+   if [ "${operating_system,,}" = "ubuntu" ]; then
+      ## Using --distributor when Ubuntu is detected.
+      debchange_vendor_cmd="--distributor"
+   else
+      ## Otherwise fall back to --vendor.
+      debchange_vendor_cmd="--vendor"
+   fi
+
    ## bump changelog version numbers
    ## whonix is written in lower case,
    ## because that's the name of the file in /etc/dpkg/origins/
    sudo -E -u "$USERNAME" \
       debchange \
-         --vendor "whonix" \
+         $debchange_vendor_cmd "whonix" \
          --distribution "$WHONIX_BUILD_APT_CODENAME" \
          --newversion "$whonix_build_new_changelog_version" \
          "This is an auto-generated file."
