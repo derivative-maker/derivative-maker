@@ -93,6 +93,22 @@ else
    CHROOT="chroot "$CHROOT_FOLDER""
 fi
 
+## {{{ whonix_build_ci_detected - CI detection code
+
+if [ "$TRAVIS" = "true" ]; then
+   whonix_build_ci_detected="1"
+fi
+
+if [ ! "$WERCKER_CACHE_DIR" = "" ]; then
+   whonix_build_ci_detected="1"
+fi
+
+if [ "$CI" = "true" ]; then
+   whonix_build_ci_detected="1"
+fi
+
+## }}}
+
 if [ "$no_git" = "1" ]; then
    git_bin="true"
 else
@@ -116,7 +132,7 @@ export apt_opts="-o Dir::Etc::sourcelist=$EMPTY_DIR -o Dir::Etc::sourceparts=$WH
 ## Working around:
 ##    fatal: No tags can describe '6d955433c8111bc53baeb429378f00831c7cbc22'.
 ##    Try --always, or create some tags.
-if [ "$TRAVIS" = "true" ] || [ ! "$WERCKER_CACHE_DIR" = "" ] ; then
+if [ "$whonix_build_ci_detected" = "1" ] ; then
    ## Temporary workaround.
    whonix_build_closest_git_tag="6"
 else
