@@ -179,6 +179,37 @@ prepare-build-machine() {
          virtualbox
    fi
 
+   ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
+   ## Check if config-package-dev with debhelper support is installed.
+   ## (Build Dependency for Whonix Build Script for creating .deb packages.)
+   if [ ! -d "/usr/share/doc/config-package-dev/examples/debhelper/" ]; then
+      ## Temporarily adding Debian testing (Jessie) repository, because we need config-package-dev with debhelper support,
+      ## which is unfortunately only available since debian jessi.
+      local TEMP="/etc/apt/sources.list.d/whonixtestingtemp.list"
+      echo "deb http://ftp.us.debian.org/debian testing main" > "$TEMP"
+
+      ## Update package lists and install config-package-dev from Debian testing (Jessie).
+      apt-get update \
+         $extra_apt_timeout \
+         -o Dir::Etc::sourcelist="$TEMP" \
+         -o Dir::Etc::sourceparts="-" \
+         -o APT::Get::List-Cleanup="0"
+
+      apt-get install \
+         $extra_apt_timeout \
+         $extra_apt_opt \
+         -t testing \
+         config-package-dev
+
+      ## Removing temporary Debian testing (Jessie) repository.
+      rm --force "$TEMP"
+
+      ## Update package lists again to get rid of Debian testing (Jessie) repository.
+      apt-get update \
+         --no-download \
+         --list-cleanup
+   fi
+
    ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
    #sudo apt-get update
    #sudo apt-get autoremove
