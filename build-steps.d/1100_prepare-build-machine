@@ -135,6 +135,10 @@ prepare-build-machine() {
    ##      gawk
    ## - bash-completion
    ##      bash-completion
+   ## - grep
+   ##      grep
+   ## - contains modprobe
+   ##      kmod
    apt-get install $extra_apt_timeout $extra_apt_opt --yes \
       sudo \
       ruby-ronn \
@@ -150,7 +154,9 @@ prepare-build-machine() {
       config-package-dev \
       dh-apparmor \
       gawk \
-      bash-completion
+      bash-completion \
+      grep \
+      kmod
 
    if [ "$BARE_METAL" = "1" ]; then
       ###########################################
@@ -224,6 +230,23 @@ prepare-build-machine() {
 
    ## Ensure, that haveged is functional on travis-ci machines.
    service haveged restart
+
+   ## Trying to work around a Travis CI specic build error while running grml-debootstrap.
+   ##
+   ## /proc/devices: No entry for misc found
+   ## Is device-mapper driver missing from kernel?
+   ## Failure to communicate with kernel device-mapper driver.
+   ## device mapper prerequisites not met
+   ## * Error setting up loopback device.
+   ## -> Failed (rc=1)
+   ##
+   ## Debugging.
+   ## Check if device-mapper is in /proc/devices. || true to overwrite, if not.
+   grep device-mapper /proc/devices || true
+   ## According to http://www.tldp.org/HOWTO/LVM-HOWTO/builddmmod.html
+   modprobe dm_mod || true
+   ## Check again if device-mapper is in /proc/devices. || true to overwrite, if not.
+   grep device-mapper /proc/devices || true
 }
 
 true "${bold}INFO: Currently running script: $0${reset}"
