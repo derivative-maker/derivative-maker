@@ -192,13 +192,12 @@ prepare-build-machine() {
    ## Check if config-package-dev with debhelper support is installed.
    ## (Build Dependency for Whonix Build Script for creating .deb packages.)
    if [ ! -d "/usr/share/doc/config-package-dev/examples/debhelper/" ]; then
-      ## Temporarily adding Debian testing (Jessie) repository, because we need config-package-dev with debhelper support,
-      ## which is unfortunately only available since debian jessi.
+      ## Adding temporary repository, because we need config-package-dev with debhelper support.
       local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
       #echo "deb http://ftp.us.debian.org/debian testing main" > "$TEMP"
       echo "deb http://us.archive.ubuntu.com/ubuntu/ saucy main universe" > "$TEMP"
 
-      ## Update package lists and install config-package-dev from Debian testing (Jessie).
+      ## Update package lists and install config-package-dev from temporary repository.
       apt-get update \
          $extra_apt_timeout \
          -o Dir::Etc::sourcelist="$TEMP" \
@@ -212,10 +211,10 @@ prepare-build-machine() {
          --target-release saucy \
          config-package-dev
 
-      ## Removing temporary Debian testing (Jessie) repository.
+      ## Removing temporary repository.
       rm --force "$TEMP"
 
-      ## Update package lists again to get rid of Debian testing (Jessie) repository.
+      ## Update package lists again to get rid of temporary repository.
       apt-get update \
          --no-download \
          --list-cleanup
