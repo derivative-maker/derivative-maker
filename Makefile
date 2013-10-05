@@ -26,11 +26,11 @@ all:
 package:
 	$(CURDIR)/help-steps/make-tarball
 	dpkg-buildpackage -F -Zxz -z9 -tc
-	
+
 unsignedpackage:
 	$(CURDIR)/help-steps/make-tarball
 	dpkg-buildpackage -F -Zxz -z9 -tc -us -uc
-	
+
 lintian: debian/control
 	-lintian -I -i `find $(CURDIR)/.. -name '*.dsc' -o -name '*.deb'` > ../lintian.log
 
@@ -39,29 +39,23 @@ contents:
 		echo "dpkg --contents $$i"; \
 		dpkg --contents $$i ; \
 	done
-	
+
 clean:
-	@for dp in `gawk '/^Package\:[[:space:]]*.*$$/ { match($$0, /^Package:[[:space:]]*(.*)$$/, m); print m[1]"*.deb" }' $(CURDIR)/debian/control`; do \
-		rm -vf $(CURDIR)/../$$dp ; \
-	done
-	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.dsc" }' $(CURDIR)/debian/control`
-	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.changes" }' $(CURDIR)/debian/control`
-	@rm -vf $(CURDIR)/../`gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.tar.*" }' $(CURDIR)/debian/control`
-	fakeroot debian/rules clean
+	$(CURDIR)/help-steps/cleanup-files
 
 update:
 	git fetch origin
 	git merge origin/master
 
 ci: commit
-	
+
 commit:
 	git commit -a
 	git push
 
 status:
 	git status
-	
+
 merge:
 	@if [ -n "$(RB)" ]; then \
 		echo "git diff $(RB)"; \
