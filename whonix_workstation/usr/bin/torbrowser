@@ -258,7 +258,12 @@ parse_cmd_options() {
                LINK="$FEATUREBLOG_LINK"
                shift
                ;;
-           --newtab)
+           --new-tab | --newtab | -new-tab | -newtab)
+               LINK="$2"
+               shift 2
+               ;;
+           --new-window | --newwindow | -new-window | -newwindow)
+               only_open_link="1"
                LINK="$2"
                shift 2
                ;;
@@ -794,7 +799,7 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
    #debug "tb_start_new_tab debug: ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
    cd ~/tor-browser_"$TB_LANG"/
-   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab "$LINK" &
+   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile --new-tab "$LINK" &
 }
 
 
@@ -824,6 +829,13 @@ tb_start_recommend() {
 
 
 
+tb_open_link() {
+   cd ~/tor-browser_"$TB_LANG"/
+   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile --new-window "$LINK" &
+}
+
+
+
 parse_cmd_options ${1+"$@"}
 
 if [ "$TB_UPDATE" = "1" ]; then
@@ -835,7 +847,11 @@ if [ "$TB_UPDATE" = "1" ]; then
    tb_extract
 else
    tb_preparation
-   tb_start_new_tab
+   if [ "$only_open_link" = "1" ]; then
+      tb_open_link
+   else
+      tb_start_new_tab
+   fi
 fi
 
 ## End of Whonix /usr/bin/torbrowser
