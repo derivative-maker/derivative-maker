@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+set -x
+
+main_function() {
+   local torbrowser_bin="torbrowser"
+   local title="Whonix Tor Browser"
+   local msg="Do you wish to open ${1+"$@"} in Tor Browser?
+
+Note: this might get linked to any eventually already open Tor Browser sessions.
+"
+
+   local answer="0"
+   zenity --title="$title" --question --text "$msg" >/dev/null 2>/dev/null || { local answer="$?" ; true; };
+
+   if [ "$answer" = "1" ]; then
+      exit 0
+   fi
+
+   local which_return="0"
+   which $torbrowser_bin >/dev/null 2>/dev/null || { local which_return="$?" ; true; };
+
+   if [ ! "$which_return" = "0" ]; then
+      local msg="ERROR: $torbrowser_bin does not exist! Please report this bug!"
+      zenity --title="$title" --error --text "$msg"
+      exit 1
+   fi
+
+   local torbrowser_return="0"
+   $torbrowser_bin --newtab ${1+"$@"} || { local torbrowser_return="$?" ; true; };
+
+   if [ ! "$torbrowser_return" = "0" ]; then
+      local msg="ERROR: $torbrowser_bin returned $torbrowser_return! Please report this bug!"
+      zenity --title="$title" --error --text "$msg"
+   fi
+
+   exit "$torbrowser_return"
+}
+
+main_function ${1+"$@"}
