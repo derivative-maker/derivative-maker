@@ -166,8 +166,8 @@ configuration folder, not starting a desktop environment."
       if [ "$total_ram" -lt "$whonixdesktop_minium_ram" ]; then
          echo "$scriptname INFO: Not starting login manager \
 (graphical desktop environment) ($whonixdesktop_display_manager), \
-because there is only "$total_ram" MB total RAM. (A minimum of \
-"$whonixdesktop_minium_ram" MB total RAM is configured in /etc/whonix.d/ \
+because there is only $total_ram MB total RAM. (A minimum of \
+$whonixdesktop_minium_ram MB total RAM is configured in /etc/whonix.d/ \
 configuration folder.)"
          maybe_start_whonixsetup
          return 0
@@ -180,8 +180,8 @@ configuration folder.)"
       fi
    else
       echo "$scriptname INFO: Starting login manager \
-(graphical desktop environment) "$whonixdesktop_display_manager" in \
-"$whonixdesktop_wait_seconds" seconds, unless you abort using ctrl + c. \
+(graphical desktop environment) $whonixdesktop_display_manager in \
+$whonixdesktop_wait_seconds seconds, unless you abort using ctrl + c. \
 This can be disabled or configured in /etc/whonix.d/ configuration folder."
    fi
 
@@ -208,22 +208,31 @@ here: https://www.whonix.org/wiki/Desktop"
       sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
 
       if [ "$service_return2" = "0" ]; then
-         echo "$scriptname INFO: "$whonixdesktop_display_manager" already running, not starting."
+         echo "$scriptname INFO: $whonixdesktop_display_manager already running, not starting."
       else
+         echo "$scriptname INFO: Trying to start login manager \
+(graphical desktop environment) $whonixdesktop_display_manager..."
+
+         ## Sleep for the look and feel. Users should be able to see"Trying to start login manager..."
+         sleep 5
+
          service_return3="0"
          ## There is a /etc/sudoers.d/kdm exception for this.
          sudo service "$whonixdesktop_display_manager" start || { service_return3="$?" ; true; };
 
+         echo "$scriptname INFO: Starting login manager \
+(graphical desktop environment) $whonixdesktop_display_manager..."
+
          if [ "$service_return3" = 0 ]; then
-            true "$scriptname INFO: Successfully started "$whonixdesktop_display_manager"."
+            true "$scriptname INFO: Successfully started $whonixdesktop_display_manager."
          else
-            echo "$scriptname ERROR: Could not start "$whonixdesktop_display_manager". Please report this bug!"
+            echo "$scriptname ERROR: Could not start $whonixdesktop_display_manager. Please report this bug!"
          fi
       fi
    else
       ## We will not boot into a graphical desktop environment.
       echo "$scriptname INFO: Manually aborted start of login manager \
-(graphical desktop environment) "$whonixdesktop_display_manager"."
+(graphical desktop environment) $whonixdesktop_display_manager."
 
       maybe_start_whonixsetup
    fi
