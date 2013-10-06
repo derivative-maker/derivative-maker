@@ -7,13 +7,46 @@
 set -x
 
 main_function() {
-   local icon="/usr/share/whonix/icons/tbupdate.ico"
-   local torbrowser_bin="torbrowser"
-   local title="Whonix Tor Browser"
-   local msg="${1+"$@"} will be opened in Tor Browser. Continue?
 
-Be careful if Tor Browser is already running as your activities might get linked.
+   ## For simulating a Whonix-Gateway, comment in the next line and comment out the over next one.
+   #if [ true ]; then
+
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then
+      local icon="/usr/share/whonix/icons/whonix.ico"
+
+      if [ ! "$EDITOR" = "" ]; then
+         local open_in_tool_bin="$EDITOR"
+         local open_in_tool_bin_pretty_name="\$EDITOR $EDITOR"
+      ## What other useful condition could we check to determine the default editor?
+      elif [ "1" = "2" ]; then
+         local open_in_tool_bin="?"
+         local open_in_tool_bin_pretty_name="?"
+      else
+         local open_in_tool_bin="kwrite"
+         local open_in_tool_bin_pretty_name="KWrite"
+      fi
+
+      local open_in_tool_extra_opts=""
+      local title="Whonix Link Open Confirmation"
+      local msg="${1+"$@"} will be opened in $open_in_tool_bin_pretty_name. Continue?"
+   elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
+      local icon="/usr/share/whonix/icons/tbupdate.ico"
+      local open_in_tool_bin="torbrowser"
+      local open_in_tool_bin_pretty_name="Tor Browser"
+      local open_in_tool_extra_opts="--new-window"
+      local title="Whonix Tor Browser"
+      local msg="${1+"$@"} will be opened in $open_in_tool_bin_pretty_name. Continue?
+
+Be careful if $open_in_tool_bin_pretty_name is already running as your activities might get linked.
 "
+   else
+      local icon="/usr/share/whonix/icons/whonix.ico"
+      local title="Whonix ERROR"
+      local msg="ERROR $0 script could not determine if this is whonix_gateway or whonix_workstation. Please report this bug."
+      echo "$msg"
+      zenity --title="$title" --error --window-icon "$icon" --text "$msg"
+      exit 1
+   fi
 
    local answer="0"
    zenity --title="$title" --question --window-icon "$icon" --text "$msg" >/dev/null 2>/dev/null || { local answer="$?" ; true; };
@@ -23,23 +56,23 @@ Be careful if Tor Browser is already running as your activities might get linked
    fi
 
    local which_return="0"
-   which $torbrowser_bin >/dev/null 2>/dev/null || { local which_return="$?" ; true; };
+   which $open_in_tool_bin >/dev/null 2>/dev/null || { local which_return="$?" ; true; };
 
    if [ ! "$which_return" = "0" ]; then
-      local msg="ERROR: $torbrowser_bin does not exist! Please report this bug!"
+      local msg="ERROR: $open_in_tool_bin does not exist! Please report this bug!"
       zenity --title="$title" --error --window-icon "$icon" --text "$msg"
       exit 1
    fi
 
-   local torbrowser_return="0"
-   $torbrowser_bin --new-window ${1+"$@"} || { local torbrowser_return="$?" ; true; };
+   local open_in_tool_return="0"
+   $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} || { local open_in_tool_return="$?" ; true; };
 
-   if [ ! "$torbrowser_return" = "0" ]; then
-      local msg="ERROR: $torbrowser_bin returned $torbrowser_return! Please report this bug!"
+   if [ ! "$open_in_tool_return" = "0" ]; then
+      local msg="ERROR: $open_in_tool_bin returned $open_in_tool_return! Please report this bug!"
       zenity --title="$title" --error --window-icon "$icon" --text "$msg"
    fi
 
-   exit "$torbrowser_return"
+   exit "$open_in_tool_return"
 }
 
 main_function ${1+"$@"}
