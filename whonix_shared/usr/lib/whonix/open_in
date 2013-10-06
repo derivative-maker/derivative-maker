@@ -8,6 +8,12 @@ set -x
 
 main_function() {
 
+   if [ -f "${1+"$@"}" ]; then
+      local is_file="1"
+   else
+      local is_file="0"
+   fi
+
    ## For simulating a Whonix-Gateway, comment in the next line and comment out the over next one.
    #if [ true ]; then
 
@@ -27,8 +33,16 @@ main_function() {
       fi
 
       local open_in_tool_extra_opts=""
-      local title="Whonix Link Open Confirmation"
-      local msg="${1+"$@"} will be opened in $open_in_tool_bin_pretty_name. Continue?"
+      local title="Whonix ERROR"
+
+      if [ $is_file = "1" ]; then
+         local msg="Please right click on the file you wanted to open and choose open with $open_in_tool_bin_pretty_name."
+      else
+         local msg="Whonix does not support opening links on Whonix-Gateway for security reasons."
+      fi
+
+      zenity --title="$title" --error --window-icon "$icon" --text "$msg"
+      exit 0
    elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
       local icon="/usr/share/whonix/icons/tbupdate.ico"
       local open_in_tool_bin="torbrowser"
