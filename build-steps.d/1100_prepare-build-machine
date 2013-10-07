@@ -34,9 +34,9 @@ prepare-build-machine() {
    true "${bold}${cyan}INFO: PWD: $PWD ${reset}"
 
    ## Check if user "$USERNAME" already exist.
-   local ret="0"
-   id "$USERNAME" || { local ret="$?" ; true; };
-   if [ ! "$ret" = 0 ]; then
+   local id_return="0"
+   id "$USERNAME" || { local id_return="$?" ; true; };
+   if [ ! "$id_return" = 0 ]; then
       true 'INFO: Creating user "$USERNAME" with password "changeme", because some things have to be run as "$USERNAME".'
       ## setting password of user "user" to changeme
       ##
@@ -74,10 +74,10 @@ prepare-build-machine() {
    ## change the mirror settings in grml configuration file.
 
    ## Check if apt-cacher-ng is installed.
-   local ret="0"
-   dpkg --status apt-cacher-ng 1>/dev/null 2>/dev/null || { local ret="$?" ; true; };
+   local dpkg_return="0"
+   dpkg --status apt-cacher-ng 1>/dev/null 2>/dev/null || { local dpkg_return="$?" ; true; };
 
-   if [ ! "$ret" = "0" ]; then
+   if [ ! "$dpkg_return" = "0" ]; then
       ## Update package lists and install apt-cacher-ng.
       apt-get $extra_apt_timeout update
       apt-get install $extra_apt_opt $extra_apt_timeout --yes apt-cacher-ng
