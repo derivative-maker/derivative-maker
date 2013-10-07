@@ -10,12 +10,14 @@ set +x
 #echo "INFO: Currently running script: $0"
 
 ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
-#if [ "$TRAVIS" = "true" ]; then
-   #export USERNAME="travis"
-#else
-   #export USERNAME="user"
-#fi
-export USERNAME="$(logname)"
+## This does not work on drone.io systems.
+export USERNAME="$(logname)" || true
+
+## drone.io specific workaround.
+if [ "$USERNAME" = "" ]; then
+   USERNAME="$(whoami)"
+   echo "INFO $0: Set USERNAME to $USERNAME using whoami."
+fi
 
 export HOMEVAR="/home/$USERNAME"
 
