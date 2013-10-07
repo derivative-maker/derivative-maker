@@ -263,6 +263,16 @@ prepare-build-machine() {
 
    ## Debugging.
    cat /proc/devices
+
+   if [ "$CI" = "true" ]; then
+      true "${bold}${red}INFO: CI detected. Linking /dev/urandom to /dev/random. In \
+CI environment, there is usually very little entropy. Therefore gpg key \
+creation takes very long. Since no images are deployed from CI systems, we \
+can do this. Do not deploy these images! ${reset}"
+      ## || true to support re-running the script.
+      mv /dev/random /dev/random_orig || true
+      ln -s /dev/urandom /dev/random || true
+   fi
 }
 
 true "${bold}INFO: Currently running script: $0${reset}"
