@@ -7,6 +7,28 @@
 #set -x
 
 main_function() {
+   local i
+
+   for i in /etc/whonix.d/*; do
+      if [ -f "$i" ]; then
+         ## If the last character is a ~, ignore that file,
+         ## because it was created by some editor,
+         ## which creates backup files.
+         if [ "${i: -1}" = "~" ]; then
+            continue
+         fi
+         ## Skipping files such as .dpkg-old and .dpkg-dist.
+         if ( echo "$i" | grep -q ".dpkg-" ); then
+            true "skip $i"
+            continue
+         fi
+         source "$i"
+      fi
+   done
+
+   if [ "${1+"$@"}" = "" ] || [ "${1+"$@"}" = " " ]; then
+      local is_file="0"
+   fi
 
    if [ -f "${1+"$@"}" ]; then
       local is_file="1"
@@ -34,7 +56,7 @@ main_function() {
 
       local open_in_tool_extra_opts=""
 
-      if [ $is_file = "1" ]; then
+      if [ "$is_file" = "1" ]; then
          ## We could easily change our mind and ask for confirmation.
          #local title="Whonix File Open Confirmation"
          #local msg="${1+"$@"} will be opened in $open_in_tool_bin_pretty_name. Continue?"
@@ -77,7 +99,27 @@ Be careful if $open_in_tool_bin_pretty_name is already running as your activitie
    fi
 
    local answer="0"
-   zenity --title="$title" --question --window-icon "$icon" --text "$msg" >/dev/null 2>/dev/null || { local answer="$?" ; true; };
+
+   local ask_for_confirmation="1"
+   if [ "$is_file" = "1" ]; then
+      ## Got a File.
+      if [ "$tb_link_confirmation_for_files" = "0" ]; then
+         local ask_for_confirmation="0"
+      else
+         local ask_for_confirmation="1"
+      fi
+   else
+      ## Got a Link.
+      if [ "$tb_link_confirmation_for_links" = "0" ]; then
+         local ask_for_confirmation="0"
+      else
+         local ask_for_confirmation="1"
+      fi
+   fi
+
+   if [ "$ask_for_confirmation" = "1" ]; then
+      zenity --title="$title" --question --window-icon "$icon" --text "$msg" >/dev/null 2>/dev/null || { local answer="$?" ; true; };
+   fi
 
    if [ "$answer" = "1" ]; then
       exit 0
