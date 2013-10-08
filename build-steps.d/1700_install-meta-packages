@@ -83,10 +83,12 @@ install-meta-packages() {
    ## Debugging.
    $CHROOT apt-cache policy || true
 
-   ## Debugging Travis CI.
-   $CHROOT apt-cache policy zenity || true
-   $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
-   $CHROOT apt-get $apt_opts $extra_apt_timeout install zenity || true
+   if [ "$CI" = "true" ]; then
+      ## Debugging Travis CI.
+      $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
+      $CHROOT apt-cache policy zenity || true
+      $CHROOT apt-get $apt_opts $extra_apt_timeout install zenity || true
+   fi
 
    ## Debugging.
    $CHROOT apt-get clean
@@ -100,10 +102,12 @@ install-meta-packages() {
    ## Debugging.
    $CHROOT apt-cache policy
 
-   ## Debugging Travis CI.
-   $CHROOT apt-cache policy zenity
-   $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"*
-   $CHROOT apt-get $apt_opts $extra_apt_timeout install zenity
+   if [ "$CI" = "true" ]; then
+      ## Debugging Travis CI.
+      $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"*
+      $CHROOT apt-cache policy zenity
+      $CHROOT apt-get $apt_opts $extra_apt_timeout install zenity
+   fi
 
    $CHROOT apt-get $apt_opts $extra_apt_timeout --yes --no-install-recommends install whonix-shared-packages-dependencies
    $CHROOT apt-get $apt_opts $extra_apt_timeout --yes --no-install-recommends install whonix-shared-packages-recommended
