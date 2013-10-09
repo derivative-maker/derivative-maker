@@ -12,9 +12,29 @@
 ## we are using this file instead of directly implementing this functionality
 ## into /etc/profile.d/ folder.
 
-#set -x
+set -x
 
-## The delay is just for the look and feel.
-/usr/lib/whonix/delay sudo -u user /usr/lib/whonix/doutput --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --showcli
+true "INFO $0: Start."
+
+source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
+
+## disable trap /usr/lib/whonix/whonixcheck/17_check_tor_enabled may have enabled
+trap "" ERR
+
+## Check if Tor is enabled.
+## returns: TOR_ENABLED
+check_tor_enabled_do
+
+## disable trap of check_tor_enabled_do
+trap "" ERR
+
+if [ "$TOR_ENABLED" = "0" ]; then
+   true "INFO $0: Tor is not enabled. Skipping output dispatcher hook."
+else
+   ## The delay is just for the look and feel.
+   /usr/lib/whonix/delay sudo -u user /usr/lib/whonix/doutput --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --showcli
+fi
+
+true "INFO $0: End."
 
 ## End of /usr/lib/whonix/whonixcheck_profile_d
