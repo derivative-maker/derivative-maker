@@ -227,6 +227,7 @@ parse_cmd_options() {
                shift
                ;;
            --start)
+               open_new_window="0"
                LINK=""
                shift
                ;;
@@ -275,6 +276,7 @@ parse_cmd_options() {
                fi
                ;;
            --new-tab | --newtab | -new-tab | -newtab)
+               open_new_window="0"
                LINK="$2"
                if [ "$LINK" = "" ]; then
                   shift
@@ -857,16 +859,17 @@ if [ "$TB_UPDATE" = "1" ]; then
    tb_download
    tb_verify
    tb_extract
+elif [ "$open_new_window" = "1" ]; then
+   tb_preparation
+   tb_open_link
+elif [ "$open_new_window" = "0" ]; then
+   tb_preparation
+   tb_start_new_tab
 elif [ ! "$@" = "" ]; then
    true "$0 INFO: \$@: $@"
    /usr/lib/whonix/confirm_open $@
 else
-   tb_preparation
-   if [ "$open_new_window" = "1" ]; then
-      tb_open_link
-   else
-      tb_start_new_tab
-   fi
+   true "$0 INFO: Else!?!"
 fi
 
 ## End of Whonix /usr/bin/torbrowser
