@@ -27,13 +27,13 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 MSG='
-Tor tries to prevent attackers from learning what websites you connect to. However, by default, it does not hide the fact that you are using Tor. If this concerns you, select "No" with the right arrow key and press Enter. Select the menu option "Tor is censored or dangerous in my area" and follow the instructions.
+Connect to the public Tor network now?
 
-Ultimately, the best protection is a social approach: the more Tor users there are near you and the more diverse their interests, the safer it will be to use it. Convince other people to use Tor, too!
+By default, Tor does not try to hide the fact that you are using it. If this concerns you, select "No" now. Then, select the menu option "Tor is censored or dangerous in my area" and follow the instructions.
 
-Note: whonixsetup activates Tor by uncommenting "DisableNetwork 0" in /etc/tor/torrc.
+Ultimately, the best protection is a social approach: the more Tor users there are near you and the more diverse their interests, the safer it will be to use it. Convince other people to use Tor!
 
-Activate Tor and connect to the public Tor network now?
+Note: whonixsetup enables Tor networking by uncommenting "DisableNetwork 0" in /etc/tor/torrc.
 '
 
 TITLE="Connect to the Tor network."
@@ -52,9 +52,9 @@ already_commented_in="0"
 while read LINE; do
    if [ "$LINE" = 'DisableNetwork 0' ]; then
       already_commented_in="1"
-      dialog --title "Success!" --msgbox '"DisableNetwork 0" was already in /etc/tor/torrc. Tor should be activated.
+      dialog --title "Success!" --msgbox 'Tor networking should already be enabled.
 
-Note: whonixsetup activates Tor by uncommenting "DisableNetwork 0" in /etc/tor/torrc. There is no need to run it multiple times, and it is probably not the cause of network problems. You can manually check if "DisableNetwork 0" is uncommented in /etc/tor/torrc.
+Note: whonixsetup enables Tor networking by uncommenting "DisableNetwork 0" in /etc/tor/torrc There is no need to this multiple times, and it is probably not the cause of network problems. You can manually check if "DisableNetwork 0" is uncommented in /etc/tor/torrc.
 
 Press Enter to reload Tor and check its status.
 ' 640 480
@@ -73,17 +73,18 @@ if [ "$already_commented_in" = "0" ]; then
    if [ ! "$returncode" = "0" ]; then
       TITLE="Info:"
 
-      MSG="
-Could not comment \"DisableNetwork 0\" in /etc/tor/torrc. Have you commented or completely removed \"DisableNetwork 0\" from /etc/tor/torrc? This is not necessarily a problem.
+      MSG='
+Could not comment "DisableNetwork 0" in /etc/tor/torrc
+Have you commented or completely removed "DisableNetwork 0" from /etc/tor/torrc?
 
 Press Enter to reload Tor and check its status.
-"
+'
 
    else
       TITLE="Info:"
 
       MSG="
-Tor has been activated in /etc/tor/torrc.
+Tor networking has been enabled in /etc/tor/torrc
 
 Press Enter to reload Tor and check its status.
 "
@@ -136,14 +137,14 @@ if [ ! "$returncode" = "0" ]; then
 
    MSG="
     sudo service tor status
-returned exit code $returncode. There is something wrong with your /etc/tor/torrc. Tor will NOT work. This is most likely a problem with your /etc/tor/torrc (and not whonixsetup). Please fix your /etc/tor/torrc.
+
+returned exit code $returncode. There is something wrong with your /etc/tor/torrc
+Tor will NOT work. Please fix your /etc/tor/torrc
 
 You can open /etc/tor/torrc in the terminal:
-
     sudo nano /etc/tor/torrc
 
 Or, if you are using a graphical Whonix-Gateway:
-
     Start Menu -> Applications -> /etc/tor/torrc
 
 Running:
@@ -178,7 +179,7 @@ true "INFO: Opening timesync progress bar..."
 sleep 5 &
 wait "$!"
 true "INFO: Opened timesync progress bar."
-true "INFO: (This is only of interest when Tor was disabled while Whonix was booted.)"
+true "INFO: (This is only of interest when Tor was disabled while Whonix was booted)."
 
 true "INFO: Starting whonixcheck..."
 
