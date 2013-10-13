@@ -49,7 +49,7 @@ download_whonix_news() {
 
       if [ ! "${whonix_news_download_return[$link]}" = "0" ]; then
          local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${whonix_news_download_return[$link]}")"
-         local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: "$curl_status_message")"
+         local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: $curl_status_message)"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
          return 0
       fi
@@ -78,6 +78,10 @@ download_whonix_news() {
 
 verify_whonix_news() {
    trap "error_handler" ERR
+
+   ## Sanity tests.
+   which date >/dev/null
+   which gpg >/dev/null
 
    whonix_news_verify_return_GENERAL="0"
 
@@ -113,25 +117,106 @@ General Whonix News OpenPGP Verification Error. Please report this bug!"
    local filename="whonix_news.tar.gz"
    local signature="whonix_news.tar.gz.asc"
 
-   gpg \
-      --homedir "$VERIFY_TEMPDIR" \
-      --verify "$VERIFY_TEMPDIR/news/$signature" \
-      2>/dev/null \
-      || { whonix_news_verify_return="$?" ; true; };
+   gpg_fd_one="$(\
+      gpg \
+         --status-fd 1 \
+         --homedir "$VERIFY_TEMPDIR" \
+         --verify "$VERIFY_TEMPDIR/news/$signature" \
+         2>/dev/null\
+   )"
+
+   ## Example gpg_fd_one:
+   ## [GNUPG:] SIG_ID ckz4Z2Th1KU9o1sVsWMY8JXdg+A 2013-10-13 1381635738
+   ## [GNUPG:] GOODSIG 9C131AD3713AAEEF adrelanos <adrelanos at riseup dot net>
+   ## [GNUPG:] VALIDSIG 9B157153925C303A42253AFB9C131AD3713AAEEF 2013-10-13 1381635738 0 4 0 1 10 00 9B157153925C303A42253AFB9C131AD3713AAEEF
+   ## [GNUPG:] TRUST_UNDEFINED
+
+   whonix_news_verify_return="$PIPESTATUS"
 
    true "e whonix_news_verify_return: ${whonix_news_verify_return}"
 
-   if [ "${whonix_news_verify_return}" = "0" ]; then
-      local MSG="Whonix News Download: Successfully verified $filename via OpenPGP."
-      #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
-   else
+   if [ ! "${whonix_news_verify_return}" = "0" ]; then
       local MSG="Whonix News Download Result:
 Could not OpenPGP verify authenticity of Whonix News $filename!!!
-(gpg return code: "${whonix_news_verify_return}")
+(gpg return code: ${whonix_news_verify_return})
 This is either a Whonix Bug or an attack on Whonix!!!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         return 0
    fi
 
+   local MSG="Whonix News Download: Successfully verified $filename via OpenPGP."
+   #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
+
+   local line
+   local signed_on_unixtime
+
+   for line in "$gpg_fd_one"; do
+      local one two three four five
+      read -r one two three four five _ <<< "$line"
+      local signed_on_unixtime="$five"
+   done
+
+   if [ "$signed_on_unixtime" = "" ]; then
+      whonix_news_verify_return="1000"
+      local MSG="Whonix News Check: variable signed_on_unixtime is empty. Please report this bug!"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/054
+   if [[ "$signed_on_unixtime" != *[!0-9]* ]]; then
+      true "'$signed_on_unixtime' is strictly numeric."
+   else
+      whonix_news_verify_return="2000"
+      local MSG="Whonix News Check: Variable signed_on_unixtime includes a non-digit: $signed_on_unixtime Please report this bug!"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local current_unixtime="$(date +%s)"
+   local current_time="$(date)"
+
+   true "signed_on_unixtime: $signed_on_unixtime"
+   true "current_unixtime: $current_unixtime"
+
+   local difference_in_seconds="$(expr "$current_unixtime" - "$signed_on_unixtime")" || true
+   local difference_in_minutes="$(expr "$difference_in_seconds" / "60")" || true
+
+   ## One month has 2592000 seconds.
+   ## (60 [seconds] * 60 [minutes] * 24 [hours] * 30 [days])
+   local month_has_seconds="2592000"
+
+   local maximum_age_in_seconds="$month_has_seconds"
+
+   if [ "$current_unixtime" -le "$signed_on_unixtime" ]; then
+      whonix_news_verify_return="3000"
+      local MSG="Whonix News Check: Your clock is slow. According to your system, Whonix News File was signed $difference_in_minutes minutes before current time.
+Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
+                     or in Terminal: timesync"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local in_future_in_seconds="$(expr "$difference_in_seconds" - "$maximum_age_in_seconds")" || true
+   local in_future_in_minutes="$(expr "$in_future_in_seconds" / "60")" || true
+
+   if [ "$difference_in_seconds" -ge "$maximum_age_in_seconds" ]; then
+      whonix_news_verify_return="4000"
+      local MSG="Whonix News Check: Whonix News File is no longer valid (outdated).
+Either,
+- your clock is fast (at least $in_future_in_minutes minutes fast)
+  In that case, please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
+                     or in Terminal: timesync
+- it has been forgotten to refresh Whonix's News File (invalid since $in_future_in_minutes minutes)
+- this is a Whonix Bug
+- or this is an attack on Whonix"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local MSG="Whonix News Check: news file valid."
+   #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
 }
 
 extract_whonix_news() {
@@ -146,7 +231,7 @@ extract_whonix_news() {
    if [ ! "$whonix_news_tar_return" = "0" ]; then
       local MSG="Whonix News Download Result:
 Could not OpenPGP extract $filename!
-(tar return code: "${whonix_news_tar_return}")
+(tar return code: ${whonix_news_tar_return})
 Please report this bug!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       return 0
@@ -159,7 +244,14 @@ Please report this bug!"
 check_whonix_debian_version() {
    trap "error_handler" ERR
 
-   ## TODO: Check if file exists.
+   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_deb_versions"
+
+   if [ ! -f "$filename" ]; then
+      ## This file should always exist.
+      local MSG="Whonix News Check: File $filename does not exist. Please report this bug!"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
 
    local outdated_deb="1"
 
@@ -168,7 +260,7 @@ check_whonix_debian_version() {
       if [ "$whonix_deb_package_version" = "$LINE" ]; then
          outdated_deb="0"
       fi
-   done < "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_deb_versions"
+   done < "$filename"
 
    if [ "$outdated_deb" = "0" ]; then
       ## Up to date...
@@ -186,7 +278,14 @@ sudo apt-get update && sudo apt-get dist-upgrade"
 check_whonix_build_version() {
    trap "error_handler" ERR
 
-   ## TODO: Check if file exists.
+   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_build_versions"
+
+   if [ ! -f "$filename" ]; then
+      ## This file should always exist.
+      local MSG="Whonix News Check: File $filename does not exist. Please report this bug!"
+      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
 
    local outdated_build="1"
 
@@ -195,7 +294,7 @@ check_whonix_build_version() {
       if [ "$whonix_build_version" = "$LINE" ]; then
          outdated_build="0"
       fi
-   done < "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_build_versions"
+   done < "$filename"
 
    if [ "$outdated_build" = "0" ]; then
       ## Up to date...
@@ -213,27 +312,41 @@ Sorry, automatically updating this Whonix version is not possible. You have to m
 check_whonix_debian_news() {
    trap "error_handler" ERR
 
-   ## TODO: Check if file exists.
+   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news"
 
-   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news")"
-
-   if [ "$MSG" = "" ]; then
-      true
+   if [ ! -f "$filename" ]; then
+      ## This will happen:
+      ## - when using custom git tags / versions
+      ## - when no news file has been uploaded yet
+      local MSG="There is no news file available for Whonix Debian Version ${whonix_deb_package_version} yet."
    else
-      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      local MSG="$(cat "$filename")"
+
+      if [ "$MSG" = "" ]; then
+         return 0
+      fi
    fi
+
+   $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
 }
 
 check_whonix_build_news() {
    trap "error_handler" ERR
 
-   ## TODO: Check if file exists.
+   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news"
 
-   local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news")"
-
-   if [ "$MSG" = "" ]; then
-      true
+   if [ ! -f "$filename" ]; then
+      ## This will happen:
+      ## - when using custom git tags / versions
+      ## - when no news file has been uploaded yet
+      local MSG="There is no news file available for Whonix Build Version ${whonix_build_version} yet."
    else
-      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      local MSG="$(cat "$filename")"
+
+      if [ "$MSG" = "" ]; then
+         return 0
+      fi
    fi
+
+   $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
 }
