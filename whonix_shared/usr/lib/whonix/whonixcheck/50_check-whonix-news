@@ -14,32 +14,26 @@ download_whonix_news() {
 
    mkdir --parents "$VERIFY_TEMPDIR/news"
 
-   declare -A -g WHONIX_NEWS_LINK_LIST
-   declare -A -g DOWNLOAD_NEWS_RETURN
-   declare -A -g NEWS_VERIFY_RETURN
+   declare -A -g whonix_news_link_list
+   declare -A -g whonix_news_download_return
+   declare -A -g whonix_news_verify_return
 
-   local temp="whonix_${vm_lower_case_short}_valid_build_versions.asc"
-   WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
+   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v3/whonix_news.tar.gz.asc/download]="whonix_news.tar.gz.asc"
 
-   local temp="whonix_${vm_lower_case_short}_valid_deb_versions.asc"
-   WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
-
-   local temp="whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc"
-   WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
-
-   local temp="whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc"
-   WHONIX_NEWS_LINK_LIST[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/${temp}/download]="${temp}"
+   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v3/whonix_news.tar.gz/download]="whonix_news.tar.gz"
 
    ## sf.net does not support ssl.
    ## --location is required since sf.net uses redirects to mirrors.
 
-   for LINK in "${!WHONIX_NEWS_LINK_LIST[@]}"; do
-      FILENAME="${WHONIX_NEWS_LINK_LIST[$LINK]}"
+   local link
 
-      true "link: $LINK"
-      true "filename: $FILENAME"
+   for link in "${!whonix_news_link_list[@]}"; do
+      local filename="${whonix_news_link_list[$link]}"
 
-      DOWNLOAD_NEWS_RETURN[$LINK]="0"
+      true "link: $link"
+      true "filename: $filename"
+
+      whonix_news_download_return[$link]="0"
 
       $CURL \
          $CURL_VERBOSE \
@@ -47,15 +41,15 @@ download_whonix_news() {
          --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
          --location \
          --max-time 180 \
-         --output "$VERIFY_TEMPDIR/news/$FILENAME" \
-         "$LINK" \
+         --output "$VERIFY_TEMPDIR/news/$filename" \
+         "$link" \
          &
 
-      wait "$!" || { DOWNLOAD_NEWS_RETURN[$LINK]="$?" ; true; };
+      wait "$!" || { whonix_news_download_return[$link]="$?" ; true; };
 
-      if [ ! "${DOWNLOAD_NEWS_RETURN[$LINK]}" = "0" ]; then
-         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${DOWNLOAD_NEWS_RETURN[$LINK]}")"
-         local MSG="Whonix News Result: Could not download Whonix News File "$FILENAME". (curl return code: "$curl_status_message")"
+      if [ ! "${whonix_news_download_return[$link]}" = "0" ]; then
+         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${whonix_news_download_return[$link]}")"
+         local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: "$curl_status_message")"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
          return 0
       fi
@@ -63,6 +57,19 @@ download_whonix_news() {
    done
 
    verify_whonix_news
+
+   if [ ! "$whonix_news_verify_return" = "0" ]; then
+      true "$0 WARNING: whonix_news_verify_return is not 0, it is $whonix_news_verify_return, return"
+      return 0
+   fi
+
+   extract_whonix_news
+
+   if [ ! "$whonix_news_tar_return" = "0" ]; then
+      true "$0 ERROR: whonix_news_tar_return is not 0, it is $whonix_news_tar_return, return"
+      return 0
+   fi
+
    check_whonix_debian_version
    check_whonix_build_version
    check_whonix_debian_news
@@ -72,84 +79,87 @@ download_whonix_news() {
 verify_whonix_news() {
    trap "error_handler" ERR
 
-   NEWS_VERIFY_RETURN_GENERAL="0"
+   whonix_news_verify_return_GENERAL="0"
 
-   true "a NEWS_VERIFY_RETURN_GENERAL: $NEWS_VERIFY_RETURN_GENERAL"
+   true "a whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
 
    gpg \
       --homedir "$VERIFY_TEMPDIR" \
       --fingerprint \
       >/dev/null 2>/dev/null \
-      || { NEWS_VERIFY_RETURN_GENERAL="$?" ; true; };
+      || { whonix_news_verify_return_GENERAL="$?" ; true; };
 
-   true "b NEWS_VERIFY_RETURN_GENERAL: $NEWS_VERIFY_RETURN_GENERAL"
+   true "b whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
 
    gpg \
       --homedir "$VERIFY_TEMPDIR" \
       --import /usr/share/whonix/keys/whonix-keys.d/* \
       2>/dev/null \
-      || { NEWS_VERIFY_RETURN_GENERAL="$?" ; true; };
+      || { whonix_news_verify_return_GENERAL="$?" ; true; };
 
-   true "c NEWS_VERIFY_RETURN_GENERAL: $NEWS_VERIFY_RETURN_GENERAL"
+   true "c whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
 
-   if [ ! "$NEWS_VERIFY_RETURN_GENERAL" = "0" ]; then
+   if [ ! "$whonix_news_verify_return_GENERAL" = "0" ]; then
       local MSG="Whonix News Download Result:
 General Whonix News OpenPGP Verification Error. Please report this bug!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       return 0
    fi
 
-   for LINK in "${!WHONIX_NEWS_LINK_LIST[@]}"; do
-      FILENAME="${WHONIX_NEWS_LINK_LIST[$LINK]}"
-      base_name="$(basename "$FILENAME" ".asc")"
+   whonix_news_verify_return="0"
 
-      ## If news could not be downloaded, do not try to verify it.
-      if [ ! "${DOWNLOAD_NEWS_RETURN[$LINK]}" = "0" ]; then
-         continue
-      fi
+   true "d whonix_news_verify_return: ${whonix_news_verify_return}"
 
-      NEWS_VERIFY_RETURN[$LINK]="0"
+   local filename="whonix_news.tar.gz"
+   local signature="whonix_news.tar.gz.asc"
 
-      true "d NEWS_VERIFY_RETURN[$LINK]: ${NEWS_VERIFY_RETURN[$LINK]}"
+   gpg \
+      --homedir "$VERIFY_TEMPDIR" \
+      --verify "$VERIFY_TEMPDIR/news/$signature" \
+      2>/dev/null \
+      || { whonix_news_verify_return="$?" ; true; };
 
-      gpg \
-         --homedir "$VERIFY_TEMPDIR" \
-         --output "$VERIFY_TEMPDIR/news/$base_name" \
-         --decrypt "$VERIFY_TEMPDIR/news/$FILENAME" \
-         2>/dev/null \
-         || { NEWS_VERIFY_RETURN[$LINK]="$?" ; true; };
+   true "e whonix_news_verify_return: ${whonix_news_verify_return}"
 
-      true "e NEWS_VERIFY_RETURN[$LINK]: ${NEWS_VERIFY_RETURN[$LINK]}"
-
-      if [ "${NEWS_VERIFY_RETURN[$LINK]}" = "0" ]; then
-         local MSG="Whonix News Download: Successfully verified "$FILENAME" via OpenPGP."
-         #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
-      else
-         local MSG="Whonix News Download Result:
-Could not OpenPGP verify authenticity of Whonix News "$FILENAME"!!!
-(gpg return code: "${NEWS_VERIFY_RETURN[$LINK]}")
+   if [ "${whonix_news_verify_return}" = "0" ]; then
+      local MSG="Whonix News Download: Successfully verified $filename via OpenPGP."
+      #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
+   else
+      local MSG="Whonix News Download Result:
+Could not OpenPGP verify authenticity of Whonix News $filename!!!
+(gpg return code: "${whonix_news_verify_return}")
 This is either a Whonix Bug or an attack on Whonix!!!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      fi
-   done
+   fi
+
+}
+
+extract_whonix_news() {
+   trap "error_handler" ERR
+
+   local filename="whonix_news.tar.gz"
+
+   whonix_news_tar_return="0"
+
+   tar -xvzf "$VERIFY_TEMPDIR/news/$filename" -C "$VERIFY_TEMPDIR/news/" . >/dev/null || { whonix_news_tar_return="$?" ; true; };
+
+   if [ ! "$whonix_news_tar_return" = "0" ]; then
+      local MSG="Whonix News Download Result:
+Could not OpenPGP extract $filename!
+(tar return code: "${whonix_news_tar_return}")
+Please report this bug!"
+         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   ## Debugging.
+   #ls -la "$VERIFY_TEMPDIR/news/"
 }
 
 check_whonix_debian_version() {
    trap "error_handler" ERR
 
-   if [ ! "$NEWS_VERIFY_RETURN_GENERAL" = "0" ]; then
-      return 0
-   fi
-
-   ## If news could not be downloaded, do not check Whonix version.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_valid_deb_versions.asc/download]}" = "0" ]; then
-      return 0
-   fi
-
-   ## If news verification failed, do not check Whonix version.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_valid_deb_versions.asc/download]}" = "0" ]; then
-      return 0
-   fi
+   ## TODO: Check if file exists.
 
    local outdated_deb="1"
 
@@ -176,19 +186,7 @@ sudo apt-get update && sudo apt-get dist-upgrade"
 check_whonix_build_version() {
    trap "error_handler" ERR
 
-   if [ ! "$NEWS_VERIFY_RETURN_GENERAL" = "0" ]; then
-      return 0
-   fi
-
-   ## If news could not be downloaded, do not check Whonix version.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_valid_build_versions.asc/download]}" = "0" ]; then
-      return 0
-   fi
-
-   ## If news verification failed, do not check Whonix version.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_valid_build_versions.asc/download]}" = "0" ]; then
-      return 0
-   fi
+   ## TODO: Check if file exists.
 
    local outdated_build="1"
 
@@ -215,19 +213,7 @@ Sorry, automatically updating this Whonix version is not possible. You have to m
 check_whonix_debian_news() {
    trap "error_handler" ERR
 
-   if [ ! "$NEWS_VERIFY_RETURN_GENERAL" = "0" ]; then
-      return 0
-   fi
-
-   ## If news could not be downloaded, do not check Whonix news.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc/download]}" = "0" ]; then
-      return 0
-   fi
-
-   ## If news verification failed, do not check Whonix news.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news.asc/download]}" = "0" ]; then
-      return 0
-   fi
+   ## TODO: Check if file exists.
 
    local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news")"
 
@@ -239,19 +225,9 @@ check_whonix_debian_news() {
 }
 
 check_whonix_build_news() {
-   if [ ! "$NEWS_VERIFY_RETURN_GENERAL" = "0" ]; then
-      return 0
-   fi
+   trap "error_handler" ERR
 
-   ## If news could not be downloaded, do not check Whonix news.
-   if [ ! "${DOWNLOAD_NEWS_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc/download]}" = "0" ]; then
-      return 0
-   fi
-
-   ## If news verification failed, do not check Whonix news.
-   if [ ! "${NEWS_VERIFY_RETURN[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news.asc/download]}" = "0" ]; then
-      return 0
-   fi
+   ## TODO: Check if file exists.
 
    local MSG="$(cat "$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news")"
 
