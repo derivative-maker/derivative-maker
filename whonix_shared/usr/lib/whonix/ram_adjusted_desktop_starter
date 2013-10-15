@@ -100,8 +100,18 @@ ram-adjusted-desktop-starter() {
    if [ "$whonixdesktop_debug" = 1 ]; then
       set -x
    fi
+   if [ -z "$x_default_dm_config_file" ]; then
+      x_default_dm_config_file="/etc/X11/default-display-manager"
+   fi
    if [ -z "$whonixdesktop_display_manager" ]; then
-      whonixdesktop_display_manager=kdm
+      if [ -f "$x_default_dm_config_file" ]; then
+         whonixdesktop_display_manager="$(basename "$(cat "$x_default_dm_config_file")")"
+         if [ "$whonixdesktop_display_manager" = "" ]; then
+            whonixdesktop_display_manager=kdm
+         fi
+      else
+         whonixdesktop_no_x_default_dm="1"
+      fi
    fi
    if [ -z "$whonixdesktop_minium_ram" ]; then
       whonixdesktop_minium_ram=500
@@ -138,6 +148,17 @@ ram-adjusted-desktop-starter() {
          true "$scriptname INFO: display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
+         set +x
+      fi
+      maybe_start_whonixsetup
+      exit 0
+   fi
+
+   if [ ! "$whonixdesktop_no_x_default_dm" = "1" ]; then
+      if [ "$whonixdesktop_debug" = 1 ]; then
+         true "$scriptname INFO: config file \
+$x_default_dm_config_file \
+does not exist. Probably no desktop environment installed. Not starting a desktop environment."
          set +x
       fi
       maybe_start_whonixsetup
