@@ -73,6 +73,15 @@ prepare-build-machine() {
    ## But why? If you do not want to use it, comment out the following line and
    ## change the mirror settings in grml configuration file.
 
+   ## {{{ Small hack for CI environments which are most times based on Ubuntu.
+   ##     In that case, install apt-cacher-ng from Ubuntu, and not from Debian sid,
+   ##     to avoid issues with apt keys.
+   if [ "$CI" = "true" ]; then
+      apt-get $extra_apt_timeout update
+      apt-get install apt-cacher-ng
+   fi
+   ## }}}
+
    ## Check if apt-cacher-ng is installed.
    local dpkg_return="0"
    dpkg --status apt-cacher-ng 1>/dev/null 2>/dev/null || { local dpkg_return="$?" ; true; };
