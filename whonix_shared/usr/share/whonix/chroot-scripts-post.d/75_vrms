@@ -33,7 +33,11 @@ vrms
 vrms_result="$(vrms --quiet)"
 
 if [ "$vrms_result" = "" ]; then
-   true
+   true "INFO $0: No non-free or contrib packages detected."
 else
-   error "Non-free or contrib packages detected! See above!"
+   if [ "$CI" = "true" ]; then
+      true "INFO $0: Non-free or contrib packages detected. Continuing, because CI detected."
+   else
+      error "ERROR $0: Non-free or contrib packages detected! See above!"
+   fi
 fi
