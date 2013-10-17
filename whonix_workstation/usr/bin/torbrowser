@@ -37,7 +37,7 @@ root_check() {
       true
    else
       $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -89,7 +89,7 @@ trap_tb() {
    fi
 
    $output ${output_opts[@]} --progress "100"
-   sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
    $output ${output_opts[@]} --channel "echo" --type "error" --title "$TITLE" --message "$MSG"
 
    #MSG="Aborted."
@@ -160,16 +160,16 @@ IMPORTANTBLOG_LINK="https://anonymousoperatingsystem.wordpress.com/category/impo
 FEATUREBLOG_LINK="https://anonymousoperatingsystem.wordpress.com/"
 
 IMPORTANTBLOG_OFFLINE_FILE="/var/lib/whonix/whonixblog/important_blog.txt"
-IMPORTANTBLOG_OFFLINE_LINK="file://"$IMPORTANTBLOG_OFFLINE_FILE""
+IMPORTANTBLOG_OFFLINE_LINK="file://$IMPORTANTBLOG_OFFLINE_FILE"
 
 IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE="/usr/share/whonix/import_blog_not_available.txt"
-IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://"$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE""
+IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_FILE"
 
 FEATUREBLOG_OFFLINE_FILE="/var/lib/whonix/whonixblog/feature_blog.txt"
-FEATUREBLOG_OFFLINE_LINK="file://"$FEATUREBLOG_OFFLINE_FILE""
+FEATUREBLOG_OFFLINE_LINK="file://$FEATUREBLOG_OFFLINE_FILE"
 
 FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE="/usr/share/whonix/feature_blog_not_available.txt"
-FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://"$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE""
+FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK="file://$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_FILE"
 
 
 parse_cmd_options() {
@@ -310,6 +310,8 @@ parse_cmd_options() {
 tb_preparation() {
    trap "tb_error_handler" ERR
 
+   home_folder=~
+
    ## Fortunately, on linux-image-486 kernel, while "uname --all" returns for example
    ## "Linux host 3.2.0-4-486 #1 Debian 3.2.41-2 i686 GNU/Linux",
    ## "uname --machine" returns "i686" and Tor Browser works fine with linux-image-486 kernel.
@@ -358,7 +360,7 @@ tb_preparation() {
       fi
    fi
 
-   rm --force "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+   rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       output="true"
@@ -368,7 +370,7 @@ tb_preparation() {
 
    output_opt_1="--icon $ICON"
    output_opt_2="--display $display"
-   output_opt_3="--identifier $IDENTIFIER"
+   output_opt_3="--identifier ${IDENTIFIER}"
    output_opt_4="--instantecho"
    output_opt_5="--nonewlinecli"
 
@@ -411,8 +413,8 @@ tb_update_check() {
 
    ## do not re-download Tor Browser if a previous build already did
    if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
-      if [ -d ~/tor-browser_"$TB_LANG"/ ]; then
-         echo "$SCRIPTNAME: Not downloading Tor Browser again, because ~/tor-browser_"$TB_LANG"/ already exists."
+      if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
+         echo "$SCRIPTNAME: Not downloading Tor Browser again, because $home_folder/tor-browser_$TB_LANG already exists."
          exit 0
       fi
    fi
@@ -433,14 +435,14 @@ tb_update_check() {
    if [ "$DEV_PASSTHROUGH" = "1" ]; then
       CURL_PROXY=""
    else
-      CURL_PROXY="--socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_TBB_DOWNLOAD"/"
+      CURL_PROXY="--socks5-hostname socks5h://$GATEWAY_IP:$SOCKS_PORT_TBB_DOWNLOAD/"
    fi
 
    debug "INFO: Find out latest version..."
    LINK="https://check.torproject.org/RecommendedTBBVersions"
    debug "INFO: Downloading: "$LINK""
 
-   mkdir --parents ~/.tb
+   mkdir --parents "$home_folder/.tb"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
@@ -452,7 +454,7 @@ tb_update_check() {
       --tlsv1 \
       --proto =https \
       --max-time 180 \
-      --output ~/.tb/RecommendedTBBVersions \
+      --output "$home_folder/.tb/RecommendedTBBVersions" \
       "$LINK" \
       &
 
@@ -467,7 +469,7 @@ tb_update_check() {
 $DOWNLOAD_FAIL_HELP"
 
       $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -480,7 +482,7 @@ $DOWNLOAD_FAIL_HELP"
 tb_download() {
    trap "tb_error_handler" ERR
 
-   RecommendedTBBVersions=~/.tb/RecommendedTBBVersions
+   RecommendedTBBVersions="$home_folder/.tb/RecommendedTBBVersions"
 
    ## sets: TBBVERSION
    tbbversion
@@ -489,7 +491,7 @@ tb_download() {
       MSG="$VERSION_DETECTION_ERROR"
 
       $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -498,10 +500,10 @@ tb_download() {
 
    ## Will fail if the file does not exist, i.e. Tor Browser not installed.
    ## Will not break the script.
-   TBBINSTALLEDVERSION="$(head -1 ~/tor-browser_"$TB_LANG"/Docs/version)" || true
+   TBBINSTALLEDVERSION="$(head -1 "$home_folder/tor-browser_$TB_LANG/Docs/version")" || true
 
    $output ${output_opts[@]} --progress "100"
-   sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
       #debug "INFO: Successfully detected Tor Browser version."
@@ -523,13 +525,13 @@ INFO: This could be either because none is installed or because the version form
    local answer="0"
 
    MSG="\
-"$SCRIPTNAME" Update Check (Whonix)
+$SCRIPTNAME Update Check (Whonix)
 ----------------------------------------------------------------------
-"$VERSION_CHECK_RESULT"
+$VERSION_CHECK_RESULT
 
 Please close Tor Browser if you want to upgrade!
-Currently installed version: "$TBBINSTALLEDVERSION"
-Online detected version    : "$TBBVERSION"
+Currently installed version: $TBBINSTALLEDVERSION
+Online detected version    : $TBBVERSION
 
 If your currently installed version is:
    higher: you are likely victim of a downgrade attack, SAY NO NOW!
@@ -581,11 +583,11 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       killall firefox || true
    fi
 
-   rm --recursive --force ~/.tb/gpgtmpdir/
-   mkdir --parents ~/.tb/gpgtmpdir/
-   chmod --recursive 700 ~/.tb/gpgtmpdir/
+   rm --recursive --force "$home_folder/.tb/gpgtmpdir/"
+   mkdir --parents "$home_folder/.tb/gpgtmpdir/"
+   chmod --recursive 700 "$home_folder/.tb/gpgtmpdir/"
 
-   gpg --homedir ~/.tb/gpgtmpdir/ --import /usr/share/whonix/keys/tbb-keys.d/*
+   gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "/usr/share/whonix/keys/tbb-keys.d/"*
 
    ## Download from the torproject.org hidden service, instead over clearnet,
    ## thus not involving any Tor exist nodes.
@@ -607,9 +609,9 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    fi
 
    debug "INFO: Downloading GPG signature..."
-   TBB_SIG_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz.asc"
-   TBB_SIG_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_SIG_FILENAME""
-   debug "INFO: Downloading: "$TBB_SIG_LINK""
+   TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz.asc"
+   TBB_SIG_LINK="$TBB_REMOTE_FOLDER/$TBB_SIG_FILENAME"
+   debug "INFO: Downloading: $TBB_SIG_LINK"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
@@ -620,7 +622,7 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       $CURL_PROXY \
       $CURL_FORCE_SSL \
       --max-time 180 \
-      --output ~/.tb/"$TBB_SIG_FILENAME" \
+      --output "$home_folder/.tb/$TBB_SIG_FILENAME" \
       "$TBB_SIG_LINK" \
       &
 
@@ -635,7 +637,7 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       MSG="Failed to download: "$TBB_SIG_LINK"
 
 $DOWNLOAD_FAIL_HELP"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -649,9 +651,9 @@ $DOWNLOAD_FAIL_HELP"
    $output ${output_opts[@]} --progress "5"
 
    debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
-   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-"$ARCH"-"$TBBVERSION"-dev-"$TB_LANG".tar.gz"
-   TBB_PACKAGE_LINK=""$TBB_REMOTE_FOLDER"/"$TBB_PACKAGE_FILENAME""
-   debug "INFO: Downloading: "$TBB_PACKAGE_LINK""
+   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz"
+   TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/$TBB_PACKAGE_FILENAME"
+   debug "INFO: Downloading: $TBB_PACKAGE_LINK"
 
    CURL_RETURN="0"
 
@@ -662,7 +664,7 @@ $DOWNLOAD_FAIL_HELP"
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
-      --output ~/.tb/"$TBB_PACKAGE_FILENAME" \
+      --output "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
       "$TBB_PACKAGE_LINK" \
       &
 
@@ -672,12 +674,12 @@ $DOWNLOAD_FAIL_HELP"
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
-      MSG="Failed to download: "$TBB_PACKAGE_LINK"
+      MSG="Failed to download: $TBB_PACKAGE_LINK
 
 $DOWNLOAD_FAIL_HELP"
 
       $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -697,9 +699,9 @@ tb_verify() {
 
    TB_GPG_VERIFY_RETURN="0"
    gpg \
-   --homedir ~/.tb/gpgtmpdir/ \
-   --verify ~/.tb/"$TBB_SIG_FILENAME" \
-   ~/.tb/"$TBB_PACKAGE_FILENAME" \
+   --homedir "$home_folder/.tb/gpgtmpdir/" \
+   --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
+   "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
    || { TB_GPG_VERIFY_RETURN="$?" ; true; };
 
    debug "INFO: Signature valid."
@@ -710,7 +712,7 @@ ERROR: GPG download signature could NOT be verified.
 ERROR: Tor Browser update failed! Try again later.\
 "
       $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --showx
 
@@ -723,21 +725,21 @@ ERROR: Tor Browser update failed! Try again later.\
 tb_extract() {
    trap "tb_error_handler" ERR
 
-   tar -xzvf ~/.tb/"$TBB_PACKAGE_FILENAME" -C ~/.tb/
+   tar -xzvf "$home_folder/.tb/$TBB_PACKAGE_FILENAME" -C "$home_folder/.tb/"
 
    ## The tor-browser_"$TB_LANG"/Docs folder should already exist.
    ## Just to make sure the script will not break in case the get changed by upstream.
-   mkdir --parents ~/tor-browser_"$TB_LANG"/Docs
+   mkdir --parents "$home_folder/tor-browser_$TB_LANG/Docs"
 
-   debug "Moving the Tor Browser Bundle startup script to tor-browser_"$TB_LANG"/Docs/..."
-   mv ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser ~/.tb/tor-browser_"$TB_LANG"/Docs/
+   debug "Moving the Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
+   mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
 
    ## Tor Browser changelog has been forgotten to update.
    ## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
    ## To play it safe and having a chance of finding out the installed version,
    ## we create a file ourselves to remember it.
-   debug "Creating version file tor-browser_"$TB_LANG"/Docs/version."
-   echo ""$TBBVERSION"" > ~/.tb/tor-browser_"$TB_LANG"/Docs/version
+   debug "Creating version file tor-browser_$TB_LANG/Docs/version."
+   echo "$TBBVERSION" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
    debug "INFO: Creating Unbundled Tor Browser startup script..."
    ## Using this until Tor Browser upstream patch #7266 gets accepted.
@@ -748,21 +750,21 @@ tb_extract() {
    ## be proposed.
    ##
    ## Has been copied into Whonix-Workstation at build time.
-   cp /usr/share/whonix/start-tor-browser ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser
-   chmod +x ~/.tb/tor-browser_"$TB_LANG"/start-tor-browser
+   cp "/usr/share/whonix/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+   chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
 
-   debug "INFO: Moving old folder ~/tor-browser_"$TB_LANG"..."
-   mv ~/tor-browser_"$TB_LANG" ~/"tor-browser_"$TB_LANG".old."$(date '+%F-%H:%M:%S')"" || true
+   debug "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
+   mv "$home_folder/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG.old.$(date '+%F-%H:%M:%S')" || true
 
-   debug "INFO: Moving temporary folder ~/.tb/tor-browser_"$TB_LANG" to ~/tor-browser_"$TB_LANG"."
-   mv ~/.tb/tor-browser_"$TB_LANG" ~/tor-browser_"$TB_LANG"
+   debug "INFO: Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
+   mv "$home_folder/.tb/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG"
 
-   local TEMP=~/tor-browser_"$TB_LANG"/
+   local TEMP="$home_folder/tor-browser_$TB_LANG/"
    MSG="Finished installing Tor Browser. Can be found in $TEMP."
 
    $output ${output_opts[@]} --progress "100"
    $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
-   sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
    $output ${output_opts[@]} --showx
 }
 
@@ -771,16 +773,16 @@ tb_extract() {
 tb_start_new_tab() {
    trap "tb_error_handler" ERR
 
-   if [ ! -d ~/tor-browser_"$TB_LANG"/ ]; then
+   if [ ! -d "$home_folder/tor-browser_$TB_LANG" ]; then
       MSG="Tor Browser is not installed?
-The folder ~/tor-browser_"$TB_LANG"/ does not exist.
+The folder $home_folder/tor-browser_$TB_LANG/ does not exist.
 
 Please run: Start Menu -> Applications -> System -> Tor Browser Updater
             or in Terminal: $SCRIPTNAME --update"
 
       $output ${output_opts[@]} --progress "100"
       $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      sudo -u user touch "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done"
+      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
       $output ${output_opts[@]} --showx
 
       exit 1
@@ -790,8 +792,8 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 
    if [ "$PID" = "" ]; then
       debug "INFO: Starting Tor Browser..."
-      cd ~/tor-browser_"$TB_LANG"/
-      ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile &
+      cd "$home_folder/tor-browser_$TB_LANG/"
+      "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" &
       ## Unfortunately, we must hard code the time to wait before
       ## we try open extra tabs. Just waiting for the pid to exists
       ## does not do the trick. I do not know a way to ask Firefox,
@@ -810,10 +812,10 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
 
    debug "INFO: Opening link..."
 
-   #debug "tb_start_new_tab debug: ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
+   #debug "tb_start_new_tab debug: $home_folder/tor-browser_$TB_LANG/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
-   cd ~/tor-browser_"$TB_LANG"/
-   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile --new-tab "$LINK" &
+   cd "$home_folder/tor-browser_$TB_LANG"
+   "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" --new-tab "$LINK" &
 }
 
 
@@ -844,8 +846,8 @@ tb_start_recommend() {
 
 
 tb_open_link() {
-   cd ~/tor-browser_"$TB_LANG"/
-   ~/tor-browser_"$TB_LANG"/App/Firefox/firefox --profile Data/profile --new-window "$LINK" &
+   cd "$home_folder/tor-browser_$TB_LANG"
+   "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" --new-window "$LINK" &
 }
 
 
