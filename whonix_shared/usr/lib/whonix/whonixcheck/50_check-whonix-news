@@ -83,27 +83,48 @@ verify_whonix_news() {
    which date >/dev/null
    which gpg >/dev/null
 
-   whonix_news_verify_return_GENERAL="0"
+   local whonix_news_gpg_temp_dir="$VERIFY_TEMPDIR/news_gpg"
 
-   true "a whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
+   rm --recursive --force "$whonix_news_gpg_temp_dir"
+   mkdir --parents "$whonix_news_gpg_temp_dir"
+   chmod --recursive 700 "$whonix_news_gpg_temp_dir"
+
+   whonix_news_verify_return_general="0"
+
+   true "a whonix_news_verify_return_general: $whonix_news_verify_return_general"
 
    gpg \
-      --homedir "$VERIFY_TEMPDIR" \
+      --homedir "$whonix_news_gpg_temp_dir" \
       --fingerprint \
       >/dev/null 2>/dev/null \
-      || { whonix_news_verify_return_GENERAL="$?" ; true; };
+      || { whonix_news_verify_return_general="$?" ; true; };
 
-   true "b whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
+   true "b whonix_news_verify_return_general: $whonix_news_verify_return_general"
 
-   gpg \
-      --homedir "$VERIFY_TEMPDIR" \
-      --import /usr/share/whonix/keys/whonix-keys.d/* \
-      2>/dev/null \
-      || { whonix_news_verify_return_GENERAL="$?" ; true; };
+   local key
 
-   true "c whonix_news_verify_return_GENERAL: $whonix_news_verify_return_GENERAL"
+   for key in "/usr/share/whonix/keys/whonix-keys.d/"*; do
+      local key_filename="$(basename "$key")"
+      if [ "$key_filename" = "placeholder" ]; then
+         continue
+      fi
+      if [ "$key_filename" = "*" ]; then
+         ## Folder is empty.
+         continue
+      fi
+      gpg \
+         --homedir "$whonix_news_gpg_temp_dir" \
+         --import "$key" \
+         2>/dev/null \
+         || { whonix_news_verify_return_general="$?" ; true; };
+      if [ ! "$whonix_news_verify_return_general" = "0" ]; then
+         break
+      fi
+   done
 
-   if [ ! "$whonix_news_verify_return_GENERAL" = "0" ]; then
+   true "c whonix_news_verify_return_general: $whonix_news_verify_return_general"
+
+   if [ ! "$whonix_news_verify_return_general" = "0" ]; then
       local MSG="Whonix News Download Result:
 General Whonix News OpenPGP Verification Error. Please report this bug!"
          $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
@@ -120,10 +141,10 @@ General Whonix News OpenPGP Verification Error. Please report this bug!"
    gpg_fd_one="$(\
       gpg \
          --status-fd 1 \
-         --homedir "$VERIFY_TEMPDIR" \
+         --homedir "$whonix_news_gpg_temp_dir" \
          --verify "$VERIFY_TEMPDIR/news/$signature" \
          2>/dev/null\
-   )"
+   )" || { whonix_news_verify_return="$?" ; true; };
 
    ## Example gpg_fd_one:
    ## [GNUPG:] SIG_ID ckz4Z2Th1KU9o1sVsWMY8JXdg+A 2013-10-13 1381635738
@@ -131,7 +152,9 @@ General Whonix News OpenPGP Verification Error. Please report this bug!"
    ## [GNUPG:] VALIDSIG 9B157153925C303A42253AFB9C131AD3713AAEEF 2013-10-13 1381635738 0 4 0 1 10 00 9B157153925C303A42253AFB9C131AD3713AAEEF
    ## [GNUPG:] TRUST_UNDEFINED
 
-   whonix_news_verify_return="$PIPESTATUS"
+   ## Another example gpg_fd_one:
+   ## [GNUPG:] ERRSIG 9C131AD3713AAEEF 1 10 00 1381635738 9
+   ## [GNUPG:] NO_PUBKEY 9C131AD3713AAEEF
 
    true "e whonix_news_verify_return: ${whonix_news_verify_return}"
 
