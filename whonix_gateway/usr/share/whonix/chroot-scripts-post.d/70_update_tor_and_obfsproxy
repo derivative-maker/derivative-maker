@@ -43,7 +43,34 @@ apt-get \
    --yes \
    -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/torproject.list" \
    -o Dir::Etc::sourceparts="$EMPTY_DIR" \
-   install tor tor-geoipdb tor-arm obfsproxy
+   install tor
+
+apt-get \
+   $extra_apt_timeout \
+   --yes \
+   -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/torproject.list" \
+   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
+   install tor-geoipdb
+
+## Override with || true in case tor-arm has been removed from torproject's apt
+## repository.
+apt-get \
+   $extra_apt_timeout \
+   --yes \
+   -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/torproject.list" \
+   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
+   install tor-arm \
+   || true
+
+## Override with || true in case obfsproxy has been removed from torproject's apt
+## repository.
+apt-get \
+   $extra_apt_timeout \
+   --yes \
+   -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/torproject.list" \
+   -o Dir::Etc::sourceparts="$EMPTY_DIR" \
+   install obfsproxy \
+   || true
 
 ## Disable apt-cacher-ng proxy.
 unset http_proxy
