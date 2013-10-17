@@ -10,8 +10,34 @@ set -x
 
 true "INFO: Currently running script: $0"
 
+minimal() {
+   local config_file="/etc/whonix_buildconfig.d/50_skip_packages"
+
+   echo '
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+whonix_build_script_whonix_package+=" whonix-shared-desktop "
+whonix_build_script_whonix_package+=" whonix-shared-desktop-kde "
+whonix_build_script_whonix_package+=" whonix-shared-kde-accessibility "
+whonix_build_script_whonix_package+=" whonix-shared-packages-recommended "
+whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
+whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
+whonix_build_script_whonix_package+=" whonix-workstation-default-applications "
+' > "$config_file"
+
+   cat "$config_file"
+}
+
 if [ "$TRAVIS_BRANCH" = "gateway-travis" ]; then
    sudo -E ./whonix_build --tor-gateway --bare-metal --build
+elif [ "$TRAVIS_BRANCH" = "minimal-gateway-travis" ]; then
+   minimal
+   sudo -E ./whonix_build --tor-gateway --bare-metal --build
+elif [ "$TRAVIS_BRANCH" = "minimal-workstation-travis" ]; then
+   minimal
+   sudo -E ./whonix_build --tor-workstation --bare-metal --build
 elif [ "$TRAVIS_BRANCH" = "workstation-travis" ]; then
    sudo -E ./whonix_build --tor-workstation --bare-metal --build
 else
