@@ -300,6 +300,25 @@ if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
    done
 fi
 
+if [ -d /etc/whonix_buildconfig.d ]; then
+   for i in /etc/whonix_buildconfig.d/*; do
+      if [ -f "$i" ]; then
+         ## If the last character is a ~, ignore that file,
+         ## because it was created by some editor,
+         ## which creates backup files.
+         if [ "${i: -1}" = "~" ]; then
+            continue
+         fi
+         ## Skipping files such as .dpkg-old and .dpkg-dist.
+         if ( echo "$i" | grep -q ".dpkg-" ); then
+            true "skip $i"
+            continue
+         fi
+         source "$i"
+      fi
+   done
+fi
+
 if [ -d ../buildconfig.d ]; then
    for i in ../buildconfig.d/*; do
       if [ -f "$i" ]; then
