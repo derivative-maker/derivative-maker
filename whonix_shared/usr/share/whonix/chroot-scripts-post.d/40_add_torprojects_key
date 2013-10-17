@@ -34,7 +34,18 @@ esac
 ##    gpg --check-sigs <long-key-id>
 ## And added to Whonix source code using:
 ##    gpg --export <long-key-id> > /home/user/Whonix/whonix_shared/usr/share/whonix/keys/tpoarchive-keys.d/torprojectarchive.asc
-sudo apt-key add /usr/share/whonix/keys/tpoarchive-keys.d/*
+
+for key in "/usr/share/whonix/keys/tpoarchive-keys.d/"*; do
+   filename="$(basename "$key")"
+   if [ "$filename" = "placeholder" ]; then
+      continue
+   fi
+   if [ "$filename" = "*" ]; then
+      ## Folder is empty.
+      continue
+   fi
+   apt-key add "$key"
+done
 
 ## This is a chroot-script and not a postinst.d script,
 ## because when the user updates, the deb.torproject.org-keyring deb package is already
