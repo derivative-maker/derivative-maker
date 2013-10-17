@@ -78,9 +78,38 @@ prepare-build-machine() {
    dpkg --status apt-cacher-ng 1>/dev/null 2>/dev/null || { local dpkg_return="$?" ; true; };
 
    if [ ! "$dpkg_return" = "0" ]; then
+      ## {{{ Small hack installing apt-cacher-ng from Debian sid because it has been
+      ##     (temporarily) removed from Debian Testing/Jessie.
+
+      local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
+      echo "deb http://ftp.us.debian.org/debian sid main" > "$TEMP"
+
+      ## Update package lists and install apt-cacher-ng from temporary repository.
+      apt-get update \
+         $extra_apt_timeout \
+         -o Dir::Etc::sourcelist="$TEMP" \
+         -o Dir::Etc::sourceparts="-" \
+         -o APT::Get::List-Cleanup="0"
+
+      apt-get install \
+         $extra_apt_timeout \
+         $extra_apt_opt \
+         --target-release sid \
+         apt-cacher-ng
+
+      ## Removing temporary repository.
+      rm --force "$TEMP"
+
+      ## Update package lists again to get rid of temporary repository.
+      apt-get update \
+         --no-download \
+         --list-cleanup
+
+      ## }}}
+
       ## Update package lists and install apt-cacher-ng.
-      apt-get $extra_apt_timeout update
-      apt-get install $extra_apt_opt $extra_apt_timeout --yes apt-cacher-ng
+      #apt-get $extra_apt_timeout update
+      #apt-get install $extra_apt_opt $extra_apt_timeout --yes apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
