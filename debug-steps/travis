@@ -10,8 +10,17 @@ set -x
 
 true "INFO: Currently running script: $0"
 
+error_handler_travis() {
+   exit 1
+}
+
+trap "error_handler_travis" ERR
+
 minimal() {
-   local config_file="/etc/whonix_buildconfig.d/50_skip_packages"
+   local config_folder="/etc/whonix_buildconfig.d"
+   local config_file="$config_folder/50_skip_packages"
+
+   mkdir --parents "$config_folder"
 
    echo '
 # This file is part of Whonix
@@ -27,7 +36,7 @@ whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
 whonix_build_script_whonix_package+=" whonix-workstation-default-applications "
 ' > "$config_file"
 
-   cat "$config_file"
+   cat "$config_folder"/*
 }
 
 if [ "$TRAVIS_BRANCH" = "gateway-travis" ]; then
