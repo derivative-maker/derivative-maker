@@ -587,7 +587,19 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    mkdir --parents "$home_folder/.tb/gpgtmpdir/"
    chmod --recursive 700 "$home_folder/.tb/gpgtmpdir/"
 
-   gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "/usr/share/whonix/keys/tbb-keys.d/"*
+   local key
+
+   for key in "/usr/share/whonix/keys/tbb-keys.d/"*; do
+      local key_filename="$(basename "$key")"
+      if [ "$key_filename" = "placeholder" ]; then
+         continue
+      fi
+      if [ "$key_filename" = "*" ]; then
+         ## Folder is empty.
+         continue
+      fi
+      gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "$key_filename"
+   done
 
    ## Download from the torproject.org hidden service, instead over clearnet,
    ## thus not involving any Tor exist nodes.
