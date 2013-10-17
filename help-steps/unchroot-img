@@ -24,21 +24,22 @@ do_unchroot() {
 
    sync || true
 
-   #umount "$CHROOT_FOLDER"/dev/pts || true
-   umount "$CHROOT_FOLDER"/dev || true
-   umount "$CHROOT_FOLDER"/proc || true
-   #umount "$CHROOT_FOLDER"/sys || true
+   if [ "$BARE_METAL" = "1" ]; then
+      true
+   else
+      #umount "$CHROOT_FOLDER"/dev/pts || true
+      umount "$CHROOT_FOLDER"/dev || true
+      umount "$CHROOT_FOLDER"/proc || true
+      #umount "$CHROOT_FOLDER"/sys || true
+      umount "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
+   fi
+
+   ## Also possibly unmount /etc/resolv.conf.backup for bare metal builds.
    umount "$CHROOT_FOLDER"/etc/resolv.conf || true
-   umount "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
 
    sync || true
 }
 
-if [ "$BARE_METAL" = "1" ]; then
-   true "${green}INFO: Skipping script, because BARE_METAL=1: $0${reset}"
-   exit 0
-else
-   true "${bold}INFO: Currently running script: $0${reset}"
-   do_unchroot
-   true "${bold}INFO: End of: $0 No error detected.${reset}"
-fi
+true "${bold}INFO: Currently running script: $0${reset}"
+do_unchroot
+true "${bold}INFO: End of: $0 No error detected.${reset}"

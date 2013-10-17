@@ -24,25 +24,30 @@ chroot-img() {
 
    sync
 
-   #########
-   ## /dev #
-   #########
+   if [ "$BARE_METAL" = "1" ]; then
+      true
+   else
 
-   ## We need /dev for create_swap_file
-   ## "dd if=/dev/zero of=/swapfile1 bs=1024 count=524288"
-   mount --bind /dev "$CHROOT_FOLDER"/dev
+      #########
+      ## /dev #
+      #########
 
-   ##########
-   ## /proc #
-   ##########
+      ## We need /dev for create_swap_file
+      ##  "dd if=/dev/zero of=/swapfile1 bs=1024 count=524288"
+      mount --bind /dev "$CHROOT_FOLDER"/dev
 
-   mount --bind /proc "$CHROOT_FOLDER"/proc
+      ##########
+      ## /proc #
+      ##########
 
-   #########
-   ## /sys #
-   #########
+      mount --bind /proc "$CHROOT_FOLDER"/proc
 
-   #mount --bind /sys "$CHROOT_FOLDER"/sys
+      #########
+      ## /sys #
+      #########
+
+      #mount --bind /sys "$CHROOT_FOLDER"/sys
+   fi
 
    #####################
    ## /etc/resolv.conf #
@@ -62,7 +67,12 @@ chroot-img() {
    if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
       true "${cyan}INFO $0: Not mounting /etc/resolv.conf inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
    else
-      mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+      if [ "$BARE_METAL" = "1" ]; then
+         true "${cyan}INFO $0: using /etc/resolv.conf.backup as /etc/resolv.conf.${reset}"
+         mount --bind /etc/resolv.conf.backup "$CHROOT_FOLDER"/etc/resolv.conf
+      else
+         mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
+      fi
    fi
 
    ## Remount as read only...
@@ -74,12 +84,6 @@ chroot-img() {
    sync
 }
 
-
-if [ "$BARE_METAL" = "1" ]; then
-   true "${green}INFO: Skipping script, because BARE_METAL=1: $0${reset}"
-   exit 0
-else
-   true "${bold}INFO: Currently running script: $0${reset}"
-   chroot-img
-   true "${bold}INFO: End of: $0 No error detected.${reset}"
-fi
+true "${bold}INFO: Currently running script: $0${reset}"
+chroot-img
+true "${bold}INFO: End of: $0 No error detected.${reset}"
