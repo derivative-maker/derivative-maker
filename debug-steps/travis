@@ -18,11 +18,10 @@ trap "error_handler_travis" ERR
 
 minimal() {
    local config_folder="/etc/whonix_buildconfig.d"
-   local config_file="$config_folder/50_skip_packages"
 
    mkdir --parents "$config_folder"
 
-   echo '
+echo '\
 # This file is part of Whonix
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
@@ -30,11 +29,42 @@ minimal() {
 whonix_build_script_whonix_package+=" whonix-shared-desktop "
 whonix_build_script_whonix_package+=" whonix-shared-desktop-kde "
 whonix_build_script_whonix_package+=" whonix-shared-kde-accessibility "
+' | sudo tee "/etc/whonix_buildconfig.d/50_terminal_only_gateway" > /dev/null
+
+echo '\
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
 whonix_build_script_whonix_package+=" whonix-shared-packages-recommended "
 whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
 whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
 whonix_build_script_whonix_package+=" whonix-workstation-default-applications "
-' > "$config_file"
+' | sudo tee "/etc/whonix_buildconfig.d/50_minimal" > /dev/null
+
+echo '\
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## NOTE: It is impossible to create 64 bit builds on 32 bit hosts.
+##       (This is a limitation of (grml-)debootstrap.)
+
+## i386 is the default target architecture,
+## if WHONIX_TARGET_ARCH variable is not set or empty.
+#export WHONIX_TARGET_ARCH="i386"
+
+## Interesting target architecture for custom builds: 64 bit
+## Despite its name, works on AMD and Intel.
+export WHONIX_TARGET_ARCH="amd64"
+
+## Also interesting target architectures for custom builds: Kernel of FreeBSD
+## Will not work out of the box for Whonix-Gateway, because Whonix Firewall
+## is based on iptables (Linux) and the FreeBSD does not support iptables,
+## its firewall is pf. The Whonix iptables rules would have to be rewritten in pf.
+#export WHONIX_TARGET_ARCH="kfreebsd-amd64"
+#export WHONIX_TARGET_ARCH="kfreebsd-i386"
+' | sudo tee "/etc/whonix_buildconfig.d/50_target_arch" > /dev/null
 
    cat "$config_folder"/*
 }
