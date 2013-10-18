@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+check_whonix_apt_repository() {
+   trap "error_handler" ERR
+
+   if [ -f "/etc/apt/sources.list.d/whonix.list" ]; then
+      if [ ! "$WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV" = "" ]; then
+         true "INFO $0: WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV is set, using ${under}${WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV}${reset} apt repository."
+         local codename="$WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV"
+      elif [ ! "$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG" = "" ]; then
+         true "INFO $0: WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG is set in /etc/whonix.d or $root_whonix_d_folder configuration folder, using ${under}${WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG}${reset} apt repository."
+         local codename="$WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG"
+      fi
+      if [ "$codename" = "" ]; then
+         true "INFO $0: No distribution defined, defaulting to ${under}stable${reset} apt repository."
+         local codename="stable"
+      fi
+
+      if [ "$codename" = "stable" ]; then
+         local xxx="testers or developers"
+      elif [ "$codename" = "testers" ]; then
+         local xxx="stable or developers"
+      elif [ "$codename" = "developers" ]; then
+         local xxx="stable or testers"
+      else
+         local xxx="stable, testers or developers"
+      fi
+
+      local MSG="Whonix Repository: Enabled. (Using $codename version of Whonix.) When there are updated Whonix packages, they will get installed. If want to switch to the $xxx version of Whonix or if you distrust Whonix developers and want to disable it, use:
+    Start menu -> Applications -> System -> Whonix Repository
+    or in terminal: sudo whonix_repository"
+      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+   else
+      local MSG="Whonix Repository: Disabled. You will not get updated Whonix packages. You will still be notified when updated Whonix packages are released and you can manually update from source code. If you wanted to enable Whonix's apt repository, use:
+    Start menu -> Applications -> System -> Whonix Repository
+    or in terminal: sudo whonix_repository"
+      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+   fi
+}
