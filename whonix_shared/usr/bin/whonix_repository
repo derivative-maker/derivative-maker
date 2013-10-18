@@ -262,7 +262,17 @@ revoke_keys() {
             ## apt-key del requires the 7 trailing chars of a fingerprint.
             local fingerprint_trailing_seven="${fingerprint:(-8)}"
             echo "INFO $0: Removing revoked key with fingerprint $fingerprint (fingerprint_trailing_seven: $fingerprint_trailing_seven)..."
-            apt-key del "$fingerprint_trailing_seven" #>/dev/null 2>/dev/null
+            local apt_key_return="0"
+            apt-key del "$fingerprint_trailing_seven" || { local apt_key_return="$?" ; true; };
+            if [ "$apt_key_return" = "0" ]; then
+               true "INFO $0: apt-key returned 0."
+            elif [ "$apt_key_return" = "2" ]; then
+               ## For Ubuntu / CI compatibility.
+               ## Ubuntu uses a different version of apt(-key).
+               true "INFO $0: apt-key returned 2. (Key not removed, because not there. Probably already removed or never existed.)"
+            else
+               error "ERROR $0: Unexpected apt-key return code: $apt_key_return. Please report this Whonix Bug!"
+            fi
    done
 }
 
