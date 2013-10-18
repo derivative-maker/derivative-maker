@@ -6,4 +6,20 @@
 
 source /usr/share/whonix/postinst.d/pre.bsh
 
+if [ "$WHONIX_APT_REPOSITORY_DISTRUST_ENV" = "0" ]; then
+   ## This will be the case for redistributable Whonix builds.
+   echo "INFO $0: WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV is set to 0, enabling Whonix APT Repository.."
+   /usr/bin/whonix_repository --enable
+   exit 0
+fi
+
+## Just honor existing /etc/whonix.d and /root/.whonix.d config folders.
+## Default Whonix APT Repository related configs have only comments. If neither
+## WHONIX_APT_REPOSITORY_DISTRUST_ENV nor WHONIX_APT_REPOSITORY_DISTRUST_CONFIG
+## are set to 0, then the whonix_repository tool will revoke all keys in
+## /usr/share/whonix/keys/whonix-keys.d/ and in
+## /usr/share/whonix/keys/whonix-keys-revoked.d/ (if there are any) and delete
+## /etc/apt/sources.list.d/whonix.list (if it exists).
 /usr/bin/whonix_repository --just
+
+exit 0
