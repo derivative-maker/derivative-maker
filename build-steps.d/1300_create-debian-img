@@ -66,18 +66,13 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
    mkdir --parents "/etc/debootstrap/etc/apt/"
    cp "$WHONIX_SOURCE_FOLDER/$whonix_build_sources_list" "/etc/debootstrap/etc/apt/sources.list"
 
-   if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-      local mirror="http://us.archive.ubuntu.com/ubuntu"
-      local release="saucy"
-   else
-      #local mirror="http://snapshot.debian.org/archive/debian/20130919T214859Z/"
-      local mirror="http://ftp.us.debian.org/debian"
-      local release="testing"
-   fi
-
    ## Info.
    true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
    cat "/etc/debootstrap/etc/apt/sources.list"
+
+   ## The DPKG_OPTIONS variable is documented in grml_config.
+   ## Using export, so grml-debootstrap can read it.
+   export DPKG_OPTIONS="$apt_opts $extra_apt_timeout"
 
    ## Enable apt-cacher-ng proxy.
    export http_proxy="http://127.0.0.1:3142"
@@ -89,7 +84,7 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
       --force \
       --hostname host \
       --password changeme \
-      --release "$release" \
+      --release "$whonix_build_grml_release" \
       --keep_src_list \
       --verbose \
       --vmfile \
@@ -97,7 +92,7 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
       --config "$WHONIX_SOURCE_FOLDER/grml_config" \
       --packages "$WHONIX_SOURCE_FOLDER/grml_packages" \
       --target "$WHONIX_BINARY/$VMNAME.img" \
-      --mirror "$mirror"
+      --mirror "$whonix_build_grml_sources_list"
 
    ## Disable apt-cacher-ng proxy.
    unset http_proxy

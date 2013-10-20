@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## {{ Upstream APT Repository
+
+## Set which /etc/apt/sources.list will be used for building Whonix.
+## The whonix_build_on_operating_system variable is provided by the help-steps/variables script,
+## created using lsb_release.
+if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+   ## For Travis CI systems.
+   whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_ubuntu.list"
+else
+   ## Current repository.
+   #whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian_current.list"
+
+   ## Frozen repository.
+   whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian_frozen.list"
+fi
+
+## Set which repository and release codename grml-debootstrap should use.
+## (Build step: build-steps.d/1300_create-debian-img)
+## Only interested for VM builds. Not in use for physically isolated builds.
+if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+   whonix_build_grml_sources_list="http://us.archive.ubuntu.com/ubuntu"
+
+   ## Release Codename.
+   whonix_build_grml_release="saucy"
+else
+   ## Current repository.
+   #whonix_build_grml_sources_list="http://ftp.us.debian.org/debian"
+
+   ## Frozen repository.
+   whonix_build_grml_sources_list="http://snapshot.debian.org/archive/debian/20131020T034610Z/"
+
+   ## Release Codename.
+   whonix_build_grml_release="testing"
+fi
+
+## }}
+
+## {{ apt_opts
+
+## The EMPTY_DIR variable is provided by the help-steps/variables script.
+## export, so chroot-scripts-post.d can read it. It defaults to /tmp/empty.
+## You can leave it as is.
+export apt_opts+=" --option Dir::Etc::sourcelist=$EMPTY_DIR "
+
+## The WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER variable is provided by the help-steps/variables script.
+## You can leave it as is.
+export apt_opts+=" --option Dir::Etc::sourceparts=$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER "
+
+## We need to ignore valid-until and handle expired gpg keys, so we can build
+## from frozen Debian package repository, i.e. from snapshot.debian.org. This
+## is useful to prevent breakage of the build script due to removed packages
+## from Debian repositories. Also a prerequisite for verifiable builds.
+
+## Debugging hint.
+## We can simulate building Whonix in a few years by making our system clock
+## 10 years faster.
+
+## Debugging.
+export apt_opts+=" --option Debug::Acquire::gpgv=true "
+
+## Ignoring valid-until.
+## Otherwise apt-get will show an error message looking like this.
+##     E: Release file for http://snapshot.debian.org/archive/debian-security/20130919T215514Z/dists/testing/updates/InRelease is expired (invalid since 4d 2h 13min 31s). Updates for this repository will not be applied.
+export apt_opts+=" --option Acquire::Check-Valid-Until=false "
+
+## Handling expired gpg key.
+## Otherwise apt-get will show an error message looking like this.
+##     "W: GPG error: http://snapshot.debian.org wheezy InRelease: The following signatures were invalid: KEYEXPIRED 1520281423"
+##
+## Simple, insecure fix: skip gpg verification.
+##     --allow-unauthenticated
+##     This will still show this error message, but apt-get will exit 0.
+##
+## Possibly more secure fix: Checking the signature, but ignore it being invalid.
+## - apt-get does seem to have no option to accept outdated keys?
+## - adding options to apt-get's gpgv seems broken in apt-get?
+## - gpgv itself does have no option to ignore expired (just checking validity)?
+##
+## Not using this yet. Not yet required and insecure.
+#export apt_opts+=" --allow-unauthenticated "
+
+## }}
+
+## {{ extra_apt_timeout
+
+## export, so chroot-scripts-post.d can read it
+export extra_apt_timeout+=" --option Acquire::http::Timeout=180 "
+export extra_apt_timeout+=" --option Acquire::ftp::Timeout=180 "
+export extra_apt_timeout+=" --option Acquire::Retries=3 "
+
+## }}
+

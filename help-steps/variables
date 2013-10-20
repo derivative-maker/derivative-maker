@@ -9,6 +9,19 @@ set +x
 
 #echo "INFO: Currently running script: $0"
 
+## {{ Sanity Tests.
+
+command -v lsb_release >/dev/null
+command -v logname >/dev/null
+command -v whoami >/dev/null
+command -v dirname >/dev/null
+command -v basename >/dev/null
+command -v awk >/dev/null
+command -v dpkg-parsechangelog >/dev/null
+command -v grep >/dev/null
+
+## }}
+
 ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
 ## This does not work on drone.io systems.
 export USERNAME="$(logname)" || true
@@ -126,6 +139,9 @@ else
    git_bin="git"
 fi
 
+## Sanity Test.
+command -v "$git_bin" >/dev/null
+
 export DEB_INSTALL_FOLDER="/mnt/initialdeb"
 
 export EMPTY_DIR="/tmp/empty"
@@ -141,20 +157,6 @@ export whonix_build_on_operating_system="$(lsb_release --short --i)"
 export whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
 ## Example whonix_build_on_operating_system: debian
 ## Example whonix_build_on_operating_system: ubuntu
-
-## Set which /etc/apt/sources.list will be used for building Whonix.
-if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-   ## For Travis CI systems.
-   whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_ubuntu.list"
-else
-   whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian.list"
-fi
-
-## export, so chroot-scripts-post.d can read it
-export apt_opts="-o Dir::Etc::sourcelist=$EMPTY_DIR -o Dir::Etc::sourceparts=$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
-
-## export, so chroot-scripts-post.d can read it
-export extra_apt_timeout="--option Acquire::http::Timeout=180 --option Acquire::ftp::Timeout=180 --option Acquire::Retries=3"
 
 ## {{{ whonix_build_closest_git_tag
 
