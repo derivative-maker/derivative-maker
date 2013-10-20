@@ -56,7 +56,7 @@ whonixcheck_main() {
 
    $output ${output_opts[@]} --forget
 
-   uwt_tool ## help_uwt_tool
+   whonixcheck_run_function uwt_tool ## help_uwt_tool
 
    if [ "$FUNCTION" = "" ]; then
       true
@@ -65,26 +65,25 @@ whonixcheck_main() {
       return 0
    fi
 
-   ## no connection
-   root_check ## 15_root_check
+   ## Does not use the network.
+   whonixcheck_run_function root_check ## 15_root_check
 
-   ## no connection
-   check_virtualizer ## 16_check_virtualizer
+   ## Does not use the network.
+   whonixcheck_run_function check_virtualizer ## 16_check_virtualizer
 
-   ## no connection (runs only on Whonix-Gateway)
-   check_tor_enabled ## 17_check_tor_enabled
+   ## Does not use the network. (Runs only on Whonix-Gateway.)
+   whonixcheck_run_function check_tor_enabled ## 17_check_tor_enabled
 
-   ## no connection (runs only on Whonix-Gateway)
-   check_tor_config ## 18_check_tor_config
+   ## Does not use the network. (Runs only on Whonix-Gateway.)
+   whonixcheck_run_function check_tor_config ## 18_check_tor_config
 
-   ## no connection (runs only on Whonix-Gateway)
-   ## 19_check_tor_pid
-   check_tor_pid
+   ## Does not use the network. (Runs only on Whonix-Gateway.)
+   whonixcheck_run_function check_tor_pid ## 19_check_tor_pid
 
-   check_whonixcheck_lastrun ## 20_check-lastrun
-   check_autostart ## 25_autostart
-   welcome ## 30_welcome
-   disclaimer ## 35_disclaimer
+   whonixcheck_run_function check_whonixcheck_lastrun ## 20_check-lastrun
+   whonixcheck_run_function check_autostart ## 25_autostart
+   whonixcheck_run_function welcome ## 30_welcome
+   whonixcheck_run_function disclaimer ## 35_disclaimer
 
    ## The 5% indicate, that the check has begun.
    $output ${output_opts[@]} --progress "5"
@@ -93,75 +92,75 @@ whonixcheck_main() {
 
       ## Only for debugging using the --minimal switch.
 
-      check_sdwdate ## 70_check-sdwdate
+      whonixcheck_run_function check_sdwdate ## 70_check-sdwdate
 
    elif [ -f "/usr/share/whonix/whonix_workstation" ]; then
       ## for Whonix-Workstation
 
-      check_tor_bootstrap ## 37_check_tor_bootstrap
+      whonixcheck_run_function check_tor_bootstrap ## 37_check_tor_bootstrap
       $output ${output_opts[@]} --progress "10"
 
-      ## connection 1
-      check_tor_socks_or_trans_port "SocksPort" ## 40_check_tor_socks_or_trans_port
+      ## Uses the network. 1
+      whonixcheck_run_function check_tor_socks_port ## 40_check_tor_socks_or_trans_port
       $output ${output_opts[@]} --progress "15"
 
-      ## connection 2
-      check_tor_socks_or_trans_port "TransPort" ## 40_check_tor_socks_or_trans_port
+      ## Uses the network. 2
+      whonixcheck_run_function check_tor_trans_port ## 40_check_tor_socks_or_trans_port
       $output ${output_opts[@]} --progress "30"
 
-      ## no connection
-      check_stream_isolation ## 45_check-stream-isolation
+      ## Does not use the network.
+      whonixcheck_run_function check_stream_isolation ## 45_check-stream-isolation
 
-      ## connection 3
+      ## Uses the network. 3
       ## after checking IPs
       ## early in list, because less likely to break
-      download_whonix_news ## 50_check-whonix-news
+      whonixcheck_run_function download_whonix_news ## 50_check-whonix-news
       $output ${output_opts[@]} --progress "45"
 
-      ## connection 4
-      check_operating_system ## 55_check-operating-system
+      ## Uses the network. 4
+      whonixcheck_run_function check_operating_system ## 55_check-operating-system
       $output ${output_opts[@]} --progress "60"
 
-      ## no connection.
-      check_whonix_apt_repository ## 56_check-whonix-apt-repository
+      ## Does not use the network.
+      whonixcheck_run_function check_whonix_apt_repository ## 56_check-whonix-apt-repository
       $output ${output_opts[@]} --progress "61"
 
-      ## connection 5
-      download_important_blog ## 60_download-whonix-blog
+      ## Uses the network. 5
+      whonixcheck_run_function download_important_blog ## 60_download-whonix-blog
       $output ${output_opts[@]} --progress "75"
 
-      ## connection 7
-      download_feature_blog ## 60_download-whonix-blog
+      ## Uses the network. 7
+      whonixcheck_run_function download_feature_blog ## 60_download-whonix-blog
       $output ${output_opts[@]} --progress "90"
 
-      ## connection 4
-      check_torbrowser ## 65_check-torbrowser
+      ## Uses the network. 4
+      whonixcheck_run_function check_torbrowser ## 65_check-torbrowser
       $output ${output_opts[@]} --progress "95"
 
    else
       ## for Whonix-Gateway
 
-      check_tor_bootstrap ## 37_check_tor_bootstrap
+      whonixcheck_run_function check_tor_bootstrap ## 37_check_tor_bootstrap
       $output ${output_opts[@]} --progress "15"
 
-      ## connection 1
-      check_tor_socks_or_trans_port "SocksPort" ## 40_check_tor_socks_or_trans_port
+      ## Uses the network. 1
+      whonixcheck_run_function check_tor_socks_port ## 40_check_tor_socks_or_trans_port
       $output ${output_opts[@]} --progress "33"
 
-      ## connection 2
+      ## Uses the network. 2
       ## after checking IP
       ## early in list, because less likely to break
-      download_whonix_news ## 50_check-whonix-news
+      whonixcheck_run_function download_whonix_news ## 50_check-whonix-news
       $output ${output_opts[@]} --progress "66"
 
-      ## connection 3
-      check_operating_system ## 55_check-operating-system
+      ## Uses the network. 3
+      whonixcheck_run_function check_operating_system ## 55_check-operating-system
       $output ${output_opts[@]} --progress "95"
    fi
 
-   donate ## 72_donate
-   whonixcheck_completed ## 20_check-lastrun
-   cleanup ## 75_cleanup
+   whonixcheck_run_function donate ## 72_donate
+   whonixcheck_run_function whonixcheck_completed ## 20_check-lastrun
+   whonixcheck_run_function cleanup ## 75_cleanup
 }
 
 whonixcheck_main ${1+"$@"}
