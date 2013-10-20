@@ -65,18 +65,22 @@ locally-upgrade-whonix-debian-packages() {
 
    sync
 
-   ## Need to update package lists at least once.
+   ## Need to update regular package lists at least once.
    $CHROOT apt-get $apt_timeout_opts update
 
+   ## Upgrade from regular repository.
+   $CHROOT apt-get $apt_timeout_opts --yes dist-upgrade
+
+   ## Reading apt repository containing snapshot.debian.org and local repository containing Whonix's packages.
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts -o APT::Get::List-Cleanup="0" update
 
+   ## Upgrade Whonix Debian Packages.
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts --yes dist-upgrade
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
 
-   $CHROOT apt-get update \
-              --no-download \
-              --list-cleanup
+   ## Forget about local repository containing Whonix's packages.
+   $CHROOT apt-get --no-download --list-cleanup update
 
    $CHROOT sync
    sync
