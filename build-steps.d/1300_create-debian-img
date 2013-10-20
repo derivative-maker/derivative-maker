@@ -70,9 +70,27 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
    true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
    cat "/etc/debootstrap/etc/apt/sources.list"
 
-   ## The DPKG_OPTIONS variable is documented in grml_config.
+   ## {{ grml-debootstrap variables
+
+   ## grml-debootstrap variables are documented in grml_config.
    ## Using export, so grml-debootstrap can read it.
+
    export DPKG_OPTIONS="$apt_opts $extra_apt_timeout"
+
+   ## We do not need to upgrade the image, because when we create an image,
+   ## we end up with the most current versions from the repository we are using
+   ## anyway. We also do not install any other packages or use any other
+   ## repositories, just just grml-debootstrap to create a minimal image.
+   ## Would be also no good idea to rely on grml-debootstrap's upgrade
+   ## function, because grml-debootstrap does not honor our apt options. (For
+   ## higher network timeouts, ignore valid-until, since we are building from
+   ## the frozen snapshot.debian.org repository. See also
+   ## buildconfig-d/30_apt.) https://github.com/grml/grml-debootstrap/issues/8
+   ## Even if we wanted to upgrade the system, we'd be better off using our own
+   ## build-step for that.
+   export UPGRADE_SYSTEM='no'
+
+   ## }}
 
    ## Enable apt-cacher-ng proxy.
    export http_proxy="http://127.0.0.1:3142"
