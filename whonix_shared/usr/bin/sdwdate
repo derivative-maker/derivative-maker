@@ -558,7 +558,7 @@ sdwdate_download() {
       $CURL_PROXY \
       $CURL_VERBOSE \
       $CURL_USER_AGENT \
-      --output ""$TEMP_DIR"/"$SDWDATE_CURRENT_POOL"" \
+      --output "$TEMP_DIR/$SDWDATE_CURRENT_POOL" \
       "$LINK" \
       &
 
@@ -580,7 +580,7 @@ sdwdate_download() {
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
 
    if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
-      sdwdate_log "No file could be downloaded from "$LINK"."
+      sdwdate_log "No file could be downloaded from $LINK."
    fi
 }
 
@@ -596,7 +596,7 @@ sdwdate_parse_date() {
       true "INFO: LINE: $LINE"
 
       if [ "$i" -gt "20" ]; then
-         sdwdate_log "Bogus reply from "$LINK" did not include the \"Date\" field."
+         sdwdate_log "Bogus reply from $LINK did not include the \"Date\" field."
          break
       fi
 
@@ -607,7 +607,7 @@ sdwdate_parse_date() {
          SDWDATE_PARSE_SUCCESS="0"
          break
       fi
-   done < ""$TEMP_DIR"/"$SDWDATE_CURRENT_POOL""
+   done < "$TEMP_DIR/$SDWDATE_CURRENT_POOL"
 }
 
 sdwdate_convert_to_unixtime() {
@@ -618,7 +618,7 @@ sdwdate_convert_to_unixtime() {
    WEB_DATE_UNIXTIME="$(date --date="$WEB_DATE_GMT" +"%s")" || { SDWDATE_CONVERT_SUCCESS="$?" ; true; };
 
    if [ ! "$SDWDATE_CONVERT_SUCCESS" = "0" ]; then
-      sdwdate_log "Bogus reply from "$LINK". Could not convert to unixtime."
+      sdwdate_log "Bogus reply from $LINK. Could not convert to unixtime."
    fi
 }
 
@@ -710,7 +710,7 @@ sdwdate_loop() {
       SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$WEB_DATE_UNIXTIME" - "$OLD_UNIXTIME")" || true
 
       ## TODO
-      sdwdate_log ""$LINK" (took "${SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]}"s) => diff = "${SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]}" second(s)"
+      sdwdate_log "$LINK (took ${SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]}s) => diff = ${SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]} second(s)"
 
       unset remember
 
@@ -737,7 +737,7 @@ sdwdate_pick() {
 
       SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]="$WEB_DATE_UNIXTIME"
 
-      true "INFO: SDWDATE_RESULT[$SDWDATE_CURRENT_POOL] = ${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]} | $(date --date "@"${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]}"")"
+      true "INFO: SDWDATE_RESULT[$SDWDATE_CURRENT_POOL] = ${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]} | $(date --date "@${SDWDATE_RESULT[$SDWDATE_CURRENT_POOL]}")"
    done
 }
 
@@ -754,7 +754,7 @@ sdwdate_build_median() {
 
    true "INFO: $0 OLD: $OLD_UNIXTIME | $OLD_TIME"
 
-   sdwdate_log "Median diff: "$SDWDATE_MEDIAN_TIME" second(s)"
+   sdwdate_log "Median diff: $SDWDATE_MEDIAN_TIME second(s)"
 }
 
 sdwdate_set_new_time() {
@@ -770,7 +770,7 @@ sdwdate_set_new_time() {
    if [ ! "$SDWDATE_MEDIAN_TIME" = "0" ]; then
       local SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")"
 
-      sdwdate_log "Setting time to "$SDWDATE_NEW_TIME"..."
+      sdwdate_log "Setting time to $SDWDATE_NEW_TIME..."
 
       ## Set new time. Syntax: date --set @1098181096
       date --set "@"$SDWDATE_NEW_TIME"" > /dev/null
