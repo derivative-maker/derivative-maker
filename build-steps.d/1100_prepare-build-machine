@@ -55,10 +55,10 @@ prepare-build-machine() {
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Always keep old configuration file. Do not prompt to install new config files.
-      local extra_apt_opt="--option Dpkg::Options=--force-confold"
+      local apt_unattended_opts="--option Dpkg::Options=--force-confold"
    fi
 
-   true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment extra_apt_timeout in help-steps/variables.${reset}"
+   true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment apt_timeout_opts in help-steps/variables.${reset}"
 
    ## Using an apt cache to speed up downloading
    ## If you want to build multiple times (for debugging etc.),
@@ -77,8 +77,8 @@ prepare-build-machine() {
    ##     In that case, install apt-cacher-ng from Ubuntu, and not from Debian sid,
    ##     to avoid issues with apt keys.
    if [ "$CI" = "true" ]; then
-      apt-get $extra_apt_timeout update
-      apt-get $extra_apt_timeout --yes install apt-cacher-ng
+      apt-get $apt_timeout_opts update
+      apt-get $apt_timeout_opts --yes install apt-cacher-ng
    fi
    ## }}}
 
@@ -95,14 +95,14 @@ prepare-build-machine() {
 
       ## Update package lists and install apt-cacher-ng from temporary repository.
       apt-get update \
-         $extra_apt_timeout \
+         $apt_timeout_opts \
          -o Dir::Etc::sourcelist="$TEMP" \
          -o Dir::Etc::sourceparts="-" \
          -o APT::Get::List-Cleanup="0"
 
       apt-get install --yes \
-         $extra_apt_timeout \
-         $extra_apt_opt \
+         $apt_timeout_opts \
+         $apt_unattended_opts \
          --target-release sid \
          apt-cacher-ng
 
@@ -117,8 +117,8 @@ prepare-build-machine() {
       ## }}}
 
       ## Update package lists and install apt-cacher-ng.
-      #apt-get $extra_apt_timeout update
-      #apt-get install $extra_apt_opt $extra_apt_timeout --yes apt-cacher-ng
+      #apt-get $apt_timeout_opts update
+      #apt-get install $apt_unattended_opts $apt_timeout_opts --yes apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
@@ -133,8 +133,8 @@ prepare-build-machine() {
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
-      apt-get $extra_apt_timeout update
-      apt-get $extra_apt_opt $extra_apt_timeout --yes dist-upgrade
+      apt-get $apt_timeout_opts update
+      apt-get $apt_unattended_opts $apt_timeout_opts --yes dist-upgrade
    fi
 
    ###############################################
@@ -179,7 +179,7 @@ prepare-build-machine() {
    ##      grep
    ## - Debian APT repository archive keyring.
    ##      debian-archive-keyring
-   apt-get install $extra_apt_timeout $extra_apt_opt --yes \
+   apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
       sudo \
       ruby-ronn \
       diffutils \
@@ -211,7 +211,7 @@ prepare-build-machine() {
       ##      grml-debootstrap kpartx mksh parted qemu-utils
       ## - for creating VirtualBox VM images
       ##      virtualbox
-      apt-get install $extra_apt_timeout $extra_apt_opt --yes \
+      apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
          qemu-utils \
          grml-debootstrap \
          parted \
@@ -221,7 +221,7 @@ prepare-build-machine() {
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
       #######################################################################
-      apt-get install $extra_apt_timeout $extra_apt_opt --yes \
+      apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
          virtualbox
    fi
 
@@ -243,15 +243,15 @@ prepare-build-machine() {
 
       ## Update package lists and install config-package-dev from temporary repository.
       apt-get update \
-         $extra_apt_timeout \
+         $apt_timeout_opts \
          -o Dir::Etc::sourcelist="$TEMP" \
          -o Dir::Etc::sourceparts="-" \
          -o APT::Get::List-Cleanup="0"
 
       ## Old: -t testing
       apt-get install --yes \
-         $extra_apt_timeout \
-         $extra_apt_opt \
+         $apt_timeout_opts \
+         $apt_unattended_opts \
          --target-release "$codename" \
          config-package-dev
 
