@@ -139,7 +139,15 @@ install-meta-packages() {
    ## anything). For whatever that's worth. (We're not using Debian's current
    ## repositories anyway, but can't hurt. More useful for custom builders who
    ## prefer to build from Debians's current repository.)
-   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts --yes dist-upgrade
+   ##
+   ## Workaround for Travis CI.
+   ## Not sure if that should be applied in any case. Should the build process
+   ## ever require interaction with an interactive dpkg conflict resolution
+   ## dialog, we can still think about that.
+   if [ "$CI" = "true" ]; then
+      local apt_unattended_opts="--option Dpkg::Options=--force-confold"
+   fi
+   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
 
    ## Debugging.
    $CHROOT apt-cache policy
