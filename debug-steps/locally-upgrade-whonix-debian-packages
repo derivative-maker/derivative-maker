@@ -33,7 +33,14 @@ locally-upgrade-whonix-debian-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/prevent-daemons-from-starting
 
-   export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
+   if [ "$CI" = "true" ]; then
+      ## We should mount /etc/resolv.conf.backup to /etc/resolv.conf to make network functional.
+      ## (Nonfunctional in the first place because we installed the /etc/resolv.conf from
+      ##  whonix-gateway/workstation-files package and didn't reboot.)
+      true "INFO $0: Not setting WHONIX_CHROOT_MOUNT_RESOLV_CONF to 0, because CI detected."
+   else
+      export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
+   fi
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-img
 
    sync
