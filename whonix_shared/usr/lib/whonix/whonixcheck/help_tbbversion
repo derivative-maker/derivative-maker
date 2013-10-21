@@ -8,54 +8,121 @@
 ## - /usr/bin/whonixcheck
 ## - /usr/bin/torbrowser
 
+## https://check.torproject.org/RecommendedTBBVersions legit example:
+## [
+## "2.3.25-11-MacOS",
+## "2.3.25-11-Windows",
+## "2.3.25-11-Linux",
+## "2.3.25-12-MacOS",
+## "2.3.25-12-Windows",
+## "2.3.25-12-Linux",
+## "2.3.25-13-MacOS",
+## "2.3.25-13-Windows",
+## "2.3.25-13-Linux",
+## "2.4.16-beta-1-MacOS",
+## "2.4.16-beta-1-Windows",
+## "2.4.16-beta-1-Linux",
+## "2.4.17-beta-1-MacOS",
+## "2.4.17-beta-1-Windows",
+## "2.4.17-beta-1-Linux",
+## "2.4.17-beta-2-MacOS",
+## "2.4.17-beta-2-Windows",
+## "2.4.17-beta-2-Linux",
+## "3.0-alpha-4-Linux",
+## "3.0-alpha-4-MacOS",
+## "3.0-alpha-4-Windows"
+## ]
+
+## https://check.torproject.org/RecommendedTBBVersions malicious example:
+## ...
+## "2.3.25-13-Linux-Do this, then do this etc...................................................... etc.",
+## ...
+
 tbbversion() {
    ## code shared between torbrowser and whonixcheck
 
    ## fallback
    TBBVERSION="UNKNOWN"
 
+   ## Sanity Tests.
+   command -v sed >/dev/null
+   if [ ! "$?" = "0" ]; then
+      local MSG="$SCRIPTNAME tbbversion: sed not found."
+      echo "$MSG"
+      error "$MSG"
+      return 1
+   fi
+   command -v grep >/dev/null
+   if [ ! "$?" = "0" ]; then
+      local MSG="$SCRIPTNAME tbbversion: grep not found."
+      echo "$MSG"
+      error "$MSG"
+      return 1
+   fi
+
    if [ -f "$RecommendedTBBVersions" ]; then
       local i="0"
-      while read LINE; do
+      local line
+      while read line; do
          let i "i=i+1" ||  true
 
-         echo "$LINE" | grep -q -i -s "alpha"
-         if [ $? -eq 0 ]; then
+         echo "$line" | grep -q -i -s "alpha"
+         if [ "$?" = "0" ]; then
             continue
          fi
-         echo "$LINE" | grep -q -i -s "beta"
-         if [ $? -eq 0 ]; then
+         echo "$line" | grep -q -i -s "beta"
+         if [ "$?" = "0" ]; then
             continue
          fi
-         echo "$LINE" | grep -q -i -s "rc"
-         if [ $? -eq 0 ]; then
+         echo "$line" | grep -q -i -s "rc"
+         if [ "$?" = "0" ]; then
             continue
          fi
-         echo "$LINE" | grep -q -i -s "MacOS"
-         if [ $? -eq 0 ]; then
+         echo "$line" | grep -q -i -s "MacOS"
+         if [ "$?" = "0" ]; then
             continue
          fi
-         echo "$LINE" | grep -q -i -s "Windows"
-         if [ $? -eq 0 ]; then
+         echo "$line" | grep -q -i -s "Windows"
+         if [ "$?" = "0" ]; then
             continue
          fi
 
-         LINE="$(echo "$LINE" | sed 's/"//g')"
-         LINE="$(echo "$LINE" | sed 's/,//g')"
+         local line="$(echo "$line" | sed 's/"//g')"
+         local line="$(echo "$line" | sed 's/,//g')"
 
-         echo "$LINE" | grep -q -i -s "Linux"
-         if [ $? -eq 0 ]; then
-            TBBVERSION="$LINE"
+         echo "$line" | grep -q -i -s "Linux"
+         if [ "$?" = "0" ]; then
+            TBBVERSION="$line"
             TBBVERSION="$(echo "$TBBVERSION" | sed 's/-i686//g')"
             TBBVERSION="$(echo "$TBBVERSION" | sed 's/-x86_64//g')"
             TBBVERSION="$(echo "$TBBVERSION" | sed 's/-Linux//g')"
+
+            ## Not using break, because RecommendedTBBVersions often have
+            ## multiple recommended versions. Latest on the bottom.
+            ## For example:
+            ##    "2.3.25-12-Linux",
+            ##    "2.3.25-13-Linux",
          fi
 
       done < "$RecommendedTBBVersions"
+
+      local max_string_length="20"
+      local actual_string_length="${#TBBVERSION}"
+      tbbversion_excess_length=""
+
+      if [ "$actual_string_length" -gt "$max_string_length" ]; then
+         ## Store excess length for later use.
+         tbbversion_excess_length="$TBBVERSION"
+
+         ## Shorten excess length $TBBVERSION to $max_string_length chars.
+         TBBVERSION="${TBBVERSION:0:$max_string_length}"
+      fi
+
    else
       local MSG="$SCRIPTNAME tbbversion: 1: $1 does not exist."
       echo "$MSG"
       error "$MSG"
+      return 1
    fi
 
    #echo "TBBVERSION: $TBBVERSION"
