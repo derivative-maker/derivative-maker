@@ -34,11 +34,11 @@ check_tor_socks_or_trans_port() {
       $CURL \
          --fail \
          $CURL_VERBOSE \
-         --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIXCHECK"/ \
+         --socks5-hostname "socks5h://$GATEWAY_IP:$SOCKS_PORT_WHONIXCHECK/" \
          --tlsv1 \
          --proto =https \
          --max-time 180 \
-         --output ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"" \
+         --output "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE" \
          "$LINK" \
          &
 
@@ -103,7 +103,7 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
          --tlsv1 \
          --proto =https \
          --max-time 180 \
-         --output ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"" \
+         --output "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE" \
          "$LINK" &
 
       wait "$!" || { CHECK_TOR_RESULT_TRANS_PORT="$?" ; true; };
@@ -122,10 +122,10 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
    fi
 
    local TOR_OR_NOT=""
-   local TOR_OR_NOT="$(grep --no-messages "Congratulations" ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"")"
+   local TOR_OR_NOT="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
 
    local IP="IP not detected (1). Please report this bug!"
-   local IP="$(grep --no-messages "IP" ""$VERIFY_TEMPDIR"/"$CHECK_TOR_OUT_FILE"")"
+   local IP="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
    if [ "$IP" = "" ]; then
       local IP="IP not detected (2). Please report this bug!"
    else
