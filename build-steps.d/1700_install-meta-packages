@@ -132,6 +132,17 @@ install-meta-packages() {
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts update
 
+
+   ## Workaround for Travis CI.
+   ## Not sure if that should be applied in any case. Should the build process
+   ## ever require interaction with an interactive dpkg conflict resolution
+   ## dialog, we can still think about that.
+   if [ "$CI" = "true" ]; then
+      local apt_unattended_opts='-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
+   else
+      local apt_unattended_opts=''
+   fi
+
    ## While (grml-)debootstrap only used
    ## "deb http://snapshot.debian.org/archive/debian/[...]" we're now also
    ## including "deb http://snapshot.debian.org/archive/debian-security/[...]".
@@ -139,15 +150,13 @@ install-meta-packages() {
    ## anything). For whatever that's worth. (We're not using Debian's current
    ## repositories anyway, but can't hurt. More useful for custom builders who
    ## prefer to build from Debians's current repository.)
-   ##
-   ## Workaround for Travis CI.
-   ## Not sure if that should be applied in any case. Should the build process
-   ## ever require interaction with an interactive dpkg conflict resolution
-   ## dialog, we can still think about that.
    if [ "$CI" = "true" ]; then
-      local apt_unattended_opts='-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
+      true "INFO $0: skipping dist-upgrade, because CI detected."
+      true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
+      #$CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+   else
+      $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    fi
-   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
 
    ## Debugging.
    $CHROOT apt-cache policy
