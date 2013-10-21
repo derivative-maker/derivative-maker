@@ -529,9 +529,12 @@ tb_download() {
       exit 1
    fi
 
-   ## Will fail if the file does not exist, i.e. Tor Browser not installed.
-   ## Will not break the script.
-   TBBINSTALLEDVERSION="$(head -1 "$home_folder/tor-browser_$TB_LANG/Docs/version")" || true
+   ## Getting currently installed version number
+   TBBINSTALLEDVERSION=""
+   local temp="$home_folder/tor-browser_$TB_LANG/Docs/version"
+   if [ -f "$temp" ]; then
+      TBBINSTALLEDVERSION="$(head -1 "$temp")" || true
+   fi
 
    $output ${output_opts[@]} --progress "100"
    sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
