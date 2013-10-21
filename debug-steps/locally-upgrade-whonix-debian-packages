@@ -69,7 +69,12 @@ locally-upgrade-whonix-debian-packages() {
    $CHROOT apt-get $apt_timeout_opts update
 
    ## Upgrade from regular repository.
-   $CHROOT apt-get $apt_timeout_opts --yes dist-upgrade
+   if [ "$CI" = "true" ]; then
+      true "INFO $0: skipping dist-upgrade, because CI detected."
+      true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
+   else
+      $CHROOT apt-get $apt_timeout_opts --yes dist-upgrade
+   fi
 
    ## Reading apt repository containing snapshot.debian.org and local repository containing Whonix's packages.
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts -o APT::Get::List-Cleanup="0" update

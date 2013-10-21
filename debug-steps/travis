@@ -102,3 +102,35 @@ elif [ "$TRAVIS_BRANCH" = "workstation-travis" ]; then
 else
    error "Unknown $TRAVIS_BRANCH branch, check $0."
 fi
+
+## Cleanup, so we can create a dummy update package to test the upgrade
+## process. (See if re-running all scripts is supported.)
+git checkout -- debian/changelog
+make clean
+
+## Commit a dummy change.
+temp="dummy_file"
+touch "$temp"
+git add "$temp"
+git commit -m "dummy commit"
+
+## Create a new dummy tag
+git tag 100 -m "."
+
+## Test the upgrading from local repository process.
+
+if [ "$TRAVIS_BRANCH" = "gateway-travis" ]; then
+   sudo -E ./debug-steps/locally-upgrade-whonix-debian-packages --bare-metal --tor-gateway
+elif [ "$TRAVIS_BRANCH" = "minimal-gateway-travis" ]; then
+   sudo -E ./debug-steps/locally-upgrade-whonix-debian-packages --bare-metal --tor-gateway
+elif [ "$TRAVIS_BRANCH" = "minimal-workstation-travis" ]; then
+   sudo -E ./debug-steps/locally-upgrade-whonix-debian-packages --bare-metal --tor-workstation
+elif [ "$TRAVIS_BRANCH" = "workstation-travis" ]; then
+   sudo -E ./debug-steps/locally-upgrade-whonix-debian-packages --bare-metal --tor-workstation
+else
+   error "Unknown $TRAVIS_BRANCH branch, check $0."
+fi
+
+## Cleanup.
+git checkout -- debian/changelog
+make clean
