@@ -124,23 +124,51 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
    local TOR_OR_NOT=""
    local TOR_OR_NOT="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
 
-   local IP="IP not detected (1). Please report this bug!"
-   local IP="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
-   if [ "$IP" = "" ]; then
-      local IP="IP not detected (2). Please report this bug!"
+   ## Example TOR_OR_NOT:
+   ## <img alt="Congratulations. Your browser is configured to use Tor." src="/images/tor-on.png">
+   ## Congratulations. Your browser is configured to use Tor.<br>
+
+   local ip="IP not detected (1). Please report this bug!"
+   local ip="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
+
+   ## example ip:
+   ## Your IP address appears to be: <b>94.242.204.74</b><br>
+
+   ## Test excessive string length.
+   #ip="Your IP address appears to be: <b>2001:0db8:85a3:0042:1000:8a2e:0370:7334 \$f(do) \`this\` ... xxx ... xxx </b><br>"
+
+   if [ "$ip" = "" ]; then
+      local ip="IP not detected (2). Please report this bug!"
    else
-      local IP="$(echo "$IP" | sed 's/Your IP address appears to be//g')"
-      local IP="$(echo "$IP" | sed 's/<br>//g')"
-      local IP="$(echo "$IP" | sed 's/<b>//g')"
-      local IP="$(echo "$IP" | sed 's/<\/b>//g')"
-      local IP="$(echo "$IP" | sed 's/://g')"
-      local IP="$(echo "$IP" | sed 's/ //g')"
+      local ip="$(echo "$ip" | sed 's/Your IP address appears to be//g')"
+      local ip="$(echo "$ip" | sed 's/<br>//g')"
+      local ip="$(echo "$ip" | sed 's/<b>//g')"
+      local ip="$(echo "$ip" | sed 's/<\/b>//g')"
+      local ip="$(echo "$ip" | sed 's/://g')"
+      local ip="$(echo "$ip" | sed 's/ //g')"
+
+      ## An IPv6 IP is 39 characters long. Add a few for more the [ ] and?
+      local max_string_length="50"
+      local actual_string_length="${#ip}"
+      local ip_excess_length=""
+
+      if [ "$actual_string_length" -gt "$max_string_length" ]; then
+         ## Store excess length for later use.
+         local ip_excess_length="$ip"
+
+         ## Shorten excess length $ip to $max_string_length chars.
+         ip="${ip:0:$max_string_length}"
+
+         local MSG="$1 Test: Excessive string length of IP variable ($actual_string_length characters). Could be a Whonix bug, check.torproject.org bug or compromise. Please report this to Whonix developers!"
+         $output ${output_opts[@]} --channel "both" --type "warning" --title "$TITLE" --message "$MSG"
+         return 0
+      fi
 
       ## Store IP for later use in memory.
       if [ "$1" = "TransPort" ]; then
-         IP_TRANS_PORT="$IP"
+         IP_TRANS_PORT="$ip"
       elif [ "$1" = "SocksPort" ]; then
-         IP_SOCKS_PORT="$IP"
+         IP_SOCKS_PORT="$ip"
       fi
    fi
 
@@ -148,9 +176,9 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
    ## and choose which message to show.
    if [ ! "$TOR_OR_NOT" = "" ]; then
       if [ "$1" = "TransPort" ]; then
-         local MSG="TransPort Test Result: Connected to Tor. IP: $IP"
+         local MSG="TransPort Test Result: Connected to Tor. IP: $ip"
       elif [ "$1" = "SocksPort" ]; then
-         local MSG="SocksPort Test Result: Connected to Tor. IP: $IP"
+         local MSG="SocksPort Test Result: Connected to Tor. IP: $ip"
       fi
       $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
       return 0
@@ -159,14 +187,14 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
 
       if [ "$1" = "TransPort" ]; then
          if [ "$WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE" = "1" ]; then
-            local MSG="TransPort Test Result: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this. IP: $IP"
+            local MSG="TransPort Test Result: Tor not detected, but you set WHONIXCHECK_NO_EXIT_ON_TRANS_PORT_DETECTION_FAILURE="1" to ignore this. IP: $ip"
             $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
             return 0
          else
             local MSG="\
 TransPort Test Result:
 Looks like you are not connected through Tor!
-IP: $IP
+IP: $ip
 
 Whonixcheck aborted!
 
@@ -193,7 +221,7 @@ https://metrics.torproject.org/exonerator.html"
          local MSG="\
 SocksPort Test Result:
 Tor's SocksPort: Looks like you are not connected through Tor!
-IP: $IP
+IP: $ip
 
 Whonixcheck aborted!
 
