@@ -59,15 +59,21 @@ locally-upgrade-whonix-debian-packages() {
 
    if [ "$CI" = "true" ]; then
       ## Workaround for Travis CI.
-      ## This would miss up Ubuntu precise with Debian testing.
+      ## This would mess up Ubuntu precise with Debian testing packages.
       true "INFO $0: Not using $WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/sources.list.whonix because CI detected."
    else
+      ## This file doesn't include Whonix's APT repository.
       cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/sources.list.whonix" "$CHROOT_FOLDER/etc/apt/sources.list"
    fi
 
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/preferences.d/"* "$CHROOT_FOLDER/etc/apt/preferences.d/"
 
    cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/apt.conf.d/"* "$CHROOT_FOLDER/etc/apt/apt.conf.d/"
+
+   if [ "$CI" = "true" ]; then
+      # export, so create-local-temp-apt-repo can read it
+      export whonix_build_no_upstream_sources_list="1"
+   fi
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
@@ -83,14 +89,14 @@ locally-upgrade-whonix-debian-packages() {
    $CHROOT apt-get $apt_timeout_opts update
 
    ## Upgrade from regular repository.
-   if [ "$CI" = "true" ]; then
-      true "INFO $0: skipping dist-upgrade, because CI detected."
-      true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
-   else
+   #if [ "$CI" = "true" ]; then
+      #true "INFO $0: skipping dist-upgrade, because CI detected."
+      #true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
+   #else
       $CHROOT apt-get $apt_timeout_opts --yes dist-upgrade
-   fi
+   #fi
 
-   ## Reading apt repository containing snapshot.debian.org and local repository containing Whonix's packages.
+   ## Reading [apt repository containing snapshot.debian.org and] local repository containing Whonix's packages.
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts -o APT::Get::List-Cleanup="0" update
 
    ## Upgrade Whonix Debian Packages.
