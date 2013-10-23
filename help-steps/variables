@@ -180,27 +180,29 @@ fi
 
 ## {{{ whonix_build_old_changelog_version
 
-OIFS="${IFS}"
-NIFS=$'\n'
-
-IFS="${NIFS}"
-
 ## fallback
 export whonix_build_old_changelog_version="ERROR. Please report this bug! whonix_build_old_changelog_version could not be determined."
 
 cd "$WHONIX_SOURCE_FOLDER"
 
-for LINE in $(dpkg-parsechangelog); do
-   first="$(echo $LINE | awk '{print $1}')"
-   second="$(echo $LINE | awk '{print $2}')"
-   first="$(echo $first | awk '{print tolower($0)}')"
-   if [ "$first" = "version:" ]; then
-      export whonix_build_old_changelog_version="$second"
-      break
-   fi
-done
+if [ -f "$WHONIX_SOURCE_FOLDER/debian/changelog" ]; then
+   OIFS="${IFS}"
+   NIFS=$'\n'
+   IFS="${NIFS}"
+   for LINE in $(dpkg-parsechangelog); do
+      first="$(echo $LINE | awk '{print $1}')"
+      second="$(echo $LINE | awk '{print $2}')"
+      first="$(echo $first | awk '{print tolower($0)}')"
+      if [ "$first" = "version:" ]; then
+         export whonix_build_old_changelog_version="$second"
+         break
+      fi
+   done
 
-IFS="${OIFS}"
+   IFS="${OIFS}"
+else
+   whonix_build_old_changelog_version="none"
+fi
 
 #echo "whonix_build_old_changelog_version: $whonix_build_old_changelog_version"
 
