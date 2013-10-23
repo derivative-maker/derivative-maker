@@ -114,11 +114,33 @@ Please report this Whonix bug!"
 
    if [ "$tor_bootstrap_percent" = "100" ]; then
       local MSG="Tor Bootstrap Result: Connected to Tor."
-      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG" --waitmessagecli --noinstantecho
+      $output ${output_opts[@]} --channel "x" --type "info" --title "$TITLE" --message "$MSG" --passivequeue
+      if [ "$manualrun" = "1" ]; then
+         $output ${output_opts[@]} --showpassivequeuex
+      else
+         ## The /etc/xdg/autostart hook will keep care of that.
+         true
+      fi
       return 0
    fi
 
-   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -lt "60" ]; then
+   wait_max="60"
+
+   ## For testing.
+   #tor_bootstrap_percent=$(expr 5 + ${#RANDOM})
+
+   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -gt "1" ]; then
+      if [ ! "$started_tor_bootstrap_progress_bar" = "1" ]; then
+         started_tor_bootstrap_progress_bar="1"
+         ## Waited for more than 5 seconds.
+         NOTIFY_MSG="Trying to connect to Tor... Checking Tor's Bootstrap Status... (Will take up to $wait_max seconds.)"
+         welcome
+      fi
+   fi
+
+   if [ "$TOR_BOOTSTRAP_TIME_PASSED" -lt "$wait_max" ]; then
       if [ "$tor_bootstrap_percent" -lt "100" ]; then
          if [ "$PROGRESS" = "" ]; then
             PROGRESS="5"
@@ -131,33 +153,22 @@ Please report this Whonix bug!"
 
          if [ "$TOR_BOOTSTRAP_PERCENT_OLD" = "$tor_bootstrap_percent" ]; then
             ## no progress has been made
-            TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
-
             local MSG="Tor Bootstrap Result: Bootstrapping for $TOR_BOOTSTRAP_TIME_PASSED seconds. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
-            $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
-
-            $output ${output_opts[@]} --progress "$PROGRESS"
-
-            sleep "2" &
-            wait "$!" || true
-
-            check_tor_bootstrap
-            return 0
          else
             ## progress has been made
-            TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
-
             local MSG="Tor Bootstrap Result: Bootstrapping $TOR_BOOTSTRAP_TIME_PASSED seconds. Progress has been made. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
-            $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
-
-            $output ${output_opts[@]} --progress "$PROGRESS"
-
-            sleep "2" &
-            wait "$!" || true
-
-            check_tor_bootstrap
-            return 0
          fi
+
+         TOR_BOOTSTRAP_PERCENT_OLD="$tor_bootstrap_percent"
+
+         $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --progress "$PROGRESS"
+
+         sleep "2" &
+         wait "$!" || true
+
+         check_tor_bootstrap
+         return 0
       fi
    fi
 
