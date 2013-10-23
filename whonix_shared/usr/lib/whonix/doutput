@@ -52,8 +52,8 @@ output_ex() {
    ## This function is called when the cancel button in zenity gets pressed.
 
    if [ "$PARENT_PID" = "" ]; then
-      if [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_pid" ]; then
-         PARENT_PID="$(cat "/var/run/whonix/whonixcheck/"$IDENTIFIER"_pid")"
+      if [ -f "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid" ]; then
+         PARENT_PID="$(cat "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid")"
       fi
    fi
 
@@ -105,7 +105,7 @@ parse_cmd_options() {
            --identifier)
                IDENTIFIER="$2"
                shift 2
-               if [ "$IDENTIFIER" = "" ]; then
+               if [ "${IDENTIFIER}" = "" ]; then
                   echo "$0 ERROR: variable IDENTIFIER is empty."
                   exit 1
                fi
@@ -267,15 +267,15 @@ parse_cmd_options() {
 start_progress_bar() {
    trap "error_handler" ERR
 
-   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title" ]; then
-      local TITLE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title")"
+   if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title" ]; then
+      local TITLE="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title")"
    fi
 
    if [ "$TITLE" = "" ]; then
       local TITLE="Variable TITLE does not exist. Please report this bug!"
    fi
 
-   local FIFO="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
+   local FIFO="/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo"
 
    ## Clean up eventual old progress bar.
    rm --force "$FIFO"
@@ -298,7 +298,7 @@ start_progress_bar() {
    ## later when it gets killed by the progress_bar function.
    exec 3>"$FIFO"
 
-   echo "$ZENITY_PROGRESS_PID" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" > /dev/null
+   echo "$ZENITY_PROGRESS_PID" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid" > /dev/null
 
    if [ "$LEFT_TOP" = "1" ]; then
       output_wmctrl "$TITLE"
@@ -328,14 +328,14 @@ $feel_free_to_press_enter_msg" | write user tty1 2>/dev/null || true
 progress_bar() {
    trap "error_handler" ERR
 
-   if [ -p "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo" ]; then
-      local FIFO="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
+   if [ -p "/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo" ]; then
+      local FIFO="/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo"
    else
       return 0
    fi
 
-   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" ]; then
-      ZENITY_PROGRESS_PID="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid")"
+   if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid" ]; then
+      ZENITY_PROGRESS_PID="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid")"
    else
       return 0
    fi
@@ -396,10 +396,10 @@ fallbacks() {
 output() {
    trap "error_handler" ERR
 
-   echo "$TITLE" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title" > /dev/null
+   echo "$TITLE" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title" > /dev/null
 
-   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" ]; then
-      OLD_TYPE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type")"
+   if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" ]; then
+      OLD_TYPE="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type")"
    fi
 
    if [ "$TYPE" = "" ]; then
@@ -415,42 +415,42 @@ output() {
    if [ "$OLD_TYPE" = "info" ]; then
       if [ "$TYPE" = "error" ]; then
          ## Upgrade from info to error.
-         echo "error" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" > /dev/null
+         echo "error" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" > /dev/null
       elif [ "$TYPE" = "warning" ]; then
          ## Upgrade from info to warning.
-         echo "warning" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" > /dev/null
+         echo "warning" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" > /dev/null
       fi
    elif [ "$OLD_TYPE" = "warning" ]; then
       if [ "$TYPE" = "error" ]; then
          ## Upgrade from warning to error.
-         echo "error" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" > /dev/null
+         echo "error" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" > /dev/null
       fi
    elif [ "$OLD_TYPE" = "error" ]; then
       true
    else
-      echo "$TYPE" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" > /dev/null
+      echo "$TYPE" | sudo -u user tee "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" > /dev/null
    fi
 
-   chmod o+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type"
-   chmod g+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type"
+   chmod o+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type"
+   chmod g+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type"
 
    if [ "$PASSIVE" = "1" ]; then
-      touch "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
-      chmod o+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
-      chmod g+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
+      touch "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive"
+      chmod o+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive"
+      chmod g+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive"
    elif [ "$PASSIVEQUEUE" = "1" ]; then
-      touch "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_cli"
-      chmod o+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_cli"
-      chmod g+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_cli"
-      touch "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x"
-      chmod o+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x"
-      chmod g+w "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x"
+      touch "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_cli"
+      chmod o+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_cli"
+      chmod g+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_cli"
+      touch "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x"
+      chmod o+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x"
+      chmod g+w "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x"
    else
-      rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
+      rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive"
    fi
 
-   local file_cli="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
-   local file_x="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x"
+   local file_cli="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli"
+   local file_x="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_x"
 
    touch "$file_cli"
    chmod g+w "$file_cli"
@@ -461,18 +461,18 @@ output() {
    chmod o+w "$file_x"
 
    if [ "$WAIT_MESSAGE_CLI" = "1" ]; then
-      local file_cli="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
+      local file_cli="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_cli"
       local file_x="/dev/null"
    fi
 
    if [ "$WAIT_MESSAGE_X" = "1" ]; then
       local file_cli="/dev/null"
-      local file_x="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
+      local file_x="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_x"
    fi
 
    if [ "$PASSIVEQUEUE" = "1" ]; then
-      local file_cli="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_cli"
-      local file_x="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x"
+      local file_cli="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_cli"
+      local file_x="/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x"
    fi
 
    if [ "$CHANNEL" = "debug" ]; then
@@ -545,33 +545,33 @@ show_output() {
    if [ "$FORCE_ACTIVE" = "1" ]; then
       true "FORCE_ACTIVE is set to 1, enforcing active message."
    else
-      if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive" ]; then
+      if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive" ]; then
          PASSIVE="1"
       fi
    fi
 
    if [ "$SHOWPASSIVEQUEUEX" = "1" ]; then
       true "SHOWPASSIVEQUEUEX is set to 1"
-   elif [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_done" ] || [ -f "/var/run/whonix/whonixcheck/"$IDENTIFIER"_recently_run" ]; then
+   elif [ -f "/var/run/whonix/whonixcheck/${IDENTIFIER}_done" ] || [ -f "/var/run/whonix/whonixcheck/${IDENTIFIER}_recently_run" ]; then
       ## Done.
 
-      if [ ! -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli" ]; then
-         true "Done or recently_run, but /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli does not exist. Probably already received --forget command."
+      if [ ! -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli" ]; then
+         true "Done or recently_run, but /var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli does not exist. Probably already received --forget command."
          return 0
       fi
 
-      MESSAGE_CLI="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli)"
-      MESSAGE_X="$(cat /var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x)"
+      MESSAGE_CLI="$(cat /var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli)"
+      MESSAGE_X="$(cat /var/lib/whonix/whonixcheck/${IDENTIFIER}_message_x)"
       LOOP="0"
       SHOW_WAIT_MESSAGE_ONLY_ONCE="0"
    else
       ## Not done.
 
-      if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli" ]; then
+      if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_cli" ]; then
          ## At least we got a waiting message.
-         MESSAGE_CLI="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli")"
-         if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x" ]; then
-            MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x")"
+         MESSAGE_CLI="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_cli")"
+         if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_x" ]; then
+            MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_x")"
          else
             MESSAGE_X=""
          fi
@@ -591,7 +591,7 @@ show_output() {
 
                MESSAGE="$MESSAGE_X"
 
-               TITLE="$IDENTIFIER"
+               TITLE=${IDENTIFIER}
 
                if [ "$MESSAGE" = "" ]; then
                   true "MESSAGE is empty, skipping."
@@ -599,18 +599,18 @@ show_output() {
                   ## Small hack.
                   ## It would be cleaner / more rich in features if the window position was defined by the upstream application
                   ## and if "whonixcheck" was not hardcoded here.
-                  if [ "$IDENTIFIER" = "whonixcheck" ]; then
+                  if [ "${IDENTIFIER}" = "whonixcheck" ]; then
                      ## Move windows to the left top, so they do not overlap.
-                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" --lefttop &
+                     $0 --identifier ${IDENTIFIER} --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" --lefttop &
                   else
-                     $0 --identifier "$IDENTIFIER" --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" &
+                     $0 --identifier ${IDENTIFIER} --progressbar --icon "$ICON" --title "$TITLE" --message "$MESSAGE" --parentpid "$$" &
                   fi
                fi
 
                sleep "3" &
                wait "$!" || true
 
-               $0 --identifier "$IDENTIFIER" --progress "5"
+               $0 --identifier ${IDENTIFIER} --progress "5"
 
                show_output
                return 0
@@ -631,8 +631,8 @@ show_output() {
       fi
    fi
 
-   if [ -e "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type" ]; then
-      TYPE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type")"
+   if [ -e "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type" ]; then
+      TYPE="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type")"
    else
       ## TODO
       #error "ERROR: No type stored."
@@ -652,19 +652,19 @@ show_output() {
       local temp="Info"
    fi
 
-   if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title" ]; then
-      local TITLE="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title")"
+   if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title" ]; then
+      local TITLE="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title")"
       local TITLE="$temp $TITLE"
    else
       local TITLE="$temp"
    fi
 
    if [ "$SHOWPASSIVEQUEUEX" = "1" ]; then
-      if [ ! -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x" ];  then
+      if [ ! -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x" ];  then
          LOOP="1"
       else
          LOOP="0"
-         MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x")"
+         MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x")"
          kdialog --passivepopup "$MESSAGE_X" "20"
       fi
       if [ "$LOOP" = "1" ]; then
@@ -689,7 +689,7 @@ $MESSAGE_CLI"
             SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
 
             #if [ "$LOOP" = "0" ]; then
-               #rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
+               #rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli"
             #fi
          fi
       fi
@@ -735,7 +735,7 @@ $MESSAGE_CLI"
          SHOW_WAIT_MESSAGE_ONLY_ONCE="1"
 
          #if [ "$LOOP" = "0" ]; then
-            #rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x"
+            #rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_x"
          #fi
       fi
 
@@ -808,11 +808,11 @@ output_wmctrl() {
 forget_messages() {
    trap "error_handler" ERR
 
-   if [ -p "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo" ]; then
-      local FIFO="/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
+   if [ -p "/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo" ]; then
+      local FIFO="/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo"
 
-      if [ -f "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid" ]; then
-         ZENITY_PROGRESS_PID="$(cat "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid")"
+      if [ -f "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid" ]; then
+         ZENITY_PROGRESS_PID="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid")"
 
          ## Check if zenity is still running.
          local ps_return="0"
@@ -828,25 +828,25 @@ forget_messages() {
       fi
    fi
 
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_x"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_cli"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_type"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_title"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_progress"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passive"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_fifo"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_zenity_progress_pid"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_cli"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_passivequeue_x"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_x"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_cli"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_type"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_title"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_progress"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_x"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_cli"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passive"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_fifo"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_zenity_progress_pid"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_cli"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x"
 }
 
 forget_wait() {
    trap "error_handler" ERR
 
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_x"
-   rm --force "/var/lib/whonix/whonixcheck/"$IDENTIFIER"_message_waiting_cli"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_x"
+   rm --force "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_waiting_cli"
 }
 
 parse_cmd_options ${1+"$@"}
