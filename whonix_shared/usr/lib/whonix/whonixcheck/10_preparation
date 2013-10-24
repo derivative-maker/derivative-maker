@@ -122,6 +122,24 @@ preparation() {
       GATEWAY_IP="192.168.0.10"
    fi
 
+   if [ -f "/etc/apt/sources.list.d/whonix.list" ]; then
+      ## Fallback
+      whonix_codename="unknown"
+
+      local i
+      while read i; do
+         local first second third fourth
+         read -r first second third fourth _ <<< "$i"
+         if [ "$first" = "deb" ]; then
+            whonix_codename="$third"
+            break
+         fi
+      done < "/etc/apt/sources.list.d/whonix.list"
+
+   else
+      whonix_codename="No"
+   fi
+
    if [ "$DAEMON" = "1" ]; then
       true
    elif [ "$AUTOSTARTED" = "1" ]; then
@@ -134,7 +152,7 @@ preparation() {
    ## ARCH="i686"
    ARCH="$(uname --machine)"
 
-   TITLE="$IDENTIFIER $VM $whonix_deb_package_version $(date)"
+   TITLE="$IDENTIFIER | $VM | $whonix_deb_package_version | $whonix_codename Repository | $(date)"
 
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
