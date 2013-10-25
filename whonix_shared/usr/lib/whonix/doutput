@@ -377,12 +377,13 @@ fallbacks() {
       }
    fi
 
-   ## check if kdialog is installed
-   ## - that is not the case for CLI Custom-Workstation users
-   ## - that is also not the case on Whonix-Gateway
-   if [ "$(command -v "kdialog")" = "" ] || [ "$DISPLAY" = "" ]; then
-      ## kdialog not installed or no X server running.
+   if [ "$DISPLAY" = "" ]; then
+      ## No X server running.
       kdialog() {
+         ## dummy
+         true
+      }
+      notify-send() {
          ## dummy
          true
       }
@@ -392,6 +393,24 @@ fallbacks() {
       display="$DISPLAY"
    fi
 }
+
+## {{ Small wrapper to use either kdialog, notify-send or nothing.
+passive_popup_tool() {
+   ## $1 - time
+   ## $2 - text
+
+   ## check if kdialog, notify-send or no passive popup tool is installed
+   ## - that is not the case for CLI Custom-Workstation users
+   ## - that may not be the case for Gnome users
+   if [ ! "$(command -v "kdialog")" = "" ] ; then
+      kdialog --passivepopup "$2" "$1"
+   elif [ ! "$(command -v "notify-send")" = "" ] ; then
+      notify-send -t "$1" "$2"
+   else
+      true
+   fi
+}
+## }}
 
 output() {
    trap "error_handler" ERR
@@ -665,7 +684,7 @@ show_output() {
       else
          LOOP="0"
          MESSAGE_X="$(cat "/var/lib/whonix/whonixcheck/${IDENTIFIER}_message_passivequeue_x")"
-         kdialog --passivepopup "$MESSAGE_X" "20"
+         passive_popup_tool "20" "$MESSAGE_X"
       fi
       if [ "$LOOP" = "1" ]; then
          sleep "3" &
@@ -710,7 +729,7 @@ $MESSAGE_CLI"
       else
          ## TODO?: || [ "$LOOP" = "1" ]
          if [ "$PASSIVE" = "1" ]; then
-            kdialog --passivepopup "$MESSAGE_X" "20"
+            passive_popup_tool "20" "$MESSAGE_X"
          else
             if [ "$MESSAGE_X" = "" ]; then
                true "MESSAGE_X is empty."
