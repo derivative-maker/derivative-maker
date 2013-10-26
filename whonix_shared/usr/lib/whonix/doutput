@@ -309,21 +309,29 @@ start_progress_bar() {
    wait
 }
 
+## {{ Write to tty1. Using simple lock mechanism so messages from "write" do not get mixed up.
 output_write_to_tty() {
-   ## Write to tty1.
-   ## Using simple lock mechanism so messages from "write" do not get mixed up.
+   trap "error_handler" ERR
+
+   local lockfile="/var/lib/whonix/whonixcheck/write_lock"
 
    (
-      flock --wait 10 --exclusive 200
+      trap "error_handler" ERR
+
+      ## Use flock to wait up to 60 seconds to acquire an exclusive lock.
+      ## fd 200, see man flock
+      flock --wait 60 --exclusive 200
 
       echo "${1+"$@"}
 $feel_free_to_press_enter_msg" | write user tty1 2>/dev/null || true
 
-      sleep 2
+      ## Hold the write lock up to 10 seconds.
+      sleep 10
 
-   ) 200>"/var/lib/whonix/whonixcheck/write_lock" &
-
+   ) 200>"$lockfile" &
+   ## fd 200, see man flock
 }
+## }}
 
 progress_bar() {
    trap "error_handler" ERR
