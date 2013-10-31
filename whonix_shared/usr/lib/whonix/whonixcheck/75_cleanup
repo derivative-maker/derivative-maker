@@ -109,8 +109,22 @@ cleanup() {
    ## message is not necessary when manually started.
    if [ ! "$manualrun" = "1" ]; then
       ## Not manually started.
-      local MSG="Please feel free to press <enter> to return back to your normal prompt."
-      $output ${output_opts[@]} --messagecli --typecli "info" --titlex "$TITLE" --message "$MSG"
+
+      local output_status_return="0"
+      $output ${output_opts[@]} --identifier whonixcheck --status --messagecli || { local output_status_return="$?" ; true; };
+
+      if [ "$output_status_return" = "0" ]; then
+         ## We have messages to show.
+         ## Add press enter to return back to your normal prompt message below.
+         local MSG="Please feel free to press <enter> to return back to your normal prompt."
+         $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      elif [ "$output_status_return" = "1" ]; then
+         true "No messages for --messagecli in the queue. Not adding press enter to return back to your normal prompt message below."
+      else
+         local MSG="$output returned $output_status_return. Please report this Whonix bug!"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      fi
    fi
 
    $output ${output_opts[@]} --messagex --done

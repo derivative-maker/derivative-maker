@@ -166,6 +166,10 @@ parse_cmd_options() {
                progressbaridx="$2"
                shift 2
                ;;
+           --status)
+               status="1"
+               shift
+               ;;
            --)
                shift
                break
@@ -511,6 +515,74 @@ $message" | sudo -u user tee --append "$write_to_file" > /dev/null
    ## }}
 }
 
+return_status() {
+   trap "error_handler" ERR
+
+   ## {{ --identifier
+   if [ "${identifier}" = "" ]; then
+      echo "$0 ERROR: variable identifier is empty."
+      exit 1
+   fi
+   ## }}
+
+   ## {{ --messagex
+   if [ "$messagex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.messagex"
+      return_status_file
+   fi
+   ## }}
+
+   ## {{ --waitmessagex
+   if [ "$waitmessagex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.waitmessagex"
+      return_status_file
+   fi
+   ## }}
+
+   ## {{ --messagecli
+   if [ "$messagecli" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.messagecli"
+      return_status_file
+   fi
+   ## }}
+
+   ## {{ --waitmessagecli
+   if [ "$waitmessagecli" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.waitmessagecli"
+      return_status_file
+   fi
+   ## }}
+
+   ## {{ --passivepopupqueuex
+   if [ "$passivepopupqueuex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.passivepopupqueuex"
+      return_status_file
+   fi
+   ## }}
+
+   ## {{ --progressbarx
+   if [ "$progressbarx" = "1" ]; then
+      if [ "${progressbaridx}" = "" ]; then
+         error "Variable progressbaridx is empty."
+         exit 4
+      fi
+      write_to_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx"
+      return_status_file
+   fi
+   ## }}
+
+   ## Fallback error code, if none of the above matched.
+   exit 3
+}
+
+return_status_file() {
+   if [ -f "$write_to_file" ]; then
+      exit 0
+   else
+      exit 1
+   fi
+}
+
 forget() {
    ## & disown to prevent long waiting.
    ## Setting progress to 100, so any eventually still open progress bars get closed.
@@ -563,4 +635,9 @@ fi
 
 maybe_wait
 colors
-collector
+
+if [ "$status" = "1" ]; then
+   return_status
+else
+   collector
+fi
