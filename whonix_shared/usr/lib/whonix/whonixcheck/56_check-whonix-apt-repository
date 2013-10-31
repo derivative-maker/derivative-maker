@@ -7,27 +7,40 @@
 check_whonix_apt_repository() {
    trap "error_handler" ERR
 
+   local temp_x_tool="Start menu -> Applications -> System -> Whonix Repository"
+   local temp_cli_tool="sudo whonix_repository"
+
+   local temp_base_msg_enabled="Whonix APT Repository: Enabled.
+When the Whonix team releases $whonix_codename_uppercase updates, \
+they will be AUTOMATICALLY installed (when you run apt-get dist-upgrade) \
+along with update packages from the Debian team. Please \
+read https://whonix.org/wiki/Trust to understand the risk. \
+If you want to change this, use:"
+
+   local temp_base_msg_disabled="Whonix APT Repository: Disabled.
+When the Whonix team releases an update, it will be NOT be installed. \
+Please read https://whonix.org/wiki/Trust to understand the risk. \
+You will still be notified when updated Whonix packages are released by \
+whonixcheck's Whonix News. You are free to manually update from source code.
+If you want to change this, use:"
+
    if [ -f "/etc/apt/sources.list.d/whonix.list" ]; then
-      local MSG="Whonix APT Repository: Enabled. [$whonix_codename Repository]
-When the Whonix team releases an update, it will be AUTOMATICALLY installed. Please read https://whonix.org/wiki/Trust to understand the risk.
-    Start menu -> Applications -> System -> Whonix Repository"
-      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
-
-      local MSG="Whonix APT Repository: Enabled. [$whonix_codename Repository]
-When the Whonix team releases an update, it will be AUTOMATICALLY installed. Please read https://whonix.org/wiki/Trust to understand the risk.
-   sudo whonix_repository"
-      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      local MSG="$temp_base_msg_enabled
+    $temp_x_tool"
    else
-      local MSG="Whonix APT Repository: Disabled.
-When the Whonix team releases an update, it will be NOT be installed. Please read https://whonix.org/wiki/Trust to understand the risk.
-You will still be notified when updated Whonix packages are released by whonixcheck's Whonix News. You are free to manually update from source code.
-    Start menu -> Applications -> System -> Whonix Repository"
-      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
-
-      local MSG="Whonix APT Repository: Disabled.
-When the Whonix team releases an update, it will be NOT be installed. Please read https://whonix.org/wiki/Trust to understand the risk.
-You will still be notified when updated Whonix packages are released by whonixcheck's Whonix News. You are free to manually update from source code.
-    sudo whonix_repository"
-      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      local MSG="$temp_base_msg_disabled
+    $temp_x_tool"
    fi
+
+   $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+
+   if [ -f "/etc/apt/sources.list.d/whonix.list" ]; then
+      local MSG="$temp_base_msg_enabled
+    $temp_cli_tool"
+   else
+      local MSG="$temp_base_msg_disabled
+    $temp_cli_tool"
+   fi
+
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
 }
