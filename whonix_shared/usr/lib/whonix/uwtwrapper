@@ -33,12 +33,12 @@ exit 1
 }
 
 sanity_tests_general() {
-   if [ ! -e /usr/bin/"$SCRIPTNAME".real ]; then
-      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME".real does not exist."
+   if [ ! -e "/usr/bin/$SCRIPTNAME.real" ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/$SCRIPTNAME.real does not exist."
       exit 1
    fi
-   if [ ! -x /usr/bin/"$SCRIPTNAME".real ]; then
-      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/"$SCRIPTNAME".real is not executable."
+   if [ ! -x "/usr/bin/$SCRIPTNAME.real" ]; then
+      echo "$SCRIPTNAME uwt wrapper ERROR: /usr/bin/$SCRIPTNAME.real is not executable."
       exit 1
    fi
 }
@@ -105,30 +105,30 @@ done
 ## may not include "-", we have to remove "-" from the script name.
 SCRIPTNAME_CLEANED="$(echo $SCRIPTNAME | sed 's/-//g')"
 
-temp="uwtport_"$SCRIPTNAME_CLEANED""
+temp="uwtport_$SCRIPTNAME_CLEANED"
 port="${!temp}"
 
-temp="timeprivacy_"$SCRIPTNAME""
+temp="timeprivacy_$SCRIPTNAME"
 
 if [ "${!temp}" = "1" ]; then
    fake_time="faketime"
-   privacy_time="$(time_privacy -f /tmp/timeprivacy_"$SCRIPTNAME_CLEANED")"
+   privacy_time="$("time_privacy" -f "/tmp/timeprivacy_$SCRIPTNAME_CLEANED")"
 else
    if [ "$timeprivacy_global" = "1" ]; then
       fake_time="faketime"
-      privacy_time="$(time_privacy)"
+      privacy_time="$("time_privacy")"
    else
       fake_time=""
       privacy_time=""
    fi
 fi
 
-## Using "|| { ret=$? ; true; };" to prevent invoking error_handler in case
-## the executed application retured a non-zero value.
+## Using "|| { ret="$?" ; true; };" to prevent invoking error_handler in case
+## the executed application returned a non-zero value.
 ##
 ## Bash syntax: command1 || command2
 ##
-## Setting default "ret=0" beforehand, because
+## Setting default ret="0" beforehand, because
 ## command2 does only get executed, if command1 return non-zero.
 ## So in case it's zero, the default return value must be already set.
 
@@ -136,44 +136,44 @@ if [ "$uwtwrapper_global" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
       sanity_tests_general
       sanity_tests_timeprivacy
-      ret=0
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+      ret="0"
+      "$fake_time" "$privacy_time" "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
    else
       sanity_tests_general
-      ret=0
-      /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+      ret="0"
+      "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
    fi
-   exit $ret
+   exit "$ret"
 fi
 
-temp="uwtwrapper_"$SCRIPTNAME_CLEANED""
+temp="uwtwrapper_$SCRIPTNAME_CLEANED"
 
 if [ "${!temp}" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
       sanity_tests_general
       sanity_tests_timeprivacy
-      ret=0
-      "$fake_time" "$privacy_time" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+      ret="0"
+      "$fake_time" "$privacy_time" "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
    else
       sanity_tests_general
-      ret=0
-      /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+      ret="0"
+      "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
    fi
-   exit $ret
+   exit "$ret"
 fi
 
 if [ "$fake_time" = "faketime" ]; then
    sanity_tests_general
    sanity_tests_uwt
    sanity_tests_timeprivacy
-   ret=0
-   "$fake_time" "$privacy_time" /usr/bin/uwt -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+   ret="0"
+   "$fake_time" "$privacy_time" "/usr/bin/uwt" -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
 else
    sanity_tests_general
    sanity_tests_uwt
-   ret=0
-   /usr/bin/uwt -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" /usr/bin/"$SCRIPTNAME".real ${1+"$@"} || { ret=$? ; true; };
+   ret="0"
+   "/usr/bin/uwt" -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" "/usr/bin/$SCRIPTNAME.real" ${1+"$@"} || { ret="$?" ; true; };
 fi
-exit $ret
+exit "$ret"
 
 ## End of Whonix /usr/bin/$SCRIPTNAME uwt wrapper.
