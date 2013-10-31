@@ -1,0 +1,47 @@
+#!/bin/bash
+
+process_killer_helper() {
+   trap "error_handler" ERR
+
+   if [ "$lastpid" = "" ]; then
+      return 0
+   fi
+
+   local kill_return="0"
+   kill -0 "$lastpid" >/dev/null 2>/dev/null || { local kill_return="$?" ; true; };
+
+   if [ ! "$kill_return" = "0" ]; then
+      return 0
+   fi
+
+   ## >/dev/null 2>/dev/null to prevent seeing error due to race conditions (process in meanwhile already terminated).
+   kill -sigterm "$lastpid" >/dev/null 2>/dev/null || true
+
+   local i="0"
+
+   ## Give remaining processes up to 5 seconds after sending signal sigterm (above) before killing them sending signal sigkill.
+   while true; do
+      local kill_return="0"
+      kill -0 "$lastpid" >/dev/null 2>/dev/null || { local kill_return="$?" ; true; };
+
+      if [ ! "$kill_return" = "0" ]; then
+         ## kill_return is not 0, process no longer running. That's it.
+         return 0
+      fi
+      ## Process still running.
+
+      ## Wait up to 5 seconds for the process to terminate.
+      i="$(expr "$i" + 1)"
+      if [[ "$i" < "5" ]]; then
+         sleep 1 &
+         wait "$!"
+         continue
+      fi
+      break
+   done
+
+   ## Seems like process still running. Terminating using sigkill.
+   kill -sigkill "$lastpid" >/dev/null 2>/dev/null || true
+
+   return 0
+}

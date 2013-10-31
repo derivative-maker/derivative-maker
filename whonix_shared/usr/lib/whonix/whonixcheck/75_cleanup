@@ -7,55 +7,16 @@
 ex_funct() {
    trap "error_handler" ERR
 
-   local pid
+   ## Deactivate traps, so when pressing ctrl + c several times this won't
+   ## create an endless loop.
+   trap - SIGTERM
+   trap - SIGINT
 
-   ## This will include the pgrep child process itself.
-   local pgrep_result="$(pgrep --parent "$$")"
+   ## provides process_killer_helper function
+   source /usr/lib/whonix/process_killer_helper
 
-   ## Debugging.
-   ## Won't show the pgrep process itself, since that necessarily terminated already at this point.
-   local ps_p_result="$(ps -p $pgrep_result)"
-
-   for pid in $pgrep_result; do
-      ## >/dev/null 2>/dev/null to prevent seeing error due to race conditions (process in meanwhile already terminated) and
-      ## due to trying to kill the pgrep process which was already terminated.
-      kill -sigterm "$pid" >/dev/null 2>/dev/null || true
-   done
-
-   local i=0
-
-   ## Give remaining processes up to 5 seconds after sending signal sigterm (above) before killing them sending signal sigkill.
-   while true; do
-      i="$(expr $i + 1)"
-      local pgrep_result="$(pgrep --parent "$$")"
-
-      ## Debugging.
-      local ps_p_result="$(ps -p $pgrep_result)"
-
-      ## Create a local variable j, which holds how many pids are in pgrep_result.
-      local j=0
-      for pid in $pgrep_result; do
-         local j="$(expr "$j" + 1)"
-      done
-
-      ## If there is only one pid in pgrep_result, it will be pgrep itself,
-      ## which necessarily already terminated at this point.
-      if [ "$j" = "1" ]; then
-         break
-      fi
-      if [[ "$i" < "5" ]]; then
-         sleep 1 &
-         wait "$!"
-         continue
-      fi
-
-      for pid in $pgrep_result; do
-         ## >/dev/null 2>/dev/null to prevent seeing error due to race conditions (process in meanwhile already terminated) and
-         ## due to trying to kill the pgrep process which was already terminated.
-         kill -sigkill "$pid" >/dev/null 2>/dev/null || true
-      done
-
-   done
+   ## kill $lastpid (if running)
+   process_killer_helper
 
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_running"
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_waiting"
@@ -76,7 +37,7 @@ ex_funct() {
 trap_sigterm() {
    trap "error_handler" ERR
 
-   echo "$SCRIPTNAME: SIGTERM received. Exiting."
+   echo "$SCRIPTNAME: SIGTERM received. Cleaning up... Exiting..."
    ex_funct
 }
 
@@ -85,7 +46,7 @@ trap "trap_sigterm" SIGTERM
 trap_sigint() {
    trap "error_handler" ERR
 
-   echo "$SCRIPTNAME: SIGINT received. Exiting."
+   echo "$SCRIPTNAME: SIGTERM received. Cleaning up... Exiting..."
    ex_funct
 }
 

@@ -7,17 +7,18 @@
 check_operating_system() {
    trap "error_handler" ERR
 
-   ## Runing apt-get update as user (non-root).
-   ## Depends on exception set in /etc/sudoers.
-   ## Minmal custom script.
+   ## Running apt-get update as user (non-root).
+   ## Depends on exception set in /etc/sudoers.d/.
+   ## Minimal custom script.
    local MSG="Debian Package Update Check: Checking for software updates via apt-get..."
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-   APT_GET_RETURN="0"
-   sudo /usr/lib/whonix/whonixcheck/apt-get-update >/dev/null &
-   wait "$!" || { APT_GET_RETURN="$?" ; true; };
+   local apt_get_return="0"
+   sudo "/usr/lib/whonix/whonixcheck/apt-get-update" >/dev/null &
+   lastpid="$!"
+   wait "$lastpid" || { local apt_get_return="$?" ; true; };
 
-   if [ ! "$APT_GET_RETURN" = "0" ]; then
-      local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $APT_GET_RETURN) Please manually check:
+   if [ ! "$apt_get_return" = "0" ]; then
+      local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $apt_get_return) Please manually check:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
     sudo apt-get update && sudo apt-get dist-upgrade"
       $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
@@ -25,41 +26,17 @@ check_operating_system() {
       return 0
    fi
 
-   ## /etc/update-motd.d/90-updates-available
-   ## /usr/lib/update-notifier/update-motd-updates-available
-   ## /usr/lib/update-notifier/apt-check
-   NEED_UPDATE_CHECK=yes
-   /usr/lib/update-notifier/apt-check --human-readable > ""$VERIFY_TEMPDIR"/update_check"
-   read -r CHECK_OS_RESULT < ""$VERIFY_TEMPDIR"/update_check"
+   local check_os_result="$("/usr/lib/update-notifier/apt-check" 2>&1)"
+   local first_char="${check_os_result:0:1}"
 
-   local FIRST_CHAR="${CHECK_OS_RESULT:0:1}"
-
-   if [ "$FIRST_CHAR" = "0" ]; then
+   if [ "$first_char" = "0" ]; then
       local MSG="Debian Package Update Check Result: No updates found via apt-get."
       $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
-   ## Check, if we are not in CLI.
-   if [ "$DISPLAY" ]; then
-      ## Check if apper is installed and use it.
-      if [ -f "$(command -v apper)" ]; then
-
-         ## The Apper line below worked, but Apper has
-         ## too many bugs. Needs more testing and bugreports.
-         #apper --updates --display "$DISPLAY" 2>/dev/null
-
-         local MSG="Debian Package Update Check Result: Apt-get reports that "$FIRST_CHAR" packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
-(Open a terminal, Start menu -> Applications -> System -> Terminal.)
-    sudo apt-get update && sudo apt-get dist-upgrade"
-         $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
-         $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
-         return 0
-      fi
-   fi
-
-   local MSG="Debian Package Update Check Result: Apt-get reports that "$FIRST_CHAR" packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
+   local MSG="Debian Package Update Check Result: Apt-get reports that $first_char packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
     sudo apt-get update && sudo apt-get dist-upgrade"
    $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"

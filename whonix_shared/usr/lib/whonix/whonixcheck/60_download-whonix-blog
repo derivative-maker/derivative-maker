@@ -67,7 +67,8 @@ download_blog() {
       "$BLOG_URL" \
       &
 
-   wait "$!" || { DOWNLOAD_BLOG_RETURN="$?" ; true; };
+   lastpid="$!"
+   wait "$lastpid" || { DOWNLOAD_BLOG_RETURN="$?" ; true; };
 
    if [ "$DOWNLOAD_BLOG_RETURN" = "0" ]; then
       return 0
@@ -105,7 +106,8 @@ parse_blog() {
          --write \
          &
 
-    wait "$!" || { local RAWDOG_RETURN="$?" ; true; };
+   lastpid="$!"
+   wait "$lastpid" || { local RAWDOG_RETURN="$?" ; true; };
 
    if [ "$RAWDOG_RETURN" = "0" ]; then
       BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"
@@ -126,7 +128,8 @@ parse_blog() {
          /var/lib/whonix/whonixcheck/"$BLOG_HTML_FILE" \
          &
 
-   wait "$!" || { local PANDOC_RETURN="$?" ; true; };
+   lastpid="$!"
+   wait "$lastpid" || { local PANDOC_RETURN="$?" ; true; };
 
    if [ "$PANDOC_RETURN" = "0" ]; then
       true

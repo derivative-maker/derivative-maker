@@ -25,7 +25,8 @@ check_tor_bootstrap() {
    ## Example Failure:
    ## curl: (56) Recv failure: Connection reset by peer
 
-   wait "$!" || { check_socks_port_open_test="$?" ; true; };
+   lastpid="$!"
+   wait "$lastpid" || { check_socks_port_open_test="$?" ; true; };
 
    #local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$check_socks_port_open_test")"
 
@@ -55,7 +56,8 @@ check_tor_bootstrap() {
             break
          fi
          sleep "1" &
-         wait "$!"
+         lastpid="$!"
+         wait "$lastpid"
       done
       if [ ! -f "/var/run/controlportfilt/ownrunning" ]; then
          local MSG="Control Port Filter Proxy Test Result:
@@ -86,7 +88,8 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this Whon
    rm --force "$bootstrap_file"
    local temp_return="0"
    timeout --kill-after="$kill_after" "$timeout_after" "$script" 2>&1 >"$bootstrap_file" &
-   wait "$!" || { local temp_return="$?" ; true; }
+   lastpid="$!"
+   wait "$lastpid" || { local temp_return="$?" ; true; }
 
    if [ -f "$bootstrap_file" ]; then
       local temp_status="$(cat "$bootstrap_file")"
@@ -111,7 +114,8 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this Whon
    rm --force "$bootstrap_file"
    tor_bootstrap_percent="0"
    timeout --kill-after="$kill_after" "$timeout_after" "$script" 2>&1 >"$bootstrap_file" &
-   wait "$!" || { tor_bootstrap_percent="$?" ; true; }
+   lastpid="$!"
+wait "$lastpid" || { tor_bootstrap_percent="$?" ; true; }
 
    if [ -f "$bootstrap_file" ]; then
       tor_bootstrap_status="$(cat "$bootstrap_file")"
@@ -232,7 +236,8 @@ Please report this Whonix bug!"
          fi
 
          sleep "2" &
-         wait "$!" || true
+         lastpid="$!"
+         wait "$lastpid" || true
 
          check_tor_bootstrap
          return 0

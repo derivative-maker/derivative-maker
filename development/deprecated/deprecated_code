@@ -1090,3 +1090,21 @@ Description: Dummy Tor Package
  .
  It allows installation of packages, which depend on Tor,
  such as TorChat, parcimonie and torbrowser-launcher.
+
+   ## Check, if we are not in CLI.
+   if [ "$DISPLAY" ]; then
+      ## Check if apper is installed and use it.
+      if [ -f "$(command -v apper)" ]; then
+
+         ## The Apper line below worked, but Apper has
+         ## too many bugs. Needs more testing and bugreports.
+         #apper --updates --display "$DISPLAY" 2>/dev/null
+
+         local MSG="Debian Package Update Check Result: Apt-get reports that $first_char packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+    sudo apt-get update && sudo apt-get dist-upgrade"
+         $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
+         return 0
+      fi
+   fi
