@@ -10,7 +10,7 @@ download_whonix_news() {
    SOCKS_PORT_WHONIX_NEWS="9114"
 
    local MSG="Whonix News Download: Checking for Whonix news and updates..."
-   $output ${output_opts[@]} --channel "echo" --type "info" --title "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
 
    mkdir --parents "$VERIFY_TEMPDIR/news"
 
@@ -50,7 +50,8 @@ download_whonix_news() {
       if [ ! "${whonix_news_download_return[$link]}" = "0" ]; then
          local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${whonix_news_download_return[$link]}")"
          local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: $curl_status_message)"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       fi
 
@@ -126,7 +127,8 @@ verify_whonix_news() {
 
    if [ ! "$whonix_news_verify_return_general" = "0" ]; then
       local MSG="Whonix News Download Result: General Whonix News OpenPGP Verification Error. Please report this bug!"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -159,12 +161,12 @@ verify_whonix_news() {
 
    if [ ! "${whonix_news_verify_return}" = "0" ]; then
          local MSG="Whonix News Download Result: Could not OpenPGP verify authenticity of Whonix News $filename!!! (gpg return code: ${whonix_news_verify_return}) This is either a Whonix Bug or an attack on Whonix!!!"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
    fi
 
    local MSG="Whonix News Download: Successfully verified $filename via OpenPGP."
-   #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
 
    local line
    local signed_on_unixtime
@@ -178,7 +180,8 @@ verify_whonix_news() {
    if [ "$signed_on_unixtime" = "" ]; then
       whonix_news_verify_return="1000"
       local MSG="Whonix News Check: variable signed_on_unixtime is empty. Please report this bug!"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -189,7 +192,8 @@ verify_whonix_news() {
    else
       whonix_news_verify_return="2000"
       local MSG="Whonix News Check: Variable signed_on_unixtime includes a non-digit: $signed_on_unixtime Please report this bug!"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -213,7 +217,8 @@ verify_whonix_news() {
       local MSG="Whonix News Check: Your clock is slow. According to your system, Whonix News File was signed $difference_in_minutes minutes before current time.
 Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
                      or in Terminal: timesync"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -230,12 +235,12 @@ Either,
 - it has been forgotten to refresh Whonix's News File (invalid since $in_future_in_minutes minutes)
 - this is a Whonix Bug
 - or this is an attack on Whonix"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
    local MSG="Whonix News Check: news file valid."
-   #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
 }
 
 extract_whonix_news() {
@@ -249,7 +254,8 @@ extract_whonix_news() {
 
    if [ ! "$whonix_news_tar_return" = "0" ]; then
       local MSG="Whonix News Download Result: Could not OpenPGP extract $filename! (tar return code: ${whonix_news_tar_return}) Please report this bug!"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -265,7 +271,8 @@ check_whonix_debian_version() {
    if [ ! -f "$filename" ]; then
       ## This file should always exist.
       local MSG="Whonix News Check: File $filename does not exist. Please report this bug!"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+$output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -281,12 +288,14 @@ check_whonix_debian_version() {
    if [ "$outdated_deb" = "0" ]; then
       ## Up to date...
       local MSG="Whonix News Download Result: Installed Whonix Debian Package $whonix_deb_package_version is up to date."
-      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       ## Outdated...
       local MSG="Whonix News Download Result: Installed Whonix Debian Package $whonix_deb_package_version is outdated! You can automatically update using Whonix's internal updater. Please update using:
     sudo apt-get update && sudo apt-get dist-upgrade"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    fi
 }
 
@@ -298,7 +307,8 @@ check_whonix_build_version() {
    if [ ! -f "$filename" ]; then
       ## This file should always exist.
       local MSG="Whonix News Check: File $filename does not exist. Please report this bug!"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+$output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -314,11 +324,13 @@ check_whonix_build_version() {
    if [ "$outdated_build" = "0" ]; then
       ## Up to date...
       local MSG="Whonix News Download Result: Installed Whonix Build $whonix_build_version is up to date."
-      $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       ## Outdated...
       local MSG="Whonix News Download Result: Whonix Build $whonix_build_version is outdated! Sorry, automatically updating this Whonix version is not possible. You have to manually download a new Whonix image."
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    fi
 }
 
@@ -340,7 +352,8 @@ check_whonix_debian_news() {
       fi
    fi
 
-   $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
 }
 
 check_whonix_build_news() {
@@ -361,5 +374,6 @@ check_whonix_build_news() {
       fi
    fi
 
-   $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
 }

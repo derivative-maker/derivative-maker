@@ -9,16 +9,20 @@ run_sdwdate() {
 
    let "PROGRESS=$PROGRESS+5" || true
    ## The 5% indicate, that the check has begun.
-   $output ${output_opts[@]} --progress "$PROGRESS"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "$PROGRESS"
 
    if [ "$AUTOSTARTED" = "1" ]; then
       true "$SCRIPTNAME run_sdwdate: not restarting sdwdate in this case, \
 because the /etc/init.d/sdwdate init script already started sdwdate."
    else
       ## When manually run...
-      sudo service sdwdate restartnd
+      if [ "$VERBOSE" = "1" ]; then
+         sudo /etc/init.d/sdwdate restartnd &
+      else
+         sudo service sdwdate restartnd
+      fi
    fi
 
    let "PROGRESS=$PROGRESS+1" || true
-   $output ${output_opts[@]} --progress "$PROGRESS"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "$PROGRESS"
 }

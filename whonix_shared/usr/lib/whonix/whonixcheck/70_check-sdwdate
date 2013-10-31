@@ -60,7 +60,7 @@ Last resort: manually set the clock! (In UTC!):
 
    let "PROGRESS=$PROGRESS+1" || true
    ## sdwdate not reports status itself.
-   ## old: $output ${output_opts[@]} --progress "$PROGRESS"
+   ## old: $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progress "$PROGRESS"
 
    TIME_END="$(date +%s)"
    TIME_DIFF="$(expr "$TIME_END" - "$TIME_START")" || true
@@ -85,7 +85,8 @@ TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"
 "$SDWDATE_STATUS" Please report this bug!
 
 $HELPTEXT"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -96,7 +97,21 @@ $HELPTEXT"
       if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## Ok.
          local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful."
-         $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG" --passive
+         if [ "$manualrun" = "1" ]; then
+            ## When manually started, always use an active popup.
+            $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+         elif [ "$DAEMON" = "1" ]; then
+            true "No success message in daemon mode."
+         elif [ "$AUTOSTARTED" = "1" ]; then
+            ## Only use an passive popup when automatically started.
+            $output ${output_opts[@]} --passivepopupqueuex --typex "info" --titlex "$TITLE" --message "$MSG" --done
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+         else
+            local MSG="$MSG
+Neither manualrun ($manualrun), nor DAEMON ($DAEMON), nor AUTOSTARTED ($AUTOSTARTED). Please report this Whonix bug!"
+            $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+            $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+         fi
          return 0
       else
          ## Something went wrong.
@@ -107,7 +122,8 @@ Please report this bug!
 Either timesync has a bug or this is an attack. Better manually set your clock!!!
 
 $HELPTEXT"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+$output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       fi
    fi
@@ -124,7 +140,8 @@ Test your internet connection: Start menu -> Applications -> System -> Whonixche
                                or in Terminal with debugging: whonixcheck -v
 
 $HELPTEXT"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       else
          local MSG="Network Time Synchronization (timesync) done, but no success!!!
@@ -132,7 +149,8 @@ Is your host clock slow or fast? If so, please power off, fix your host clock an
 If your host clock is sane, please report a bug.
 
 $HELPTEXT"
-         $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       fi
    fi
@@ -156,6 +174,7 @@ TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"
 Please report this bug!
 
 $HELPTEXT"
-   $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    return 0
 }

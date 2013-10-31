@@ -10,6 +10,8 @@
 
 #set -x
 
+#trap 'sleep 1' DEBUG
+
 NOTIFY_MSG="Checking Tor Connection, Tor Browser Version, Operating System Updates, Whonix Version, Whonix News...
 This will happen in background and will take approximately three minutes..."
 
@@ -17,6 +19,9 @@ ICON="/usr/share/whonix/icons/whonix.ico"
 
 SCRIPTNAME="$(basename $0)"
 IDENTIFIER="$SCRIPTNAME"
+
+## Debugging with bashdb.
+#IDENTIFIER="whonixcheck"
 
 source /usr/lib/whonix/whonixcheck/help_error-handler
 trap "error_handler" ERR ## help_error-handler
@@ -32,7 +37,6 @@ source /usr/lib/whonix/whonixcheck/18_check_tor_config
 source /usr/lib/whonix/whonixcheck/19_check_tor_pid
 source /usr/lib/whonix/whonixcheck/20_check-lastrun
 source /usr/lib/whonix/whonixcheck/25_autostart
-source /usr/lib/whonix/whonixcheck/30_welcome
 source /usr/lib/whonix/whonixcheck/35_disclaimer
 source /usr/lib/whonix/whonixcheck/37_check_tor_bootstrap
 source /usr/lib/whonix/whonixcheck/40_check_tor_socks_or_trans_port
@@ -54,6 +58,10 @@ whonixcheck_main() {
    parse_cmd_options ${1+"$@"} ## help_parse-cmd-options
    preparation ## 10_preparation
 
+   local tmp="$(mktemp)"
+   local progressbaridx="${tmp##*.}"
+   progressbaridx_main="$progressbaridx"
+
    $output ${output_opts[@]} --forget
 
    whonixcheck_run_function uwt_tool ## help_uwt_tool
@@ -62,6 +70,7 @@ whonixcheck_main() {
       true
    else
       $FUNCTION
+      cleanup
       return 0
    fi
 
@@ -81,15 +90,18 @@ whonixcheck_main() {
    whonixcheck_run_function check_tor_pid ## 19_check_tor_pid
 
    whonixcheck_run_function check_tor_bootstrap ## 37_check_tor_bootstrap
-   $output ${output_opts[@]} --progress "10"
 
    whonixcheck_run_function check_whonixcheck_lastrun ## 20_check-lastrun
    whonixcheck_run_function check_autostart ## 25_autostart
-   whonixcheck_run_function welcome ## 30_welcome
+
+   local MSG="$NOTIFY_MSG"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+   ## The 5% indicate, that the check has begun.
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+
    whonixcheck_run_function disclaimer ## 35_disclaimer
 
-   ## The 5% indicate, that the check has begun.
-   $output ${output_opts[@]} --progress "5"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "10"
 
    if [ "$MINIMAL" = "1" ]; then
 
@@ -102,11 +114,11 @@ whonixcheck_main() {
 
       ## Uses the network. 1
       whonixcheck_run_function check_tor_socks_port ## 40_check_tor_socks_or_trans_port
-      $output ${output_opts[@]} --progress "15"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "15"
 
       ## Uses the network. 2
       whonixcheck_run_function check_tor_trans_port ## 40_check_tor_socks_or_trans_port
-      $output ${output_opts[@]} --progress "30"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "30"
 
       ## Does not use the network.
       whonixcheck_run_function check_stream_isolation ## 45_check-stream-isolation
@@ -115,44 +127,44 @@ whonixcheck_main() {
       ## after checking IPs
       ## early in list, because less likely to break
       whonixcheck_run_function download_whonix_news ## 50_check-whonix-news
-      $output ${output_opts[@]} --progress "45"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "45"
 
       ## Uses the network. 4
       whonixcheck_run_function check_operating_system ## 55_check-operating-system
-      $output ${output_opts[@]} --progress "60"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "60"
 
       ## Does not use the network.
       whonixcheck_run_function check_whonix_apt_repository ## 56_check-whonix-apt-repository
-      $output ${output_opts[@]} --progress "61"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "61"
 
       ## Uses the network. 5
       whonixcheck_run_function download_important_blog ## 60_download-whonix-blog
-      $output ${output_opts[@]} --progress "75"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "75"
 
       ## Uses the network. 7
       whonixcheck_run_function download_feature_blog ## 60_download-whonix-blog
-      $output ${output_opts[@]} --progress "90"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "90"
 
       ## Uses the network. 4
       whonixcheck_run_function check_torbrowser ## 65_check-torbrowser
-      $output ${output_opts[@]} --progress "95"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "95"
 
    else
       ## for Whonix-Gateway
 
       ## Uses the network. 1
       whonixcheck_run_function check_tor_socks_port ## 40_check_tor_socks_or_trans_port
-      $output ${output_opts[@]} --progress "33"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "33"
 
       ## Uses the network. 2
       ## after checking IP
       ## early in list, because less likely to break
       whonixcheck_run_function download_whonix_news ## 50_check-whonix-news
-      $output ${output_opts[@]} --progress "66"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "66"
 
       ## Uses the network. 3
       whonixcheck_run_function check_operating_system ## 55_check-operating-system
-      $output ${output_opts[@]} --progress "95"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "95"
    fi
 
    whonixcheck_run_function donate ## 72_donate

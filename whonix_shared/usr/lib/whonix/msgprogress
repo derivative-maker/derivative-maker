@@ -1,0 +1,150 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+scriptname="$(basename $0)"
+
+error_handler() {
+   local return_code="$?"
+
+   local msg="\
+###############################################################################
+## $scriptname script bug.
+## No panic. Nothing is broken. Just some rare condition has been hit.
+## Try again later. There is likely a solution for this problem.
+## Please see Whonix News, Whonix Blog and Whonix User Help Forum.
+## Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+## return_code: $return_code
+###############################################################################\
+"
+   echo "$msg"
+   exit 1
+}
+
+trap "error_handler" ERR
+
+parse_cmd_options() {
+   trap "error_handler" ERR
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while true; do
+       case $1 in
+           --verbose)
+               set -x
+               verbose="1"
+               shift
+               ;;
+           --identifier)
+               identifier="$2"
+               shift 2
+               ;;
+           --progress)
+               progress="$2"
+               shift 2
+               ;;
+           --progressbaridx)
+               progressbaridx="$2"
+               shift 2
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$scriptname unknown option: $type" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+}
+
+loop_protection() {
+   prot="$(expr "$prot" + "1")"
+   if [ $prot -gt "60" ]; then
+      exit 2
+   fi
+}
+
+progress_bar() {
+   trap "error_handler" ERR
+
+   if [ "$prot" = "" ]; then
+      prot="0"
+   fi
+   loop_protection
+
+   if [ -p "/var/run/msgcollector/${identifier}.${progressbaridx}.fifo" ]; then
+      local fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
+   else
+      sleep "1" &
+      wait "$!"
+      progress_bar ${1+"$@"}
+      return 0
+   fi
+
+   if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid" ]; then
+      zenity_progress_pid="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid")"
+   else
+      if [ "$prot" = "" ]; then
+         prot="0"
+      fi
+      sleep "1" &
+      wait "$!"
+      progress_bar ${1+"$@"}
+      return 0
+   fi
+
+   ## Check if zenity is still running.
+   local ps_return="0"
+   ps -p "$zenity_progress_pid" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
+
+   if [ "$ps_return" = "0" ]; then
+      true "Zenity pid is still active."
+
+      ## For extra security against freezing while trying to write to a non-existing pipe, let's use timeout.
+      ## || true to catch an error if the pipe no longer exists.
+      timeout 1 /bin/bash -c "echo "$progress" | sudo -u user tee "$fifo" > /dev/null" || true
+
+      ## Debugging.
+      #caller="$(ps -p $PPID)" || true
+      #echo "progress: $progress | caller: $PPID | $caller" >> /home/user/progresslog
+
+      if [ "$progress" = "100" ]; then
+         ## Debugging.
+         #echo "progress: $progress | caller: $PPID | $caller | killing $zenity_progress_pid" >> /home/user/progresslog
+
+         kill -sigterm "$zenity_progress_pid"
+         rm --force "$fifo"
+         rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid"
+         rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
+      fi
+      return 0
+   else
+      true "Zenity pid not active."
+      sleep "1" &
+      wait "$!"
+      progress_bar ${1+"$@"}
+      return 0
+   fi
+}
+
+parse_cmd_options ${1+"$@"}
+
+if [ "$progress" = "" ]; then
+   error "Variable progress does not exist"
+   exit 1
+fi
+
+progress_bar

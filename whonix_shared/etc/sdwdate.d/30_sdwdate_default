@@ -70,9 +70,11 @@ MIN_INTERVAL="10"
 RANDOMIZE="1"
 
 ## This command will be `eval`uated before DISPATCH_PREREQUISITE and before running curl.
+## sdwdate provides the $SDW_MODE variable, which is either set to
+## - startup (when the sdwdate process is started)
+## - daemon (when the sdwdate process finished one loop and will continue)
 ## When set to "", it will be skipped.
-## (Developer comment: When modifying this line, also consider modifying /usr/lib/whonix/whonixsetup/ft_m_1.)
-DISPATCH_PRE="/usr/lib/whonix/sdw_pre --autostart & disown"
+DISPATCH_PRE=""
 
 ## Prerequisite before trying to connect to servers.
 ## This is supposed to be a command to be `eval`uated and to exit with code
@@ -82,45 +84,55 @@ DISPATCH_PRE="/usr/lib/whonix/sdw_pre --autostart & disown"
 ## - Anything else, if sdwdate should terminate itself due to an unexpected error.
 ## It may be useful to check if the network is already reachable.
 ## When set to "", it will be skipped.
-DISPATCH_PREREQUISITE="/usr/lib/whonix/sdw_prerequisite"
+DISPATCH_PREREQUISITE=""
 
 ## This command will be `eval`uated when an unexpected error (bug) in sdwdate has been caught.
 ## sdwdate will provide the $error_message and $DONE_FILE variable.
 ## Remember to escape variables either using \$ or '$variable'.
 ## When set to "", it will be skipped.
-DISPATCH_POST_ERROR='touch "$DONE_FILE" ; /usr/lib/whonix/sdw_post_error "$error_message" ; exit 1'
+DISPATCH_POST_ERROR=""
+
+## Create $DONE_FILE on error.
+## 1 enabled.
+## 0 disabled.
+SDW_TOUCH_DONE_FILE_ON_ERROR="1"
+
+## Exit 1 on error. This will stop the daemon from running.
+## 1 enabled.
+## 0 disabled.
+SDW_EXIT_ON_ERROR="1"
 
 ## This command will be `eval`uated when sdwdate succeeded.
 ## When set to "", it will be skipped.
-DISPATCH_POST_SUCCESS="/usr/lib/whonix/sdw_post_success --autostart & disown"
+DISPATCH_POST_SUCCESS=""
 
 ## This command will be `eval`uated when sdwdate failed.
 ## When set to "", it will be skipped.
-DISPATCH_POST_FAILURE="/usr/lib/whonix/sdw_post_failure --autostart & disown"
+DISPATCH_POST_FAILURE=""
 
 ## This command will be `eval`uated before trying to connect to the pal pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 15"
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_PAL]=""
 
 ## This command will be `eval`uated before after connecting to the pal pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 30"
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_PAL]=""
 
 ## This command will be `eval`uated before trying to connect to the neutral pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 45"
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_NEUTRAL]=""
 
 ## This command will be `eval`uated before after connecting to the neutral pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 60"
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_NEUTRAL]=""
 
 ## This command will be `eval`uated before trying to connect to the foe pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 65"
+SDWDATE_CURL_DISPATCH_PRE[SDWDATE_POOL_FOE]=""
 
 ## This command will be `eval`uated before trying after connecting to the pal pool.
 ## When set to "", it will be skipped.
-SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]="sudo -u user /usr/lib/whonix/doutput --icon /usr/share/whonix/icons/timesync.ico --identifier timesync --progress 80"
+SDWDATE_CURL_DISPATCH_POST[SDWDATE_POOL_FOE]=""
 
 ## Pal pool.
 SDWDATE_POOL_PAL=(

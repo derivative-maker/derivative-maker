@@ -1,0 +1,192 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+scriptname="$(basename $0)"
+
+error_handler() {
+   local return_code="$?"
+
+   local msg="\
+###############################################################################
+## $scriptname script bug.
+## No panic. Nothing is broken. Just some rare condition has been hit.
+## Try again later. There is likely a solution for this problem.
+## Please see Whonix News, Whonix Blog and Whonix User Help Forum.
+## Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+## return_code: $return_code
+###############################################################################\
+"
+   echo "$msg"
+   exit 1
+}
+
+trap "error_handler" ERR
+
+parse_cmd_options() {
+   trap "error_handler" ERR
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while true; do
+       case $1 in
+           --verbose)
+               set -x
+               verbose="1"
+               shift
+               ;;
+           --identifier)
+               identifier="$2"
+               shift 2
+               ;;
+           --progressbaridx)
+               progressbaridx="$2"
+               shift 2
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$scriptname unknown option: $type" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+}
+
+output_ex() {
+   trap "error_handler" ERR
+
+   ## This function is called when the cancel button in zenity gets pressed.
+
+   if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid" ]; then
+      parentpid="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid")"
+   else
+      true "$output_signal_caught caught. Not killing parentpid $parentpid, \
+because /var/run/msgcollector/${identifier}.${progressbaridx}.parentpid does not exist."
+      exit 0
+   fi
+
+   ## Check if still running.
+   local ps_return="0"
+   ps -p "$parentpid" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
+
+   if [ "$ps_return" = "0" ]; then
+      true "$output_signal_caught caught. Killing parentpid $parentpid."
+      kill -SIGTERM "$parentpid"
+   else
+      true "$output_signal_caught caught. Not killing parentpid $parentpid, because it is already terminated."
+   fi
+
+   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
+
+   exit 0
+}
+
+output_sighup() {
+   trap "error_handler" ERR
+   output_signal_caught="SIGHUP"
+   output_ex
+}
+
+trap "output_sighup" SIGHUP
+
+output_sigterm() {
+   trap "error_handler" ERR
+   output_signal_caught="SIGTERM"
+   output_ex
+}
+
+trap "output_sigterm" SIGTERM
+
+start_progress_bar() {
+   trap "error_handler" ERR
+
+   if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx" ]; then
+      local msg="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx")"
+      rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx"
+   fi
+
+   if [ "$msg" = "" ]; then
+      local msg="Progress bar message is empty, please report this Whonix bug!"
+   fi
+
+   if [ -f "/var/run/msgcollector/${identifier}.titlex" ]; then
+      local title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
+   fi
+
+   if [ "$title" = "" ]; then
+      local title="Variable title does not exist. Please report this bug!"
+   fi
+
+   if [ -f "/var/run/msgcollector/${identifier}.icon" ]; then
+      local icon="$(cat "/var/run/msgcollector/${identifier}.icon")"
+   fi
+
+   if [ "$icon" = "" ]; then
+      ## TODO: write error log
+      local icon="/usr/share/whonix/icons/whonix.ico"
+   fi
+
+   if [ -f "/var/run/msgcollector/${identifier}.lefttop" ]; then
+      local lefttop="1"
+   fi
+
+   if [ "$display" = "" ]; then
+      display=":0"
+   fi
+
+   local fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
+
+   ## Clean up eventual old progress bar.
+   rm --force "$fifo"
+
+   sudo -u user mkfifo "$fifo"
+
+   zenity \
+      --display="$display" \
+      --timeout "86400" \
+      --no-markup \
+      --window-icon "$icon" \
+      --title="$title" \
+      --auto-kill \
+      --progress \
+      --text "$msg" \
+      < "$fifo" & zenity_progress_pid="$!"
+
+   ## "2>/dev/null" is required to hide the output "Killed zenity --display..."
+   ## later when it gets killed by the progress_bar function.
+   exec 3>"$fifo"
+
+   echo "$zenity_progress_pid" | sudo -u user tee "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid" > /dev/null
+
+   if [ "$lefttop" = "1" ]; then
+      ## set progressbar variable to 1, so the progress bar window will not be
+      ## maximized by output_wmctrl.
+      progressbar="1"
+
+      ## provided by /usr/lib/whonix/msgwmctrl
+      output_wmctrl "$title"
+   fi
+
+   ## Waiting for SIGHUP.
+   ## Happens when zentiy reached 100% or when cancel button is pressed.
+   wait
+}
+
+source /usr/lib/whonix/msgwmctrl
+fallbacks ## provided by /usr/lib/whonix/msgwmctrl
+parse_cmd_options ${1+"$@"}
+start_progress_bar

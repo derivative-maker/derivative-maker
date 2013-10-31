@@ -18,13 +18,16 @@ ICON="/usr/share/whonix/icons/timesync.ico"
 
 SCRIPTNAME="$(basename $0)"
 IDENTIFIER="timesync"
+progressbaridx="$IDENTIFIER"
+progressbaridx_main="$progressbaridx"
 
 source /usr/lib/whonix/whonixcheck/help_error-handler
+trap "error_handler" ERR
+
 source /usr/lib/whonix/whonixcheck/help_cli
 source /usr/lib/whonix/whonixcheck/help_parse-cmd-options
 source /usr/lib/whonix/whonixcheck/10_preparation
 source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
-source /usr/lib/whonix/whonixcheck/30_welcome
 source /usr/lib/whonix/whonixcheck/35_disclaimer
 source /usr/lib/whonix/timesync/30_run-sdwdate
 source /usr/lib/whonix/whonixcheck/67_check_clock
@@ -46,7 +49,9 @@ timesync_main() {
       return 0
    fi
 
-   welcome ## 20_welcome
+   local MSG="$NOTIFY_MSG"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+
    disclaimer ## 25_disclaimer
    check_tor_enabled ## 17_check_tor_enabled
    check_bootclockrandomization ## 67_check_clock

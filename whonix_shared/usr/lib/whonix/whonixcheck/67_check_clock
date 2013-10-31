@@ -20,12 +20,14 @@ check_bootclockrandomization() {
 
    if [ "$returncode" = "0" ]; then
       local MSG="bootclockrandomization success."
-      #$output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      #$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       local MSG="bootclockrandomization failed. Please report this bug!
 Last 6 lines of /var/log/bootclockrandomization.log:
 $(tail -n 6 /var/log/bootclockrandomization.log)"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    fi
 }
 
@@ -42,7 +44,6 @@ check_timesanitycheck() {
       if [ "$returncode" = "2" ]; then
          local MSG="It may have happened, that sdwdate was run before timesanitycheck.
 Let us wait a few seconds and try checking timesanitycheck status again."
-         #$output ${output_opts[@]} --channel "debug" --type "info" --title "$TITLE" --message "$MSG"
          sleep "10" &
          wait "$!"
          ## There is an exception in /etc/sudoers.d/timesanitycheck.
@@ -53,7 +54,8 @@ Let us wait a few seconds and try checking timesanitycheck status again."
 
    if [ "$returncode" = "0" ]; then
       local MSG="timesanitycheck success."
-      #$output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
+      #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      #$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!! (code: $returncode)
 Last 6 lines of /var/log/timesanitycheck.log:
@@ -61,6 +63,7 @@ $(tail -n 6 /var/log/timesanitycheck.log)
 
 Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
 If your host clock is sane, please report a bug."
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    fi
 }

@@ -1,0 +1,566 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## Examples:
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typecli "warning" --titlecli "test title" --messagecli --message "test"
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typex "warning" --titlex "test title" --messagex --message "test" --lefttop
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typex "warning" --titlex "test title" --waitmessagex --message "test"
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typex "warning" --titlex "test title" --passivepopupqueuex --message "test"
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typex "warning" --titlex "test title" --progressbarx --message "test" --done
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --progressx "50"
+## whonix_shared/usr/lib/whonix/msgdispatcher
+
+## Tests:
+## whonix_shared/usr/lib/whonix/msgcollector --identifier whonixcheck --icon /usr/share/whonix/icons/whonix.ico --parentpid "$$" --typex "warning" --titlex "test title" --progressbaridx "test" --progressbarx --message "test" --done
+## whonix_shared/usr/lib/whonix/msgcollector --icon /usr/share/whonix/icons/timesync.ico --parentpid 8196 --identifier whonixcheck --progressbaridx "test" --progressx 100
+
+scriptname="$(basename $0)"
+
+error_handler() {
+   local return_code="$?"
+
+   local msg="\
+###############################################################################
+## $scriptname script bug.
+## No panic. Nothing is broken. Just some rare condition has been hit.
+## Try again later. There is likely a solution for this problem.
+## Please see Whonix News, Whonix Blog and Whonix User Help Forum.
+## Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+## return_code: $return_code
+###############################################################################\
+"
+   echo "$msg"
+   exit 1
+}
+
+parse_cmd_options() {
+   trap "error_handler" ERR
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   while true; do
+       case $1 in
+           --verbose)
+               set -x
+               verbose="1"
+               shift
+               ;;
+           --debug)
+               debug="1"
+               shift
+               ;;
+           --identifier)
+               identifier="$2"
+               shift 2
+               ;;
+           --icon)
+               icon="$2"
+               shift 2
+               ;;
+           --parentpid)
+               parentpid="$2"
+               shift 2
+               ;;
+           --typecli)
+               cli="1"
+               typecli="$2"
+               shift 2
+               if [ "$typecli" = "" ]; then
+                  echo "$0 ERROR: variable typecli is empty."
+                  exit 1
+               fi
+               ;;
+           --typex)
+               typex="$2"
+               shift 2
+               if [ "$typex" = "" ]; then
+                  echo "$0 ERROR: variable typex is empty."
+                  exit 1
+               fi
+               ;;
+           --message)
+               message="$2"
+               shift 2
+               if [ "$message" = "" ]; then
+                  echo "$0 ERROR: variable message is empty."
+                  exit 1
+               fi
+               ;;
+           --titlecli)
+               cli="1"
+               titlecli="$2"
+               shift 2
+               ;;
+           --titlex)
+               titlex="$2"
+               shift 2
+               ;;
+           --messagex)
+               messagex="1"
+               shift
+               ;;
+           --messagecli)
+               cli="1"
+               messagecli="1"
+               shift
+               ;;
+           --waitmessagecli)
+               waitmessagecli="1"
+               shift
+               ;;
+           --waitmessagex)
+               waitmessagex="1"
+               shift
+               ;;
+           --passivepopupqueuex)
+               passivepopupqueuex="1"
+               shift
+               ;;
+           --progressx)
+               progressx="$2"
+               shift 2
+               if [ "$progressx" = "" ]; then
+                  echo "$0 ERROR: variable progressx is empty."
+                  exit 1
+               fi
+               ;;
+           --progressbarx)
+               progressbarx="1"
+               shift
+               ;;
+           --nonewlinex)
+               nonewlinex="1"
+               shift
+               ;;
+           --newlinecli)
+               newlinecli="1"
+               shift
+               ;;
+           --forceactive)
+               forceactive="1"
+               shift
+               ;;
+           --lefttop)
+               lefttop="1"
+               shift
+               ;;
+           --parenttty)
+               parenttty="$2"
+               shift 2
+               ;;
+           --done)
+               done="1"
+               shift
+               ;;
+           --forget)
+               forget="1"
+               shift
+               ;;
+           --progressbaridx)
+               progressbaridx="$2"
+               shift 2
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "$scriptname unknown option: $1" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+
+   if [[ ! "$@" = "" ]]; then
+      echo "$scriptname unknown option: $1" >&2
+      exit 3
+   fi
+}
+
+colors() {
+   trap "error_handler" ERR
+
+## The checks [[ -t 2 ]] and [[ $TERM != *-m ]] have been deactivated, because
+## at the time msgcollector gets its first messages, there might be no
+## terminal. We need those colors anyway, because they get stored in the files.
+
+## Thanks to:
+## http://mywiki.wooledge.org/BashFAQ/037
+## Variables for terminal requests.
+#[[ -t 2 ]]
+true && {
+    alt=$(      tput smcup  || tput ti      ) # Start alt display
+    ealt=$(     tput rmcup  || tput te      ) # End   alt display
+    hide=$(     tput civis  || tput vi      ) # Hide cursor
+    show=$(     tput cnorm  || tput ve      ) # Show cursor
+    save=$(     tput sc                     ) # Save cursor
+    load=$(     tput rc                     ) # Load cursor
+    bold=$(     tput bold   || tput md      ) # Start bold
+    stout=$(    tput smso   || tput so      ) # Start stand-out
+    estout=$(   tput rmso   || tput se      ) # End stand-out
+    under=$(    tput smul   || tput us      ) # Start underline
+    eunder=$(   tput rmul   || tput ue      ) # End   underline
+    reset=$(    tput sgr0   || tput me      ) # Reset cursor
+    blink=$(    tput blink  || tput mb      ) # Start blinking
+    italic=$(   tput sitm   || tput ZH      ) # Start italic
+    eitalic=$(  tput ritm   || tput ZR      ) # End   italic
+#[[ $TERM != *-m ]]
+true && {
+    red=$(      tput setaf 1|| tput AF 1    )
+    green=$(    tput setaf 2|| tput AF 2    )
+    yellow=$(   tput setaf 3|| tput AF 3    )
+    blue=$(     tput setaf 4|| tput AF 4    )
+    magenta=$(  tput setaf 5|| tput AF 5    )
+    cyan=$(     tput setaf 6|| tput AF 6    )
+}
+    white=$(    tput setaf 7|| tput AF 7    )
+    default=$(  tput op                     )
+    eed=$(      tput ed     || tput cd      )   # Erase to end of display
+    eel=$(      tput el     || tput ce      )   # Erase to end of line
+    ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
+    ewl=$eel$ebl                                # Erase whole line
+    draw=$(     tput -S <<< '   enacs
+                                smacs
+                                acsc
+                                rmacs' || { \
+                tput eA; tput as;
+                tput ac; tput ae;         } )   # Drawing characters
+    back=$'\b'
+} 2>/dev/null ||:
+}
+
+loop_protection() {
+   prot="$(expr "$prot" + "1")"
+   if [ $prot -gt "60" ]; then
+      exit 2
+   fi
+}
+
+## {{ In case /etc/init.d/msgcollector has not started yet, i.e. has not
+##    created "/var/run/msgcollector" yet, wait a bit.
+maybe_wait() {
+   ## initialize prot variable
+   if [ "$prot" = "" ]; then
+      prot="0"
+   fi
+
+   loop_protection
+
+   if [ ! -d "/var/run/msgcollector" ]; then
+      true "Waiting for /var/run/msgcollector..."
+      sleep 2 &
+      wait "$!"
+      maybe_wait
+      return 0
+   fi
+
+   ## The following tests are only of interest when run in cli mode.
+   if [ ! "$cli" = "1" ]; then
+      return 0
+   fi
+
+   local command_v_tput_return="0"
+   command -v tput >/dev/null || { local command_v_tput_return="$?" ; true; };
+
+   if [ ! "$command_v_tput_return" = "0" ]; then
+      true "Waiting for tput..."
+      sleep 2 &
+      wait "$!"
+      maybe_wait
+      return 0
+   fi
+}
+## }}
+
+pretty_type() {
+   trap "error_handler" ERR
+
+   if [ "$1" = "info" ]; then
+      p_type="${green}INFO${reset}"
+   elif [ "$1" = "warning" ]; then
+      p_type="${red}WARNING${reset}"
+   elif [ "$1" = "error" ]; then
+      p_type="${red}${bold}ERROR${reset}"
+   else
+      p_type="${red}???${reset}"
+   fi
+}
+
+collector() {
+   trap "error_handler" ERR
+
+   ## {{ --identifier
+   if [ "${identifier}" = "" ]; then
+      echo "$0 ERROR: variable identifier is empty."
+      exit 1
+   fi
+   ## }}
+
+   ## {{ --icon
+   if [ "$icon" = "" ]; then
+      echo "$0 ERROR: variable icon is empty."
+      exit 1
+   fi
+   echo "$icon" | sudo -u user tee "/var/run/msgcollector/${identifier}.icon" > /dev/null
+   ## }}
+
+   ## {{ --parentpid
+   if [ "$parentpid" = "" ]; then
+      #echo "$0 ERROR: variable parentpid is empty."
+      #exit 1
+      ## Small hack, so not all applications get killed when pressing the cancel button
+      ## such as timesync.
+      parentpid="0000000000"
+   fi
+   echo "$parentpid" | sudo -u user tee "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid" > /dev/null
+   ## }}
+
+   ## {{ --titlecli
+   if [ ! -z "$titlecli" ]; then
+      ## variable $titlecli exists
+      echo "$titlecli" | sudo -u user tee "/var/run/msgcollector/${identifier}.titlecli" > /dev/null
+   fi
+   ## }}
+
+   ## {{ --titlex
+   if [ ! -z "$titlex" ]; then
+      ## variable $titlex exists
+      echo "$titlex" | sudo -u user tee "/var/run/msgcollector/${identifier}.titlex" > /dev/null
+   fi
+   ## }}
+
+   ## {{ --typecli
+   if [ -f "/var/run/msgcollector/${identifier}.typecli" ]; then
+      old_typecli="$(cat "/var/run/msgcollector/${identifier}.typecli")"
+   fi
+
+   if [ "$old_typecli" = "info" ]; then
+      if [ "$typecli" = "error" ]; then
+         ## Upgrade from info to error.
+         echo "error" | sudo -u user tee "/var/run/msgcollector/${identifier}.typecli" > /dev/null
+      elif [ "$typecli" = "warning" ]; then
+         ## Upgrade from info to warning.
+         echo "warning" | sudo -u user tee "/var/run/msgcollector/${identifier}.typecli" > /dev/null
+      fi
+   elif [ "$old_typecli" = "warning" ]; then
+      if [ "$typecli" = "error" ]; then
+         ## Upgrade from warning to error.
+         echo "error" | sudo -u user tee "/var/run/msgcollector/${identifier}.typecli" > /dev/null
+      fi
+   elif [ "$old_typecli" = "error" ]; then
+      true
+   else
+      echo "$typecli" | sudo -u user tee "/var/run/msgcollector/${identifier}.typecli" > /dev/null
+   fi
+   ## }}
+
+   ## {{ --typex
+   if [ -f "/var/run/msgcollector/${identifier}.typex" ]; then
+      old_typex="$(cat "/var/run/msgcollector/${identifier}.typex")"
+   fi
+
+   if [ "$old_typex" = "info" ]; then
+      if [ "$typex" = "error" ]; then
+         ## Upgrade from info to error.
+         echo "error" | sudo -u user tee "/var/run/msgcollector/${identifier}.typex" > /dev/null
+      elif [ "$typex" = "warning" ]; then
+         ## Upgrade from info to warning.
+         echo "warning" | sudo -u user tee "/var/run/msgcollector/${identifier}.typex" > /dev/null
+      fi
+   elif [ "$old_typex" = "warning" ]; then
+      if [ "$typex" = "error" ]; then
+         ## Upgrade from warning to error.
+         echo "error" | sudo -u user tee "/var/run/msgcollector/${identifier}.typex" > /dev/null
+      fi
+   elif [ "$old_typex" = "error" ]; then
+      true
+   else
+      echo "$typex" | sudo -u user tee "/var/run/msgcollector/${identifier}.typex" > /dev/null
+   fi
+   ## }}
+
+   ## {{ --messagex
+   if [ "$messagex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.messagex"
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --waitmessagex
+   if [ "$waitmessagex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.waitmessagex"
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --messagecli
+   if [ "$messagecli" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.messagecli"
+      if [ ! -z "$message" ]; then
+         ## variable $message exists
+         pretty_type "$typecli"
+         message="[$p_type] $message"
+         echo "$message"
+      fi
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --waitmessagecli
+   if [ "$waitmessagecli" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.waitmessagecli"
+      if [ ! -z "$message" ]; then
+         ## variable $message exists
+         pretty_type "$typecli"
+         message="[$p_type] $message"
+         echo "$message"
+      fi
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --passivepopupqueuex
+   if [ "$passivepopupqueuex" = "1" ]; then
+      write_to_file="/var/run/msgcollector/${identifier}.passivepopupqueuex"
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --progressx
+   if [ ! "$progressx" = "" ]; then
+      if [ "${progressbaridx}" = "" ]; then
+         error "Variable progressbaridx is empty."
+         exit 4
+      fi
+
+      ## Debugging.
+      #caller="$(ps -p $PPID)" || true
+      #echo "msgcollector: progressx: $progressx | caller: $PPID | $caller" >> /home/user/progresslog
+
+      ## & disown to prevent long waiting.
+      /usr/lib/whonix/msgprogress --identifier "$identifier" --progressbaridx "${progressbaridx}" --progress "$progressx" & disown
+   fi
+   ## }}
+
+   ## {{ --progressbarx
+   if [ "$progressbarx" = "1" ]; then
+      if [ "${progressbaridx}" = "" ]; then
+         error "Variable progressbaridx is empty."
+         exit 4
+      fi
+      write_to_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx"
+      append_to_file
+   fi
+   ## }}
+
+   ## {{ --forceactive
+   if [ "$forceactive" = "1" ]; then
+      sudo -u user touch "/var/run/msgcollector/${identifier}.forceactive"
+   fi
+   ## }}
+
+   ## {{ --lefttop
+   if [ "$lefttop" = "1" ]; then
+      sudo -u user touch "/var/run/msgcollector/${identifier}.lefttop"
+   fi
+   ## }}
+
+   ## {{ --parenttty
+   if [ ! -z "$parenttty" ]; then
+      echo "$parenttty" > "/var/run/msgcollector/${identifier}.parenttty"
+   fi
+   ## }}
+}
+
+append_to_file() {
+   trap "error_handler" ERR
+
+   if [ ! -z "$message" ]; then
+      ## variable $message exists
+      if [ "$newlinecli" = "1" ]; then
+         echo "
+$message" | sudo -u user tee --append "$write_to_file" > /dev/null
+      elif [ "$messagex" = 1 ]; then
+         if [ "$nonewlinex" = "1" ]; then
+            echo "$message" | sudo -u user tee --append "$write_to_file" > /dev/null
+         else
+            echo "$message
+" | sudo -u user tee --append "$write_to_file" > /dev/null
+         fi
+      else
+         echo "$message" | sudo -u user tee --append "$write_to_file" > /dev/null
+      fi
+   fi
+
+   ## {{ --done
+   if [ "$done" = "1" ]; then
+      sudo -u user touch "${write_to_file}.done"
+   fi
+   ## }}
+}
+
+forget() {
+   ## & disown to prevent long waiting.
+   ## Setting progress to 100, so any eventually still open progress bars get closed.
+   ## Deactivated.
+   ## Problematic if a new progress bar will be started quickly afterward.
+   #/usr/lib/whonix/msgprogress --identifier "$identifier" --progress "100" & disown
+
+   local file_list=(
+      "/var/run/msgcollector/${identifier}.icon"
+      "/var/run/msgcollector/${identifier}.titlecli"
+      "/var/run/msgcollector/${identifier}.titlex"
+      "/var/run/msgcollector/${identifier}.typecli"
+      "/var/run/msgcollector/${identifier}.typex"
+      "/var/run/msgcollector/${identifier}.messagex"
+      "/var/run/msgcollector/${identifier}.waitmessagex"
+      "/var/run/msgcollector/${identifier}.messagecli"
+      "/var/run/msgcollector/${identifier}.waitmessagecli"
+      "/var/run/msgcollector/${identifier}.passivepopupqueuex"
+      "/var/run/msgcollector/${identifier}.progressbarx"
+      "/var/run/msgcollector/${identifier}.forceactive"
+      "/var/run/msgcollector/${identifier}.lefttop"
+      "/var/run/msgcollector/${identifier}.parenttty"
+   )
+
+   ## Better not deleting
+   ## "/var/run/msgcollector/${identifier}.parentpid"
+   ## "/var/run/msgcollector/${identifier}.fifo" and
+   ## "/var/run/msgcollector/${identifier}.zenityprogresspid",
+   ## because that could confuse /usr/lib/whonix/msgprogress.
+
+   local file
+
+   for file in "${file_list[@]}"; do
+      if [ -e "$file" ]; then
+         rm --force "$file"
+      fi
+   done
+}
+
+## Debugging.
+#echo "${1+"$@"}
+#" >> "/home/user/msgcollector"
+
+parse_cmd_options ${1+"$@"}
+
+if [ "$forget" = "1" ]; then
+   forget
+   exit 0
+fi
+
+maybe_wait
+colors
+collector

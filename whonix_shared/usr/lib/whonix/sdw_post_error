@@ -10,23 +10,34 @@ ICON="/usr/share/whonix/icons/timesync.ico"
 
 SCRIPTNAME="$(basename $0)"
 IDENTIFIER="timesync"
+progressbaridx="$IDENTIFIER"
+progressbaridx_main="$progressbaridx"
 
 source /usr/lib/whonix/whonixcheck/help_error-handler
+trap "error_handler" ERR
+
 source /usr/lib/whonix/whonixcheck/10_preparation
+
+## Sourcing cleanup file, because signal trapping is implemented there.
+source /usr/lib/whonix/whonixcheck/75_cleanup
 
 sdwdate_post_error() {
    trap "error_handler" ERR
 
    preparation ## 10_preparation
 
+   ## no $output --forget
+
    local MSG="${1+"$@"}"
 
-   $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-   $output ${output_opts[@]} --progress "100"
-   $output ${output_opts[@]} --showcli
-   $output ${output_opts[@]} --showx
+   if [ "$MSG" = "" ]; then
+      local MSG="$FUNCNAME: empty error message. Please report this Whonix bug!"
+   fi
 
-   exit 0
+   $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+
+   cleanup "1" ## 75_cleanup
 }
 
 sdwdate_post_error ${1+"$@"}

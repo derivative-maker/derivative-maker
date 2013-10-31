@@ -33,10 +33,10 @@ ICON="/usr/share/whonix/icons/tbupdate.ico"
 
 root_check() {
    if [ "$(id -u)" != "0" ]; then
-      #echo "INFO: $SCRIPTNAME running as user."
+      #echo "$SCRIPTNAME running as user."
       true
    else
-      echo "ERROR: Do not run $SCRIPTNAME as root!"
+      echo "Do not run $SCRIPTNAME as root!"
       exit 1
    fi
 }
@@ -63,11 +63,9 @@ tb_error_handler() {
 ## bash -x $SCRIPTNAME
 ###########################################################\
 "
-   echo "$MSG"
-   $output ${output_opts[@]} --progress "100"
-   $output ${output_opts[@]} --channel "x" --type "error" --title "$TITLE" --message "$MSG"
-   $output ${output_opts[@]} --showx
-
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+   $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
    exit 1
 }
 
@@ -92,7 +90,7 @@ tb_sanity_tests() {
    command -v zenity >/dev/null
    command -v tar >/dev/null
    command -v date >/dev/null
-   command -v /usr/lib/whonix/doutput >/dev/null
+   command -v /usr/lib/whonix/msgcollector >/dev/null
    ## tbbversion function
    command -v grep >/dev/null
    ## tbbversion function
@@ -110,14 +108,12 @@ trap_tb() {
       kill -1 "$LAST_CURL_PRGRS_PID"
    fi
 
-   $output ${output_opts[@]} --progress "100"
-   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-   $output ${output_opts[@]} --channel "echo" --type "error" --title "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
 
    #MSG="Aborted."
-   #$output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-   #$output ${output_opts[@]} --showx
-
+   #$output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+   #$output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
    exit 1
 }
 
@@ -324,7 +320,7 @@ parse_cmd_options() {
 
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
-   true "$0 INFO: \$@: $@"
+   true "$0 \$@: $@"
 }
 
 
@@ -346,7 +342,7 @@ tb_preparation() {
    ##ARCH="x86_64"
    ##ARCH="i686"
    ARCH="$(uname --machine)"
-   echo "INFO: $ARCH detected."
+   echo "$ARCH detected."
 
    ## provides tbbversion function
    source /usr/lib/whonix/whonixcheck/help_tbbversion
@@ -372,10 +368,10 @@ tb_preparation() {
 
    ## Check if TB_LANG exists and is not empty.
    if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-      #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
+      #debug "Tor Browser language variable is set to "$TB_LANG"."
       true
    else
-      #debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
+      #debug "Tor Browser language variable not found. Setting TB_LANG to the default en-US."
       TB_LANG="en-US"
    fi
 
@@ -389,23 +385,30 @@ tb_preparation() {
 
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
 
+   ## TODO: separate id for every progress bar
+   local tmp="$(mktemp)"
+   progressbaridx="${tmp##*.}"
+
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       output="true"
    else
-      output="sudo -u user /usr/lib/whonix/doutput"
+      output="/usr/lib/whonix/msgcollector"
    fi
 
+   local tty="$(tty)"
+
    output_opt_1="--icon $ICON"
-   output_opt_2="--display $display"
+   output_opt_2="--parentpid $$"
    output_opt_3="--identifier ${IDENTIFIER}"
-   output_opt_4="--instantecho"
-   output_opt_5="--nonewlinecli"
+   output_opt_4="--parenttty $tty"
+   #output_opt_5=""
 
    output_opts=( "$output_opt_1" "$output_opt_2" "$output_opt_3" "$output_opt_4" "$output_opt_5")
 
    TITLE="Tor Browser Update Check (Whonix)"
 
-   $output ${output_opts[@]} --forget
+   ## TODO
+   #$output ${output_opts[@]} --forget
 
    ## provides $CURL variable
    source /usr/lib/whonix/whonixcheck/help_uwt_tool
@@ -430,7 +433,7 @@ tb_preparation() {
 
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
-   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progress \"\$percent\""
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
 }
 
 
@@ -450,13 +453,11 @@ tb_update_check() {
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      $output ${output_opts[@]} --forget
-
       NOTIFY_MSG="Checking Tor Browser version... Will take a moment..."
 
-      $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1
-      $output ${output_opts[@]} --progress "5"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
    fi
 
    if [ "$DEV_PASSTHROUGH" = "1" ]; then
@@ -465,9 +466,9 @@ tb_update_check() {
       CURL_PROXY="--socks5-hostname socks5h://$GATEWAY_IP:$SOCKS_PORT_TBB_DOWNLOAD/"
    fi
 
-   debug "INFO: Find out latest version..."
+   debug "Find out latest version..."
    LINK="https://check.torproject.org/RecommendedTBBVersions"
-   debug "INFO: Downloading: "$LINK""
+   debug "Downloading: "$LINK""
 
    mkdir --parents "$home_folder/.tb"
 
@@ -495,11 +496,9 @@ tb_update_check() {
 
 $DOWNLOAD_FAIL_HELP"
 
-      $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --showx
-
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 }
@@ -517,11 +516,9 @@ tb_download() {
    if [ "$TBBVERSION" = "UNKNOWN" ]; then
       MSG="$VERSION_DETECTION_ERROR"
 
-      $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --showx
-
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 
@@ -532,16 +529,15 @@ tb_download() {
       TBBINSTALLEDVERSION="$(head -1 "$temp")" || true
    fi
 
-   $output ${output_opts[@]} --progress "100"
-   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
-      #debug "INFO: Successfully detected Tor Browser version."
+      #debug "Successfully detected Tor Browser version."
       true
    else
       debug "\
-INFO: Could not determine the currently installed Tor Browser version.
-INFO: This could be either because none is installed or because the version format changed.\
+Could not determine the currently installed Tor Browser version.
+This could be either because none is installed or because the version format changed.\
 "
       TBBINSTALLEDVERSION="UNKNOWN OR NONE"
    fi
@@ -584,14 +580,14 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       ## no 1
       ## yes 0
 
-      #debug "INFO: answer: $answer"
+      #debug "answer: $answer"
 
       if [ "$TB_FORCE_INSTALL" = "1" ]; then
-         debug "INFO: TB_FORCE_INSTALL = 1"
+         debug "TB_FORCE_INSTALL = 1"
          true
       else
          if [ "$answer" = "1" ]; then
-            debug "INFO: Canceled. Exit."
+            debug "Canceled. Exit."
             exit 0
          fi
       fi
@@ -601,13 +597,11 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      $output ${output_opts[@]} --forget
-
       NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
 
-      $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1
-      $output ${output_opts[@]} --progress "5"
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
    fi
 
    if [ ! "$NOKILLTB" = "1" ]; then
@@ -651,10 +645,10 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       CURL_FORCE_SSL="--tlsv1 --proto =https"
    fi
 
-   debug "INFO: Downloading GPG signature..."
+   debug "Downloading GPG signature..."
    TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz.asc"
    TBB_SIG_LINK="$TBB_REMOTE_FOLDER/$TBB_SIG_FILENAME"
-   debug "INFO: Downloading: $TBB_SIG_LINK"
+   debug "Downloading: $TBB_SIG_LINK"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
@@ -673,30 +667,28 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
    LAST_CURL_PRGRS_PID=""
 
-   $output ${output_opts[@]} --progress "100"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
       MSG="Failed to download: "$TBB_SIG_LINK"
 
 $DOWNLOAD_FAIL_HELP"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --showx
 
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 
-   $output ${output_opts[@]} --forget
    NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
-   $output ${output_opts[@]} --progressbar --title "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" &
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
    sleep 1
-   $output ${output_opts[@]} --progress "5"
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
 
-   debug "INFO: Downloading Tor Browser Bundle: $TBBVERSION"
+   debug "Downloading Tor Browser Bundle: $TBBVERSION"
    TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz"
    TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/$TBB_PACKAGE_FILENAME"
-   debug "INFO: Downloading: $TBB_PACKAGE_LINK"
+   debug "Downloading: $TBB_PACKAGE_LINK"
 
    CURL_RETURN="0"
 
@@ -721,11 +713,10 @@ $DOWNLOAD_FAIL_HELP"
 
 $DOWNLOAD_FAIL_HELP"
 
-      $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --showx
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 }
@@ -747,18 +738,17 @@ tb_verify() {
    "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
    || { TB_GPG_VERIFY_RETURN="$?" ; true; };
 
-   debug "INFO: Signature valid."
+   debug "Signature valid."
 
    if [ ! "$TB_GPG_VERIFY_RETURN" = "0" ]; then
 MSG="\
-ERROR: GPG download signature could NOT be verified.
-ERROR: Tor Browser update failed! Try again later.\
+GPG download signature could NOT be verified.
+Tor Browser update failed! Try again later.\
 "
-      $output ${output_opts[@]} --progress "100"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --showx
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 }
@@ -774,17 +764,17 @@ tb_extract() {
    ## Just to make sure the script will not break in case the get changed by upstream.
    mkdir --parents "$home_folder/.tb/tor-browser_$TB_LANG/Docs"
 
-   debug "INFO: Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
+   debug "Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
    mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
 
    ## Tor Browser changelog has been forgotten to update.
    ## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
    ## To play it safe and having a chance of finding out the installed version,
    ## we create a file ourselves to remember it.
-   debug "INFO: Creating version file tor-browser_$TB_LANG/Docs/version."
+   debug "Creating version file tor-browser_$TB_LANG/Docs/version."
    echo "$TBBVERSION" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
-   debug "INFO: Creating Unbundled Tor Browser startup script..."
+   debug "Creating Unbundled Tor Browser startup script..."
    ## Using this until Tor Browser upstream patch #7266 gets accepted.
    ##    improve RelativeLink.sh script comments, patch attached
    ##    https://trac.torproject.org/projects/tor/ticket/7266
@@ -797,20 +787,19 @@ tb_extract() {
    chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
 
    if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
-      debug "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
+      debug "Moving old folder $home_folder/tor-browser_$TB_LANG..."
       mv "$home_folder/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG.old.$(date '+%F-%H:%M:%S')"
    fi
 
-   debug "INFO: Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
+   debug "Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
    mv "$home_folder/.tb/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG"
 
    local TEMP="$home_folder/tor-browser_$TB_LANG/"
-   MSG="INFO: Finished installing Tor Browser. Can be found in $TEMP."
+   MSG="Finished installing Tor Browser. Can be found in $TEMP."
 
-   $output ${output_opts[@]} --progress "100"
-   $output ${output_opts[@]} --channel "both" --type "info" --title "$TITLE" --message "$MSG"
-   sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-   $output ${output_opts[@]} --showx
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG" --done
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG" --done
 }
 
 
@@ -825,18 +814,16 @@ The folder $home_folder/tor-browser_$TB_LANG/ does not exist.
 Please run: Start Menu -> Applications -> System -> Tor Browser Updater
             or in Terminal: $SCRIPTNAME --update"
 
-      $output ${output_opts[@]} --progress "100"
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG"
-      sudo -u user touch "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
-      $output ${output_opts[@]} --showx
-
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
 
    PID="$(pidof firefox)" || true
 
    if [ "$PID" = "" ]; then
-      debug "INFO: Starting Tor Browser..."
+      debug "Starting Tor Browser..."
       cd "$home_folder/tor-browser_$TB_LANG/"
       "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" &
       ## Unfortunately, we must hard code the time to wait before
@@ -849,13 +836,13 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
       if [ "$LINK" = "" ]; then
          return
       fi
-      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
+      debug "Waiting 30 seconds for Tor Browser to start..."
       sleep 30
    else
-      debug "INFO: Tor Browser is already running."
+      debug "Tor Browser is already running."
    fi
 
-   debug "INFO: Opening link..."
+   debug "Opening link..."
 
    #debug "tb_start_new_tab debug: $home_folder/tor-browser_$TB_LANG/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
@@ -874,7 +861,7 @@ tb_start_recommend() {
    else
       LINK="$IMPORTANTBLOG_OFFLINE_LINK"
    fi
-   debug "INFO: Link set to $LINK"
+   debug "Link set to $LINK"
    tb_start_new_tab
 
    if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
@@ -882,7 +869,7 @@ tb_start_recommend() {
    else
       LINK="$FEATUREBLOG_OFFLINE_LINK"
    fi
-   debug "INFO: Link set to $LINK"
+   debug "Link set to $LINK"
    tb_start_new_tab
 
    exit 0
@@ -915,10 +902,10 @@ elif [ "$open_new_window" = "0" ]; then
    tb_preparation
    tb_start_new_tab
 elif [[ ! "$@" = "" ]]; then
-   true "$0 INFO: \$@: $@"
+   true "$0 \$@: $@"
    /usr/lib/whonix/confirm_open $@
 else
-   true "$0 INFO: Else!?!"
+   true "$0 Else!?!"
 fi
 
 ## End of Whonix /usr/bin/torbrowser

@@ -25,8 +25,14 @@ error_handler() {
 ## submit to Whonix developers.
 ###############################################################################\
 "
-   if [ "$(command -v "$output" >/dev/null)" ]; then
-      $output ${output_opts[@]} --channel "both" --type "error" --title "$TITLE" --message "$MSG" --instanttty
+   ## Check if $output command has been already defined. This is not the case,
+   ## when the script is terminated very early.
+   local command_v_output_return="0"
+   command -v "$output" >/dev/null || { local command_v_output_return="$?" ; true; };
+   if [ "$command_v_output_return" = "0" ]; then
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
+      exit 1
    else
       echo "$MSG"
    fi

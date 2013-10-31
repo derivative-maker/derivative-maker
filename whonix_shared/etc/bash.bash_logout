@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## Whonix /etc/bash.bash_logout
+
+## Terminate msgdispatcher --cli when logging out from tty1.
+
+if [ -f "/var/run/msgcollector/msgdispatcher_pidcli" ]; then
+   pid="$(cat "/var/run/msgcollector/msgdispatcher_pidcli")"
+   if [ ! "$pid" = "" ]; then
+      kill -9 "$pid"
+   fi
+fi
+
+## End of Whonix /etc/bash.bash_logout

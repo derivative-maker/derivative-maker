@@ -17,18 +17,65 @@
 #set -x
 
 error_handler_rads() {
-   echo "$scriptname ERROR: ret: $? | BASH_COMMAND: $BASH_COMMAND"
+   echo "[${red}${bold}ERROR${reset}] [RAM Adjusted Desktop Starter] \
+ret: $? | BASH_COMMAND: $BASH_COMMAND | Please report this Whonix bug!"
 }
 
 trap "error_handler_rads" ERR
 
 sigterm_rads() {
-   #echo "$scriptname INFO: SIGTERM revived!"
-   true "$scriptname INFO: SIGTERM revived!"
+   #echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] SIGTERM received!"
+   true "INFO: [RAM Adjusted Desktop Starter] SIGTERM received!"
 }
 
 trap "sigterm_rads" SIGTERM
 trap "sigterm_rads" SIGINT
+
+colors() {
+   trap "error_handler_rads" ERR
+
+## Thanks to:
+## http://mywiki.wooledge.org/BashFAQ/037
+## Variables for terminal requests.
+[[ -t 2 ]] && {
+    alt=$(      tput smcup  || tput ti      ) # Start alt display
+    ealt=$(     tput rmcup  || tput te      ) # End   alt display
+    hide=$(     tput civis  || tput vi      ) # Hide cursor
+    show=$(     tput cnorm  || tput ve      ) # Show cursor
+    save=$(     tput sc                     ) # Save cursor
+    load=$(     tput rc                     ) # Load cursor
+    bold=$(     tput bold   || tput md      ) # Start bold
+    stout=$(    tput smso   || tput so      ) # Start stand-out
+    estout=$(   tput rmso   || tput se      ) # End stand-out
+    under=$(    tput smul   || tput us      ) # Start underline
+    eunder=$(   tput rmul   || tput ue      ) # End   underline
+    reset=$(    tput sgr0   || tput me      ) # Reset cursor
+    blink=$(    tput blink  || tput mb      ) # Start blinking
+    italic=$(   tput sitm   || tput ZH      ) # Start italic
+    eitalic=$(  tput ritm   || tput ZR      ) # End   italic
+[[ $TERM != *-m ]] && {
+    red=$(      tput setaf 1|| tput AF 1    )
+    green=$(    tput setaf 2|| tput AF 2    )
+    yellow=$(   tput setaf 3|| tput AF 3    )
+    blue=$(     tput setaf 4|| tput AF 4    )
+    magenta=$(  tput setaf 5|| tput AF 5    )
+    cyan=$(     tput setaf 6|| tput AF 6    )
+}
+    white=$(    tput setaf 7|| tput AF 7    )
+    default=$(  tput op                     )
+    eed=$(      tput ed     || tput cd      )   # Erase to end of display
+    eel=$(      tput el     || tput ce      )   # Erase to end of line
+    ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
+    ewl=$eel$ebl                                # Erase whole line
+    draw=$(     tput -S <<< '   enacs
+                                smacs
+                                acsc
+                                rmacs' || { \
+                tput eA; tput as;
+                tput ac; tput ae;         } )   # Drawing characters
+    back=$'\b'
+} 2>/dev/null ||:
+}
 
 maybe_start_whonixsetup() {
    trap "error_handler_rads" ERR
@@ -59,7 +106,7 @@ maybe_start_whonixsetup() {
       sleep 5 &
       wait "$!" || true
 
-      echo "$scriptname INFO: Tor has not been enabled yet. Starting whonixsetup..."
+      echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Tor has not been enabled yet. Starting whonixsetup..."
 
       ## Sleep just for the look and feel, so the following message comes after, so the previous
       ## message can be read.
@@ -73,8 +120,6 @@ maybe_start_whonixsetup() {
 
 ram-adjusted-desktop-starter() {
    trap "error_handler_rads" ERR
-
-   scriptname="/etc/profile.d/80_desktop.sh RAM Adjusted Desktop Starter"
 
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
@@ -134,7 +179,7 @@ ram-adjusted-desktop-starter() {
 
    if [ ! "$whonixdesktop_autostart_decision_feature" = "1" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
+         true "INFO: [RAM Adjusted Desktop Starter] whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
          set +x
       fi
       exit 0
@@ -145,7 +190,7 @@ ram-adjusted-desktop-starter() {
 
    if [ ! "$which_return" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: display manager \
+         true "INFO: [RAM Adjusted Desktop Starter] display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
          set +x
@@ -156,7 +201,7 @@ configuration folder does not exist. Not starting a desktop environment."
 
    if [ "$whonixdesktop_no_x_default_dm" = "1" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: config file \
+         true "INFO: [RAM Adjusted Desktop Starter] config file \
 $x_default_dm_config_file \
 does not exist. Probably no desktop environment installed. Not starting a desktop environment."
          set +x
@@ -171,7 +216,7 @@ does not exist. Probably no desktop environment installed. Not starting a deskto
 
    if [ "$service_return1" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: \
+         true "INFO: [RAM Adjusted Desktop Starter] \
 Not starting kdm, already running."
          set +x
       fi
@@ -179,7 +224,7 @@ Not starting kdm, already running."
    fi
 
    if [ "$whonixdesktop_debug" = 1 ]; then
-      temp="$scriptname INFO: $(/bin/date) | \
+      temp="INFO: [RAM Adjusted Desktop Starter] $(/bin/date) | \
       whoami: $(/usr/bin/whoami) | caller: $0 | path: $PATH"
       true "$temp"
       echo "$temp" >> ~/whonixdesktop
@@ -195,7 +240,7 @@ Not starting kdm, already running."
 
    if [ "$whonixdesktop_start_display_manager" = 0 ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: \
+         true "INFO: [RAM Adjusted Desktop Starter] \
 whonixdesktop_start_display_manager is set to 0 in /etc/whonix.d/ \
 configuration folder, not starting a desktop environment."
          set +x
@@ -206,7 +251,7 @@ configuration folder, not starting a desktop environment."
 
    if [ ! "$whonixdesktop_skip_ram_test" = "1" ]; then
       if [ "$total_ram" -lt "$whonixdesktop_minium_ram" ]; then
-         echo "$scriptname INFO: Not starting login manager \
+         echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Not starting login manager \
 (graphical desktop environment) ($whonixdesktop_display_manager), \
 because there is only $total_ram MB total RAM. (A minimum of \
 $whonixdesktop_minium_ram MB total RAM is configured in /etc/whonix.d/ \
@@ -218,10 +263,10 @@ configuration folder.)"
 
    if [ "$whonixdesktop_wait" = "0" ]; then
       if [ "$whonixdesktop_debug" = 1 ]; then
-         true "$scriptname INFO: Waiting feature disabled."
+         true "INFO: Waiting feature disabled."
       fi
    else
-      echo "$scriptname INFO: Starting login manager \
+      echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Starting login manager \
 (graphical desktop environment) $whonixdesktop_display_manager in \
 $whonixdesktop_wait_seconds seconds, unless you abort using ctrl + c. \
 This can be disabled or configured in /etc/whonix.d/ configuration folder."
@@ -251,9 +296,9 @@ here: https://www.whonix.org/wiki/Desktop"
       sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
 
       if [ "$service_return2" = "0" ]; then
-         echo "$scriptname INFO: $whonixdesktop_display_manager already running, not starting."
+         echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] $whonixdesktop_display_manager already running, not starting."
       else
-         echo "$scriptname INFO: Trying to start login manager \
+         echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Trying to start login manager \
 (graphical desktop environment) $whonixdesktop_display_manager..."
 
          ## Sleep for the look and feel. Users should be able to see"Trying to start login manager..."
@@ -265,29 +310,36 @@ here: https://www.whonix.org/wiki/Desktop"
          ## There is a /etc/sudoers.d/kdm exception for this.
          sudo service "$whonixdesktop_display_manager" start || { service_return3="$?" ; true; };
 
-         echo "$scriptname INFO: Starting login manager \
+         echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Starting login manager \
 (graphical desktop environment) $whonixdesktop_display_manager..."
 
          if [ "$service_return3" = 0 ]; then
-            true "$scriptname INFO: Successfully started $whonixdesktop_display_manager."
+            true "INFO: [RAM Adjusted Desktop Starter] Successfully started $whonixdesktop_display_manager."
          else
-            echo "$scriptname ERROR: Could not start $whonixdesktop_display_manager. Please report this bug!"
+            echo "[${red}${bold}ERROR${reset}] [RAM Adjusted Desktop Starter] \
+Could not start $whonixdesktop_display_manager. Please report this Whonix bug!"
          fi
       fi
    else
       ## We will not boot into a graphical desktop environment.
-      echo "$scriptname INFO: Manually aborted start of login manager \
+      ## Make a new line so the ^C stands alone.
+      echo ""
+      echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Manually aborted start of login manager \
 (graphical desktop environment) $whonixdesktop_display_manager."
+      echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Feel free to manually start a login manager \
+(graphical desktop environment) later.
+    sudo service $whonixdesktop_display_manager start"
 
       maybe_start_whonixsetup
    fi
 
    if [ "$whonixdesktop_debug" = 1 ]; then
-      true "$scriptname INFO: End."
+      true "INFO: End."
       set +x
    fi
 }
 
+colors
 ram-adjusted-desktop-starter
 
 ## End of /usr/lib/whonix/ram_adjusted_desktop_starter

@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 ### BEGIN INIT INFO
 # Provides:          sdwdate
 # Required-Start:    mountkernfs $local_fs $remote_fs $syslog $network bootclockrandomization
@@ -33,8 +33,15 @@ LOG=/var/log/$NAME.log
 . /lib/lsb/init-functions
 
 # Create status directory and log file
-install -o root -g root -m 0755 -d ${SDW_DIR}
-install -o sdw -g nogroup -m 0644 /dev/null ${LOG}
+install -o user -g user -m 0755 -d ${SDW_DIR}
+
+if [ ! -f "${LOG}" ]; then
+   install -o user -g user -m 0644 /dev/null "${LOG}"
+fi
+
+if [ -f "/etc/default/$NAME" ]; then
+   source "/etc/default/$NAME"
+fi
 
 log() {
 	echo "$@" >> "${LOG}"
@@ -48,6 +55,11 @@ do_start_nd() {
 }
 
 do_start() {
+        do_status
+        if [ "$?" = "0" ]; then
+           return 0
+        fi
+
 	## Does not work: /usr/sbin/VBoxService --disable-timesync || true
 
 	echo "\
@@ -79,7 +91,11 @@ INFO: Whonix /etc/init.d/sdwdate
 	   --pidfile "$PIDFILE" \
 	   --make-pidfile \
 	   --background \
+	   --chuid user:user \
 	   --exec /usr/bin/sdwdate -- $ND_PRE $ND_POST_SUCCESS $ND_POST_FAILURE
+
+	#bash -x /usr/bin/sdwdate $ND_PRE $ND_POST_SUCCESS $ND_POST_FAILURE & disown
+	#echo "$!" > "$PIDFILE"
 
 	return $?
 }

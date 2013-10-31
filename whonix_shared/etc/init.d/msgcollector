@@ -1,12 +1,12 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:          timesyncd
+# Provides:          msgcollector
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Network Time Synchronization Status Boot Notifier
-# Description:       Network Time Synchronization Status Boot Notifier
+# Short-Description: msgcollector
+# Description:       msgcollector
 ### END INIT INFO
 
 # Author: adrelanos <adrelanos at riseup dot net>
@@ -19,17 +19,8 @@
 
 #set -x
 
-# PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="timesyncd"
-NAME=timesyncd
-#DAEMON=/usr/bin/timesync
-#DAEMON_ARGS="--autostart"
-#PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
-
 # Exit if the package is not installed
-[ -x "$DAEMON" ] || exit 0
+#[ -x "$DAEMON" ] || exit 0
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
@@ -39,23 +30,16 @@ SCRIPTNAME=/etc/init.d/$NAME
 # and status_of_proc is working.
 . /lib/lsb/init-functions
 
-mkdir -p /var/run/whonix/whonixcheck/
-chown --recursive user:user /var/run/whonix/whonixcheck/
-chmod --recursive o+w /var/run/whonix/whonixcheck/
-chmod --recursive g+w /var/run/whonix/whonixcheck/
+mkdir --parents /var/run/msgcollector/
+chown --recursive user:user /var/run/msgcollector/
+chmod --recursive o+w /var/run/msgcollector/
+chmod --recursive g+w /var/run/msgcollector/
 
 #
 # Function that starts the daemon/service
 #
 do_start()
 {
-   do_stop
-
-   #Debugging:
-   ## --nosleep --nochecklastrun --verbose
-
-   #sudo -u user $DAEMON $DAEMON_ARGS & disown
-
    return 0
 }
 
@@ -64,22 +48,12 @@ do_start()
 #
 do_stop()
 {
-   killall timesync 2>/dev/null
-
-   rm -f /var/run/whonix/whonixcheck/timesync_waiting
-   rm -f /var/run/whonix/whonixcheck/timesync_done
-   rm -f /var/run/whonix/whonixcheck/timesync_running
-
    return 0
 }
 
 do_status()
 {
-   if [ -f /var/run/whonix/whonixcheck/timesync_done ]; then
-      return 0
-   else
-      return 1
-   fi
+   return 0
 }
 
 case "$1" in

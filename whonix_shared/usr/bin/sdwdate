@@ -18,6 +18,7 @@
 SCRIPTNAME="$(basename $0)"
 ownpid="$$"
 ID="$(uuidgen -r)"
+SDW_MODE="startup"
 
 sdwdate_usage() {
    trap "sdwdate_error_handler" ERR
@@ -51,7 +52,9 @@ $SCRIPTNAME [-aDdlpqTux] [long options...]
         --dispatch_pre_neutral                exec before run of curl
         --dispatch_post_neutral               exec after run of curl
         --dispatch_pre_foe                    exec before first run of curl
-        --dispatch_post_foe                   exec after run of curl"
+        --dispatch_post_foe                   exec after run of curl
+        --nodonefileonerror
+        --noexitonerror"
 
 #       -u --user                             userid to run as
 }
@@ -125,6 +128,14 @@ sdwdate_defaults() {
 
    if [ "$DISPATCH_POST_ERROR" = "" ]; then
       DISPATCH_POST_ERROR="exit 1"
+   fi
+
+   if [ "$SDW_TOUCH_DONE_FILE_ON_ERROR" = "" ]; then
+      SDW_TOUCH_DONE_FILE_ON_ERROR="1"
+   fi
+
+   if [ "$SDW_EXIT_ON_ERROR" = "" ]; then
+      SDW_EXIT_ON_ERROR="1"
    fi
 
    if [ "$DISPATCH_PRE" = "" ]; then
@@ -350,6 +361,14 @@ sdwdate_parse_cmd_options() {
                DISPATCH_POST_ERROR=$2
                shift 2
                ;;
+           --nodonefileonerror)
+               SDW_TOUCH_DONE_FILE_ON_ERROR="0"
+               shift 2
+               ;;
+           --noexitonerror)
+               SDW_EXIT_ON_ERROR="0"
+               shift 2
+               ;;
            -w | --dispatchpre)
                DISPATCH_PRE=$2
                shift 2
@@ -507,10 +526,22 @@ sdwdate_error_handler() {
 
    true "DISPATCH_POST_ERROR: $DISPATCH_POST_ERROR"
 
+   if [ "$SDW_TOUCH_DONE_FILE_ON_ERROR" = "1" ]; then
+      touch "$DONE_FILE"
+      local ret="$?"
+      if [ ! "$ret" = "0" ]; then
+         sdwdate_log "ERROR $0: Could not touch DONE_FILE: $DONE_FILE."
+      fi
+   fi
+
    if [ "$DISPATCH_POST_ERROR" = "" ]; then
       true
    else
       eval $DISPATCH_POST_ERROR
+   fi
+
+   if [ "$SDW_EXIT_ON_ERROR" = "1" ]; then
+      exit 1
    fi
 }
 
@@ -793,7 +824,8 @@ sdwdate_set_new_time() {
       sdwdate_log "Setting time to $SDWDATE_NEW_TIME..."
 
       ## Set new time. Syntax: date --set @1098181096
-      date --set "@"$SDWDATE_NEW_TIME"" > /dev/null
+      ## There is an exception in /etc/sudoers.d/sdwdate.
+      sudo /bin/date --set "@"$SDWDATE_NEW_TIME"" > /dev/null
    fi
 
    #new_unixtime="$(date +%s)"
@@ -904,6 +936,11 @@ sdwdate_main() {
       sdwdate_defaults
       sdwdate_preparation
 
+      if [ -f "/var/lib/whonix/sdw_error" ]; then
+         error "This is a test."
+         sleep 10
+      fi
+
       sdwdate_dispatcher_pre
       sdwdate_dispatcher_prerequisite
 
@@ -926,6 +963,7 @@ sdwdate_main() {
          exit 0
       else
          ## Daemon mode.
+         SDW_MODE="daemon"
 
          ## INTERVAL: in minutes
          ## sleep: in seconds
