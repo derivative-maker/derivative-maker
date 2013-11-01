@@ -189,50 +189,6 @@ main_function() {
    while true; do
       for identifier in "whonixcheck" "timesync" "torbrowser"; do
          if [ "$x" = "1" ]; then
-            if [ -f "/var/run/msgcollector/${identifier}.messagex.done" ]; then
-               if [ -f "/var/run/msgcollector/${identifier}.messagex" ]; then
-                  msg="$(cat "/var/run/msgcollector/${identifier}.messagex")"
-                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
-                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
-                  dispatch_x_active "$type" "$msg"
-                  rm --force "/var/run/msgcollector/${identifier}.messagex.done"
-                  rm --force "/var/run/msgcollector/${identifier}.messagex"
-                  rm --force "/var/run/msgcollector/${identifier}.lefttop"
-               else
-                  ## Not using rm outside the if, to prevent race conditions.
-                  ## Not always using rm, without if to prevent forking.
-                  rm --force "/var/run/msgcollector/${identifier}.messagex.done"
-               fi
-            fi
-            if [ -f "/var/run/msgcollector/${identifier}.waitmessagex.done" ]; then
-               if [ -f "/var/run/msgcollector/${identifier}.waitmessagex" ]; then
-                  msg="$(cat "/var/run/msgcollector/${identifier}.waitmessagex")"
-                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
-                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
-                  dispatch_x_passive "$type" "$msg"
-                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex.done"
-                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex"
-               else
-                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex.done"
-               fi
-            fi
-            if [ -f "/var/run/msgcollector/${identifier}.passivepopupqueuex.done" ]; then
-               if [ -f "/var/run/msgcollector/${identifier}.passivepopupqueuex" ]; then
-                  msg="$(cat "/var/run/msgcollector/${identifier}.passivepopupqueuex")"
-                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
-                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
-                  if [ -f "/var/run/msgcollector/${identifier}.forceactive" ]; then
-                     dispatch_x_active "$type" "$msg"
-                  else
-                     dispatch_x_passive "$type" "$msg"
-                  fi
-                  rm --force "/var/run/msgcollector/${identifier}.forceactive"
-                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex.done"
-                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex"
-               else
-                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex.done"
-               fi
-            fi
 
             local progressbaridx_file
             ## The * matches progressbaridx.
@@ -253,18 +209,52 @@ main_function() {
                fi
             done
 
-         elif [ "$cli" = "1" ]; then
-            if [ -f "/var/run/msgcollector/${identifier}.messagecli.done" ]; then
-               if [ -f "/var/run/msgcollector/${identifier}.messagecli" ]; then
-                  msg="$(cat "/var/run/msgcollector/${identifier}.messagecli")"
-                  type="$(cat "/var/run/msgcollector/${identifier}.typecli")"
-                  dispatch_cli "$msg"
-                  rm --force "/var/run/msgcollector/${identifier}.messagecli.done"
-                  rm --force "/var/run/msgcollector/${identifier}.messagecli"
+            if [ -f "/var/run/msgcollector/${identifier}.waitmessagex.done" ]; then
+               if [ -f "/var/run/msgcollector/${identifier}.waitmessagex" ]; then
+                  msg="$(cat "/var/run/msgcollector/${identifier}.waitmessagex")"
+                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
+                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
+                  dispatch_x_passive "$type" "$msg"
+                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex.done"
+                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex"
                else
-                  rm --force "/var/run/msgcollector/${identifier}.messagecli.done"
+                  rm --force "/var/run/msgcollector/${identifier}.waitmessagex.done"
                fi
             fi
+            if [ -f "/var/run/msgcollector/${identifier}.messagex.done" ]; then
+               if [ -f "/var/run/msgcollector/${identifier}.messagex" ]; then
+                  msg="$(cat "/var/run/msgcollector/${identifier}.messagex")"
+                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
+                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
+                  dispatch_x_active "$type" "$msg"
+                  rm --force "/var/run/msgcollector/${identifier}.messagex.done"
+                  rm --force "/var/run/msgcollector/${identifier}.messagex"
+                  rm --force "/var/run/msgcollector/${identifier}.lefttop"
+               else
+                  ## Not using rm outside the if, to prevent race conditions.
+                  ## Not always using rm, without if to prevent forking.
+                  rm --force "/var/run/msgcollector/${identifier}.messagex.done"
+               fi
+            fi
+            if [ -f "/var/run/msgcollector/${identifier}.passivepopupqueuex.done" ]; then
+               if [ -f "/var/run/msgcollector/${identifier}.passivepopupqueuex" ]; then
+                  msg="$(cat "/var/run/msgcollector/${identifier}.passivepopupqueuex")"
+                  title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
+                  type="$(cat "/var/run/msgcollector/${identifier}.typex")"
+                  if [ -f "/var/run/msgcollector/${identifier}.forceactive" ]; then
+                     dispatch_x_active "$type" "$msg"
+                  else
+                     dispatch_x_passive "$type" "$msg"
+                  fi
+                  rm --force "/var/run/msgcollector/${identifier}.forceactive"
+                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex.done"
+                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex"
+               else
+                  rm --force "/var/run/msgcollector/${identifier}.passivepopupqueuex.done"
+               fi
+            fi
+
+         elif [ "$cli" = "1" ]; then
             if [ -f "/var/run/msgcollector/${identifier}.waitmessagecli.done" ]; then
                if [ -f "/var/run/msgcollector/${identifier}.waitmessagecli" ]; then
                   msg="$(cat "/var/run/msgcollector/${identifier}.waitmessagecli")"
@@ -274,6 +264,17 @@ main_function() {
                   rm --force "/var/run/msgcollector/${identifier}.waitmessagecli"
                else
                   rm --force "/var/run/msgcollector/${identifier}.waitmessagecli.done"
+               fi
+            fi
+            if [ -f "/var/run/msgcollector/${identifier}.messagecli.done" ]; then
+               if [ -f "/var/run/msgcollector/${identifier}.messagecli" ]; then
+                  msg="$(cat "/var/run/msgcollector/${identifier}.messagecli")"
+                  type="$(cat "/var/run/msgcollector/${identifier}.typecli")"
+                  dispatch_cli "$msg"
+                  rm --force "/var/run/msgcollector/${identifier}.messagecli.done"
+                  rm --force "/var/run/msgcollector/${identifier}.messagecli"
+               else
+                  rm --force "/var/run/msgcollector/${identifier}.messagecli.done"
                fi
             fi
          else
