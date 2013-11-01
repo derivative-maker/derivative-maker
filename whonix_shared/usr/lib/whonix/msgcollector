@@ -162,6 +162,10 @@ parse_cmd_options() {
                forget="1"
                shift
                ;;
+           --forgetwaitcli)
+               forgetwaitcli="1"
+               shift
+               ;;
            --progressbaridx)
                progressbaridx="$2"
                shift 2
@@ -607,7 +611,7 @@ forget() {
       "/var/run/msgcollector/${identifier}.waitmessagecli.done"
       "/var/run/msgcollector/${identifier}.waitmessagecli"
       "/var/run/msgcollector/${identifier}.messagecli.done"
-      "/var/run/msgcollector/${identifier}.messagecli"    
+      "/var/run/msgcollector/${identifier}.messagecli"
       "/var/run/msgcollector/${identifier}.forceactive"
       "/var/run/msgcollector/${identifier}.lefttop"
       "/var/run/msgcollector/${identifier}.parenttty"
@@ -628,6 +632,21 @@ forget() {
    done
 }
 
+forgetwaitcli() {
+   local file_list=(
+      "/var/run/msgcollector/${identifier}.waitmessagecli.done"
+      "/var/run/msgcollector/${identifier}.waitmessagecli"
+   )
+
+   local file
+
+   for file in "${file_list[@]}"; do
+      if [ -e "$file" ]; then
+         rm --force "$file"
+      fi
+   done
+}
+
 ## Debugging.
 #echo "${1+"$@"}
 #" >> "/home/user/msgcollector"
@@ -636,6 +655,11 @@ parse_cmd_options ${1+"$@"}
 
 if [ "$forget" = "1" ]; then
    forget
+   exit 0
+fi
+
+if [ "$forgetwaitcli" = "1" ]; then
+   forgetwaitcli
    exit 0
 fi
 
