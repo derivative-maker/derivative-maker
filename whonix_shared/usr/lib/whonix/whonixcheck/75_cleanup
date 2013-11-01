@@ -4,6 +4,41 @@
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
+## {{ maybe_kill_apt_get_update
+##
+## apt-get-update runs as root (using a /etc/sudoers.d/ exception) while
+## whonixcheck runs as user. Therefore we can't kill apt-get-update using
+## process_killer_helper. (Can't kill processes owned by other users.)
+## In case apt-get-update is still running, we need to start
+## apt-get-update-kill-helper as root (again using a /etc/sudoers.d/
+## exception). This might look like a lot effort for little gain, but when
+## the user terminated whonixcheck, apt-get is still running and the user wants
+## to manually use apt-get, it would show an error because the apt-get lockfile
+## would still exist.
+maybe_kill_apt_get_update() {
+   if [ "$apt_get_update_pid" = "" ]; then
+      ## Pid never set. Either the check_operating_system check has been disabled,
+      ## or signal received earlier or this isn't whonixcheck. Either way.
+      ## Nothing to do.
+      return 0
+   fi
+
+   ## Can not use `kill`, must use `ps`, because kill will always return a
+   ## a non-zero return code if the process is owned by a different user.
+   local ps_p_return="0"
+   ps -p "$apt_get_update_pid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
+
+   if [ ! "$ps_p_return" = "0" ]; then
+      ## apt-get-update already terminated, nothing to do.
+      return 0
+   fi
+   ## apt-get-update still running.
+
+   ## There is an exception in /etc/sudoers.d/.
+   sudo "/usr/lib/whonix/whonixcheck/apt-get-update-kill-helper" "$apt_get_update_pid"
+}
+## }}
+
 ex_funct() {
    trap "error_handler" ERR
 
@@ -11,6 +46,8 @@ ex_funct() {
    ## create an endless loop.
    trap - SIGTERM
    trap - SIGINT
+
+   maybe_kill_apt_get_update
 
    ## provides process_killer_helper function
    source /usr/lib/whonix/process_killer_helper

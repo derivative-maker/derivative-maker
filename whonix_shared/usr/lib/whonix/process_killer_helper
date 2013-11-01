@@ -7,10 +7,12 @@ process_killer_helper() {
       return 0
    fi
 
-   local kill_return="0"
-   kill -0 "$lastpid" >/dev/null 2>/dev/null || { local kill_return="$?" ; true; };
+   ## Can not use `kill`, must use `ps`, because kill will always return a
+   ## a non-zero return code if the process is owned by a different user.
+   local ps_p_return="0"
+   ps -p "$lastpid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
 
-   if [ ! "$kill_return" = "0" ]; then
+   if [ ! "$ps_p_return" = "0" ]; then
       return 0
    fi
 
@@ -21,11 +23,11 @@ process_killer_helper() {
 
    ## Give remaining processes up to 5 seconds after sending signal sigterm (above) before killing them sending signal sigkill.
    while true; do
-      local kill_return="0"
-      kill -0 "$lastpid" >/dev/null 2>/dev/null || { local kill_return="$?" ; true; };
+      local ps_p_return="0"
+      ps -p "$lastpid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
 
-      if [ ! "$kill_return" = "0" ]; then
-         ## kill_return is not 0, process no longer running. That's it.
+      if [ ! "$ps_p_return" = "0" ]; then
+         ## ps_p_return is not 0, process no longer running. That's it.
          return 0
       fi
       ## Process still running.

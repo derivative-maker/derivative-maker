@@ -14,8 +14,9 @@ check_operating_system() {
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    local apt_get_return="0"
    sudo "/usr/lib/whonix/whonixcheck/apt-get-update" >/dev/null &
-   lastpid="$!"
-   wait "$lastpid" || { local apt_get_return="$?" ; true; };
+   apt_get_update_pid="$!"
+   wait "$apt_get_update_pid" || { local apt_get_return="$?" ; true; };
+   unset apt_get_update_pid
 
    if [ ! "$apt_get_return" = "0" ]; then
       local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $apt_get_return) Please manually check:

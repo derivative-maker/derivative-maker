@@ -11,8 +11,24 @@
 ## Exception to run /usr/bin/apt-get-update as user
 ## is defined in /etc/sudoers.d/.
 
+sigterm_trap() {
+   if [ "$lastpid" = "" ]; then
+      exit 0
+   fi
+   ps -p "$lastpid"
+   if [ ! "$?" = "0" ]; then
+      ## Already terminated.
+      exit 0
+   fi
+   kill -sigterm "$lastpid"
+   exit "$?"
+}
+
+trap "sigterm_trap" SIGTERM
+
 apt-get update &
 lastpid="$!"
+echo "$lastpid" | sudo -u user tee "/var/run/whonix/whonixcheck/whonixcheck_apt_get_pid" > /dev/null
 wait "$lastpid"
 
 exit "$?"
