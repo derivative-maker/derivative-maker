@@ -283,7 +283,7 @@ gui() {
 
    local title="whonix_repository"
 
-   local msg="Which Whonix Repository do you like to use?
+   local msg="Do you wish to use Whonix Debian Packages automatic updates?
 
 When enabled, when the Whonix team releases updates, \
 they will be AUTOMATICALLY installed (when you run apt-get dist-upgrade) \
@@ -309,10 +309,51 @@ sudo whonix_repository
          --title "$title" \
          --menu "$msg" \
             100 120 20 \
+            "1" "Enable Whonix Debian Packages automatic updates." \
+            "2" "Disable Whonix Debian Packages automatic updates." \
+            2>&1 1>&3)
+
+   exec 3>&-;
+
+   gui_return="$_return"
+
+   if [ "$gui_return" = "" ]; then
+      ## Get rid of the blue console-gui window.
+      clear
+      echo "INFO: Nothing changed."
+      exit 0
+   fi
+
+   if [ "$gui" = "1" ]; then
+      if [ "$gui_return" = "1" ]; then
+         disable="0"
+      elif [ "$gui_return" = "2" ]; then
+         disable="1"
+         return 0
+      else
+         error "Invalid menu action. Please report this bug!"
+      fi
+   fi
+
+   local msg="Which Whonix Repository do you like to use?
+
+You can always start the Whonix Repository Tool again, by starting:
+sudo whonix_repository
+
+(Please scroll down using the arrow keys.)
+"
+
+   exec 3>&1
+
+   local _return=$(\
+      dialog \
+         --cancel-label "Exit" \
+         --title "$title" \
+         --menu "$msg" \
+            100 120 20 \
             "1" "Use Whonix Stable Repository." \
             "2" "Use Whonix Testers Repository." \
             "3" "Use Whonix Developers Repository." \
-            "4" "Deactivate Whonix Repository." \
             2>&1 1>&3)
 
    exec 3>&-;
@@ -329,15 +370,10 @@ sudo whonix_repository
    if [ "$gui" = "1" ]; then
       if [ "$gui_return" = "1" ]; then
          codename="stable"
-         disable="0"
       elif [ "$gui_return" = "2" ]; then
          codename="testers"
-         disable="0"
       elif [ "$gui_return" = "3" ]; then
          codename="developers"
-         disable="0"
-      elif [ "$gui_return" = "4" ]; then
-         disable="1"
       else
          error "Invalid menu action. Please report this bug!"
       fi
