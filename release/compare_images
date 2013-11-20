@@ -21,12 +21,13 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
 cd ..
 
+WHONIX_BUILD_PARSED="1"
+ROOT_CHECK="0"
+VMNAME="internalrun"
+
 cd help-steps
 source pre
 source variables
-
-## TODO: Read which version to check or filename from command line?
-whonix_build_whonix_version_new="137adretemp"
 
 ## Default to "no mismatch found" (0) and and increase for every mismatch found.
 WHONIX_BUILD_VERIFY_MISMATCH="0"
@@ -34,27 +35,73 @@ WHONIX_BUILD_VERIFY_MISMATCH="0"
 ## Enable (1) or disable (0) debug_echo's.
 debug="0"
 
+## TODO:
+## - Master Boot Record
+## - Volume Boot Record
+
+script_help() {
+   ## TODO
+   echo "TODO"
+}
+
+parse_cmd() {
+   trap "error_handler_general" ERR INT TERM
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   if [ "$*" = "" ]; then
+      error "no option chosen. Use --help."
+   fi
+
+   ## TODO:
+   ## - specify .img or .vdi instead of .ova
+
+   while :
+   do
+       case $1 in
+           -h | --help | -\?)
+               script_help
+               exit 0
+               ;;
+           -o | --ours)
+               ova_ours="$2"
+               shift 2
+               ;;
+           -t | --theirs)
+               ova_theirs="$2"
+               shift 2
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               error "unknown option: $1"
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+
+   if [ ! -f "$ova_ours" ]; then
+      echo "ERROR: ova_ours $ova_ours does not exist!"
+      exit 1
+   fi
+   if [ ! -f "$ova_theirs" ]; then
+      echo "ERROR: ova_theirs $ova_theirs does not exist!"
+      exit 1
+   fi
+}
+
 unmount_img() {
-   umount "$mount_folder_our"
-   sync
-
-   kpartx -d "$img_our"
+   guestunmount "$mount_folder_ours"
    sync
 
    # Delete temporary folder.
    # It did not contain anything. It was only a mount point.
-   rm -r "$mount_folder_our"
-   sync
-
-   umount "$mount_folder_their"
-   sync
-
-   kpartx -d "$img_their"
-   sync
-
-   # Delete temporary folder.
-   # It did not contain anything. It was only a mount point.
-   rm -r "$mount_folder_their"
+   rm -r "$mount_folder_ours"
    sync
 }
 
@@ -68,11 +115,14 @@ error_handler() {
 ${red}${bold}bash_command${reset}: $bash_command
 ${red}${bold}return_code${reset}: $return_code
 "
+
+   exit 1
 }
 
 trap "error_handler" ERR INT TERM
 
 debug_echo() {
+   trap "error_handler" ERR INT TERM
    if [ "$debug" = 1 ]; then
       echo "$*"
    fi
@@ -88,44 +138,63 @@ preparation() {
 
    temp_folder="$WHONIX_BINARY/verification"
    sudo -u "$USERNAME" mkdir --parents "$temp_folder"
+   cd "$temp_folder"
 
-   img_our="$temp_folder/$VMNAME-$whonix_build_whonix_version_new.img"
+   mount_folder_ours="$WHONIX_BINARY/verification/ours"
+   mount_folder_theirs="$WHONIX_BINARY/verification/theirs"
 
-   if [ -f "$img_our" ]; then
-      true "${bold}${cyan}INFO: Unpacking .ova not required, .img already exists, skipping. ${reset}"
+   ova_absolute_filename_without_extension="${ova_ours%%.*}"
+   folder_name="$(dirname $ova_ours)"
+   ova_filename="$(basename "$ova_ours")"
+   ova_filename_without_extension="${ova_filename%%.*}"
+
+   ## Example ova_absolute_filename_without_extension:
+   ## /home/user/whonix_binary/Whonix-Gateway-7
+
+   vdi_ours="$temp_folder/$ova_filename_without_extension.vdi"
+
+   if [ -f "$vdi_ours" ]; then
+      true "${bold}${cyan}INFO: Unpacking .ova not required, .vdi already exists, skipping. ${reset}"
    else
-      ova_our="$temp_folder/$VMNAME-$whonix_build_whonix_version_new.ova"
-      if [ ! -f "$ova_our" ]; then
-         error "${red}${bold}ERROR: $ova_our does not exist. ${reset}"
+      if [ ! -f "$ova_ours" ]; then
+         error "${red}${bold}ERROR: $ova_ours does not exist. ${reset}"
       else
-         true "${bold}${cyan}INFO: Unpacking our ova: $ova_our... ${reset}"
-         sudo -u "$USERNAME" tar -xvf "$ova_our"
-         true "${bold}${cyan}INFO: Unpacked ova_our. ${reset}"
+         true "${bold}${cyan}INFO: Unpacking our ova: $ova_ours... ${reset}"
+         sudo -u "$USERNAME" tar -xvf "$ova_ours"
+         true "${bold}${cyan}INFO: Unpacked ova_ours. ${reset}"
       fi
    fi
 
-   vmdk_our="$temp_folder/$VMNAME-$whonix_build_whonix_version_new-disk1.vmdk"
+   vmdk_ours="$temp_folder/$ova_filename_without_extension-disk1.vmdk"
 
-   if [ ! -f "$vmdk_our" ]; then
-      error "${red}${bold}ERROR: vmdk_our: "$vmdk_our" does not exist. ${reset}"
+   if [ ! -f "$vmdk_ours" ]; then
+      error "${red}${bold}ERROR: vmdk_ours: $vmdk_ours does not exist. ${reset}"
    fi
 
-   if [ -f "$img_our" ]; then
-      true "${bold}${cyan}INFO: Converting our_vmdk to .img not required, already done, skipping. ${reset}"
+   if [ -f "$vdi_ours" ]; then
+      true "${bold}${cyan}INFO: Converting our_vmdk to .vdi not required, already done, skipping. ${reset}"
    else
-      ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
+      ## Convert .vmdk to .vdi, since there is no Free Software for mounting .vmdk using command line.
       true "${bold}${cyan}INFO: Converting our_vmdk to img... ${reset}"
-      sudo -u "$USERNAME" qemu-img convert "$vmdk_our" -O raw "$img_our"
+
+      ## qemu-img version 1.6.1 fails with:
+      ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
+      ## https://bugs.launchpad.net/qemu/+bug/1253465
+      ## TODO: vdi -> raw
+      #sudo -u "$USERNAME" qemu-img convert "$vmdk_ours" -O RAW "$vdi_ours"
+
+      sudo -u "$USERNAME" VBoxManage clonehd --format VDI "$vmdk_ours" "$vdi_ours"
+
       true "${bold}${cyan}INFO: Converted our_vmdk to img. ${reset}"
    fi
 
-   kpartx -av "$img_our"
+   ## TODO: Store for later comparison.
+   virt-filesystems -a "$vdi_ours"
+
+   mkdir --parents "$mount_folder_ours"
    sync
 
-   mkdir --parents "$mount_folder_our"
-   sync
-
-   mount /dev/mapper/loop0p1 "$mount_folder_our"
+   guestmount -a "$vdi_ours" -m /dev/sda1 --ro "$mount_folder_ours"
    sync
 }
 
@@ -141,7 +210,7 @@ parse_our_image() {
       local checksum_our
       read -r checksum_our _ <<< "$a"
       remembered_file_our_hash[$i]="$checksum_our"
-   done < <(find "$mount_folder_our")
+   done < <(find "$mount_folder_ours")
 }
 
 parse_their_image() {
@@ -156,7 +225,7 @@ parse_their_image() {
       local checksum_their
       read -r checksum_their _ <<< "$a"
       remembered_file_their_hash[$i]="$checksum_their"
-   done < <(find "$mount_folder_their")
+   done < <(find "$mount_folder_theirs")
 }
 
 compare_images() {
@@ -170,6 +239,7 @@ end() {
    unmount_img
 }
 
+parse_cmd ${1+"$@"}
 preparation
 parse_our_image
 parse_their_image
