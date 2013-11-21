@@ -42,7 +42,8 @@ tbbversion() {
    ## code shared between torbrowser and whonixcheck
 
    ## fallback
-   TBBVERSION="UNKNOWN"
+   tbb_recommended_versions_list="UNKNOWN"
+   tbb_recommended_versions_error=""
 
    ## Sanity Tests.
    command -v sed >/dev/null
@@ -59,6 +60,8 @@ tbbversion() {
       error "$MSG"
       return 1
    fi
+
+   tbbversions_found="0"
 
    if [ -f "$RecommendedTBBVersions" ]; then
       local i="0"
@@ -92,10 +95,21 @@ tbbversion() {
 
          echo "$line" | grep -q -i -s "Linux"
          if [ "$?" = "0" ]; then
-            TBBVERSION="$line"
-            TBBVERSION="$(echo "$TBBVERSION" | sed 's/-i686//g')"
-            TBBVERSION="$(echo "$TBBVERSION" | sed 's/-x86_64//g')"
-            TBBVERSION="$(echo "$TBBVERSION" | sed 's/-Linux//g')"
+            local temp="$line"
+            local temp="$(echo "$temp" | sed 's/-i686//g')"
+            local temp="$(echo "$temp" | sed 's/-x86_64//g')"
+            local temp="$(echo "$temp" | sed 's/-Linux//g')"
+
+            tbbversions_found="$(expr "$tbbversions_found" + "1")"
+
+            if [ "$tbb_recommended_versions_list" = "UNKNOWN" ]; then
+               ## No tbb versions has been found earlier. Still set to UNKNOWN.
+               ## Therefore setting tbb_recommended_versions_list to $temp.
+               tbb_recommended_versions_list="$temp"
+            else
+               ## Keep already found version and add newly found version.
+               tbb_recommended_versions_list="$tbb_recommended_versions_list $temp"
+            fi
 
             ## Not using break, because RecommendedTBBVersions often have
             ## multiple recommended versions. Latest on the bottom.
@@ -106,20 +120,37 @@ tbbversion() {
 
       done < "$RecommendedTBBVersions"
 
+      ## A single version string should not be longer than 20 characters. If
+      ## it is, there is probably something wrong.
       local max_string_length="20"
-      local actual_string_length="${#TBBVERSION}"
+
+      ## In case we found multiple valid versions, the max_string_length must
+      ## be multiplied with the number of valid versions we found.
+      local max_string_length="$(expr "$max_string_length" "*" "$tbbversions_found")"
+
+      local actual_string_length="${#tbb_recommended_versions_list}"
       tbbversion_excess_length=""
 
+      ## Check if the string length of tbb_recommended_versions_list is excessive.
       if [ "$actual_string_length" -gt "$max_string_length" ]; then
          ## Store excess length for later use.
-         tbbversion_excess_length="$TBBVERSION"
+         tbbversion_excess_length="$tbb_recommended_versions_list"
 
-         ## Shorten excess length $TBBVERSION to $max_string_length chars.
-         TBBVERSION="${TBBVERSION:0:$max_string_length}"
+         ## Shorten excess length $tbb_recommended_versions_list to $max_string_length chars.
+         #tbb_recommended_versions_list="${tbb_recommended_versions_list:0:$max_string_length}"
+
+         tbb_recommended_versions_list="UNKNOWN"
+
+         tbb_recommended_versions_error="Excessive version string length. ($actual_string_length characters)
+Either check.torproject.org has been compromised or this is a Whonix bug."
+
+         break
       fi
 
+      ## Check if RecommendedTBBVersions versions file is excessively long.
       if [ "$i" -gt "100" ]; then
-         TBBVERSION="Rejected invalid RecommendedTBBVersions versions file. (Longer than 100 lines.) \
+         tbb_recommended_versions_list="UNKNOWN"
+         tbb_recommended_versions_error="Rejected invalid RecommendedTBBVersions versions file. (Longer than 100 lines.) \
 Either check.torproject.org has been compromised or this is a Whonix bug."
          break
       fi
@@ -130,5 +161,5 @@ Either check.torproject.org has been compromised or this is a Whonix bug."
       return 1
    fi
 
-   #echo "TBBVERSION: $TBBVERSION"
+   #echo "tbb_recommended_versions_list: $tbb_recommended_versions_list"
 }
