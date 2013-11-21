@@ -501,20 +501,19 @@ $DOWNLOAD_FAIL_HELP"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
-}
 
-
-
-tb_download() {
-   trap "tb_error_handler" ERR
-
+   ## Used by tbbversion.
    RecommendedTBBVersions="$home_folder/.tb/RecommendedTBBVersions"
 
-   ## sets: TBBVERSION
+   ## sets: tbb_recommended_versions_list
+   ## sets: tbbversions_found
+   ## sets: tbb_recommended_versions_error
    tbbversion
 
-   if [ "$TBBVERSION" = "UNKNOWN" ]; then
-      MSG="$VERSION_DETECTION_ERROR"
+   if [ "$tbb_recommended_versions_list" = "UNKNOWN" ]; then
+      MSG="$VERSION_DETECTION_ERROR
+
+$tbb_recommended_versions_error"
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
@@ -542,7 +541,17 @@ This could be either because none is installed or because the version format cha
       TBBINSTALLEDVERSION="UNKNOWN OR NONE"
    fi
 
-   if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+   local up_to_date="0"
+   local tbb_version
+
+   for tbb_version in $tbb_recommended_versions_list; do
+      if [ "$tbb_version" = "$TBBINSTALLEDVERSION" ]; then
+         local up_to_date="1"
+         break
+      fi
+   done
+
+   if [ "$up_to_date" = "1" ]; then
       VERSION_CHECK_RESULT="Looks like your Tor Browser version is up to date."
    else
       VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
@@ -557,7 +566,7 @@ $VERSION_CHECK_RESULT
 
 Please close Tor Browser if you want to upgrade!
 Currently installed version: $TBBINSTALLEDVERSION
-Online detected version    : $TBBVERSION
+Online detected version(s) : $tbb_recommended_versions_list
 
 If your currently installed version is:
    higher: you are likely victim of a downgrade attack, SAY NO NOW!
@@ -593,17 +602,6 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       fi
    fi
 
-   ## progress bar for download
-   if [ "$TB_FORCE_INSTALL" = "1" ]; then
-      true
-   else
-      NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
-
-      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
-      sleep 1
-      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
-   fi
-
    if [ ! "$NOKILLTB" = "1" ]; then
       killall firefox || true
    fi
@@ -625,6 +623,37 @@ It is a good idea to delete old TBB backups once in a while if you are running l
       fi
       gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "$key"
    done
+}
+
+
+
+tb_download() {
+   trap "tb_error_handler" ERR
+
+   tb_download_ok="0"
+
+   ## Initialize variable, if non-existing.
+   if [ "$attempt" = "" ]; then
+      attempt="0"
+   fi
+
+   attempt="$(expr "$attempt" + "1")"
+
+   last_try="0"
+   if [ "$attempt" -ge "$tbbversions_found" ]; then
+      last_try="1"
+   fi
+
+   ## progress bar for download
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      true
+   else
+      NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
+
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
+      sleep 1
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+   fi
 
    ## Download from the torproject.org hidden service, instead over clearnet,
    ## thus not involving any Tor exist nodes.
@@ -646,7 +675,7 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    fi
 
    debug "Downloading GPG signature..."
-   TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz.asc"
+   TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz.asc"
    TBB_SIG_LINK="$TBB_REMOTE_FOLDER/$TBB_SIG_FILENAME"
    debug "Downloading: $TBB_SIG_LINK"
 
@@ -671,13 +700,26 @@ It is a good idea to delete old TBB backups once in a while if you are running l
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
-      MSG="Failed to download: $TBB_SIG_LINK
+      if [ "$last_try" = "0" ]; then
+         MSG="Failed to download: $TBB_SIG_LINK
+There are other recommended versions. Will try to download the next recommended version..."
+
+         ## No popup message in X. Would be too confusing.
+         #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG" --done
+
+         $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG" --done
+
+         ## return 0, so the loop will tell us to try the next $tbb_version.
+         return 0
+      else
+         MSG="Failed to download: $TBB_SIG_LINK
 
 $DOWNLOAD_FAIL_HELP"
 
-      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
-      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
-      exit 1
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
+         exit 1
+      fi
    fi
 
    NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
@@ -685,8 +727,8 @@ $DOWNLOAD_FAIL_HELP"
    sleep 1
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
 
-   debug "Downloading Tor Browser Bundle: $TBBVERSION"
-   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$TBBVERSION-dev-$TB_LANG.tar.gz"
+   debug "Downloading Tor Browser Bundle: $tbb_version"
+   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz"
    TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/$TBB_PACKAGE_FILENAME"
    debug "Downloading: $TBB_PACKAGE_LINK"
 
@@ -719,6 +761,8 @@ $DOWNLOAD_FAIL_HELP"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
       exit 1
    fi
+
+   tb_download_ok="1"
 }
 
 tb_verify() {
@@ -772,7 +816,7 @@ tb_extract() {
    ## To play it safe and having a chance of finding out the installed version,
    ## we create a file ourselves to remember it.
    debug "Creating version file tor-browser_$TB_LANG/Docs/version."
-   echo "$TBBVERSION" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
+   echo "$tbb_version" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
    debug "Creating Unbundled Tor Browser startup script..."
    ## Using this until Tor Browser upstream patch #7266 gets accepted.
@@ -890,7 +934,18 @@ if [ "$TB_UPDATE" = "1" ]; then
    root_check
    tb_preparation
    tb_update_check
-   tb_download
+
+   ## For testing:
+   #tbb_recommended_versions_list="2.3.25-16 2.3.25-15"
+
+   for tbb_version in $tbb_recommended_versions_list; do
+      if [ "$tb_download_ok" = "1" ]; then
+         ## Download already succeeded.
+         break
+      fi
+      tb_download
+   done
+
    tb_verify
    tb_extract
 elif [ "$tb_recommended_start" = "1" ]; then

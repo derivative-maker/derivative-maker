@@ -50,7 +50,7 @@ check_torbrowser() {
       return 0
    fi
 
-   ## returns: TBBVERSION
+   ## returns: tbb_recommended_versions_list
    tbbversion
 
    ## Getting currently installed version number
@@ -61,7 +61,8 @@ check_torbrowser() {
    fi
 
    if [ "$TBBINSTALLEDVERSION" != "" ]; then
-      true "Successfully detected Tor Browser version. TB_LANG: $TB_LANG"
+      true "Successfully detected Tor Browser version."
+      true "TB_LANG: $TB_LANG"
    else
       TBBINSTALLEDVERSION="UNKNOWN"
       local MSG="Tor Browser Update Check Result: Could not determine currently installed Tor Browser version. \
@@ -72,15 +73,24 @@ This could be either because none is installed or because the version format cha
       return 0
    fi
 
+   local up_to_date="0"
+   local tbb_version
+   for tbb_version in $tbb_recommended_versions_list; do
+      if [ "$tbb_version" = "$TBBINSTALLEDVERSION" ]; then
+         local up_to_date="1"
+         break
+      fi
+   done
+
    ## Append to MSG if Tor Browser is current or not.
-   if [ "$TBBINSTALLEDVERSION" = "$TBBVERSION" ]; then
+   if [ "$up_to_date" = "1" ]; then
       ## It is up to date...
       local MSG="Tor Browser Update Check Result: Up to date."
       $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       ## Outdated...
-      local MSG="Tor Browser Update Check Result: Installed Tor Browser version: $TBBINSTALLEDVERSION. Latest Tor Browser version: $TBBVERSION. Please run:
+      local MSG="Tor Browser Update Check Result: Installed Tor Browser version: $TBBINSTALLEDVERSION. Latest recommend Tor Browser version(s): $tbb_recommended_versions_list. Please run:
     Start menu -> Applications -> System -> Tor Browser Updater"
       $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
