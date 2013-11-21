@@ -130,17 +130,6 @@ debug() {
 
 
 
-TEMP1="Possible reasons:
-- no internet connectivity
-
-Please check: Start menu -> System -> Whonix Check
-              or in Terminal: whonixcheck
-              or in Terminal with debugging: whonixcheck -v
-
-Run whonixcheck on Whonix-Gateway as well.
-
-If whonixcheck reports no problems with internet activity and this still fails, please report a bug!"
-
 TEMP2="As last resort you can also manually update Tor Browser.
 
 Check Whonix News:
@@ -154,9 +143,7 @@ https://www.whonix.org/wiki/Manually_Updating_Tor_Browser"
 
 
 
-DOWNLOAD_FAIL_HELP="$TEMP1
-
-$TEMP2"
+DOWNLOAD_FAIL_HELP="$TEMP2"
 
 
 
@@ -434,6 +421,100 @@ tb_preparation() {
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
+
+   ## Download from the torproject.org hidden service, instead over clearnet,
+   ## thus not involving any Tor exist nodes.
+   ## $WHONIX is an environment variable only set in Whonix.
+   if [ "$WHONIX" = "1" ]; then
+      TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+      ## Connections to hidden services are automatically encrypted end-to-end.
+      CURL_FORCE_SSL=""
+   else
+      ## Should only be the case when building Whonix from source while not being inside Whonix.
+      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+
+   if [ "$TB_CLEARNET" = "1" ]; then
+      ## In case the --clearnet option was used.
+      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+}
+
+
+
+tb_connectivity_checks() {
+   if [ "$DEV_BUILD_PASSTHROUGH" = "1" ]; then
+      return 0
+   fi
+
+   ## Let's reuse that code.
+   local connection_checker_return="0"
+   /usr/lib/whonix/timesync_prerequisite || { local connection_checker_return="$?" ; true; };
+
+   if [ ! "$connection_checker_return" = "0" ]; then
+      MSG="Tor not fully bootstrapped.
+
+Possible reasons:
+- no internet connectivity
+
+Please check: Start menu -> System -> Whonix Check
+              or in Terminal: whonixcheck
+              or in Terminal with debugging: whonixcheck -v
+
+Run whonixcheck on Whonix-Gateway as well.
+
+If whonixcheck reports no problems with internet activity and this still fails, please report a bug!"
+
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
+      exit 1
+   fi
+
+   true "Tor fully bootstrapped."
+
+   NOTIFY_MSG="Checking connectivity..."
+
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
+   sleep 1
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+
+   CURL_RETURN="0"
+   $CURL_PRGRS \
+      --fail \
+      $CURL_PROXY \
+      $CURL_FORCE_SSL \
+      --max-time 180 \
+      --output "$home_folder/.tb/tbb_remote_folder" \
+      "$TBB_REMOTE_FOLDER" \
+      &
+
+   LAST_CURL_PRGRS_PID="$!"
+   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   LAST_CURL_PRGRS_PID=""
+
+   ## Check if curl failed.
+   if [ ! "$CURL_RETURN" = "0" ]; then
+      MSG="$TBB_REMOTE_FOLDER could not be reached.
+
+Possible reasons:
+- $TBB_REMOTE_FOLDER is down
+- download location changed
+
+Please check: Start menu -> System -> Whonix Check
+              or in Terminal: whonixcheck
+              or in Terminal with debugging: whonixcheck -v
+
+If whonixcheck reports no problems with internet activity and this keeps failing, please report a bug!"
+
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
+      exit 1
+   fi
+
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 }
 
 
@@ -653,25 +734,6 @@ tb_download() {
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
-   fi
-
-   ## Download from the torproject.org hidden service, instead over clearnet,
-   ## thus not involving any Tor exist nodes.
-   ## $WHONIX is an environment variable only set in Whonix (by /etc/environment).
-   if [ "$WHONIX" = "1" ]; then
-      TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
-      ## Connections to hidden services are automatically encrypted end-to-end.
-      CURL_FORCE_SSL=""
-   else
-      ## Should only be the case when building Whonix from source while not being inside Whonix.
-      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      CURL_FORCE_SSL="--tlsv1 --proto =https"
-   fi
-
-   if [ "$TB_CLEARNET" = "1" ]; then
-      ## In case the --clearnet option was used.
-      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      CURL_FORCE_SSL="--tlsv1 --proto =https"
    fi
 
    debug "Downloading GPG signature..."
@@ -933,6 +995,7 @@ parse_cmd_options ${1+"$@"}
 if [ "$TB_UPDATE" = "1" ]; then
    root_check
    tb_preparation
+   tb_connectivity_checks
    tb_update_check
 
    ## For testing:
