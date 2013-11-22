@@ -137,12 +137,18 @@ unmount_image() {
 preparation() {
    trap "error_handler" ERR INT TERM
 
-   rm --force "$report_file"
+   ## TODO: delete existing report_temp folder?
 
-   extracted_ova_folder="$WHONIX_BINARY/report_temp_extracted_ova_folder"
-   mount_folder="$WHONIX_BINARY/report_temp_mount_folder"
-   vdi_folder="$WHONIX_BINARY/report_temp_vdi_folder"
-   misc_folder="$WHONIX_BINARY/report_temp_misc_folder"
+   rm --force "$report_file"
+   sync
+   sudo -u "$USERNAME" touch "$report_file"
+   sync
+
+   extracted_ova_folder="$WHONIX_BINARY/report_temp/extracted_ova_folder"
+   mount_folder="$WHONIX_BINARY/report_temp/mount_folder"
+   vdi_folder="$WHONIX_BINARY/report_temp/vdi_folder"
+   raw_folder="$WHONIX_BINARY/report_temp/raw_folder"
+   misc_folder="$WHONIX_BINARY/report_temp/misc_folder"
 
    ova_absolute_filename_without_extension="${ova_file%%.*}"
    folder_name="$(dirname "$ova_file")"
@@ -154,10 +160,17 @@ preparation() {
 
    vmdk_file="$extracted_ova_folder/$ova_filename_without_extension-disk1.vmdk"
    vdi_file="$vdi_folder/$ova_filename_without_extension.vdi"
+   raw_file="$raw_folder/$ova_filename_without_extension.img"
+
+   vmdk_file_basename="$(basename "$vmdk_file")"
+   vdi_file_basename="$(basename "$vdi_file")"
+   raw_file_basename="$(basename "$raw_file")"
 
    sudo -u "$USERNAME" mkdir --parents "$extracted_ova_folder"
-   sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
    sudo -u "$USERNAME" mkdir --parents "$mount_folder"
+   sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
+   sudo -u "$USERNAME" mkdir --parents "$raw_folder"
+   sudo -u "$USERNAME" mkdir --parents "$misc_folder"
 }
 
 extract_ova() {
@@ -172,7 +185,7 @@ extract_ova() {
       if [ ! -f "$ova_file" ]; then
          error "${red}${bold}ERROR: $ova_file does not exist. ${reset}"
       else
-         true "${bold}${cyan}INFO: Unpacking ova: $ova_file... ${reset}"
+         true "${bold}${cyan}INFO: Unpacking ova: $ova_file... (This can take a while.) ${reset}"
          sudo -u "$USERNAME" tar -xvf "$ova_file"
          true "${bold}${cyan}INFO: Unpacked ova_file. ${reset}"
       fi
@@ -191,7 +204,7 @@ convert_vmdk_to_vdi() {
       true "${bold}${cyan}INFO: Converting vmdk to vdi not required, already done, skipping. ${reset}"
    else
       ## Convert .vmdk to .vdi, since there is no Free Software for mounting .vmdk using command line.
-      true "${bold}${cyan}INFO: Converting vmdk to vdi... ${reset}"
+      true "${bold}${cyan}INFO: Converting vmdk to vdi... (This can take a while.) ${reset}"
 
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
@@ -205,6 +218,21 @@ convert_vmdk_to_vdi() {
    fi
 }
 
+convert_vdi_to_raw() {
+   trap "error_handler" ERR INT TERM
+
+   if [ -f "$raw_file" ]; then
+      ## TODO
+      true "${bold}${cyan}INFO: Converting vdi to raw not required, already done, skipping. ${reset}"
+   else
+      true "${bold}${cyan}INFO: Converting vdi to img... (This can take a while.) ${reset}"
+
+      sudo -u "$USERNAME" qemu-img convert -p -O raw "$vdi_file" "$raw_file"
+
+      true "${bold}${cyan}INFO: Converted vdi to img. ${reset}"
+   fi
+}
+
 mount_image() {
    trap "error_handler" ERR INT TERM
 
@@ -212,6 +240,7 @@ mount_image() {
 
    sync
 
+   ## Mounting read-only so the user can not accidentally delete files within the image.
    guestmount -a "$vdi_file" -m /dev/sda1 --ro "$mount_folder"
    sync
 
@@ -223,13 +252,54 @@ parse_file_system() {
 
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
-   local file_systems="$(virt-filesystems -a "$vdi_file")"
-
-   local msg="file_systems: $file_systems"
-
-   echo "$msg" >> "$report_file"
+   virt-filesystems -a "$vdi_file" > "$misc_folder/$vdi_file_basename.virt-filesystems-a"
+   virt-filesystems -a "$raw_file" > "$misc_folder/$raw_file_basename.virt-filesystems-a"
 
    true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
+}
+
+parse_mbr() {
+   trap "error_handler" ERR INT TERM
+
+   true "${bold}${cyan}INFO: Parsing MBR... ${reset}"
+
+   dd if="$vdi_file" of="$misc_folder/$vdi_file_basename.dd.512" bs=512 count=1
+
+   ## sfdisk does not support .vdi files.
+
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.512" bs=512 count=1
+
+   sfdisk -d "$raw_file" > "$misc_folder/$raw_file_basename.sfdisk-d"
+
+   fdisk -l "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-l"
+
+   fdisk -s "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-s"
+
+   parted --list "$raw_file" > "$misc_folder/$raw_file_basename.parted--list"
+
+   parted --list --machine "$raw_file" > "$misc_folder/$raw_file_basename.parted--list--machine"
+
+   parted "$raw_file" print > "$misc_folder/$raw_file_basename.parted_print"
+
+   parted --machine "$raw_file" print > "$misc_folder/$raw_file_basename.parted_--machine_print"
+
+   parted --machine "$raw_file" unit B print > "$misc_folder/$raw_file_basename.parted_--unit_B_print"
+
+   ## BYT;
+   ## /home/user/whonix_binary/report_temp/raw_folder/Whonix-Gateway-7.img:107374182400B:file:512:512:msdos:;
+   ## 1:2097152B:107374182399B:107372085248B:ext4::;
+
+   true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
+}
+
+parse_vbr() {
+   trap "error_handler" ERR INT TERM
+
+   #true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
+
+   true "${bold}${cyan}INFO: Parsing VBR is not yet implemented! ${reset}"
+
+   #true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
 }
 
 parse_folder() {
@@ -280,13 +350,20 @@ preparation
 
 extract_ova
 convert_vmdk_to_vdi
+convert_vdi_to_raw
 
 parse_file_system
+parse_mbr
+parse_vbr
 
 mount_image
 
 skip="1"
 folder="$extracted_ova_folder"
+parse_folder
+
+skip="0"
+folder="$misc_folder"
 parse_folder
 
 skip="0"
