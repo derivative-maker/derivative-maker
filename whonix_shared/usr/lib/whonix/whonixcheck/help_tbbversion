@@ -163,3 +163,26 @@ Either check.torproject.org has been compromised or this is a Whonix bug."
 
    #echo "tbb_recommended_versions_list: $tbb_recommended_versions_list"
 }
+
+tbbversion_installed() {
+   ## Getting currently installed version number
+
+   ## Fallbacks.
+   tbb_locally_installed_version="UNKNOWN. Please report this Whonix Bug!"
+   tbb_locally_installed_version_detect_success="0"
+
+   if [ ! -d "$tbb_folder" ]; then
+      tbb_locally_installed_version="None installed. ($tbb_folder does not exist.)"
+      return 0
+   fi
+
+   local temp="$tbb_folder/Docs/version"
+   if [ -f "$temp" ]; then
+      tbb_locally_installed_version="$(head -1 "$temp")" || true
+      tbb_locally_installed_version_detect_success="1"
+      return 0
+   fi
+
+   tbb_locally_installed_version="Locally installed Tor Browser version can not be determined, \
+because version file does not exist. You probably manually updated last time. ($temp does not exist.)"
+}

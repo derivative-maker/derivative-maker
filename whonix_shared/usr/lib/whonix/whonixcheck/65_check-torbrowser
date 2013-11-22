@@ -50,33 +50,30 @@ check_torbrowser() {
       return 0
    fi
 
-   ## returns: tbb_recommended_versions_list
+   ## sets: tbb_recommended_versions_list
+   ## sets: tbbversions_found
+   ## sets: tbb_recommended_versions_error
    tbbversion
 
-   ## Getting currently installed version number
-   local temp="/home/$USERNAME/tor-browser_$TB_LANG/Docs/version"
-   TBBINSTALLEDVERSION=""
-   if [ -f "$temp" ]; then
-      TBBINSTALLEDVERSION="$(head -1 "$temp")" || true
-   fi
+   ## Used by tbbversion_installed
+   tbb_folder="/home/$USERNAME/tor-browser_$TB_LANG"
 
-   if [ "$TBBINSTALLEDVERSION" != "" ]; then
+   ## sets: tbb_locally_installed_version
+   tbbversion_installed
+
+   if [ "$tbb_locally_installed_version_detect_success" = "1" ]; then
       true "Successfully detected Tor Browser version."
-      true "TB_LANG: $TB_LANG"
    else
-      TBBINSTALLEDVERSION="UNKNOWN"
-      local MSG="Tor Browser Update Check Result: Could not determine currently installed Tor Browser version. \
-This could be either because none is installed or because the version format changed. Try:
-    Start menu -> Applications -> System -> Tor Browser Updater"
-      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      local MSG="Tor Browser Update Check Result: $tbb_locally_installed_version"
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
    local up_to_date="0"
    local tbb_version
    for tbb_version in $tbb_recommended_versions_list; do
-      if [ "$tbb_version" = "$TBBINSTALLEDVERSION" ]; then
+      if [ "$tbb_version" = "$tbb_locally_installed_version" ]; then
          local up_to_date="1"
          break
       fi
@@ -90,7 +87,7 @@ This could be either because none is installed or because the version format cha
       $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
       ## Outdated...
-      local MSG="Tor Browser Update Check Result: Installed Tor Browser version: $TBBINSTALLEDVERSION. Latest recommend Tor Browser version(s): $tbb_recommended_versions_list. Please run:
+      local MSG="Tor Browser Update Check Result: Installed Tor Browser version: $tbb_locally_installed_version. Latest recommend Tor Browser version(s): $tbb_recommended_versions_list. Please run:
     Start menu -> Applications -> System -> Tor Browser Updater"
       $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
