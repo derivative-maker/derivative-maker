@@ -64,12 +64,12 @@ parse_cmd() {
                script_help
                exit 0
                ;;
-           -o | --ours)
-               ova_ours="$2"
+           -o | --ova)
+               ova_file="$2"
                shift 2
                ;;
-           -t | --theirs)
-               ova_theirs="$2"
+           -r | --report)
+               report_file="$2"
                shift 2
                ;;
            --)
@@ -85,31 +85,21 @@ parse_cmd() {
        esac
    done
 
-   if [ ! -f "$ova_ours" ]; then
-      echo "ERROR: ova_ours $ova_ours does not exist!"
+   if [ ! -f "$ova_file" ]; then
+      echo "ERROR: ova_file $ova_file does not exist!"
       exit 1
    fi
-   if [ ! -f "$ova_theirs" ]; then
-      echo "ERROR: ova_theirs $ova_theirs does not exist!"
+   if [ "$report_file" = "" ]; then
+      echo "ERROR: no report_file chosen!"
       exit 1
    fi
-}
-
-unmount_img() {
-   guestunmount "$mount_folder_ours"
-   sync
-
-   # Delete temporary folder.
-   # It did not contain anything. It was only a mount point.
-   rm -r "$mount_folder_ours"
-   sync
 }
 
 error_handler() {
    local return_code="$?"
    local bash_command="$BASH_COMMAND"
 
-   unmount_img
+   unmount_image
 
    echo "
 ${red}${bold}bash_command${reset}: $bash_command
@@ -128,120 +118,179 @@ debug_echo() {
    fi
 }
 
+unmount_image() {
+   true "${bold}${cyan}INFO: Unmounting vdi... ${reset}"
+
+   sync
+
+   guestunmount "$mount_folder"
+   sync
+
+   # Delete temporary folder.
+   # It did not contain anything. It was only a mount point.
+   rm -r "$mount_folder"
+   sync
+
+   true "${bold}${cyan}INFO: Unmounted vdi. ${reset}"
+}
+
 preparation() {
    trap "error_handler" ERR INT TERM
 
-   declare -A -g remembered_file_our_i
-   declare -A -g remembered_file_our_hash
-   declare -A -g remembered_file_their_i
-   declare -A -g remembered_file_their_hash
+   rm --force "$report_file"
 
-   temp_folder="$WHONIX_BINARY/verification"
-   sudo -u "$USERNAME" mkdir --parents "$temp_folder"
-   cd "$temp_folder"
+   extracted_ova_folder="$WHONIX_BINARY/report_temp_extracted_ova_folder"
+   mount_folder="$WHONIX_BINARY/report_temp_mount_folder"
+   vdi_folder="$WHONIX_BINARY/report_temp_vdi_folder"
+   misc_folder="$WHONIX_BINARY/report_temp_misc_folder"
 
-   mount_folder_ours="$WHONIX_BINARY/verification/ours"
-   mount_folder_theirs="$WHONIX_BINARY/verification/theirs"
-
-   ova_absolute_filename_without_extension="${ova_ours%%.*}"
-   folder_name="$(dirname $ova_ours)"
-   ova_filename="$(basename "$ova_ours")"
+   ova_absolute_filename_without_extension="${ova_file%%.*}"
+   folder_name="$(dirname "$ova_file")"
+   ova_filename="$(basename "$ova_file")"
    ova_filename_without_extension="${ova_filename%%.*}"
 
    ## Example ova_absolute_filename_without_extension:
    ## /home/user/whonix_binary/Whonix-Gateway-7
 
-   vdi_ours="$temp_folder/$ova_filename_without_extension.vdi"
+   vmdk_file="$extracted_ova_folder/$ova_filename_without_extension-disk1.vmdk"
+   vdi_file="$vdi_folder/$ova_filename_without_extension.vdi"
 
-   if [ -f "$vdi_ours" ]; then
+   sudo -u "$USERNAME" mkdir --parents "$extracted_ova_folder"
+   sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
+   sudo -u "$USERNAME" mkdir --parents "$mount_folder"
+}
+
+extract_ova() {
+   trap "error_handler" ERR INT TERM
+
+   cd "$extracted_ova_folder"
+
+   if [ -f "$vdi_file" ]; then
+      ## TODO
       true "${bold}${cyan}INFO: Unpacking .ova not required, .vdi already exists, skipping. ${reset}"
    else
-      if [ ! -f "$ova_ours" ]; then
-         error "${red}${bold}ERROR: $ova_ours does not exist. ${reset}"
+      if [ ! -f "$ova_file" ]; then
+         error "${red}${bold}ERROR: $ova_file does not exist. ${reset}"
       else
-         true "${bold}${cyan}INFO: Unpacking our ova: $ova_ours... ${reset}"
-         sudo -u "$USERNAME" tar -xvf "$ova_ours"
-         true "${bold}${cyan}INFO: Unpacked ova_ours. ${reset}"
+         true "${bold}${cyan}INFO: Unpacking ova: $ova_file... ${reset}"
+         sudo -u "$USERNAME" tar -xvf "$ova_file"
+         true "${bold}${cyan}INFO: Unpacked ova_file. ${reset}"
       fi
    fi
+}
 
-   vmdk_ours="$temp_folder/$ova_filename_without_extension-disk1.vmdk"
+convert_vmdk_to_vdi() {
+   trap "error_handler" ERR INT TERM
 
-   if [ ! -f "$vmdk_ours" ]; then
-      error "${red}${bold}ERROR: vmdk_ours: $vmdk_ours does not exist. ${reset}"
+   if [ ! -f "$vmdk_file" ]; then
+      error "${red}${bold}ERROR: vmdk_file: $vmdk_file does not exist. ${reset}"
    fi
 
-   if [ -f "$vdi_ours" ]; then
-      true "${bold}${cyan}INFO: Converting our_vmdk to .vdi not required, already done, skipping. ${reset}"
+   if [ -f "$vdi_file" ]; then
+      ## TODO
+      true "${bold}${cyan}INFO: Converting vmdk to vdi not required, already done, skipping. ${reset}"
    else
       ## Convert .vmdk to .vdi, since there is no Free Software for mounting .vmdk using command line.
-      true "${bold}${cyan}INFO: Converting our_vmdk to img... ${reset}"
+      true "${bold}${cyan}INFO: Converting vmdk to vdi... ${reset}"
 
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
       ## https://bugs.launchpad.net/qemu/+bug/1253465
       ## TODO: vdi -> raw
-      #sudo -u "$USERNAME" qemu-img convert "$vmdk_ours" -O RAW "$vdi_ours"
+      #sudo -u "$USERNAME" qemu-img convert "$vmdk_file" -O RAW "$vdi_file"
 
-      sudo -u "$USERNAME" VBoxManage clonehd --format VDI "$vmdk_ours" "$vdi_ours"
+      sudo -u "$USERNAME" VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
 
-      true "${bold}${cyan}INFO: Converted our_vmdk to img. ${reset}"
+      true "${bold}${cyan}INFO: Converted vmdk to vdi. ${reset}"
    fi
+}
 
-   ## TODO: Store for later comparison.
-   virt-filesystems -a "$vdi_ours"
+mount_image() {
+   trap "error_handler" ERR INT TERM
 
-   mkdir --parents "$mount_folder_ours"
+   true "${bold}${cyan}INFO: Mounting vdi... ${reset}"
+
    sync
 
-   guestmount -a "$vdi_ours" -m /dev/sda1 --ro "$mount_folder_ours"
+   guestmount -a "$vdi_file" -m /dev/sda1 --ro "$mount_folder"
    sync
+
+   true "${bold}${cyan}INFO: Mounted vdi. ${reset}"
 }
 
-parse_our_image() {
+parse_file_system() {
    trap "error_handler" ERR INT TERM
 
-   local i
+   true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
-   while read i; do
-      echo "i: $i"
-      remembered_file_our_i[$i]="$i"
-      local a="$(sha512sum "$i")"
-      local checksum_our
-      read -r checksum_our _ <<< "$a"
-      remembered_file_our_hash[$i]="$checksum_our"
-   done < <(find "$mount_folder_ours")
+   local file_systems="$(virt-filesystems -a "$vdi_file")"
+
+   local msg="file_systems: $file_systems"
+
+   echo "$msg" >> "$report_file"
+
+   true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
 }
 
-parse_their_image() {
+parse_folder() {
    trap "error_handler" ERR INT TERM
 
-   local i
+   local file
 
-   while read i; do
-      echo "i: $i"
-      remembered_file_their_i[$i]="$i"
-      local a="$(sha512sum "$i")"
-      local checksum_their
-      read -r checksum_their _ <<< "$a"
-      remembered_file_their_hash[$i]="$checksum_their"
-   done < <(find "$mount_folder_theirs")
-}
+   while read file; do
+      echo "file: $file"
+      if [ -d "$file" ]; then
+         echo "$file: directory" >> "$report_file"
+         continue
+      fi
 
-compare_images() {
-   trap "error_handler" ERR INT TERM
+      if [ "$skip" = "1" ]; then
+         local file_extension="${file#*.}"
+         if [ "$file_extension" = "vmdk" ]; then
+            ## Skipping creating a sha512sum of the vmdk, because that wastes
+            ## a lot time and we know in advance, there there will be
+            ## differences. (Because there are no deterministically built
+            ## operating systems yet.) We mount and analyze that image later,
+            ## which is the whole point of this script.
+            echo "$file: skipped" >> "$report_file"
+            continue
+         fi
+      fi
 
+      local checksum_return="$(sha512sum "$file")"
+      if [ ! "$PIPESTATUS" = "0" ]; then
+         error "Running sha512sum "$file" returned PIPESTATUS $PIPESTATUS"
+      fi
+      local checksum
+      read -r checksum _ <<< "$checksum_return"
+      echo "$file: $checksum" >> "$report_file"
+   done < <(find "$folder")
 }
 
 end() {
    trap "error_handler" ERR INT TERM
 
-   unmount_img
+   unmount_image
+
+   true "${bold}${cyan}INFO: End. No error detected. ${reset}"
 }
 
 parse_cmd ${1+"$@"}
 preparation
-parse_our_image
-parse_their_image
-compare_images
+
+extract_ova
+convert_vmdk_to_vdi
+
+parse_file_system
+
+mount_image
+
+skip="1"
+folder="$extracted_ova_folder"
+parse_folder
+
+skip="0"
+folder="$mount_folder"
+parse_folder
+
 end
