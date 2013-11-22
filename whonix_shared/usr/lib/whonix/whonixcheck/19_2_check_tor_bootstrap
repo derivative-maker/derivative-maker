@@ -207,12 +207,18 @@ Please report this Whonix bug!"
 
    if [ "$TOR_BOOTSTRAP_TIME_PASSED" -gt "1" ]; then
       if [ ! "$started_tor_bootstrap_progress_bar" = "1" ]; then
-         started_tor_bootstrap_progress_bar="1"
-         ## Waited for more than 5 seconds.
-         local tmp="$(mktemp)"
-         local progressbaridx="${tmp##*.}"
-         local MSG="Tor Bootstrap Test: Checking Tor's Bootstrap Status... (Will take up to $wait_max seconds.)"
-         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+         if [ "$DAEMON" = "1" ]; then
+            ## Daemon mode. Not creating a progress bar.
+            true
+         else
+            ## Not running in daemon mode.
+            started_tor_bootstrap_progress_bar="1"
+            ## Waited for more than 5 seconds.
+            local tmp="$(mktemp)"
+            local progressbaridx="${tmp##*.}"
+            local MSG="Tor Bootstrap Test: Checking Tor's Bootstrap Status... (Will take up to $wait_max seconds.)"
+            $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+         fi
       fi
    fi
 
