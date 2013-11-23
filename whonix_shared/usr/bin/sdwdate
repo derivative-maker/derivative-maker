@@ -467,6 +467,26 @@ sdwdate_preparation() {
    fi
 }
 
+sdwdate_echo() {
+   trap "sdwdate_error_handler" ERR
+
+   if [ "$QUIET" = "1" ]; then
+      true
+   else
+      echo "$@"
+   fi
+}
+
+sdwdate_write_log() {
+   trap "sdwdate_error_handler" ERR
+
+   if [ "$LOG_FILE" = "" ]; then
+      true
+   else
+      echo "$@" >> "$LOG_FILE"
+   fi
+}
+
 sdwdate_log() {
    trap "sdwdate_error_handler" ERR
 
@@ -474,17 +494,11 @@ sdwdate_log() {
       ID="No_ID"
    fi
 
-   if [ "$QUIET" = "1" ]; then
-      true
-   else
-      echo "$ID: $@"
-   fi
+   local msg="$ID: $@"
+   swddate_last_msg="$msg"
 
-   if [ "$LOG_FILE" = "" ]; then
-      true
-   else
-      echo "$ID: $@" >> "$LOG_FILE"
-   fi
+   sdwdate_echo "$msg"
+   sdwdate_write_log "$msg"
 }
 
 sdwdate_safe_log() {
@@ -495,16 +509,7 @@ sdwdate_safe_log() {
       return 0
    fi
 
-   local last_line="$(awk '/./{line=$0} END{print line}' "$LOG_FILE")"
-   local no_repeat="Not duplicating last log entry."
-
-   if [ "$last_line" = "$no_repeat" ]; then
-      echo "Last log entry is: $last_line"
-      return 0
-   fi
-
-   if [ "$last_line" = "$@" ]; then
-      sdwdate_log "$no_repeat"
+   if [ "$swddate_last_msg" = "$ID: $@" ]; then
       return 0
    fi
 
