@@ -6,7 +6,10 @@
 
 ## Usage:
 ## From Whonix Source Code Folder...
-##    TODO
+##
+## sudo ./release/analyze_image --ova ~/Whonix-Gateway-7.4.3.ova --report ~/report1 --tempfolder ~/whonix_binary/report_temp1
+##
+## sudo ./release/analyze_image --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova --report ~/report2 --tempfolder ~/whonix_binary/report_temp2
 
 [ -o xtrace ]
 ## returns:
@@ -22,15 +25,10 @@ cd "$MYDIR"
 cd ..
 
 WHONIX_BUILD_PARSED="1"
-ROOT_CHECK="0"
 VMNAME="internalrun"
 
 cd help-steps
 source pre
-source variables
-
-## Default to "no mismatch found" (0) and and increase for every mismatch found.
-WHONIX_BUILD_VERIFY_MISMATCH="0"
 
 ## Enable (1) or disable (0) debug_echo's.
 debug="0"
@@ -72,6 +70,10 @@ parse_cmd() {
                report_file="$2"
                shift 2
                ;;
+           -t | --tempfolder)
+               tempfolder="$2"
+               shift 2
+               ;;
            --)
                shift
                break
@@ -91,6 +93,10 @@ parse_cmd() {
    fi
    if [ "$report_file" = "" ]; then
       echo "ERROR: no report_file chosen!"
+      exit 1
+   fi
+   if [ "$tempfolder" = "" ]; then
+      echo "ERROR: no tempfolder chosen!"
       exit 1
    fi
 }
@@ -126,34 +132,29 @@ unmount_image() {
    guestunmount "$mount_folder"
    sync
 
-   # Delete temporary folder.
-   # It did not contain anything. It was only a mount point.
-   rm -r "$mount_folder"
-   sync
-
    true "${bold}${cyan}INFO: Unmounted vdi. ${reset}"
 }
 
 preparation() {
    trap "error_handler" ERR INT TERM
 
-   ## TODO: delete existing report_temp folder?
-
    rm --force "$report_file"
+   rm --force "$file_list_file"
    sync
+
    sudo -u "$USERNAME" touch "$report_file"
    sync
 
-   extracted_ova_folder="$WHONIX_BINARY/report_temp/extracted_ova_folder"
-   mount_folder="$WHONIX_BINARY/report_temp/mount_folder"
-   vdi_folder="$WHONIX_BINARY/report_temp/vdi_folder"
-   raw_folder="$WHONIX_BINARY/report_temp/raw_folder"
-   misc_folder="$WHONIX_BINARY/report_temp/misc_folder"
+   extracted_ova_folder="$tempfolder/extracted_ova_folder"
+   mount_folder="$tempfolder/mount_folder"
+   vdi_folder="$tempfolder/vdi_folder"
+   raw_folder="$tempfolder/raw_folder"
+   misc_folder="$tempfolder/misc_folder"
 
-   ova_absolute_filename_without_extension="${ova_file%%.*}"
+   ova_absolute_filename_without_extension="${ova_file%.*}"
    folder_name="$(dirname "$ova_file")"
    ova_filename="$(basename "$ova_file")"
-   ova_filename_without_extension="${ova_filename%%.*}"
+   ova_filename_without_extension="${ova_filename%.*}"
 
    ## Example ova_absolute_filename_without_extension:
    ## /home/user/whonix_binary/Whonix-Gateway-7
@@ -166,8 +167,10 @@ preparation() {
    vdi_file_basename="$(basename "$vdi_file")"
    raw_file_basename="$(basename "$raw_file")"
 
+   file_list_file="$misc_folder/file_list"
+
    sudo -u "$USERNAME" mkdir --parents "$extracted_ova_folder"
-   sudo -u "$USERNAME" mkdir --parents "$mount_folder"
+   sudo -u "$USERNAME" mkdir --parents "$mount_folder" || true
    sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
    sudo -u "$USERNAME" mkdir --parents "$raw_folder"
    sudo -u "$USERNAME" mkdir --parents "$misc_folder"
@@ -269,24 +272,35 @@ parse_mbr() {
 
    dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.512" bs=512 count=1
 
-   sfdisk -d "$raw_file" > "$misc_folder/$raw_file_basename.sfdisk-d"
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.1000" bs=1000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.2000" bs=2000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.3000" bs=3000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.4000" bs=4000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.5000" bs=5000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.6000" bs=6000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.7000" bs=7000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.8000" bs=8000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.9000" bs=9000 count=1
+   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.10000" bs=10000 count=1
 
-   fdisk -l "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-l"
+   /sbin/sfdisk -d "$raw_file" > "$misc_folder/$raw_file_basename.sfdisk-d"
 
-   fdisk -s "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-s"
+   /sbin/fdisk -l "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-l"
 
-   parted --list "$raw_file" > "$misc_folder/$raw_file_basename.parted--list"
+   /sbin/fdisk -s "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-s"
 
-   parted --list --machine "$raw_file" > "$misc_folder/$raw_file_basename.parted--list--machine"
+   /sbin/parted --list "$raw_file" > "$misc_folder/$raw_file_basename.parted--list"
 
-   parted "$raw_file" print > "$misc_folder/$raw_file_basename.parted_print"
+   /sbin/parted --list --machine "$raw_file" > "$misc_folder/$raw_file_basename.parted--list--machine"
 
-   parted --machine "$raw_file" print > "$misc_folder/$raw_file_basename.parted_--machine_print"
+   /sbin/parted "$raw_file" print > "$misc_folder/$raw_file_basename.parted_print"
 
-   parted --machine "$raw_file" unit B print > "$misc_folder/$raw_file_basename.parted_--unit_B_print"
+   /sbin/parted --machine "$raw_file" print > "$misc_folder/$raw_file_basename.parted_--machine_print"
+
+   /sbin/parted --machine "$raw_file" unit B print > "$misc_folder/$raw_file_basename.parted_--unit_B_print"
 
    ## BYT;
-   ## /home/user/whonix_binary/report_temp/raw_folder/Whonix-Gateway-7.img:107374182400B:file:512:512:msdos:;
+   ## /home/user/whonix_binary/$tempfolder/raw_folder/Whonix-Gateway-7.img:107374182400B:file:512:512:msdos:;
    ## 1:2097152B:107374182399B:107372085248B:ext4::;
 
    true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
@@ -305,36 +319,80 @@ parse_vbr() {
 parse_folder() {
    trap "error_handler" ERR INT TERM
 
+   rm --force "$file_list_file"
+
    local file
 
-   while read file; do
-      echo "file: $file"
+   while read -r -d '' file; do
+      local absolute_file_name="${file#"$folder"}"
+
+      echo "$absolute_file_name: $file"
+      echo "$absolute_file_name" >> "$file_list_file"
+
       if [ -d "$file" ]; then
-         echo "$file: directory" >> "$report_file"
+         echo "$absolute_file_name: directory" >> "$report_file"
+         continue
+      fi
+
+      local dir_name="${file%/*}"
+      local dir_name_absolute="${dir_name#"$folder"}"
+
+      ## Check if $file is a symlink.
+      if [ -h "$file" ]; then
+         ## Symlink found...
+
+         ## Not using readlink with -f, so we can compare the relative links.
+         local file_link="$(readlink "$file")"
+         echo "$absolute_file_name: symlinks_to $file_link" >> "$report_file"
+
          continue
       fi
 
       if [ "$skip" = "1" ]; then
-         local file_extension="${file#*.}"
+         local file_extension="${file##*.}"
          if [ "$file_extension" = "vmdk" ]; then
             ## Skipping creating a sha512sum of the vmdk, because that wastes
             ## a lot time and we know in advance, there there will be
             ## differences. (Because there are no deterministically built
             ## operating systems yet.) We mount and analyze that image later,
             ## which is the whole point of this script.
-            echo "$file: skipped" >> "$report_file"
+            echo "$absolute_file_name: skipped" >> "$report_file"
             continue
          fi
       fi
 
-      local checksum_return="$(sha512sum "$file")"
-      if [ ! "$PIPESTATUS" = "0" ]; then
-         error "Running sha512sum "$file" returned PIPESTATUS $PIPESTATUS"
+      if [ "$absolute_file_name" = "/dev/xconsole" ]; then
+         echo "$absolute_file_name: skipped" >> "$report_file"
+         continue
       fi
-      local checksum
-      read -r checksum _ <<< "$checksum_return"
-      echo "$file: $checksum" >> "$report_file"
-   done < <(find "$folder")
+      if [ "$absolute_file_name" = "/dev/initctl" ]; then
+         echo "$absolute_file_name: skipped" >> "$report_file"
+         continue
+      fi
+
+      local checksum_return
+      local checksum_exit_code="0"
+      checksum_return="$(sha512sum "$file")" || { local checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      if [ ! "$checksum_exit_code" = "0" ]; then
+         ## Handling cases such as:
+         ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
+         ## sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
+         echo "$absolute_file_name: $checksum_exit_code" >> "$report_file"
+         continue
+      else
+         local checksum
+         read -r checksum _ <<< "$checksum_return"
+         echo "$absolute_file_name: $checksum" >> "$report_file"
+         continue
+      fi
+   done < <(find "$folder/" -print0 | sort -z)
+}
+
+parse_file_list_file() {
+   trap "error_handler" ERR INT TERM
+
+   echo "file_list_file:"
+   sha512sum "$file_list_file" >> "$report_file"
 }
 
 end() {
@@ -369,5 +427,7 @@ parse_folder
 skip="0"
 folder="$mount_folder"
 parse_folder
+
+parse_file_list_file
 
 end
