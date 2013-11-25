@@ -37,8 +37,10 @@ rm /var/lib/dhcp/*.lease || true
 rm -r /var/lib/dhcp/* || true
 
 ## Cleanup.
-apt-get --yes autoremove --purge || true
-apt-get --yes clean || true
+apt-get --yes autoremove --purge
+
+## Get rid of /var/cache/apt/pkgcache.bin. (non-deterministic)
+apt-get --yes clean
 
 ## No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
 ## Therefore /var/lib/tor should be empty.
@@ -59,6 +61,12 @@ rm /var/log/*.[0-9].gz || true
 
 ## Get rid of /var/lib/dpkg/available. (non-deterministic)
 dpkg --clear-avail
+
+## non-deterministic
+rm -r -f /var/cache/fontconfig
+rm -f /var/cache/ldconfig/aux-cache
+rm -r -f /var/cache/man
+rm -r -f /var/lib/xml-core
 
 ## Truncate all log files, keeping user groups and permissions.
 find /var/log -type f -exec cp /dev/null {} \;
