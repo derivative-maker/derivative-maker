@@ -32,10 +32,13 @@ source variables
 make_debian_upstream_tarball() {
    trap "error_handler_general" ERR INT TERM
 
+   ## The -n switch for gzip is required to produce a reproducible tarball.
+
    sudo -E -u "$USERNAME" \
-      git archive \
-         --format=tar HEAD \
-         | gzip > "$WHONIX_SOURCE_PARENTDIR/whonix_${whonix_build_closest_git_tag}.orig.tar.gz"
+      faketime "2013-08-15T11:02:35" \
+         git archive \
+            --format=tar HEAD \
+            | gzip -n > "$WHONIX_SOURCE_PARENTDIR/whonix_${whonix_build_closest_git_tag}.orig.tar.gz"
 
    sync
 }

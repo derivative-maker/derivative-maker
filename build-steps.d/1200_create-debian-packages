@@ -141,36 +141,42 @@ ${cyan}or if you know what you are doing:${reset}
    ## whonix is written in lower case,
    ## because that's the name of the file in /etc/dpkg/origins/
    sudo -E -u "$USERNAME" \
-      debchange \
-         $debchange_vendor_cmd "whonix" \
-         --create \
-         --package "whonix" \
-         --distribution "$WHONIX_BUILD_APT_CODENAME" \
-         --newversion "$whonix_build_new_changelog_version" \
-         "This is an auto-generated file."
+      faketime "2013-08-15T11:02:35" \
+         debchange \
+            $debchange_vendor_cmd "whonix" \
+            --create \
+            --package "whonix" \
+            --distribution "$WHONIX_BUILD_APT_CODENAME" \
+            --newversion "$whonix_build_new_changelog_version" \
+            "This is an auto-generated file."
 
    sudo -E -u "$USERNAME" \
-      debchange \
-         --append \
-         "Local auto bump version. Build from:"
+      faketime "2013-08-15T11:02:35" \
+         debchange \
+            --append \
+            "Local auto bump version. Build from:"
 
    sudo -E -u "$USERNAME" \
-      debchange \
-         --append \
-         "whonix_build_current_git_head: $whonix_build_current_git_head"
+      faketime "2013-08-15T11:02:35" \
+         debchange \
+            --append \
+            "whonix_build_current_git_head: $whonix_build_current_git_head"
 
    sudo -E -u "$USERNAME" \
-      debchange \
-         --append \
-         "whonix_build_new_changelog_version: $whonix_build_new_changelog_version"
+      faketime "2013-08-15T11:02:35" \
+         debchange \
+            --append \
+            "whonix_build_new_changelog_version: $whonix_build_new_changelog_version"
 
    sudo -E -u "$USERNAME" \
-      debchange \
-         --append \
-         "whonix_build_closest_git_tag: $whonix_build_closest_git_tag"
+      faketime "2013-08-15T11:02:35" \
+         debchange \
+            --append \
+            "whonix_build_closest_git_tag: $whonix_build_closest_git_tag"
 
    ## Debugging.
    ls -la ./debian/changelog || true
+   cat ./debian/changelog
 
    true "${cyan}$0 INFO: Bumped version number in debian/changelog. ${reset}"
 
@@ -186,20 +192,24 @@ ${cyan}or if you know what you are doing:${reset}
    #sudo -E -u "$USERNAME" \
       #debuild -p"gpg --no-default-keyring --homedir $WHONIX_LOCAL_SIGNING_KEY_FOLDER --default-key $DEBEMAIL"
 
+   ## --rootcmd as per https://wiki.debian.org/ReproducibleBuilds#How_to_build_a_deb_using_faketime
+   ##
    ## -p (**-p**sign-command) is understood by dpkg-buildpackage.
    ## See also man dpkg-buildpackage.
    ##
    ## -sa is understood by dpkg-buildpackage, it forces the inclusion of the original source
    ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
    sudo -E -u "$USERNAME" \
-      debuild \
-         -p"gpg \
-            --no-default-keyring \
-            --digest-algo sha512 \
-            --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-            --default-key "$DEBEMAIL"
-            " \
-         -sa
+      faketime "2013-08-15T11:02:35" \
+         debuild \
+            --rootcmd="$WHONIX_SOURCE_HELP_STEPS_FOLDER/gain-root-command" \
+            -p"gpg \
+               --no-default-keyring \
+               --digest-algo sha512 \
+               --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+               --default-key "$DEBEMAIL"
+               " \
+            -sa
 
    ## Debugging.
    ls -la ./debian/changelog || true
