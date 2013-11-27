@@ -27,7 +27,7 @@ esac
 
 maybe_run() {
    if [ ! -x "$1" ]; then
-      true "$1 does not exist. Either the package isn't installed, that script does not provide that script or else..."
+      true "INFO: $1 does not exist. Either the package isn't installed, that script does not provide that script or else..."
       return 0
    fi
    $1 $2
@@ -45,10 +45,12 @@ rm /var/lib/dhcp/*.lease || true
 rm -r /var/lib/dhcp/* || true
 
 ## Cleanup.
-apt-get --yes autoremove --purge
+## || true to support re-running the script.
+apt-get --yes autoremove --purge || true
 
 ## Get rid of /var/cache/apt/pkgcache.bin. (non-deterministic)
-apt-get --yes clean
+## || true to support re-running the script.
+apt-get --yes clean || true
 
 ## No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
 ## Therefore /var/lib/tor should be empty.
@@ -140,8 +142,14 @@ unset script
 
 ## non-deterministic [10]
 ## /usr/lib/i386-linux-gnu/gio/modules/giomodule.cache
+for script in /var/lib/dpkg/info/libglib*.prerm; do
+   maybe_run $script remove
+done
+unset script
 for script in /var/lib/dpkg/info/libglib*.postrm; do
-   maybe_run $script purge
+   true "The dpkg-trigger error is expected."
+   maybe_run $script purge || true
+   true "The dpkg-trigger error was expected."
 done
 unset script
 
