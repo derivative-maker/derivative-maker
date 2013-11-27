@@ -159,6 +159,8 @@ preparation() {
    vdi_folder="$tempfolder/vdi_folder"
    raw_folder="$tempfolder/raw_folder"
    misc_folder="$tempfolder/misc_folder"
+   initrd_folder="$tempfolder/initrd_folder"
+   extracted_initrd_folder="$tempfolder/extracted_initrd_folder"
 
    ova_absolute_filename_without_extension="${ova_file%.*}"
    folder_name="$(dirname "$ova_file")"
@@ -183,6 +185,8 @@ preparation() {
    sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
    sudo -u "$USERNAME" mkdir --parents "$raw_folder"
    sudo -u "$USERNAME" mkdir --parents "$misc_folder"
+   sudo -u "$USERNAME" mkdir --parents "$initrd_folder"
+   sudo -u "$USERNAME" mkdir --parents "$extracted_initrd_folder"
 }
 
 extract_ova() {
@@ -320,10 +324,35 @@ parse_vbr() {
 parse_special_files() {
    trap "error_handler" ERR INT TERM
 
-   cp "$mount_folder/usr/share/whonix/build_timestamp" "$misc_folder/build_timestamp"
+   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_timestamp" "$misc_folder/build_timestamp"
    echo "$misc_folder/build_timestamp BEGIN..."
-   cat "$misc_folder/build_timestamp"
+   sudo -u "$USERNAME" cat "$misc_folder/build_timestamp"
    echo "END $misc_folder/build_timestamp."
+
+   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$misc_folder/etc_shadow"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$misc_folder/etc/shadow-"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$misc_folder/etc_init.d_.depend.boot"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$misc_folder/etc_init.d_.depend.start"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.stop" "$misc_folder/etc_init.d_.depend.stop"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/config" "$misc_folder/etc_debootstrap_config"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/stages/default_locales" "$misc_folder/etc_debootstrap_stages_default_locales"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/fstab" "$misc_folder/etc_fstab"
+}
+
+parse_initrd() {
+   trap "error_handler" ERR INT TERM
+
+   sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder"
+
+   local file
+
+   for file in "$initrd_folder"/*; do
+      cd "$extracted_initrd_folder"
+      local basename_file="$(basename "$file")"
+      sudo -u "$USERNAME" mkdir "$basename_file"
+      cd "$basename_file"
+      sudo -u "$USERNAME" gzip -dc < "$file" | sudo -u "$USERNAME" cpio -i
+   done
 }
 
 parse_folder() {
@@ -426,12 +455,19 @@ parse_vbr
 
 mount_image
 
+parse_special_files
+parse_initrd
+
 skip="1"
 folder="$extracted_ova_folder"
 parse_folder
 
 skip="0"
 folder="$misc_folder"
+parse_folder
+
+skip="0"
+folder="$extracted_initrd_folder"
 parse_folder
 
 skip="0"
