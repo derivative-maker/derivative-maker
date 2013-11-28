@@ -334,7 +334,20 @@ parse_special_files() {
    sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
 
    sudo -u "$USERNAME" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
-   sudo -u "$USERNAME" cp "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz" "$debug_folder/usr_share_doc_whonix-x/"
+
+   rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
+   local i
+   i="0"
+   local file
+
+   for file in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
+      i="$(expr "$i" + "1")"
+      echo "$i $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
+      sudo -u "$USERNAME" cp "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
+   done
+
+   unset file
+
    sudo -u "$USERNAME" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
    sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" "$debug_folder/var_lib_dpkg_info_whonix-x/"
 
