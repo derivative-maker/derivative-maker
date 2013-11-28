@@ -84,6 +84,10 @@ parse_cmd() {
                tempfolder="$2"
                shift 2
                ;;
+           -c | --topcomment)
+               topcomment="$2"
+               shift 2
+               ;;
            --)
                shift
                break
@@ -192,6 +196,16 @@ preparation() {
    sudo -u "$USERNAME" mkdir --parents "$extracted_initrd_folder"
    sudo -u "$USERNAME" mkdir --parents "$debug_folder"
    sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder"
+   sync
+}
+
+parse_topcomment() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$topcomment" = "" ]; then
+      topcomment="No topcomment."
+   fi
+   echo "$topcomment" >> "$report_file"
 }
 
 extract_ova() {
@@ -452,6 +466,7 @@ end() {
 
 parse_cmd ${1+"$@"}
 preparation
+parse_topcomment
 
 extract_ova
 convert_vmdk_to_vdi
