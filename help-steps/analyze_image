@@ -88,6 +88,14 @@ parse_cmd() {
                topcomment="$2"
                shift 2
                ;;
+           -e | --endcomment)
+               endcomment="$2"
+               shift 2
+               ;;
+           -f | --errorcomment)
+              errorcomment="$2"
+              shift 2
+              ;;
            --)
                shift
                break
@@ -125,6 +133,16 @@ error_handler() {
 ${red}${bold}bash_command${reset}: $bash_command
 ${red}${bold}return_code${reset}: $return_code
 "
+
+   if [ "$errorcomment" = "" ]; then
+      errorcomment="No error comment"
+   fi
+
+   errorcomment="$errorcomment
+bash_command: $bash_command
+return_code: $return_code"
+
+   echo "$errorcomment" >> "$report_file"
 
    exit 1
 }
@@ -469,6 +487,16 @@ parse_file_list_file() {
    sha512sum "$file_list_file" >> "$report_file"
 }
 
+parse_endcomment() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$endcomment" = "" ]; then
+      endcomment="No endcomment."
+   fi
+
+   echo "$endcomment" >> "$report_file"
+}
+
 end() {
    trap "error_handler" ERR INT TERM
 
@@ -511,4 +539,5 @@ parse_folder
 
 parse_file_list_file
 
+parse_endcomment
 end
