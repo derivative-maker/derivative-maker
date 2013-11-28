@@ -257,7 +257,7 @@ mount_image() {
    sync
 
    ## Mounting read-only so the user can not accidentally delete files within the image.
-   guestmount -a "$vdi_file" -m /dev/sda1 --ro "$mount_folder"
+   guestmount -o allow_other -a "$vdi_file" -m /dev/sda1 --ro "$mount_folder"
    sync
 
    true "${bold}${cyan}INFO: Mounted vdi. ${reset}"
@@ -330,6 +330,7 @@ parse_special_files() {
    echo "END $misc_folder/build_timestamp."
 
    sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$misc_folder/etc_shadow"
+   ## "|| true", because the /etc/shadow- file eventually does not exist.
    sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$misc_folder/etc/shadow-"
    sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$misc_folder/etc_init.d_.depend.boot"
    sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$misc_folder/etc_init.d_.depend.start"
