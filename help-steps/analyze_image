@@ -121,6 +121,11 @@ parse_cmd() {
       echo "ERROR: no tempfolder chosen!"
       exit 1
    fi
+
+   ## A bit of a hack.
+   if [ "$ova_file" = "baremetal" ]; then
+      BARE_METAL="1"
+   fi
 }
 
 error_handler() {
@@ -157,6 +162,10 @@ debug_echo() {
 }
 
 unmount_image() {
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
+
    true "${bold}${cyan}INFO: Unmounting vdi... ${reset}"
 
    sync
@@ -229,6 +238,10 @@ parse_topcomment() {
 extract_ova() {
    trap "error_handler" ERR INT TERM
 
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
+
    cd "$extracted_ova_folder"
 
    if [ -f "$vdi_file" ]; then
@@ -247,6 +260,10 @@ extract_ova() {
 
 convert_vmdk_to_vdi() {
    trap "error_handler" ERR INT TERM
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
 
    if [ ! -f "$vmdk_file" ]; then
       error "${red}${bold}ERROR: vmdk_file: $vmdk_file does not exist. ${reset}"
@@ -274,6 +291,10 @@ convert_vmdk_to_vdi() {
 convert_vdi_to_raw() {
    trap "error_handler" ERR INT TERM
 
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
+
    if [ -f "$raw_file" ]; then
       ## TODO
       true "${bold}${cyan}INFO: Converting vdi to raw not required, already done, skipping. ${reset}"
@@ -289,6 +310,10 @@ convert_vdi_to_raw() {
 mount_image() {
    trap "error_handler" ERR INT TERM
 
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
+
    true "${bold}${cyan}INFO: Mounting vdi... ${reset}"
 
    sync
@@ -303,6 +328,10 @@ mount_image() {
 parse_file_system() {
    trap "error_handler" ERR INT TERM
 
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
+
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
    virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a"
@@ -313,6 +342,10 @@ parse_file_system() {
 
 parse_mbr() {
    trap "error_handler" ERR INT TERM
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+   fi
 
    true "${bold}${cyan}INFO: Parsing MBR... ${reset}"
 
