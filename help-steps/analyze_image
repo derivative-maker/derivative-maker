@@ -11,14 +11,14 @@
 ##
 ## sudo ./release/analyze_image --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova --report ~/report2 --tempfolder ~/whonix_binary/report_temp2
 ##
-## vbindiff ./report_temp1/misc_folder/Whonix-Gateway-7.4.3.img.dd.1000000 ./report_temp2/misc_folder/Whonix-Gateway-7.4.3.img.dd.1000000
+## vbindiff ./report_temp1/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000 ./report_temp2/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000
 ##
 ## sudo ./release/analyze_image --ova ~/Whonix-Workstation-7.4.3.ova --report ~/report_ws_1 --tempfolder ~/whonix_binary/report_ws_1
 ##
 ## sudo ./release/analyze_image --ova ~/whonix_binary/Whonix-Workstation-7.4.3.ova --report ~/report_ws_2 --tempfolder ~/whonix_binary/report_ws_2
 
 ## TODO document:
-## - look at $misc_folder/build_timestamp
+## - look at $manual_analysis_folder/build_timestamp
 
 [ -o xtrace ]
 ## returns:
@@ -159,9 +159,11 @@ preparation() {
    mount_folder="$tempfolder/mount_folder"
    vdi_folder="$tempfolder/vdi_folder"
    raw_folder="$tempfolder/raw_folder"
-   misc_folder="$tempfolder/misc_folder"
+   auto_hash_folder="$tempfolder/auto_hash_folder"
    initrd_folder="$tempfolder/initrd_folder"
    extracted_initrd_folder="$tempfolder/extracted_initrd_folder"
+   debug_folder="$tempfolder/debug_folder"
+   manual_analysis_folder="$tempfolder/manual_analysis_folder"
 
    ova_absolute_filename_without_extension="${ova_file%.*}"
    folder_name="$(dirname "$ova_file")"
@@ -179,15 +181,17 @@ preparation() {
    vdi_file_basename="$(basename "$vdi_file")"
    raw_file_basename="$(basename "$raw_file")"
 
-   file_list_file="$misc_folder/file_list"
+   file_list_file="$auto_hash_folder/file_list"
 
    sudo -u "$USERNAME" mkdir --parents "$extracted_ova_folder"
    sudo -u "$USERNAME" mkdir --parents "$mount_folder" || true
    sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
    sudo -u "$USERNAME" mkdir --parents "$raw_folder"
-   sudo -u "$USERNAME" mkdir --parents "$misc_folder"
+   sudo -u "$USERNAME" mkdir --parents "$auto_hash_folder"
    sudo -u "$USERNAME" mkdir --parents "$initrd_folder"
    sudo -u "$USERNAME" mkdir --parents "$extracted_initrd_folder"
+   sudo -u "$USERNAME" mkdir --parents "$debug_folder"
+   sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder"
 }
 
 extract_ova() {
@@ -269,8 +273,8 @@ parse_file_system() {
 
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
-   virt-filesystems -a "$vdi_file" > "$misc_folder/$vdi_file_basename.virt-filesystems-a"
-   virt-filesystems -a "$raw_file" > "$misc_folder/$raw_file_basename.virt-filesystems-a"
+   virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a"
+   virt-filesystems -a "$raw_file" > "$auto_hash_folder/$raw_file_basename.virt-filesystems-a"
 
    true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
 }
@@ -280,65 +284,54 @@ parse_mbr() {
 
    true "${bold}${cyan}INFO: Parsing MBR... ${reset}"
 
-   dd if="$vdi_file" of="$misc_folder/$vdi_file_basename.dd.512" bs=512 count=1
-
-   ## sfdisk does not support .vdi files.
-
-   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.512" bs=512 count=1
-
    ## ~1 MB
-   dd if="$raw_file" of="$misc_folder/$raw_file_basename.dd.1000000" bs=1000000 count=1
-
-   /sbin/sfdisk -d "$raw_file" > "$misc_folder/$raw_file_basename.sfdisk-d"
-
-   /sbin/fdisk -l "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-l"
-
-   /sbin/fdisk -s "$raw_file" > "$misc_folder/$raw_file_basename.fdisk-s"
-
-   /sbin/parted --list "$raw_file" > "$misc_folder/$raw_file_basename.parted--list"
-
-   /sbin/parted --list --machine "$raw_file" > "$misc_folder/$raw_file_basename.parted--list--machine"
-
-   /sbin/parted "$raw_file" print > "$misc_folder/$raw_file_basename.parted_print"
-
-   /sbin/parted --machine "$raw_file" print > "$misc_folder/$raw_file_basename.parted_--machine_print"
-
-   /sbin/parted --machine "$raw_file" unit B print > "$misc_folder/$raw_file_basename.parted_--unit_B_print"
-
-   ## BYT;
-   ## /home/user/whonix_binary/$tempfolder/raw_folder/Whonix-Gateway-7.img:107374182400B:file:512:512:msdos:;
-   ## 1:2097152B:107374182399B:107372085248B:ext4::;
+   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.1000000" bs=1000000 count=1
 
    true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
-}
-
-parse_vbr() {
-   trap "error_handler" ERR INT TERM
-
-   #true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
-
-   true "${bold}${cyan}INFO: Parsing VBR is not yet implemented! ${reset}"
-
-   #true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
 }
 
 parse_special_files() {
    trap "error_handler" ERR INT TERM
 
-   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_timestamp" "$misc_folder/build_timestamp"
-   echo "$misc_folder/build_timestamp BEGIN..."
-   sudo -u "$USERNAME" cat "$misc_folder/build_timestamp"
-   echo "END $misc_folder/build_timestamp."
+   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+   echo "$manual_analysis_folder/build_timestamp BEGIN..."
+   sudo -u "$USERNAME" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+   echo "END $manual_analysis_folder/build_timestamp."
 
-   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$misc_folder/etc_shadow"
-   ## "|| true", because the /etc/shadow- file eventually does not exist.
-   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$misc_folder/etc/shadow-"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$misc_folder/etc_init.d_.depend.boot"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$misc_folder/etc_init.d_.depend.start"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.stop" "$misc_folder/etc_init.d_.depend.stop"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/config" "$misc_folder/etc_debootstrap_config"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/stages/default_locales" "$misc_folder/etc_debootstrap_stages_default_locales"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/fstab" "$misc_folder/etc_fstab"
+   ## {{ manual_analysis_folder
+
+   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$manual_analysis_folder/etc_init.d_.depend.boot"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$manual_analysis_folder/etc_init.d_.depend.start"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.stop" "$manual_analysis_folder/etc_init.d_.depend.stop"
+   sudo -u "$USERNAME" cp "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
+
+   sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
+   sudo -u "$USERNAME" cp "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/"
+
+   ## }}
+
+   ## {{ debug_folder
+
+   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
+
+   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
+   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
+
+   sudo -u "$USERNAME" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
+   sudo -u "$USERNAME" cp "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz" "$debug_folder/usr_share_doc_whonix-x/"
+   sudo -u "$USERNAME" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
+   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" "$debug_folder/var_lib_dpkg_info_whonix-x/"
+
+   ## "|| true", because that file usually gets deleted.
+   sudo -u "$USERNAME" cp "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
+
+   ## "|| true", because that those files usually get deleted.
+   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/available" "$debug_folder/var_lib_dpkg_available" || true
+   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/available-old" "$debug_folder/var_lib_dpkg_available-old" || true
+
+   ## }}
 }
 
 parse_initrd() {
@@ -351,7 +344,7 @@ parse_initrd() {
    for file in "$initrd_folder"/*; do
       cd "$extracted_initrd_folder"
       local basename_file="$(basename "$file")"
-      sudo -u "$USERNAME" mkdir "$basename_file"
+      sudo -u "$USERNAME" mkdir --parents "$basename_file"
       cd "$basename_file"
       sudo -u "$USERNAME" gzip -dc < "$file" | sudo -u "$USERNAME" cpio -i
    done
@@ -393,12 +386,21 @@ parse_folder() {
 
       if [ "$skip" = "1" ]; then
          local file_extension="${file##*.}"
-         if [ "$file_extension" = "vmdk" ]; then
+         if [ "$file_extension" = "vmdk" ] || [ "$file_extension" = "mf" ] || [ "$file_extension" = "ovf" ]; then
             ## Skipping creating a sha512sum of the vmdk, because that wastes
             ## a lot time and we know in advance, there there will be
             ## differences. (Because there are no deterministically built
             ## operating systems yet.) We mount and analyze that image later,
             ## which is the whole point of this script.
+            ##
+            ## Skipping creation of sha512sum for mf and ovf file because those
+            ## contain checksums and disk uuids which we expect to differ.
+            ## Auditors are advised to manually diff those files.
+            ##
+            ## Still useful to have the file name and "skipped" in the report
+            ## file, because this is a reminder to diff the mf and the ofv file
+            ## and because the ova could also contain more than the three
+            ## expected files.
             echo "$absolute_file_name: skipped" >> "$report_file"
             continue
          fi
@@ -457,7 +459,6 @@ convert_vdi_to_raw
 
 parse_file_system
 parse_mbr
-parse_vbr
 
 mount_image
 
@@ -469,7 +470,7 @@ folder="$extracted_ova_folder"
 parse_folder
 
 skip="0"
-folder="$misc_folder"
+folder="$auto_hash_folder"
 parse_folder
 
 skip="0"
