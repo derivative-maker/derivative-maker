@@ -8,7 +8,7 @@ import sys
 from scapy.all import *
 
 #define the target gateway & data payload
-target = "google.com"
+target = "scanme.nmap.org"
 data = "testing"
 
 #define packets
