@@ -141,19 +141,18 @@ ${cyan}or if you know what you are doing:${reset}
    ## bump changelog version numbers
    ## whonix is written in lower case,
    ## because that's the name of the file in /etc/dpkg/origins/
-   sudo -E -u "$USERNAME" \
-      faketime -f "2013-08-15 11:02:35" \
-         debchange \
-            $debchange_vendor_cmd "whonix" \
-            --create \
-            --package "whonix" \
-            --distribution "$WHONIX_BUILD_APT_CODENAME" \
-            --newversion "$whonix_build_new_changelog_version" \
-            "This is an auto-generated file.
-Local auto bump version. Build from:
-whonix_build_current_git_head: $whonix_build_current_git_head
-whonix_build_new_changelog_version: $whonix_build_new_changelog_version
-whonix_build_closest_git_tag: $whonix_build_closest_git_tag"
+   local package
+   package="whonix"
+   echo "\
+$package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgency=low
+
+  * This is an auto-generated file. Local auto bump version. Build from:
+  * whonix_build_current_git_head: $whonix_build_current_git_head
+  * whonix_build_new_changelog_version: $whonix_build_new_changelog_version
+  * whonix_build_closest_git_tag: $whonix_build_closest_git_tag
+
+ -- $DEBFULLNAME <$DEBEMAIL>  Thu, 15 Aug 2013 11:02:35 +0000
+" > ./debian/changelog
 
    ## Explicitly set access time, so we end up with a deterministic debian.tar.gz file
    shopt -s globstar
