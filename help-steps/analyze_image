@@ -377,8 +377,13 @@ parse_special_files() {
 
    ## {{ manual_analysis_folder
 
-   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
-   sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
+   if [ "$CI" = "true" ]; then
+      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow" || true
+      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-" || true
+   else
+      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
+      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
+   fi
    sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$manual_analysis_folder/etc_init.d_.depend.boot"
    sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$manual_analysis_folder/etc_init.d_.depend.start"
    sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.stop" "$manual_analysis_folder/etc_init.d_.depend.stop"
