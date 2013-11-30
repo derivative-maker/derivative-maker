@@ -103,6 +103,8 @@ export WHONIX_TARGET_ARCH="amd64"
 
 ## }}
 
+## {{ Build physically isolated machine.
+
 if [ "$TRAVIS_BRANCH" = "gateway-travis" ]; then
    sudo -E ./whonix_build --tor-gateway --bare-metal --build
 elif [ "$TRAVIS_BRANCH" = "minimal-gateway-travis" ]; then
@@ -125,6 +127,8 @@ else
    error "Unknown $TRAVIS_BRANCH branch, check $0."
 fi
 
+## }}
+
 ## Cleanup, so we can create a dummy update package to test the upgrade
 ## process. (See if re-running all scripts is supported.)
 make clean
@@ -143,7 +147,7 @@ git tag 101 -m "."
 ## Debugging.
 ls -la ./debian/
 
-## Test the upgrading from local repository process.
+## {{ Test the upgrading from local repository process.
 
 export whonix_build_closest_git_tag="101"
 
@@ -169,11 +173,17 @@ else
    error "Unknown $TRAVIS_BRANCH branch, check $0."
 fi
 
+## }}
+
 ## Cleanup.
 make clean
+
+## {{ Do not try to reboot Travis CI!
 
 ## Do not do this!!!
 ## Otherwise you'll run into...
 ## "I'm sorry but there was an error with the connection to the VM.
 ## Your job will be requeued shortly."
 ## reboot
+
+## }}
