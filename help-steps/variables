@@ -39,7 +39,7 @@ export WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
 
 export WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
 
-export WHONIX_BINARY="$HOMEVAR"/whonix_binary
+export WHONIX_BINARY="$HOMEVAR/whonix_binary"
 
 cd "$WHONIX_SOURCE_FOLDER"
 
@@ -52,7 +52,7 @@ export UWT_DEV_PASSTHROUGH="1"
 export WHONIX_DEB_DEBUG="1"
 
 if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
-   source "$WHONIX_SOURCE_FOLDER"/help-steps/parse-cmd
+   source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
    export WHONIX_BUILD_PARSED="1"
 fi
 
@@ -60,14 +60,14 @@ if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
    export VMNAME="Whonix-Gateway"
    export vmname_lowercase_long_option="--tor-gateway"
    export VMRAM="768"
-   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
 fi
 
 if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
    export VMNAME="Whonix-Workstation"
    export vmname_lowercase_long_option="--tor-workstation"
    export VMRAM="768"
-   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
 fi
 
 if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
@@ -77,7 +77,7 @@ fi
 if [ "$BARE_METAL" = "1" ]; then
    export CHROOT_FOLDER=""
 else
-   export CHROOT_FOLDER=""$WHONIX_BINARY"/"$VMNAME"_image"
+   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
    export BARE_METAL="0"
 fi
 
@@ -102,7 +102,7 @@ fi
 if [ "$BARE_METAL" = "1" ]; then
    CHROOT=""
 else
-   CHROOT="chroot "$CHROOT_FOLDER""
+   CHROOT="chroot $CHROOT_FOLDER"
 fi
 
 ## {{{ whonix_build_ci_detected - CI detection code
@@ -192,9 +192,9 @@ elif [ -f "$WHONIX_SOURCE_FOLDER/debian/changelog" ]; then
    NIFS=$'\n'
    IFS="${NIFS}"
    for LINE in $(dpkg-parsechangelog); do
-      first="$(echo $LINE | awk '{print $1}')"
-      second="$(echo $LINE | awk '{print $2}')"
-      first="$(echo $first | awk '{print tolower($0)}')"
+      first="$(echo "$LINE" | awk '{print $1}')"
+      second="$(echo "$LINE" | awk '{print $2}')"
+      first="$(echo "$first" | awk '{print tolower($0)}')"
       if [ "$first" = "version:" ]; then
          export whonix_build_old_changelog_version="$second"
          break
@@ -287,8 +287,8 @@ whonix_build_current_git_head="$(git rev-parse HEAD)"
 
 ## {{{ buildconfig.d
 
-if [ -d "$WHONIX_SOURCE_FOLDER"/buildconfig.d ]; then
-   for i in "$WHONIX_SOURCE_FOLDER"/buildconfig.d/*; do
+if [ -d "$WHONIX_SOURCE_FOLDER/buildconfig.d" ]; then
+   for i in "$WHONIX_SOURCE_FOLDER/buildconfig.d/"*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
          ## because it was created by some editor,
@@ -325,8 +325,8 @@ if [ -d /etc/whonix_buildconfig.d ]; then
    done
 fi
 
-if [ -d ../buildconfig.d ]; then
-   for i in ../buildconfig.d/*; do
+if [ -d .."/buildconfig.d" ]; then
+   for i in .."/buildconfig.d/"*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
          ## because it was created by some editor,
@@ -362,7 +362,7 @@ fi
 
 if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
    export WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY="1"
-   export WHONIX_LOCAL_SIGNING_KEY_FOLDER="$WHONIX_BINARY"/gpg-local-signing-key
+   export WHONIX_LOCAL_SIGNING_KEY_FOLDER="$WHONIX_BINARY/gpg-local-signing-key"
 else
    export WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY="0"
 fi
@@ -389,10 +389,10 @@ export WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$temp"
 
 export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
          --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-         --basedir ""$WHONIX_SOURCE_FOLDER"/"$temp"" \
-         --outdir ""$WHONIX_BINARY"/"$temp"" \
-         --dbdir ""$WHONIX_BINARY"/"$temp"/db" \
-         --logdir ""$WHONIX_BINARY"/"$temp"/log" "
+         --basedir "$WHONIX_SOURCE_FOLDER/$temp" \
+         --outdir "$WHONIX_BINARY/$temp" \
+         --dbdir "$WHONIX_BINARY/$temp/db" \
+         --logdir "$WHONIX_BINARY/$temp/log" "
 
 ## }}}
 
