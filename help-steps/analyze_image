@@ -432,6 +432,9 @@ parse_folder() {
 
    rm --force "$file_list_file"
 
+   local base_folder
+   base_folder="$(basename "$folder")"
+
    local file
 
    set +x
@@ -443,7 +446,7 @@ parse_folder() {
       echo "$absolute_file_name" >> "$file_list_file"
 
       if [ -d "$file" ]; then
-         echo "$absolute_file_name: directory" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: directory" >> "$report_file"
          continue
       fi
 
@@ -456,7 +459,7 @@ parse_folder() {
 
          ## Not using readlink with -f, so we can compare the relative links.
          local file_link="$(readlink "$file")"
-         echo "$absolute_file_name: symlinks_to $file_link" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
@@ -478,17 +481,17 @@ parse_folder() {
             ## file, because this is a reminder to diff the mf and the ofv file
             ## and because the ova could also contain more than the three
             ## expected files.
-            echo "$absolute_file_name: skipped" >> "$report_file"
+            echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
             continue
          fi
       fi
 
       if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "$absolute_file_name: skipped" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
          continue
       fi
       if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "$absolute_file_name: skipped" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
          continue
       fi
 
@@ -499,12 +502,12 @@ parse_folder() {
          ## Handling cases such as:
          ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
          ## sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
-         echo "$absolute_file_name: $checksum_exit_code" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: $checksum_exit_code" >> "$report_file"
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_return"
-         echo "$absolute_file_name: $checksum" >> "$report_file"
+         echo "($base_folder) $absolute_file_name: $checksum" >> "$report_file"
          continue
       fi
    done < <(find "$folder/" -print0 | sort -z)
@@ -515,8 +518,7 @@ parse_folder() {
 parse_file_list_file() {
    trap "error_handler" ERR INT TERM
 
-   echo "file_list_file:"
-   sha512sum "$file_list_file" >> "$report_file"
+   sha512sum "($auto_hash_folder) $file_list_file" >> "$report_file"
 }
 
 parse_endcomment() {
