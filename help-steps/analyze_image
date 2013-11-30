@@ -441,7 +441,14 @@ parse_special_files() {
 parse_initrd() {
    trap "error_handler" ERR INT TERM
 
-   sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder"
+   ## Debugging.
+   ls -la "$mount_folder/boot/" || true
+
+   if [ "$CI" = "true" ]; then
+      sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder" || true
+   else
+      sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder"
+   fi
 
    local file
 
@@ -545,7 +552,8 @@ parse_folder() {
 parse_file_list_file() {
    trap "error_handler" ERR INT TERM
 
-   sha512sum "($auto_hash_folder) $file_list_file" >> "$report_file"
+   ## TODO: Add to output ($auto_hash_folder)
+   sha512sum "$file_list_file" >> "$report_file"
 }
 
 parse_endcomment() {
