@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+mkdir --parents ~/.whonix/
+log_file=~/.whonix/first_run_initializer.log
+start_file=~/.whonix/first_run_initializer.start
+done_file=~/.whonix/first_run_initializer.done
+
+if [ -f "$done_file" ]; then
+   exit 0
+fi
+
+touch "$start_file"
+
+echo "[INFO] [Whonix First Run Initializer]: Preparing Whonix... Will reboot when finished..."
+
+## The sleep is just in for the look an feel.
+sleep 10 &
+sleeppid="$!"
+
+/usr/lib/whonix/first_run_initializer >"$log_file" 2>"$log_file"
+
+touch "$done_file"
+
+wait "$sleeppid"
+
+echo "[INFO] [Whonix First Run Initializer]: Done. Rebooting..."
+
+## The sleep is just in for the look an feel.
+sleep 10 &
+sleeppid="$!"
+wait "$sleeppid"
+
+reboot
+
+## The sleep is just in for the look an feel.
+sleep 60 &
+sleeppid="$!"
+wait "$sleeppid"
+
+echo "[ERROR] [Whonix First Run Initializer]: Rebooting not done after 60 seconds. Please report this Whonix bug!"
+
+## Sleep, so this message has a chance of being read.
+sleep 10 &
+sleeppid="$!"
+wait "$sleeppid"
+
+exit 0
