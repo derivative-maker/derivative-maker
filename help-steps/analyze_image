@@ -471,6 +471,17 @@ parse_initrd() {
 parse_folder() {
    trap "error_handler" ERR INT TERM
 
+   local i
+   i="0"
+
+   if [ "$CI" = "true" ]; then
+      ## This is unfortunately required to avoid the following error.
+      ## "The log length has exceeded the limit of 4 Megabytes (this usually means that test suite is raising the same exception over and over).
+      ## The build has been terminated."
+      local parse_max
+      parse_max="100"
+   fi
+
    rm --force "$file_list_file"
 
    local sub_folder
@@ -481,6 +492,15 @@ parse_folder() {
    set +x
 
    while read -r -d '' file; do
+      i="$(expr "$i" + "1")"
+
+      if [ "$CI" = "true" ]; then
+         if [ "$i" -gt "$parse_max" ]; then
+            echo "($sub_folder) parse_max $parse_max reached. Skipping the remaining files." >> "$report_file"
+            break
+         fi
+      fi
+
       local absolute_file_name
       absolute_file_name="${file#"$folder"}"
 
@@ -544,7 +564,7 @@ parse_folder() {
       local maybe_timeout
       if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
-            maybe_timeout="timeout --kill-after=2 2"
+            maybe_timeout="timeout --kill-after=1 1"
          else
             maybe_timeout=""
          fi
