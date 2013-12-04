@@ -26,9 +26,6 @@ source pre
 ## Enable (1) or disable (0) debug_echo's.
 debug="0"
 
-## TODO:
-## - Volume Boot Record
-
 script_help() {
    trap "error_handler_general" ERR INT TERM
 
@@ -371,6 +368,21 @@ parse_mbr() {
    true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
 }
 
+parse_vbr() {
+   trap "error_handler" ERR INT TERM
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      return 0
+   fi
+
+   true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
+
+   guestfish --ro -a "$raw_file" : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$raw_file_basename.sda1_pread-device.512"
+
+   true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
+}
+
 parse_special_files() {
    trap "error_handler" ERR INT TERM
 
@@ -629,6 +641,7 @@ convert_vmdk_to_vdi
 convert_vdi_to_raw
 
 parse_file_system
+parse_vbr
 parse_mbr
 
 mount_image
