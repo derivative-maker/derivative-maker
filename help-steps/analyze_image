@@ -129,8 +129,10 @@ parse_cmd() {
 }
 
 error_handler() {
-   local return_code="$?"
-   local bash_command="$BASH_COMMAND"
+   local return_code
+   return_code="$?"
+   local bash_command
+   bash_command="$BASH_COMMAND"
 
    unmount_image
 
@@ -188,7 +190,7 @@ preparation() {
    sync
 
    if [ "$BARE_METAL" = "1" ]; then
-      mount_folder="/"
+      mount_folder=""
    else
       mount_folder="$tempfolder/mount_folder"
    fi
@@ -455,7 +457,8 @@ parse_initrd() {
    for file in "$initrd_folder"/*; do
       cd "$extracted_initrd_folder"
       true "file: $file"
-      local basename_file="$(basename "$file")"
+      local basename_file
+      basename_file="$(basename "$file")"
       if [ "$basename_file" = "*" ]; then
          continue
       fi
@@ -470,40 +473,45 @@ parse_folder() {
 
    rm --force "$file_list_file"
 
-   local base_folder
-   base_folder="$(basename "$folder")"
+   local sub_folder
+   sub_folder="$(basename "$folder/")"
 
    local file
 
    set +x
 
    while read -r -d '' file; do
-      local absolute_file_name="${file#"$folder"}"
+      local absolute_file_name
+      absolute_file_name="${file#"$folder"}"
 
       echo "$absolute_file_name: $file"
       echo "$absolute_file_name" >> "$file_list_file"
 
       if [ -d "$file" ]; then
-         echo "($base_folder) $absolute_file_name: directory" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: directory" >> "$report_file"
          continue
       fi
 
-      local dir_name="${file%/*}"
-      local dir_name_absolute="${dir_name#"$folder"}"
+      local dir_name
+      dir_name="${file%/*}"
+      local dir_name_absolute
+      dir_name_absolute="${dir_name#"$folder"}"
 
       ## Check if $file is a symlink.
       if [ -h "$file" ]; then
          ## Symlink found...
 
          ## Not using readlink with -f, so we can compare the relative links.
-         local file_link="$(readlink "$file")"
-         echo "($base_folder) $absolute_file_name: symlinks_to $file_link" >> "$report_file"
+         local file_link
+         file_link="$(readlink "$file")"
+         echo "($sub_folder) $absolute_file_name: symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
 
       if [ "$skip" = "1" ]; then
-         local file_extension="${file##*.}"
+         local file_extension
+         file_extension="${file##*.}"
          if [ "$file_extension" = "vmdk" ] || [ "$file_extension" = "mf" ] || [ "$file_extension" = "ovf" ]; then
             ## Skipping creating a sha512sum of the vmdk, because that wastes
             ## a lot time and we know in advance, there there will be
@@ -519,39 +527,45 @@ parse_folder() {
             ## file, because this is a reminder to diff the mf and the ofv file
             ## and because the ova could also contain more than the three
             ## expected files.
-            echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
+            echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
             continue
          fi
       fi
 
       if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
          continue
       fi
       if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "($base_folder) $absolute_file_name: skipped" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
          continue
       fi
-      if [ "$CI" = "true" ]; then
-         if [ "$absolute_file_name" = "/dev/console" ]; then
-            echo "($base_folder) $absolute_file_name: skipped_ci" >> "$report_file"
-            continue
+
+      local maybe_timeout
+      if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
+         if [[ "$absolute_file_name" == "/dev/"** ]]; then
+            maybe_timeout="timeout --kill-after=2 2"
+         else
+            maybe_timeout=""
          fi
+      else
+         maybe_timeout=""
       fi
 
       local checksum_return
-      local checksum_exit_code="0"
-      checksum_return="$(sha512sum "$file")" || { local checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      local checksum_exit_code
+      checksum_exit_code="0"
+      checksum_return="$($maybe_timeout sha512sum "$file")" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
       if [ ! "$checksum_exit_code" = "0" ]; then
          ## Handling cases such as:
          ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
          ## sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
-         echo "($base_folder) $absolute_file_name: $checksum_exit_code" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: $checksum_exit_code" >> "$report_file"
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_return"
-         echo "($base_folder) $absolute_file_name: $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: $checksum" >> "$report_file"
          continue
       fi
    done < <(find "$folder/" -print0 | sort -z)
