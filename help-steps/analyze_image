@@ -4,22 +4,6 @@
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
-## Usage:
-## From Whonix Source Code Folder...
-##
-## sudo ./release/analyze_image --ova ~/Whonix-Gateway-7.4.3.ova --report ~/report1 --tempfolder ~/whonix_binary/report_temp1
-##
-## sudo ./release/analyze_image --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova --report ~/report2 --tempfolder ~/whonix_binary/report_temp2
-##
-## vbindiff ./report_temp1/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000 ./report_temp2/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000
-##
-## sudo ./release/analyze_image --ova ~/Whonix-Workstation-7.4.3.ova --report ~/report_ws_1 --tempfolder ~/whonix_binary/report_ws_1
-##
-## sudo ./release/analyze_image --ova ~/whonix_binary/Whonix-Workstation-7.4.3.ova --report ~/report_ws_2 --tempfolder ~/whonix_binary/report_ws_2
-
-## TODO document:
-## - look at $manual_analysis_folder/build_timestamp
-
 [ -o xtrace ]
 ## returns:
 ## - 0, if -x is set
@@ -43,12 +27,34 @@ source pre
 debug="0"
 
 ## TODO:
-## - Master Boot Record
 ## - Volume Boot Record
 
 script_help() {
-   ## TODO
-   echo "TODO"
+   trap "error_handler_general" ERR INT TERM
+
+   echo "\
+Required options:
+--ova ovafile
+--report reportfile
+--tempfolder folder
+
+Optional options:
+--topcomment comment
+--endcomment comment
+--errorcomment comment
+
+Usage examples:
+From Whonix Source Code Folder...
+
+sudo ./help-steps/analyze_image --ova ~/Whonix-Gateway-7.4.3.ova --report ~/report1 --tempfolder ~/whonix_binary/report_temp1
+
+sudo ./help-steps/analyze_image --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova --report ~/report2 --tempfolder ~/whonix_binary/report_temp2
+
+From ~/whonix_binary folder...
+vbindiff ./report_temp1/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000 ./report_temp2/manual_analysis_folder/Whonix-Gateway-7.4.3.img.dd.1000000
+
+See https://www.whonix.org/wiki/Verifiable_Builds
+and https://www.whonix.org/wiki/Trust"
 }
 
 parse_cmd() {
@@ -254,7 +260,6 @@ extract_ova() {
    cd "$extracted_ova_folder"
 
    if [ -f "$vdi_file" ]; then
-      ## TODO
       true "${bold}${cyan}INFO: Unpacking .ova not required, .vdi already exists, skipping. ${reset}"
    else
       if [ ! -f "$ova_file" ]; then
@@ -280,7 +285,6 @@ convert_vmdk_to_vdi() {
    fi
 
    if [ -f "$vdi_file" ]; then
-      ## TODO
       true "${bold}${cyan}INFO: Converting vmdk to vdi not required, already done, skipping. ${reset}"
    else
       ## Convert .vmdk to .vdi, since there is no Free Software for mounting .vmdk using command line.
@@ -289,7 +293,6 @@ convert_vmdk_to_vdi() {
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
       ## https://bugs.launchpad.net/qemu/+bug/1253465
-      ## TODO: vdi -> raw
       #sudo -u "$USERNAME" qemu-img convert "$vmdk_file" -O RAW "$vdi_file"
 
       sudo -u "$USERNAME" VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
@@ -307,7 +310,6 @@ convert_vdi_to_raw() {
    fi
 
    if [ -f "$raw_file" ]; then
-      ## TODO
       true "${bold}${cyan}INFO: Converting vdi to raw not required, already done, skipping. ${reset}"
    else
       true "${bold}${cyan}INFO: Converting vdi to img... (This can take a while.) ${reset}"
@@ -597,7 +599,6 @@ parse_folder() {
 parse_file_list_file() {
    trap "error_handler" ERR INT TERM
 
-   ## TODO: Add to output ($auto_hash_folder)
    sha512sum "$file_list_file" >> "$report_file"
 }
 
