@@ -20,6 +20,12 @@ source variables
 create-ova-report() {
    trap "error_handler_general" ERR INT TERM
 
+   local report_file
+   report_file="$WHONIX_BINARY/$VMNAME-$whonix_build_whonix_version_new.report"
+
+   local report_tempfolder
+   report_tempfolder="$WHONIX_BINARY/$VMNAME-${whonix_build_whonix_version_new}_report_tempfolder"
+
    local topcomment
    topcomment="\
 INFO: This is an auto-generated file.
@@ -42,19 +48,28 @@ INFO: End."
 ################################################################################
 ERROR: Unfinished report!"
 
+   if [ "$whonix_build_script_minimal_report" = "1" ]; then
+      true "${cyan}INFO: Only creating minimal report file because whonix_build_script_skip_report is 1.${reset}"
+      rm --force "$report_file"
+      echo "$topcomment" >> "$report_file"
+      echo "Only creating minimal report file because whonix_build_script_skip_report is 1." >> "$report_file"
+      echo "$endcomment" >> "$report_file"
+      return 0
+   fi
+
    if [ "$BARE_METAL" = "1" ]; then
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER/analyze_image" \
          --ova "baremetal" \
-         --report "$WHONIX_BINARY/$VMNAME-$whonix_build_whonix_version_new.report" \
-         --tempfolder "$WHONIX_BINARY/$VMNAME-${whonix_build_whonix_version_new}_report_tempfolder" \
+         --report "$report_file" \
+         --tempfolder "$report_tempfolder" \
          --topcomment "$topcomment" \
          --endcomment "$endcomment" \
          --errorcomment "$errorcomment"
    else
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER/analyze_image" \
          --ova "$WHONIX_BINARY/$VMNAME-$whonix_build_whonix_version_new.ova" \
-         --report "$WHONIX_BINARY/$VMNAME-$whonix_build_whonix_version_new.report" \
-         --tempfolder "$WHONIX_BINARY/$VMNAME-${whonix_build_whonix_version_new}_report_tempfolder" \
+         --report "$report_file" \
+         --tempfolder "$report_tempfolder" \
          --topcomment "$topcomment" \
          --endcomment "$endcomment" \
          --errorcomment "$errorcomment"
