@@ -60,7 +60,8 @@ preparation() {
    trap "error_handler" ERR
 
    if [ -e "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid" ]; then
-      local oldpid="$(cat "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid")"
+      local oldpid
+      oldpid="$(cat "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid")"
       kill -15 "$oldpid" > /dev/null 2>&1 || true
       kill -9 "$oldpid" > /dev/null 2>&1 || true
    fi
@@ -80,12 +81,13 @@ preparation() {
       fi
    fi
 
-   local tty="$(tty)"
+   local my_tty
+   my_tty="$(tty)"
 
    ## hack
    ## Otherwise "not a tty" would not be correctly quoted.
-   if [ "$tty" = "not a tty" ]; then
-      local tty="none"
+   if [ "$my_tty" = "not a tty" ]; then
+      my_tty="none"
    fi
 
    output="/usr/lib/whonix/msgcollector"
@@ -93,7 +95,7 @@ preparation() {
    output_opt_1="--icon $ICON"
    output_opt_2="--parentpid $$"
    output_opt_3="--identifier $IDENTIFIER"
-   output_opt_4="--parenttty $tty"
+   output_opt_4="--parenttty $my_tty"
    #output_opt_5="--verbose"
 
    output_opts=( "$output_opt_1" "$output_opt_2" "$output_opt_3" "$output_opt_4" "$output_opt_5")

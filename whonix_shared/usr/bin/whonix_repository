@@ -265,10 +265,12 @@ revoke_keys() {
          | awk -F: '$1 == "fpr" {print $10;}' \
          ); do
             ## apt-key del requires the 7 trailing chars of a fingerprint.
-            local fingerprint_trailing_seven="${fingerprint:(-8)}"
+            local fingerprint_trailing_seven
+            fingerprint_trailing_seven="${fingerprint:(-8)}"
             echo "INFO $0: Removing revoked key with fingerprint $fingerprint (fingerprint_trailing_seven: $fingerprint_trailing_seven)..."
-            local apt_key_return="0"
-            apt-key del "$fingerprint_trailing_seven" || { local apt_key_return="$?" ; true; };
+            local apt_key_return
+            apt_key_return="0"
+            apt-key del "$fingerprint_trailing_seven" || { apt_key_return="$?" ; true; };
             if [ "$apt_key_return" = "0" ]; then
                true "INFO $0: apt-key returned 0."
             elif [ "$apt_key_return" = "2" ]; then
@@ -300,7 +302,8 @@ You can always start the Whonix Repository Tool again by running:
 
    exec 3>&1
 
-   local _return=$(\
+   local _return
+   _return=$(\
       dialog \
          --cancel-label "Exit" \
          --title "$title" \
@@ -340,7 +343,8 @@ You can always start the Whonix Repository Tool again by running:
 
    exec 3>&1
 
-   local _return=$(\
+   local _return
+   _return=$(\
       dialog \
          --cancel-label "Exit" \
          --title "$title" \

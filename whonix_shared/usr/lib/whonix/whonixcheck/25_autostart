@@ -24,13 +24,14 @@ check_autostart() {
       ## we add a random delay.
 
       ## Random delay between 0 and 500 seconds.
-      local DELAY="$(( 100+($(od -An -N2 -i /dev/random) )%(300-0+1) ))"
+      local DELAY
+      DELAY="$(( 100+($(od -An -N2 -i /dev/random) )%(300-0+1) ))"
 
       ## 60 seconds minimum delay.
-      local DELAY="$(expr "$DELAY" + "60")" || true
+      DELAY="$(expr "$DELAY" + "60")" || true
 
       ## For debugging.
-      #local DELAY="10"
+      #DELAY="10"
    else
       DELAY="$SLEEP_SECONDS"
    fi
@@ -55,8 +56,10 @@ You can also cancel waiting and manually start $SCRIPTNAME right away."
 
 $NOTIFY_MSG"
 
-         local tmp="$(mktemp)"
-         local progressbaridx="${tmp##*.}"
+         local tmp
+         tmp="$(mktemp)"
+         local progressbaridx
+         progressbaridx="${tmp##*.}"
 
          $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
 
@@ -73,11 +76,11 @@ $NOTIFY_MSG"
             if [ "$wait" -ge "$DELAY" ]; then
                break
             fi
-            local wait="$(expr "$wait" + "1")" || true
-            local waitprogress="$(expr "$waitprogress" + "1")" || true
+            wait="$(expr "$wait" + "1")" || true
+            waitprogress="$(expr "$waitprogress" + "1")" || true
 
             if [ "$waitprogress" -ge "100" ]; then
-               local waitprogress="0"
+               waitprogress="0"
             fi
 
             $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "$waitprogress"

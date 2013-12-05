@@ -28,7 +28,8 @@ download_whonix_news() {
    local link
 
    for link in "${!whonix_news_link_list[@]}"; do
-      local filename="${whonix_news_link_list[$link]}"
+      local filename
+      filename="${whonix_news_link_list[$link]}"
 
       true "link: $link"
       true "filename: $filename"
@@ -49,7 +50,8 @@ download_whonix_news() {
       wait "$lastpid" || { whonix_news_download_return[$link]="$?" ; true; };
 
       if [ ! "${whonix_news_download_return[$link]}" = "0" ]; then
-         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${whonix_news_download_return[$link]}")"
+         curl_status_message
+         curl_status_message="$(/usr/lib/whonix/curl_return_codes "${whonix_news_download_return[$link]}")"
          local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: $curl_status_message)"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -85,7 +87,8 @@ verify_whonix_news() {
    command -v date >/dev/null
    command -v gpg >/dev/null
 
-   local whonix_news_gpg_temp_dir="$VERIFY_TEMPDIR/news_gpg"
+   local whonix_news_gpg_temp_dir
+   whonix_news_gpg_temp_dir="$VERIFY_TEMPDIR/news_gpg"
 
    rm --recursive --force "$whonix_news_gpg_temp_dir"
    mkdir --parents "$whonix_news_gpg_temp_dir"
@@ -106,7 +109,8 @@ verify_whonix_news() {
    local key
 
    for key in "/usr/share/whonix/keys/whonix-news-keys.d/"*; do
-      local key_filename="$(basename "$key")"
+      local key_filename
+      key_filename="$(basename "$key")"
       if [ "$key_filename" = "placeholder" ]; then
          continue
       fi
@@ -128,8 +132,8 @@ verify_whonix_news() {
 
    if [ ! "$whonix_news_verify_return_general" = "0" ]; then
       local MSG="Whonix News Download Result: General Whonix News OpenPGP Verification Error. Please report this bug!"
-         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
-         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
@@ -137,8 +141,10 @@ verify_whonix_news() {
 
    true "d whonix_news_verify_return: ${whonix_news_verify_return}"
 
-   local filename="whonix_news.tar.gz"
-   local signature="whonix_news.tar.gz.asc"
+   local filename
+   filename="whonix_news.tar.gz"
+   local signature
+   signature="whonix_news.tar.gz.asc"
 
    gpg_fd_one="$(\
       gpg \
@@ -175,7 +181,8 @@ verify_whonix_news() {
    for line in "$gpg_fd_one"; do
       local one two three four five
       read -r one two three four five _ <<< "$line"
-      local signed_on_unixtime="$five"
+      local signed_on_unixtime
+      signed_on_unixtime="$five"
    done
 
    if [ "$signed_on_unixtime" = "" ]; then
@@ -198,20 +205,26 @@ verify_whonix_news() {
       return 0
    fi
 
-   local current_unixtime="$(date +%s)"
-   local current_time="$(date)"
+   local current_unixtime
+   current_unixtime="$(date +%s)"
+   local current_time
+   current_time="$(date)"
 
    true "signed_on_unixtime: $signed_on_unixtime"
    true "current_unixtime: $current_unixtime"
 
-   local difference_in_seconds="$(expr "$current_unixtime" - "$signed_on_unixtime")" || true
-   local difference_in_minutes="$(expr "$difference_in_seconds" / "60")" || true
+   local difference_in_seconds
+   difference_in_seconds="$(expr "$current_unixtime" - "$signed_on_unixtime")" || true
+   local difference_in_minutes
+   difference_in_minutes="$(expr "$difference_in_seconds" / "60")" || true
 
    ## One month has 2592000 seconds.
    ## (60 [seconds] * 60 [minutes] * 24 [hours] * 30 [days])
-   local month_has_seconds="2592000"
+   local month_has_seconds
+   month_has_seconds="2592000"
 
-   local maximum_age_in_seconds="$month_has_seconds"
+   local maximum_age_in_seconds
+   maximum_age_in_seconds="$month_has_seconds"
 
    if [ "$current_unixtime" -le "$signed_on_unixtime" ]; then
       whonix_news_verify_return="3000"
@@ -247,7 +260,8 @@ Either,
 extract_whonix_news() {
    trap "error_handler" ERR
 
-   local filename="whonix_news.tar.gz"
+   local filename
+   filename="whonix_news.tar.gz"
 
    whonix_news_tar_return="0"
 
@@ -267,7 +281,8 @@ extract_whonix_news() {
 check_whonix_debian_version() {
    trap "error_handler" ERR
 
-   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_deb_versions"
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_deb_versions"
 
    if [ ! -f "$filename" ]; then
       ## This file should always exist.
@@ -277,7 +292,8 @@ $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --m
       return 0
    fi
 
-   local outdated_deb="1"
+   local outdated_deb
+   outdated_deb="1"
 
    while read LINE; do
       #true "$i: $LINE"
@@ -303,7 +319,8 @@ $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --m
 check_whonix_build_version() {
    trap "error_handler" ERR
 
-   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_build_versions"
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_valid_build_versions"
 
    if [ ! -f "$filename" ]; then
       ## This file should always exist.
@@ -313,7 +330,8 @@ $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --m
       return 0
    fi
 
-   local outdated_build="1"
+   local outdated_build
+   outdated_build="1"
 
    while read LINE; do
       #true "$i: $LINE"
@@ -338,7 +356,8 @@ $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --me
 check_whonix_debian_news() {
    trap "error_handler" ERR
 
-   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news"
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_deb_package_version}_deb_news"
 
    if [ ! -f "$filename" ]; then
       ## This will happen:
@@ -346,7 +365,8 @@ check_whonix_debian_news() {
       ## - when no news file has been uploaded yet
       local MSG="Whonix News Download Result: There is no news file available for Whonix Debian Version ${whonix_deb_package_version} yet."
    else
-      local MSG="$(cat "$filename")"
+      local MSG
+      MSG="$(cat "$filename")"
 
       if [ "$MSG" = "" ]; then
          return 0
@@ -360,7 +380,8 @@ check_whonix_debian_news() {
 check_whonix_build_news() {
    trap "error_handler" ERR
 
-   local filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news"
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_${vm_lower_case_short}_${whonix_build_version}_build_news"
 
    if [ ! -f "$filename" ]; then
       ## This will happen:
@@ -368,7 +389,8 @@ check_whonix_build_news() {
       ## - when no news file has been uploaded yet
       local MSG="Whonix News Download Result: There is no news file available for Whonix Build Version ${whonix_build_version} yet."
    else
-      local MSG="$(cat "$filename")"
+      local MSG
+      MSG="$(cat "$filename")"
 
       if [ "$MSG" = "" ]; then
          return 0

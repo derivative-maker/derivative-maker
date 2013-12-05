@@ -9,7 +9,8 @@ check_tor_bootstrap() {
 
    ## {{ Small check if one of Tor's SocksPorts is functional.
 
-   local SOCKS_PORT_WHONIXCHECK="9110"
+   local SOCKS_PORT_WHONIXCHECK
+   SOCKS_PORT_WHONIXCHECK="9110"
 
    $CURL \
       --fail \
@@ -48,10 +49,11 @@ check_tor_bootstrap() {
 
    ## Only testing on Whonix-Gateway, because Control Port Filter Proxy only
    ## runs on Whonix-Gateway.
-   local i="0"
+   local i
+   i="0"
    if [ "$VM" = "Whonix-Gateway" ]; then
       while [ ! -f "/var/run/controlportfilt/ownrunning" ]; do
-         local i="$(expr "$i" + "1")" || true
+         i="$(expr "$i" + "1")" || true
          if [ "$i" -ge "30" ]; then
             break
          fi
@@ -89,18 +91,20 @@ File /var/run/controlportfilt/ownrunning does not exist. Please report this Whon
 
    local bootstrap_file="$VERIFY_TEMPDIR/tor_bootstrap_temp"
    rm --force "$bootstrap_file"
-   local temp_return="0"
+   local temp_return
+   temp_return="0"
    timeout --kill-after="$kill_after" "$timeout_after" "$script" 2>&1 >"$bootstrap_file" &
    lastpid="$!"
-   wait "$lastpid" || { local temp_return="$?" ; true; }
+   wait "$lastpid" || { temp_return="$?" ; true; }
 
    if [ -f "$bootstrap_file" ]; then
-      local temp_status="$(cat "$bootstrap_file")"
+      local temp_status
+      temp_status="$(cat "$bootstrap_file")"
       if [ "$temp_status" = "" ]; then
-         local temp_status="ERROR: Variable temp_status is empty. Please report this Whonix bug!"
+         temp_status="ERROR: Variable temp_status is empty. Please report this Whonix bug!"
       fi
    else
-      local temp_status="ERROR: File "$bootstrap_file" does not exist. Please report this Whonix bug!"
+      temp_status="ERROR: File "$bootstrap_file" does not exist. Please report this Whonix bug!"
    fi
 
    ## }}
@@ -215,8 +219,10 @@ Please report this Whonix bug!"
             ## Not running in daemon mode.
             started_tor_bootstrap_progress_bar="1"
             ## Waited for more than 5 seconds.
-            local tmp="$(mktemp)"
-            local progressbaridx="${tmp##*.}"
+            local tmp
+            tmp="$(mktemp)"
+            local progressbaridx
+            progressbaridx="${tmp##*.}"
             local MSG="Tor Bootstrap Test: Checking Tor's Bootstrap Status... (Will take up to $wait_max seconds.)"
             $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
          fi

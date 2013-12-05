@@ -47,7 +47,8 @@ check_tor_socks_or_trans_port() {
       wait "$lastpid" || { CHECK_TOR_RESULT_SOCKS_PORT="$?" ; true; };
 
       if [ ! "$CHECK_TOR_RESULT_SOCKS_PORT" = "0" ]; then
-         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
+         local curl_status_message
+         curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
          if [ "$VM" = "Whonix-Gateway" ]; then
 
             local MSG="\
@@ -55,7 +56,8 @@ SocksPort Test Result: https://check.torproject.org was not reachable. (curl ret
 You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle."
 
          elif [ "$VM" = "Whonix-Workstation" ]; then
-            local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
+            local curl_status_message
+            curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_SOCKS_PORT")"
             local MSG="\
 SocksPort Test Result: https://check.torproject.org was not reachable. (curl return code: $curl_status_message)
 You could check, if you can reach https://check.torproject.org via the Tor Browser Bundle."
@@ -115,7 +117,8 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
       wait "$lastpid" || { CHECK_TOR_RESULT_TRANS_PORT="$?" ; true; };
 
       if [ ! "$CHECK_TOR_RESULT_TRANS_PORT" = "0" ]; then
-         local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_TRANS_PORT")"
+         local curl_status_message
+         curl_status_message="$(/usr/lib/whonix/curl_return_codes "$CHECK_TOR_RESULT_TRANS_PORT")"
          local MSG="TransPort Test Result: Tor's TransPort was not reachable. (curl return code: $curl_status_message)
 (If you disabled Tor's TransPort, please disable this check, see whonixcheck /etc/whonix.d/30_whonixcheck_default configuration file.)"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
@@ -129,15 +132,17 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
      return 0
    fi
 
-   local TOR_OR_NOT=""
-   local TOR_OR_NOT="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
+   local TOR_OR_NOT
+   TOR_OR_NOT=""
+   TOR_OR_NOT="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
 
    ## Example TOR_OR_NOT:
    ## <img alt="Congratulations. Your browser is configured to use Tor." src="/images/tor-on.png">
    ## Congratulations. Your browser is configured to use Tor.<br>
 
-   local ip="IP not detected (1). Please report this bug!"
-   local ip="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
+   local ip
+   ip="IP not detected (1). Please report this bug!"
+   ip="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")"
 
    ## example ip:
    ## Your IP address appears to be: <b>94.242.204.74</b><br>
@@ -146,27 +151,28 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
    #ip="Your IP address appears to be: <b>2001:0db8:85a3:0042:1000:8a2e:0370:7334 \$f(do) \`this\` ... xxx ... xxx </b><br>"
 
    if [ "$ip" = "" ]; then
-      local ip="IP not detected (2). Please report this bug!"
+      ip="IP not detected (2). Please report this bug!"
    else
-      local ip="$(echo "$ip" | sed 's/Your IP address appears to be//g')"
-      local ip="$(echo "$ip" | sed 's/<br>//g')"
-      local ip="$(echo "$ip" | sed 's/<b>//g')"
-      local ip="$(echo "$ip" | sed 's/<\/b>//g')"
-      local ip="$(echo "$ip" | sed 's/<p>//g')"
-      local ip="$(echo "$ip" | sed 's/<\/p>//g')"
-      local ip="$(echo "$ip" | sed 's/<strong>//g')"
-      local ip="$(echo "$ip" | sed 's/<\/strong>//g')"
-      local ip="$(echo "$ip" | sed 's/://g')"
-      local ip="$(echo "$ip" | sed 's/ //g')"
+      ip="$(echo "$ip" | sed 's/Your IP address appears to be//g')"
+      ip="$(echo "$ip" | sed 's/<br>//g')"
+      ip="$(echo "$ip" | sed 's/<b>//g')"
+      ip="$(echo "$ip" | sed 's/<\/b>//g')"
+      ip="$(echo "$ip" | sed 's/<p>//g')"
+      ip="$(echo "$ip" | sed 's/<\/p>//g')"
+      ip="$(echo "$ip" | sed 's/<strong>//g')"
+      ip="$(echo "$ip" | sed 's/<\/strong>//g')"
+      ip="$(echo "$ip" | sed 's/://g')"
+      ip="$(echo "$ip" | sed 's/ //g')"
 
       ## An IPv6 IP is 39 characters long. Add a few for more for the "[ ]" and...?
-      local max_string_length="50"
-      local actual_string_length="${#ip}"
-      local ip_excess_length=""
+      max_string_length="50"
+      actual_string_length="${#ip}"
+      local ip_excess_length
+      ip_excess_length=""
 
       if [ "$actual_string_length" -gt "$max_string_length" ]; then
          ## Store excess length for later use.
-         local ip_excess_length="$ip"
+         ip_excess_length="$ip"
 
          ## Shorten excess length $ip to $max_string_length chars.
          ip="${ip:0:$max_string_length}"

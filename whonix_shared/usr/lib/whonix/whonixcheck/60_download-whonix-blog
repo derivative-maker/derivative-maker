@@ -74,7 +74,8 @@ download_blog() {
       return 0
    fi
 
-   local curl_status_message="$(/usr/lib/whonix/curl_return_codes "$DOWNLOAD_BLOG_RETURN")"
+   local curl_status_message
+   curl_status_message="$(/usr/lib/whonix/curl_return_codes "$DOWNLOAD_BLOG_RETURN")"
 
    local MSG="Whonix Blog Download Result: Could not download "$BLOG_NAME". (curl return code: "$curl_status_message")"
    $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
@@ -96,7 +97,8 @@ parse_blog() {
    ## our own interval anyway. Maybe not necessary.
    rm -f /home/rawdog/.rawdog/state
 
-   local RAWDOG_RETURN="0"
+   local RAWDOG_RETURN
+   RAWDOG_RETURN="0"
 
    sudo -u rawdog \
       $RAWDOG \
@@ -107,7 +109,7 @@ parse_blog() {
          &
 
    lastpid="$!"
-   wait "$lastpid" || { local RAWDOG_RETURN="$?" ; true; };
+   wait "$lastpid" || { RAWDOG_RETURN="$?" ; true; };
 
    if [ "$RAWDOG_RETURN" = "0" ]; then
       BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"
@@ -118,7 +120,8 @@ parse_blog() {
       return 0
    fi
 
-   local PANDOC_RETURN="0"
+   local PANDOC_RETURN
+   PANDOC_RETURN="0"
 
    sudo -u rawdog \
       pandoc \
@@ -129,7 +132,7 @@ parse_blog() {
          &
 
    lastpid="$!"
-   wait "$lastpid" || { local PANDOC_RETURN="$?" ; true; };
+   wait "$lastpid" || { PANDOC_RETURN="$?" ; true; };
 
    if [ "$PANDOC_RETURN" = "0" ]; then
       true

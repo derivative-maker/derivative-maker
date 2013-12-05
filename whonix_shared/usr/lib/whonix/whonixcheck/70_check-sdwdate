@@ -16,8 +16,9 @@ check_sdwdate_status() {
       return 0
    fi
 
-   local ps_return="0"
-   ps -p "$(cat "$pid_file")" >/dev/null || { local ps_return="$?"; true; };
+   local ps_return
+   ps_return="0"
+   ps -p "$(cat "$pid_file")" >/dev/null || { ps_return="$?"; true; };
 
    if [ ! "$ps_return" = "0" ]; then
       SDWDATE_STATUS="NO_PID_PROCESS"
@@ -48,9 +49,10 @@ Last resort: manually set the clock! (In UTC!):
              sudo su
              date -s \"17 FEB 2012 24:00:00\" && hwclock -w"
 
-   local TIMESANITYCHECK_STATUS=0
+   local TIMESANITYCHECK_STATUS
+   TIMESANITYCHECK_STATUS="0"
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
-   sudo service timesanitycheck status || { local TIMESANITYCHECK_STATUS="$?" ; true; };
+   sudo service timesanitycheck status || { TIMESANITYCHECK_STATUS="$?" ; true; };
 
    if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
       TIMESANITYCHECK_STATUS_WORD="Success"
@@ -92,7 +94,8 @@ $HELPTEXT"
 
    if [ "$SDWDATE_STATUS" = "SUCCESS" ]; then
       local success_file="/var/run/sdwdate/success"
-      local SUCCESS_TIME="$(date -r "$success_file")"
+      local SUCCESS_TIME
+      SUCCESS_TIME="$(date -r "$success_file")"
 
       if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## Ok.

@@ -86,8 +86,9 @@ because /var/run/msgcollector/${identifier}.${progressbaridx}.parentpid does not
    fi
 
    ## Check if still running.
-   local ps_return="0"
-   ps -p "$parentpid" >/dev/null 2>/dev/null || { local ps_return="$?"; true; };
+   local ps_return
+   ps_return="0"
+   ps -p "$parentpid" >/dev/null 2>/dev/null || { ps_return="$?"; true; };
 
    if [ "$ps_return" = "0" ]; then
       true "$output_signal_caught caught. Killing parentpid $parentpid."
@@ -121,7 +122,8 @@ start_progress_bar() {
    trap "error_handler" ERR
 
    if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx" ]; then
-      local msg="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx")"
+      local msg
+      msg="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx")"
       rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx"
    fi
 
@@ -130,7 +132,8 @@ start_progress_bar() {
    fi
 
    if [ -f "/var/run/msgcollector/${identifier}.titlex" ]; then
-      local title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
+      local title
+      title="$(cat "/var/run/msgcollector/${identifier}.titlex")"
    fi
 
    if [ "$title" = "" ]; then
@@ -138,7 +141,8 @@ start_progress_bar() {
    fi
 
    if [ -f "/var/run/msgcollector/${identifier}.icon" ]; then
-      local icon="$(cat "/var/run/msgcollector/${identifier}.icon")"
+      local icon
+      icon="$(cat "/var/run/msgcollector/${identifier}.icon")"
    fi
 
    if [ "$icon" = "" ]; then

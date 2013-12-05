@@ -25,8 +25,9 @@ maybe_kill_apt_get_update() {
 
    ## Can not use `kill`, must use `ps`, because kill will always return a
    ## a non-zero return code if the process is owned by a different user.
-   local ps_p_return="0"
-   ps -p "$apt_get_update_pid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
+   local ps_p_return
+   ps_p_return="0"
+   ps -p "$apt_get_update_pid" >/dev/null 2>/dev/null || { ps_p_return="$?" ; true; };
 
    if [ ! "$ps_p_return" = "0" ]; then
       ## apt-get-update already terminated, nothing to do.
@@ -61,8 +62,9 @@ ex_funct() {
 
    ## Check if $output command has been already defined. This is not the case,
    ## when the script is terminated very early.
-   local command_v_output_return="0"
-   command -v "$output" >/dev/null || { local command_v_output_return="$?" ; true; };
+   local command_v_output_return
+   command_v_output_return="0"
+   command -v "$output" >/dev/null || { command_v_output_return="$?" ; true; };
    if [ "$command_v_output_return" = "0" ]; then
       $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "100"
       $output ${output_opts[@]} --messagex --done
@@ -108,8 +110,9 @@ cleanup() {
    if [ ! "$manualrun" = "1" ]; then
       ## Not manually started.
 
-      local output_status_return="0"
-      $output ${output_opts[@]} --identifier whonixcheck --status --messagecli || { local output_status_return="$?" ; true; };
+      local output_status_return
+      output_status_return="0"
+      $output ${output_opts[@]} --identifier whonixcheck --status --messagecli || { output_status_return="$?" ; true; };
 
       if [ "$output_status_return" = "0" ]; then
          ## We have messages to show.

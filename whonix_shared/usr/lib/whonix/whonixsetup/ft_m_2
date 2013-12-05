@@ -28,16 +28,16 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 stop_tor() {
-      returncode=0
-      service tor status || { returncode=$? ; true; };
+      returncode="0"
+      service tor status || { returncode="$?"; true; };
       sync
       sleep 1
 
       if [ "$returncode" = "0" ]; then
          dialog --title "whonixsetup - Info" --msgbox 'The Tor process is still running. Stopping it now...' 640 480
 
-         returncode=0
-         service tor stop || { returncode=$? ; true; };
+         returncode="0"
+         service tor stop || { returncode="$?"; true; };
          sync
          sleep 1
 
@@ -53,8 +53,8 @@ Do you want to disable Tor networking?
 
 TITLE="whonixsetup - Disable Tor Networking"
 
-returncode=0
-dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode=$? ; true; };
+returncode="0"
+dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode="$?"; true; };
 
 if [ ! "$returncode" = "0" ]; then
    ## Back to main menu.
@@ -88,8 +88,8 @@ Note: This will comment out "DisableNetwork 0" in /etc/tor/torrc
 ' 640 480
 
 ## Comment out DisableNetwork 0 in /etc/tor/torrc.
-returncode=0
-ed -s /etc/tor/torrc <<< $',s/DisableNetwork 0/#DisableNetwork 0/g\nw' || { returncode=$? ; true; };
+returncode="0"
+ed -s /etc/tor/torrc <<< $',s/DisableNetwork 0/#DisableNetwork 0/g\nw' || { returncode="$?"; true; };
 
 ## Ensure changes get written to the disk right now.
 sync

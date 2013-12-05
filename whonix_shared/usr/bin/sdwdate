@@ -448,16 +448,18 @@ sdwdate_preparation() {
       CURL_USER_AGENT="--user-agent $HTTP_USER_AGENT"
    fi
 
-   local ret="0"
-   command -v curl.real >/dev/null || { local ret="$?" ; true; };
+   local ret
+   ret="0"
+   command -v curl.real >/dev/null || { ret="$?" ; true; };
 
    if [ "$ret" = "0" ]; then
       ## using the non-uwt-wrapped version, if the uwt wrapper is installed,
       ## which is the case on a default Whonix installation
       CURL=curl.real
    else
-      local ret="0"
-      command -v curl >/dev/null || { local ret="$?" ; true; };
+      local ret
+      ret="0"
+      command -v curl >/dev/null || { ret="$?" ; true; };
       if [ "$ret" = "0" ]; then
          ## falling back to real curl, if the uwt wrapper has been uninstalled
          CURL=curl
@@ -495,7 +497,8 @@ sdwdate_log() {
       ID="No_ID"
    fi
 
-   local msg="$ID: $@"
+   local msg
+   msg="$ID: $@"
    swddate_last_msg="$msg"
 
    sdwdate_echo "$msg"
@@ -532,9 +535,10 @@ sdwdate_error_handler() {
 
    true "DISPATCH_POST_ERROR: $DISPATCH_POST_ERROR"
 
+   local ret
    if [ "$SDW_TOUCH_DONE_FILE_ON_ERROR" = "1" ]; then
       touch "$DONE_FILE"
-      local ret="$?"
+      ret="$?"
       if [ ! "$ret" = "0" ]; then
          sdwdate_log "ERROR $0: Could not touch DONE_FILE: $DONE_FILE."
       fi
@@ -597,7 +601,8 @@ sdwdate_download() {
 
    SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
 
-   local TIME_START="$(date +%s)"
+   local TIME_START
+   TIME_START="$(date +%s)"
 
    if [ "${SDWDATE_CURL_DISPATCH_PRE[$SDWDATE_CURRENT_POOL]}" = "" ]; then
       true
@@ -625,7 +630,8 @@ sdwdate_download() {
 
    true "INFO: SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}"
 
-   local TIME_END="$(date +%s)"
+   local TIME_END
+   TIME_END="$(date +%s)"
 
    if [ "${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}" = "" ]; then
       true
@@ -636,7 +642,8 @@ sdwdate_download() {
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
 
    if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
-      local curl_status_message="$(/usr/lib/whonix/curl_return_codes "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}")"
+      local curl_status_message
+      curl_status_message="$(/usr/lib/whonix/curl_return_codes "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}")"
       sdwdate_log "No file could be downloaded from $LINK. (curl_status_message: $curl_status_message)"
    fi
 }
@@ -646,7 +653,8 @@ sdwdate_parse_date() {
 
    SDWDATE_PARSE_SUCCESS="1"
 
-   local i=0
+   local i
+   i="0"
    local LINE
    while read LINE; do
       i="$(expr "$i" + "1")"
@@ -657,7 +665,8 @@ sdwdate_parse_date() {
          break
       fi
 
-      local FIRST_WORD="${LINE%%:*}"
+      local FIRST_WORD
+      FIRST_WORD="${LINE%%:*}"
       ## twitter used Date in lower case
       if [ "${FIRST_WORD,,}" = "date" ]; then
          WEB_DATE_GMT="${LINE#*:}"
@@ -687,8 +696,10 @@ sdwdate_loop() {
    while true; do
       declare -A -g remember
 
-      local array_length="${#array[@]}"
-      local array_length_remember="${#remember[@]}"
+      local array_length
+      array_length="${#array[@]}"
+      local array_length_remember
+      array_length_remember="${#remember[@]}"
 
       if [ "$array_length" = "0" ]; then
          sdwdate_log "ERROR: $SDWDATE_CURRENT_POOL not configured!"
@@ -716,9 +727,11 @@ sdwdate_loop() {
          fi
       fi
 
-      local temp="$(python -c "print $array_length*$ALLOWED_PER_POOL_FAILURE_RATIO")"
+      local temp
+      temp="$(python -c "print $array_length*$ALLOWED_PER_POOL_FAILURE_RATIO")"
       ## adjust upward / downward
-      local allowed_member_failures="$(printf "%.f" "$temp")"
+      local allowed_member_failures
+      allowed_member_failures="$(printf "%.f" "$temp")"
 
       if [ "$array_length_remember" -ge "$allowed_member_failures" ]; then
          sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached."
@@ -733,7 +746,8 @@ sdwdate_loop() {
          fi
       fi
 
-      local random_integer="$(( ($(od -An -N2 -i /dev/random) )%($array_length) ))"
+      local random_integer
+      random_integer="$(( ($(od -An -N2 -i /dev/random) )%($array_length) ))"
 
       if [ "${remember[$random_integer]}" = "1" ]; then
          continue
@@ -762,7 +776,8 @@ sdwdate_loop() {
          continue
       fi
 
-      local OLD_UNIXTIME="$(date +%s)"
+      local OLD_UNIXTIME
+      OLD_UNIXTIME="$(date +%s)"
 
       SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$WEB_DATE_UNIXTIME" - "$OLD_UNIXTIME")" || true
 
@@ -806,8 +821,10 @@ sdwdate_build_median() {
 
    SDWDATE_MEDIAN_TIME="$(expr "$temp" / "3")" || true
 
-   local OLD_UNIXTIME="$(date +%s)"
-   local OLD_TIME="$(date)"
+   local OLD_UNIXTIME
+   OLD_UNIXTIME="$(date +%s)"
+   local OLD_TIME
+   OLD_TIME="$(date)"
 
    true "INFO: $0 OLD: $OLD_UNIXTIME | $OLD_TIME"
 
@@ -821,11 +838,13 @@ sdwdate_set_new_time() {
       return
    fi
 
-   local OLD_UNIXTIME="$(date +%s)"
+   local OLD_UNIXTIME
+   OLD_UNIXTIME="$(date +%s)"
 
    ## Do not needlessly try to change time, when there is no difference.
    if [ ! "$SDWDATE_MEDIAN_TIME" = "0" ]; then
-      local SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")"
+      local SDWDATE_NEW_TIME
+      SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")" || true
 
       sdwdate_log "Setting time to $SDWDATE_NEW_TIME..."
 
@@ -846,8 +865,9 @@ sdwdate_dispatcher_prerequisite() {
       true "DISPATCH_PREREQUISITE is empty, skipping."
    else
       while true; do
-         local prerequisite_return_code="0"
-         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { local prerequisite_return_code="${PIPESTATUS[0]}" ; true; };
+         local prerequisite_return_code
+         prerequisite_return_code="0"
+         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { prerequisite_return_code="${PIPESTATUS[0]}" ; true; };
 
          true "prerequisite_return_code: $prerequisite_return_code"
          true "prerequisite_return_stdout: $prerequisite_return_stdout"
@@ -927,8 +947,9 @@ sdwdate_main() {
    while true; do
       sdwdate_log "Running sdwdate..."
 
-      local grep_return="$?"
-      echo "${1+"$@"}" | grep --quiet "\-\-noconfig" || { local grep_return="$?" ; true; };
+      local grep_return
+      grep_return="$?"
+      echo "${1+"$@"}" | grep --quiet "\-\-noconfig" || { grep_return="$?" ; true; };
 
       if [ "$grep_return" = "0" ]; then
          ## Found, skip reading config folder.
@@ -976,21 +997,24 @@ sdwdate_main() {
 
          echo "RANDOMIZE: $RANDOMIZE"
 
+         local minutes
          if [ "$RANDOMIZE" = "1" ]; then
-            local minutes="$(( ($(od -An -N2 -i /dev/random) )%($INTERVAL) ))"
+            minutes="$(( ($(od -An -N2 -i /dev/random) )%($INTERVAL) ))"
             if [ "$MIN_INTERVAL" -ge "$minutes" ]; then
-               local minutes="$(expr "$minutes" + "$MIN_INTERVAL")"
+               minutes="$(expr "$minutes" + "$MIN_INTERVAL")" || true
             fi
          else
-            local minutes="$INTERVAL"
+            minutes="$INTERVAL"
          fi
 
-         local seconds="$(expr "$minutes" \* "60")"
+         local seconds
+         seconds="$(expr "$minutes" \* "60")" || true
 
          sdwdate_log "Sleeping for $minutes minutes."
 
+         local sleeppid
          sleep "$seconds" &
-         local sleeppid="$!"
+         sleeppid="$!"
 
          ## Waiting for sleep to finish, while listening for SIGTERM at the same time.
          wait "$sleeppid"

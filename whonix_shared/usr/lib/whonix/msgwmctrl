@@ -73,14 +73,17 @@ output_wmctrl() {
       local max_wait="60"
    fi
 
-   local counter="0"
+   local counter
+   counter="0"
 
    while true; do
       ## "2>/dev/null" to hide output "Can not open display.", when not yet available.
-      local temp="$(wmctrl -l 2>/dev/null)"
+      local temp
+      temp="$(wmctrl -l 2>/dev/null)"
 
-      local grep_result="0"
-      echo "$temp" | grep --quiet "$title" || { local grep_result="$?" ; true; };
+      local grep_result
+      grep_result="0"
+      echo "$temp" | grep --quiet "$title" || { grep_result="$?" ; true; };
 
       if [ "$grep_result" = "0" ]; then
          break
@@ -89,7 +92,7 @@ output_wmctrl() {
       sleep "1" &
       wait "$!" || true
 
-      local counter="$(expr "$counter" + "1")" || true
+      counter="$(expr "$counter" + "1")" || true
 
       if [ "$counter" -ge "$max_wait" ]; then
          true "Giving up on wmctrl. Break."

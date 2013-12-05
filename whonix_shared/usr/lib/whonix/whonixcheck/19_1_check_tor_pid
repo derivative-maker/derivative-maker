@@ -25,7 +25,8 @@ check_tor_pid_do() {
       return 0
    fi
 
-   local pid="$(cat "/var/run/tor/tor.pid")"
+   local pid
+   pid="$(cat "/var/run/tor/tor.pid")"
 
    if [ "$pid" = "" ]; then
       tor_pid_message="Pid file /var/run/tor/tor.pid is empty."
@@ -33,8 +34,9 @@ check_tor_pid_do() {
       return 0
    fi
 
-   local ps_return="0"
-   ps -p "$pid" >/dev/null 2>/dev/null || { local ps_return="$?" ; true; };
+   local ps_return
+   ps_return="0"
+   ps -p "$pid" >/dev/null 2>/dev/null || { ps_return="$?" ; true; };
 
    if [ ! "$ps_return" = "0" ]; then
       tor_pid_message="Pid $pid is not running."

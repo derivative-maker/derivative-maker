@@ -15,20 +15,23 @@ check_whonixcheck_lastrun() {
    ## /var/run/ gets cleared on boot.
 
    if [ -f "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun" ]; then
-      local i="0"
+      local i
+      i=="0"
       while read LINE; do
          let i "i=i+1" ||  true
          #echo "$i: $LINE"
          if [ "$i" = "1" ]; then
-            local LASTRUN="$LINE"
+            local LASTRUN
+            LASTRUN="$LINE"
          fi
       done < "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun"
    else
       ## the whonixcheck_completed function does almost the same
-      local LASTRUN="$MAX"
+      LASTRUN="$MAX"
    fi
 
-   local CURRENTTIME="$(date +%s)"
+   local CURRENTTIME
+   CURRENTTIME="$(date +%s)"
 
    let DIFFERENCE="$CURRENTTIME"-"$LASTRUN" || true
 
@@ -47,6 +50,7 @@ check_whonixcheck_lastrun() {
 whonixcheck_completed() {
    trap "error_handler" ERR
 
-   local LASTRUN="$(date +%s)"
+   local LASTRUN
+   LASTRUN="$(date +%s)"
    echo "$LASTRUN" | sudo -u user tee "/var/lib/whonix/whonixcheck/"$SCRIPTNAME"_lastrun" > /dev/null
 }

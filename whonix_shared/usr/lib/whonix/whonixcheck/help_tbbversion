@@ -64,7 +64,8 @@ tbbversion() {
    tbbversions_found="0"
 
    if [ -f "$RecommendedTBBVersions" ]; then
-      local i="0"
+      local i
+      i="0"
       local line
       while read line; do
          let i "i=i+1" || true
@@ -90,15 +91,16 @@ tbbversion() {
             continue
          fi
 
-         local line="$(echo "$line" | sed 's/"//g')"
-         local line="$(echo "$line" | sed 's/,//g')"
+         line="$(echo "$line" | sed 's/"//g')"
+         line="$(echo "$line" | sed 's/,//g')"
 
          echo "$line" | grep -q -i -s "Linux"
          if [ "$?" = "0" ]; then
-            local temp="$line"
-            local temp="$(echo "$temp" | sed 's/-i686//g')"
-            local temp="$(echo "$temp" | sed 's/-x86_64//g')"
-            local temp="$(echo "$temp" | sed 's/-Linux//g')"
+            local temp
+            temp="$line"
+            temp="$(echo "$temp" | sed 's/-i686//g')"
+            temp="$(echo "$temp" | sed 's/-x86_64//g')"
+            temp="$(echo "$temp" | sed 's/-Linux//g')"
 
             tbbversions_found="$(expr "$tbbversions_found" + "1")"
 
@@ -176,7 +178,8 @@ tbbversion_installed() {
       return 0
    fi
 
-   local temp="$tbb_folder/Docs/version"
+   local temp
+   temp="$tbb_folder/Docs/version"
    if [ -f "$temp" ]; then
       tbb_locally_installed_version="$(head -1 "$temp")" || true
       tbb_locally_installed_version_detect_success="1"

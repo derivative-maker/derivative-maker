@@ -9,8 +9,9 @@ process_killer_helper() {
 
    ## Can not use `kill`, must use `ps`, because kill will always return a
    ## a non-zero return code if the process is owned by a different user.
-   local ps_p_return="0"
-   ps -p "$lastpid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
+   local ps_p_return
+   ps_p_return="0"
+   ps -p "$lastpid" >/dev/null 2>/dev/null || { ps_p_return="$?" ; true; };
 
    if [ ! "$ps_p_return" = "0" ]; then
       return 0
@@ -19,12 +20,14 @@ process_killer_helper() {
    ## >/dev/null 2>/dev/null to prevent seeing error due to race conditions (process in meanwhile already terminated).
    kill -sigterm "$lastpid" >/dev/null 2>/dev/null || true
 
-   local i="0"
+   local i
+   i="0"
 
    ## Give remaining processes up to 5 seconds after sending signal sigterm (above) before killing them sending signal sigkill.
    while true; do
-      local ps_p_return="0"
-      ps -p "$lastpid" >/dev/null 2>/dev/null || { local ps_p_return="$?" ; true; };
+      local ps_p_return
+      ps_p_return="0"
+      ps -p "$lastpid" >/dev/null 2>/dev/null || { ps_p_return="$?" ; true; };
 
       if [ ! "$ps_p_return" = "0" ]; then
          ## ps_p_return is not 0, process no longer running. That's it.

@@ -26,27 +26,31 @@ cleanup_files() {
 
    set +x
 
-   local result="$(gawk '/^Package\:[[:space:]]*.*$$/ { match($$0, /^Package:[[:space:]]*(.*)$$/, m); print m[1]"*.deb" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   local result
+   result="$(gawk '/^Package\:[[:space:]]*.*$$/ { match($$0, /^Package:[[:space:]]*(.*)$$/, m); print m[1]"*.deb" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
 
    for dp in $result; do
-      local cmd="rm --force $WHONIX_SOURCE_FOLDER/../$dp"
+      local cmd
+      cmd="rm --force $WHONIX_SOURCE_FOLDER/../$dp"
       echo "$cmd"
       $cmd
    done
 
-   local cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.dsc" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   local cmd
+
+   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.dsc" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
    echo "$cmd"
    $cmd
 
-   local cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.changes" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.changes" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
    echo "$cmd"
    $cmd
 
-   local cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.tar.*" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.tar.*" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
    echo "$cmd"
    $cmd
 
-   local cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.build" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.build" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
    echo "$cmd"
    $cmd
 
@@ -54,7 +58,7 @@ cleanup_files() {
 
    fakeroot "$WHONIX_SOURCE_FOLDER/debian/rules" clean
 
-   rm --force $WHONIX_SOURCE_FOLDER/debian/changelog
+   rm --force "$WHONIX_SOURCE_FOLDER/debian/changelog"
 }
 
 true "${bold}INFO: Currently running script: $0${reset}"

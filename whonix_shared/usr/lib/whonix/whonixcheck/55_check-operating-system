@@ -12,10 +12,11 @@ check_operating_system() {
    ## Minimal custom script.
    local MSG="Debian Package Update Check: Checking for software updates via apt-get..."
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-   local apt_get_return="0"
+   local apt_get_return
+   apt_get_return="0"
    sudo "/usr/lib/whonix/whonixcheck/apt-get-update" >/dev/null &
    apt_get_update_pid="$!"
-   wait "$apt_get_update_pid" || { local apt_get_return="$?" ; true; };
+   wait "$apt_get_update_pid" || { apt_get_return="$?" ; true; };
    unset apt_get_update_pid
 
    if [ ! "$apt_get_return" = "0" ]; then
@@ -27,8 +28,10 @@ check_operating_system() {
       return 0
    fi
 
-   local check_os_result="$("/usr/lib/update-notifier/apt-check" 2>&1)"
-   local first_char="${check_os_result:0:1}"
+   local check_os_result
+   check_os_result="$("/usr/lib/update-notifier/apt-check" 2>&1)"
+   local first_char
+   first_char="${check_os_result:0:1}"
 
    if [ "$first_char" = "0" ]; then
       local MSG="Debian Package Update Check Result: No updates found via apt-get."

@@ -376,7 +376,8 @@ tb_preparation() {
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
 
    ## TODO: separate id for every progress bar
-   local tmp="$(mktemp)"
+   local tmp
+   tmp="$(mktemp)"
    progressbaridx="${tmp##*.}"
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
@@ -385,12 +386,13 @@ tb_preparation() {
       output="/usr/lib/whonix/msgcollector"
    fi
 
-   local tty="$(tty)"
+   local my_tty
+   my_tty="$(tty)"
 
    output_opt_1="--icon $ICON"
    output_opt_2="--parentpid $$"
    output_opt_3="--identifier ${IDENTIFIER}"
-   output_opt_4="--parenttty $tty"
+   output_opt_4="--parenttty $my_tty"
    #output_opt_5=""
 
    output_opts=( "$output_opt_1" "$output_opt_2" "$output_opt_3" "$output_opt_4" "$output_opt_5")
@@ -453,8 +455,9 @@ tb_connectivity_checks() {
    fi
 
    ## Let's reuse that code.
-   local connection_checker_return="0"
-   /usr/lib/whonix/timesync_prerequisite || { local connection_checker_return="$?" ; true; };
+   local connection_checker_return
+   connection_checker_return="0"
+   /usr/lib/whonix/timesync_prerequisite || { connection_checker_return="$?" ; true; };
 
    if [ ! "$connection_checker_return" = "0" ]; then
       MSG="Tor not fully bootstrapped.
@@ -613,12 +616,13 @@ $tbb_recommended_versions_error"
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 
-   local up_to_date="0"
+   local up_to_date
+   up_to_date="0"
    local tbb_version
 
    for tbb_version in $tbb_recommended_versions_list; do
       if [ "$tbb_version" = "$tbb_locally_installed_version" ]; then
-         local up_to_date="1"
+         up_to_date="1"
          break
       fi
    done
@@ -629,7 +633,8 @@ $tbb_recommended_versions_error"
       VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
    fi
 
-   local answer="0"
+   local answer
+   answer="0"
 
    MSG="\
 $SCRIPTNAME Update Check (Whonix)
@@ -655,7 +660,7 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      zenity --title="$TITLE" --question --text "$MSG" || { local answer="$?" ; true; };
+      zenity --title="$TITLE" --question --text "$MSG" || { answer="$?" ; true; };
 
       ## zenity return codes
       ## no 1
@@ -685,7 +690,8 @@ It is a good idea to delete old TBB backups once in a while if you are running l
    local key
 
    for key in "/usr/share/whonix/keys/tbb-keys.d/"*; do
-      local key_filename="$(basename "$key")"
+      local key_filename
+      key_filename="$(basename "$key")"
       if [ "$key_filename" = "placeholder" ]; then
          continue
       fi
@@ -891,7 +897,8 @@ tb_extract() {
    debug "Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
    mv "$home_folder/.tb/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG"
 
-   local TEMP="$home_folder/tor-browser_$TB_LANG/"
+   local TEMP
+   TEMP="$home_folder/tor-browser_$TB_LANG/"
    MSG="Finished installing Tor Browser. Can be found in $TEMP."
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"

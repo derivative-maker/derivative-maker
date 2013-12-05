@@ -64,8 +64,9 @@ main_function() {
          local title="Whonix Confirm Open"
          #local msg="${1+"$@"} will be opened in $open_in_tool_bin_name. Continue?"
 
-         local open_in_tool_return="0"
-         $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { local open_in_tool_return="$?" ; true; };
+         local open_in_tool_return
+         open_in_tool_return="0"
+         $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_return="$?" ; true; };
          exit "$open_in_tool_return"
       else
          local title="Whonix Confirm Open ERROR"
@@ -85,12 +86,14 @@ Use Tor Browser under Whonix-Workstation to browse the internet."
 
       local trim="128"
 
-      local temp="${1+"$@"}"
+      local temp
+      temp="${1+"$@"}"
 
-      local temp_string_length="${#temp}"
+      local temp_string_length
+      temp_string_length="${#temp}"
 
       ## Trim temp to 100 characters.
-      local temp="${temp:0:$trim}"
+      temp="${temp:0:$trim}"
 
       if [ "$temp_string_length" -gt "$trim" ]; then
          local extra_long_link="
@@ -123,7 +126,8 @@ $temp$extra_long_link"
       exit 1
    fi
 
-   local answer="0"
+   local answer
+   answer="0"
 
    local ask_for_confirmation="1"
    if [ "$is_file" = "1" ]; then
@@ -143,15 +147,16 @@ $temp$extra_long_link"
    fi
 
    if [ "$ask_for_confirmation" = "1" ]; then
-      zenity --no-markup --title="$title" --question --window-icon "$icon" --text "$msg" >/dev/null 2>/dev/null || { local answer="$?" ; true; };
+      zenity --no-markup --title="$title" --question --window-icon "$icon" --text "$msg" >/dev/null 2>/dev/null || { answer="$?" ; true; };
    fi
 
    if [ "$answer" = "1" ]; then
       exit 0
    fi
 
-   local which_return="0"
-   command -v $open_in_tool_bin >/dev/null 2>/dev/null || { local which_return="$?" ; true; };
+   local which_return
+   which_return="0"
+   command -v $open_in_tool_bin >/dev/null 2>/dev/null || { which_return="$?" ; true; };
 
    if [ ! "$which_return" = "0" ]; then
       local msg="ERROR: $open_in_tool_bin does not exist! Please report this bug!"
@@ -159,8 +164,9 @@ $temp$extra_long_link"
       exit 1
    fi
 
-   local open_in_tool_return="0"
-   $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { local open_in_tool_return="$?" ; true; };
+   local open_in_tool_return
+   open_in_tool_return="0"
+   $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_return="$?" ; true; };
 
    if [ ! "$open_in_tool_return" = "0" ]; then
       local msg="ERROR: $open_in_tool_bin returned $open_in_tool_return! Please report this bug!"

@@ -15,17 +15,19 @@ check_bootclockrandomization() {
    trap "error_handler" ERR
 
    ## There is an exception in /etc/sudoers.d/bootclockrandomization.
-   local returncode="0"
-   sudo service bootclockrandomization status || { local returncode="$?" ; true; };
+   local returncode
+   returncode="0"
+   sudo service bootclockrandomization status || { returncode="$?" ; true; };
 
    if [ "$returncode" = "0" ]; then
       local MSG="bootclockrandomization success."
       #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       #$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
-      local MSG="bootclockrandomization failed. Please report this bug!
+      local MSG
+      MSG="bootclockrandomization failed. Please report this bug!
 Last 6 lines of /var/log/bootclockrandomization.log:
-$(tail -n 6 /var/log/bootclockrandomization.log)"
+$(tail -n 6 /var/log/bootclockrandomization.log)" || true
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
    fi
@@ -35,8 +37,9 @@ check_timesanitycheck() {
    trap "error_handler" ERR
 
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
-   local returncode="0"
-   sudo service timesanitycheck status || { local returncode="$?" ; true; };
+   local returncode
+   returncode="0"
+   sudo service timesanitycheck status || { returncode="$?" ; true; };
 
    ## When autostarted...
    if [ "$AUTOSTARTED" = "1" ]; then
@@ -48,8 +51,9 @@ Let us wait a few seconds and try checking timesanitycheck status again."
          lastpid="$!"
          wait "$lastpid"
          ## There is an exception in /etc/sudoers.d/timesanitycheck.
-         local returncode="0"
-         sudo service timesanitycheck status || { local returncode="$?" ; true; };
+         local returncode
+         returncode="0"
+         sudo service timesanitycheck status || { returncode="$?" ; true; };
       fi
    fi
 
