@@ -75,11 +75,6 @@ locally-upgrade-whonix-debian-packages() {
       export whonix_build_no_upstream_sources_list="1"
    fi
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
-
-   ## Debugging.
-   $CHROOT apt-key finger
-
    ## Enable apt-cacher-ng.
    export http_proxy="http://127.0.0.1:3142"
 
@@ -95,11 +90,16 @@ locally-upgrade-whonix-debian-packages() {
       $CHROOT apt-get $apt_timeout_opts --yes dist-upgrade
    fi
 
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
+
+   ## Debugging.
+   $CHROOT apt-key finger
+
    ## Reading [apt repository containing snapshot.debian.org and] local repository containing Whonix's packages.
-   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts -o APT::Get::List-Cleanup="0" update
+   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts -o APT::Get::List-Cleanup="0" update
 
    ## Upgrade Whonix Debian Packages.
-   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts --yes dist-upgrade
+   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts --yes dist-upgrade
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
 
