@@ -126,33 +126,60 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
          return 0
       fi
    else
-     local MSG="Trans/Socks-Port Test Error: \$1 is neither TransPort nor SocksPort. Please report this BUG!"
-     $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
-     $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
-     return 0
+      local MSG="Trans/Socks-Port Test Error: \$1 is neither TransPort nor SocksPort. Please report this Whonix BUG!"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      return 0
    fi
 
-   local TOR_OR_NOT
-   TOR_OR_NOT=""
-   TOR_OR_NOT="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")" || true
+   ## grep return codes:
+   ## 0 found
+   ## 1 otherwise
+   ## 2 if an error occurred
 
-   ## Example TOR_OR_NOT:
+   local tor_detected
+   tor_detected="0"
+   local grep_congratulations_result
+   grep_congratulations_result="$(grep --no-messages "Congratulations" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")" || { tor_detected="$?" ; true; }
+
+   ## Example grep_congratulations_result:
    ## <img alt="Congratulations. Your browser is configured to use Tor." src="/images/tor-on.png">
    ## Congratulations. Your browser is configured to use Tor.<br>
 
+   ## Handling cases where grep returned values greater than 1 and less than 0.
+   if [ "$tor_detected" -gt "1" ] || [ "$tor_detected" -lt "0" ]; then
+      ## an error occurred
+      local MSG="tor_detected returned $tor_detected. Please report this Whonix BUG!"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local grep_ip_exit_code
+   grep_ip_exit_code="0"
    local ip
-   ip="IP not detected (1). Please report this bug!"
-   ip="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")" || true
+   ip="$(grep --no-messages "IP" "$VERIFY_TEMPDIR/$CHECK_TOR_OUT_FILE")" || { grep_ip_exit_code="$?" ; true; }
 
    ## example ip:
    ## Your IP address appears to be: <b>94.242.204.74</b><br>
 
+   ## Handling cases where grep returned values greater than 1 and less than 0.
+   if [ "$grep_ip_exit_code" -gt "1" ] || [ "$grep_ip_exit_code" -lt "0" ]; then
+      ## an error occurred
+      local MSG="grep_ip_exit_code returned $grep_ip_exit_code. Please report this Whonix BUG!"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
+
    ## Test excessive string length.
    #ip="Your IP address appears to be: <b>2001:0db8:85a3:0042:1000:8a2e:0370:7334 \$f(do) \`this\` ... xxx ... xxx </b><br>"
 
-   if [ "$ip" = "" ]; then
+   if [ ! "$grep_ip_exit_code" = "0" ]; then
+      ## grep returned 1.
       ip="IP not detected (2). Please report this bug!"
    else
+      ## grep returned 0.
       ip="$(echo "$ip" | sed 's/Your IP address appears to be//g')"
       ip="$(echo "$ip" | sed 's/<br>//g')"
       ip="$(echo "$ip" | sed 's/<b>//g')"
@@ -193,7 +220,8 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
 
    ## Check if connected to Tor or not,
    ## and choose which message to show.
-   if [ ! "$TOR_OR_NOT" = "" ]; then
+   if [ "$tor_detected" = "0" ]; then
+      ## Tor detected.
       if [ "$1" = "TransPort" ]; then
          local MSG="TransPort Test Result: Connected to Tor. IP: $ip"
       elif [ "$1" = "SocksPort" ]; then
@@ -203,6 +231,7 @@ You could check, if you can reach https://check.torproject.org via the Tor Brows
       $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
       return 0
    else
+      ## Tor not detected.
       NOT_USING_TOR="1"
 
       if [ "$1" = "TransPort" ]; then
