@@ -112,6 +112,29 @@ renice +19 -p $$ >/dev/null
 ## Check.
 nice >/dev/null
 
+maybe_enable_apt_cache() {
+   trap "error_handler_general" ERR INT TERM
+
+   if [ -f "/usr/share/whonix/whonix_gateway" ]; then
+      ## Someone updating Whonix-Gateway from source code.
+
+      ## apt-cacher-ng will not work on Whonix-Gateway, because Whonix-Gateway
+      ## does not have TransPort / DnsPort by default.
+      echo 'INFO: Not setting http_proxy, because Whonix-Gateway detected, ok.'
+      true
+   else
+      ## Enable apt-cacher-ng.
+      echo 'INFO: Setting, export http_proxy="http://127.0.0.1:3142"'
+      export http_proxy="http://127.0.0.1:3142"
+   fi
+}
+
+disable_apt_cache() {
+   trap "error_handler_general" ERR INT TERM
+
+   unset http_proxy
+}
+
 #echo "${bold}Currently running script: $0${reset}"
 
 set -x
