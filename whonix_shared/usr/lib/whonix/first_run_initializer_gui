@@ -14,6 +14,7 @@ if [ -f "$done_file" ]; then
 fi
 
 touch "$start_file"
+sync
 
 echo "[INFO] [Whonix First Run Initializer]: Preparing Whonix... Will reboot when finished..."
 
@@ -23,8 +24,10 @@ sleeppid="$!"
 
 ## There is an /etc/sudoers.d exception.
 sudo /usr/lib/whonix/first_run_initializer >"$log_file" 2>"$log_file"
+sync
 
 touch "$done_file"
+sync
 
 wait "$sleeppid"
 
@@ -35,7 +38,8 @@ sleep 10 &
 sleeppid="$!"
 wait "$sleeppid"
 
-reboot
+## There is an /etc/sudoers.d exception.
+sudo /sbin/reboot
 
 ## The sleep is just in for the look an feel.
 sleep 60 &
