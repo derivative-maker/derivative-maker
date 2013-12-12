@@ -82,11 +82,16 @@ preparation() {
    fi
 
    local my_tty
-   my_tty="$(tty)"
+   local my_tty_exit_code
+   my_tty_exit_code="0"
+   my_tty="$(tty)" || { my_tty_exit_code="$?" ; true; };
 
-   ## hack
-   ## Otherwise "not a tty" would not be correctly quoted.
-   if [ "$my_tty" = "not a tty" ]; then
+   if [ ! "$my_tty_exit_code" = "0" ]; then
+      my_tty="none"
+   fi
+
+   ## Just in case.
+   if [ "$my_tty" = "" ]; then
       my_tty="none"
    fi
 
