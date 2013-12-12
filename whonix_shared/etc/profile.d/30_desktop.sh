@@ -4,7 +4,10 @@
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
-## Whonix /etc/profile.d/80_desktop.sh
+## Whonix /etc/profile.d/30_desktop.sh
+
+## Do not rename to /etc/profile.d/80_desktop.sh, because it gets deleted in
+## /usr/share/whonix/postinst.d/70_legacy.
 
 if [ ! "$(tty)" = "/dev/tty1" ]; then
    return 0
@@ -14,4 +17,4 @@ else
    /usr/lib/whonix/ram_adjusted_desktop_starter
 fi
 
-## End of Whonix /etc/profile.d/80_desktop.sh
+## End of Whonix /etc/profile.d/30_desktop.sh
