@@ -13,7 +13,10 @@
 set -o pipefail
 
 SCRIPTNAME="$(basename $0)"
-IDENTIFIER="$SCRIPTNAME"
+
+## Setting to "torbrowser" so this does not become "whonix-torbrowser".
+IDENTIFIER="torbrowser"
+
 ICON="/usr/share/whonix/icons/tbupdate.ico"
 
 ## Developer comment on this script:
@@ -62,10 +65,18 @@ tb_error_handler() {
 ## BASH_COMMAND: $BASH_COMMAND
 ## return_code: $return_code
 ##
+## output: $output
+## output_opts: ${output_opts[@]}
+## progressbaridx: $progressbaridx
+##
 ## Experts only:
 ## bash -x $SCRIPTNAME
 ###########################################################\
 "
+
+   mkdir --parents ~/".whonix"
+   echo "$MSG" >> ~/".whonix/whonix_torbrowser_updater_error.log"
+
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
    $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
    $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
@@ -393,7 +404,18 @@ tb_preparation() {
    fi
 
    local my_tty
-   my_tty="$(tty)"
+   local my_tty_exit_code
+   my_tty_exit_code="0"
+   my_tty="$(tty)" || { my_tty_exit_code="$?" ; true; };
+
+   if [ ! "$my_tty_exit_code" = "0" ]; then
+      my_tty="none"
+   fi
+
+   ## Just in case.
+   if [ "$my_tty" = "" ]; then
+      my_tty="none"
+   fi
 
    output_opt_1="--icon $ICON"
    output_opt_2="--parentpid $$"
@@ -450,6 +472,28 @@ tb_preparation() {
       ## In case the --clearnet option was used.
       TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
       CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+}
+
+
+
+tb_check_locally_installed() {
+   trap "tb_error_handler" ERR
+
+   if [ ! -d "$home_folder/tor-browser_$TB_LANG" ]; then
+      MSG="Tor Browser is not installed?
+The folder $home_folder/tor-browser_$TB_LANG/ does not exist.
+
+Please run: Start Menu -> Applications -> System -> Tor Browser Updater
+            or in Terminal: $SCRIPTNAME --update"
+
+      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
+
+      ## exit 0, so confirm_open does not report a bug.
+      ## Might not be ideal. Improvement possible.
+      exit 0
    fi
 }
 
@@ -1024,12 +1068,16 @@ if [ "$TB_UPDATE" = "1" ]; then
    tb_verify
    tb_extract
 elif [ "$tb_recommended_start" = "1" ]; then
+   tb_preparation
+   tb_check_locally_installed
    tb_start_recommend
 elif [ "$open_new_window" = "1" ]; then
    tb_preparation
+   tb_check_locally_installed
    tb_open_link
 elif [ "$open_new_window" = "0" ]; then
    tb_preparation
+   tb_check_locally_installed
    tb_start_new_tab
 elif [[ ! "$@" = "" ]]; then
    true "$0 \$@: $@"
