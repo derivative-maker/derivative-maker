@@ -7,15 +7,6 @@
 #set -x
 set -o pipefail
 
-NOTIFY_MSG="Running Secure Network Time Synchronization (timesync)...
-This will happen in background and if internet connectivity is functional it will take approximately 60 seconds.
-
-If you like to watch the log, open a terminal and run:
-    tail -f /var/log/sdwdate.log
-
-For better anonymity, please do not use the internet in Whonix until timesync succeeded.
-Please feel free to press <enter> to return back to your normal prompt."
-
 ICON="/usr/share/whonix/icons/timesync.ico"
 
 SCRIPTNAME="$(basename $0)"
@@ -42,6 +33,9 @@ timesync_pre_main() {
    parse_cmd_options "${1+"$@"}" ## help_parse-cmd-options
 
    $output ${output_opts[@]} --forget
+   ## Sleep to prevent a race condition.
+   sleep 2 &
+   wait "$!"
 
    if [ "$FUNCTION" = "" ]; then
       true
@@ -72,8 +66,24 @@ timesync_pre_main() {
    ## the user will be informed about the failure. In case it succeeded, there
    ## is nothing important to tell. (Interested ones could watch the logs.)
    if [ "$MODE" = "startup" ]; then
-      local MSG="$NOTIFY_MSG"
+      ## Do not use < > inside zenity progress messages, zenity will mess that up.
+      local MSG="Running Secure Network Time Synchronization (timesync)...
+This will happen in background and if internet connectivity is functional it will take approximately 60 seconds.
+
+If you like to watch the log, open a terminal and run:
+    tail -f /var/log/sdwdate.log
+
+For better anonymity, please do not use the internet in Whonix until timesync succeeded."
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+
+      local MSG="Running Secure Network Time Synchronization (timesync)...
+This will happen in background and if internet connectivity is functional it will take approximately 60 seconds.
+
+If you like to watch the log, open a terminal and run:
+    tail -f /var/log/sdwdate.log
+
+For better anonymity, please do not use the internet in Whonix until timesync succeeded.
+Please feel free to press <enter> to return back to your normal prompt."
       $output ${output_opts[@]} --waitmessagecli --typecli "info" --titlecli "$TITLE" --message "$MSG" --done
    else
       true "MODE: $MODE"
