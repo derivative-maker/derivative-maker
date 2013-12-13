@@ -332,6 +332,16 @@ parse_cmd_options() {
 
 
 
+get_new_progressbaridx() {
+   trap "tb_error_handler" ERR
+
+   local tmp
+   tmp="$(mktemp)"
+   progressbaridx="${tmp##*.}"
+}
+
+
+
 tb_preparation() {
    trap "tb_error_handler" ERR
 
@@ -399,11 +409,6 @@ tb_preparation() {
 
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
 
-   ## TODO: separate id for every progress bar
-   local tmp
-   tmp="$(mktemp)"
-   progressbaridx="${tmp##*.}"
-
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       output="true"
    else
@@ -458,10 +463,6 @@ tb_preparation() {
    ## Export CURL variable, so it can be read by $CURL_PRGRS.
    export CURL="$CURL"
 
-   ## Define what CURL_PRGRS is supposed to eval.
-   ## ($percent is a local variable provided by $CURL_PRGRS.)
-   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
-
    ## {{ TODO
 
    ## This duplicate code must be simplified as soon as TBB 3.x is out.
@@ -488,28 +489,6 @@ tb_preparation() {
    fi
 
    ## }}
-}
-
-
-
-tb_check_locally_installed() {
-   trap "tb_error_handler" ERR
-
-   if [ ! -d "$home_folder/tor-browser_$TB_LANG" ]; then
-      MSG="Tor Browser is not installed?
-The folder $home_folder/tor-browser_$TB_LANG/ does not exist.
-
-Please run: Start Menu -> Applications -> System -> Tor Browser Updater
-            or in Terminal: $SCRIPTNAME --update"
-
-      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
-      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
-      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
-
-      ## exit 0, so confirm_open does not report a bug.
-      ## Might not be ideal. Improvement possible.
-      exit 0
-   fi
 }
 
 
@@ -547,7 +526,12 @@ If whonixcheck reports no problems with internet activity and this still fails, 
 
    true "Tor fully bootstrapped."
 
-   NOTIFY_MSG="Checking connectivity..."
+   NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Checking connectivity..."
+
+   ## sets: progressbaridx
+   get_new_progressbaridx
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
    sleep 1 &
@@ -556,6 +540,9 @@ If whonixcheck reports no problems with internet activity and this still fails, 
    CURL_RETURN="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
+   ## Define what CURL_PRGRS is supposed to eval.
+   ## ($percent is a local variable provided by $CURL_PRGRS.)
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -590,6 +577,8 @@ If whonixcheck reports no problems with internet activity and this keeps failing
    fi
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   sleep 1 &
+   wait "$!"
 }
 
 
@@ -605,11 +594,16 @@ tb_update_check() {
       fi
    fi
 
+   ## sets: progressbaridx
+   get_new_progressbaridx
+
    ## progress bar for update check
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      NOTIFY_MSG="Checking Tor Browser version... Will take a moment..."
+      NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Checking Tor Browser version... Will take a moment..."
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1 &
@@ -634,6 +628,9 @@ tb_update_check() {
    CURL_RETURN="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
+   ## Define what CURL_PRGRS is supposed to eval.
+   ## ($percent is a local variable provided by $CURL_PRGRS.)
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -674,8 +671,19 @@ $DOWNLOAD_FAIL_HELP"
    ## sets: tbb_locally_installed_version
    tbbversion_installed
 
+   if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
+      local installed_or_not_result="1"
+      local installed_or_not_text=""
+   else
+      local installed_or_not_result="0"
+      local installed_or_not_text="Tor Browser is currently not installed.
+(Folder $home_folder/tor-browser_$TB_LANG does not exist.)"
+   fi
+
    if [ "$tbb_recommended_versions_list" = "UNKNOWN" ]; then
-      MSG="$VERSION_DETECTION_ERROR
+      local MSG="$installed_or_not_text
+
+$VERSION_DETECTION_ERROR
 
 $tbb_recommended_versions_error"
 
@@ -686,6 +694,8 @@ $tbb_recommended_versions_error"
    fi
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   sleep 1 &
+   wait "$!"
 
    local up_to_date
    up_to_date="0"
@@ -698,23 +708,18 @@ $tbb_recommended_versions_error"
       fi
    done
 
+   local MSG
+
    if [ "$up_to_date" = "1" ]; then
-      VERSION_CHECK_RESULT="Looks like your Tor Browser version is up to date."
-   else
-      VERSION_CHECK_RESULT="Looks like there is an update for Tor Browser."
-   fi
-
-   local answer
-   answer="0"
-
-   MSG="\
+         MSG="\
 $SCRIPTNAME Update Check (Whonix)
 ----------------------------------------------------------------------
-$VERSION_CHECK_RESULT
-
-Please close Tor Browser if you want to upgrade!
 Currently installed version: $tbb_locally_installed_version
 Online detected version(s) : $tbb_recommended_versions_list
+
+Looks like Tor Browser is already up to date.
+
+Please close Tor Browser if you want to (re-)install!
 
 If your currently installed version is:
    higher: you are likely victim of a downgrade attack, SAY NO NOW!
@@ -727,8 +732,46 @@ YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
 A backup of your old Tor Browser and settings will be created in your home folder.
 It is a good idea to delete old TBB backups once in a while if you are running low with disk space.
 
-Update now?\
+Upgrade now?\
 "
+   else
+      if [ "$installed_or_not_result" = "0" ]; then
+         MSG="\
+$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Currently installed version: $tbb_locally_installed_version
+Online detected version(s) : $tbb_recommended_versions_list
+
+Install now?"
+      else
+         MSG="\
+$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Currently installed version: $tbb_locally_installed_version
+Online detected version(s) : $tbb_recommended_versions_list
+
+Looks like there is an upgrade for Tor Browser.
+
+Please close Tor Browser if you want to upgrade!
+
+If your currently installed version is:
+   higher: you are likely victim of a downgrade attack, SAY NO NOW!
+   equal : only proceed, if you want to create a new browser profile.
+   lower : you should upgrade.
+
+YOUR BROWSER WILL BE KILLED.
+YOUR WHOLE BROWSER PROFILE INCLUDING BOOKMARKS AND PASSWORDS WILL GET REPLACED!
+
+A backup of your old Tor Browser and settings will be created in your home folder.
+It is a good idea to delete old TBB backups once in a while if you are running low with disk space.
+
+Upgrade now?\
+"
+      fi
+   fi
+
+   local answer
+   answer="0"
 
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
@@ -837,10 +880,15 @@ tb_download() {
 
    ## {{ progress bar for download
 
+   ## sets: progressbaridx
+   get_new_progressbaridx
+
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
-      NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
+      NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Downloading Tor Browser signature... Will take a while..."
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1 &
@@ -873,6 +921,9 @@ tb_download() {
    CURL_RETURN="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
+   ## Define what CURL_PRGRS is supposed to eval.
+   ## ($percent is a local variable provided by $CURL_PRGRS.)
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -887,6 +938,8 @@ tb_download() {
    LAST_CURL_PRGRS_PID=""
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+   sleep 1
+   wait "$!"
 
    ## Check if curl failed.
    if [ ! "$CURL_RETURN" = "0" ]; then
@@ -912,7 +965,13 @@ $DOWNLOAD_FAIL_HELP"
       fi
    fi
 
-   NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
+   NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
+----------------------------------------------------------------------
+Downloading Tor Browser... Will take a while..."
+
+   ## sets: progressbaridx
+   get_new_progressbaridx
+
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
    sleep 1 &
    wait "$!"
@@ -942,6 +1001,9 @@ $DOWNLOAD_FAIL_HELP"
 
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
+   ## Define what CURL_PRGRS is supposed to eval.
+   ## ($percent is a local variable provided by $CURL_PRGRS.)
+   export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -1111,7 +1173,6 @@ tb_start_recommend() {
    trap "tb_error_handler" ERR
 
    root_check
-   tb_preparation
 
    if [ ! -e "$IMPORTANTBLOG_OFFLINE_FILE" ]; then
       LINK="$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK"
@@ -1144,10 +1205,14 @@ tb_open_link() {
 
 tb_sanity_tests
 parse_cmd_options ${1+"$@"}
+tb_preparation
+
+if [ ! -d "$home_folder/tor-browser_$TB_LANG" ]; then
+   TB_UPDATE="1"
+fi
 
 if [ "$TB_UPDATE" = "1" ]; then
    root_check
-   tb_preparation
    tb_connectivity_checks
    tb_update_check
 
@@ -1175,16 +1240,10 @@ if [ "$TB_UPDATE" = "1" ]; then
    tb_verify
    tb_extract
 elif [ "$tb_recommended_start" = "1" ]; then
-   tb_preparation
-   tb_check_locally_installed
    tb_start_recommend
 elif [ "$open_new_window" = "1" ]; then
-   tb_preparation
-   tb_check_locally_installed
    tb_open_link
 elif [ "$open_new_window" = "0" ]; then
-   tb_preparation
-   tb_check_locally_installed
    tb_start_new_tab
 elif [[ ! "$@" = "" ]]; then
    true "$0 \$@: $@"
