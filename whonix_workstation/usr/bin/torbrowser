@@ -349,12 +349,19 @@ tb_preparation() {
    ##ARCH="x86_64"
    ##ARCH="i686"
    ARCH="$(uname --machine)"
-   echo "$ARCH detected."
+   echo "INFO: $ARCH detected."
+
+   if [ "$ARCH" = "i686" ]; then
+      ARCH_NEW="linux32"
+   else
+      ## NOTE: A simple else is non-ideal, should there be ever more architectures.
+      ARCH_NEW="linux64"
+   fi
 
    ## provides tbbversion function
    source /usr/lib/whonix/whonixcheck/help_tbbversion
 
-   #debug "TB_LANG: $TB_LANG"
+   #debug "INFO: TB_LANG: $TB_LANG"
 
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
@@ -375,10 +382,10 @@ tb_preparation() {
 
    ## Check if TB_LANG exists and is not empty.
    if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-      #debug "Tor Browser language variable is set to "$TB_LANG"."
+      #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
       true
    else
-      #debug "Tor Browser language variable not found. Setting TB_LANG to the default en-US."
+      #debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
       TB_LANG="en-US"
    fi
 
@@ -455,6 +462,12 @@ tb_preparation() {
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
 
+   ## {{ TODO
+
+   ## This duplicate code must be simplified as soon as TBB 3.x is out.
+
+   ## TODO: Change to new server location. (See TBB_REMOTE_FOLDER below.)
+
    ## Download from the torproject.org hidden service, instead over clearnet,
    ## thus not involving any Tor exist nodes.
    ## $WHONIX is an environment variable only set in Whonix.
@@ -473,6 +486,8 @@ tb_preparation() {
       TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
       CURL_FORCE_SSL="--tlsv1 --proto =https"
    fi
+
+   ## }}
 }
 
 
@@ -535,10 +550,12 @@ If whonixcheck reports no problems with internet activity and this still fails, 
    NOTIFY_MSG="Checking connectivity..."
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
-   sleep 1
-   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+   sleep 1 &
+   wait "$!"
 
    CURL_RETURN="0"
+   ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
+   ## variables. (See above.)
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -595,8 +612,8 @@ tb_update_check() {
       NOTIFY_MSG="Checking Tor Browser version... Will take a moment..."
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
-      sleep 1
-      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+      sleep 1 &
+      wait "$!"
    fi
 
    if [ "$DEV_PASSTHROUGH" = "1" ]; then
@@ -605,9 +622,9 @@ tb_update_check() {
       CURL_PROXY="--socks5-hostname socks5h://$GATEWAY_IP:$SOCKS_PORT_TBB_DOWNLOAD/"
    fi
 
-   debug "Find out latest version..."
+   debug "INFO: Find out latest version..."
    LINK="https://check.torproject.org/RecommendedTBBVersions"
-   debug "Downloading: "$LINK""
+   debug "INFO: Downloading: "$LINK""
 
    mkdir --parents "$home_folder/.tb"
 
@@ -615,6 +632,8 @@ tb_update_check() {
    #debug "$0 CURL: $CURL"
 
    CURL_RETURN="0"
+   ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
+   ## variables. (See above.)
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -723,11 +742,11 @@ Update now?\
       #debug "answer: $answer"
 
       if [ "$TB_FORCE_INSTALL" = "1" ]; then
-         debug "TB_FORCE_INSTALL = 1"
+         debug "INFO: TB_FORCE_INSTALL = 1"
          true
       else
          if [ "$answer" = "1" ]; then
-            debug "Canceled. Exit."
+            debug "INFO: Canceled. Exit."
             exit 0
          fi
       fi
@@ -776,26 +795,84 @@ tb_download() {
       last_try="1"
    fi
 
-   ## progress bar for download
+   ## {{ Download from the torproject.org hidden service, instead over clearnet,
+   ##   thus not involving any Tor exist nodes.
+   ##   $WHONIX is an environment variable only set in Whonix.
+
+   if [ "$WHONIX" = "1" ]; then
+      if [ "$tbb_version_first_char" = "2" ]; then
+         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
+         TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
+      else
+         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
+         TBB_REMOTE_FOLDER="http://j6im4v42ur6dpic3.onion/tor-package-archive/torbrowser"
+      fi
+      ## Connections to hidden services are automatically encrypted end-to-end.
+      CURL_FORCE_SSL=""
+   else
+      ## Should only be the case when building Whonix from source while not being inside Whonix.
+      if [ "$tbb_version_first_char" = "2" ]; then
+         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
+         TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      else
+         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
+         TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
+      fi
+      CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+
+   if [ "$TB_CLEARNET" = "1" ]; then
+      ## In case the --clearnet option was used.
+      if [ "$tbb_version_first_char" = "2" ]; then
+         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
+         TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
+      else
+         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
+         TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
+      fi
+      CURL_FORCE_SSL="--tlsv1 --proto =https"
+   fi
+
+   ## }}
+
+   ## {{ progress bar for download
+
    if [ "$TB_FORCE_INSTALL" = "1" ]; then
       true
    else
       NOTIFY_MSG="Downloading Tor Browser signature... Will take a while..."
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
-      sleep 1
-      $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+      sleep 1 &
+      wait "$!"
    fi
 
-   debug "Downloading GPG signature..."
-   TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz.asc"
-   TBB_SIG_LINK="$TBB_REMOTE_FOLDER/$TBB_SIG_FILENAME"
-   debug "Downloading: $TBB_SIG_LINK"
+   ## }}
+
+   debug "INFO: Downloading GPG signature..."
+
+   if [ "$tbb_version_first_char" = "2" ]; then
+      debug "INFO: TBB 2.x detected. Using old signature  method for TBB 2.x."
+      TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz.asc"
+      TBB_EXTRA_FOLDER=""
+   else
+      debug "INFO: TBB 2.x not detected. Using new signature method for TBB 3.x."
+      ## Example signature link:
+      ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz.asc
+      TBB_SIG_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz.asc"
+      TBB_EXTRA_FOLDER="${tbb_version_folder}/"
+   fi
+
+   TBB_SIG_LINK="${TBB_REMOTE_FOLDER}/${TBB_EXTRA_FOLDER}${TBB_SIG_FILENAME}"
+
+   debug "INFO: Downloading: $TBB_SIG_LINK"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
 
    CURL_RETURN="0"
+   ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
+   ## variables. (See above.)
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -837,19 +914,34 @@ $DOWNLOAD_FAIL_HELP"
 
    NOTIFY_MSG="Downloading Tor Browser... Will take a while..."
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
-   sleep 1
-   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "5"
+   sleep 1 &
+   wait "$!"
 
-   debug "Downloading Tor Browser Bundle: $tbb_version"
-   TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz"
-   TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/$TBB_PACKAGE_FILENAME"
-   debug "Downloading: $TBB_PACKAGE_LINK"
+   debug "INFO: Downloading Tor Browser Bundle: $tbb_version"
+
+   if [ "$tbb_version_first_char" = "2" ]; then
+      debug "INFO: TBB 2.x detected. Using old package link method for TBB 2.x."
+      TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz"
+      TBB_EXTRA_FOLDER=""
+   else
+      debug "INFO: TBB 2.x not detected. Using package new link method."
+      ## Example package filename:
+      ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz
+      TBB_PACKAGE_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz"
+      TBB_EXTRA_FOLDER="${tbb_version_folder}/"
+   fi
+
+   TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/${TBB_EXTRA_FOLDER}$TBB_PACKAGE_FILENAME"
+
+   debug "INFO: Downloading: $TBB_PACKAGE_LINK"
 
    CURL_RETURN="0"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
 
+   ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
+   ## variables. (See above.)
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
@@ -890,15 +982,13 @@ tb_verify() {
 
    TB_GPG_VERIFY_RETURN="0"
    gpg \
-   --homedir "$home_folder/.tb/gpgtmpdir/" \
-   --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
-   "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
-   || { TB_GPG_VERIFY_RETURN="$?" ; true; };
-
-   debug "Signature valid."
+      --homedir "$home_folder/.tb/gpgtmpdir/" \
+      --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
+      "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
+      || { TB_GPG_VERIFY_RETURN="$?" ; true; };
 
    if [ ! "$TB_GPG_VERIFY_RETURN" = "0" ]; then
-MSG="\
+      local MSG="\
 GPG download signature could NOT be verified.
 Tor Browser update failed! Try again later.\
 "
@@ -915,40 +1005,46 @@ Tor Browser update failed! Try again later.\
 tb_extract() {
    trap "tb_error_handler" ERR
 
-   tar -xzvf "$home_folder/.tb/$TBB_PACKAGE_FILENAME" -C "$home_folder/.tb/"
+   tar xfv "$home_folder/.tb/$TBB_PACKAGE_FILENAME" -C "$home_folder/.tb/"
 
    ## The tor-browser_"$TB_LANG"/Docs folder should already exist.
    ## Just to make sure the script will not break in case the get changed by upstream.
    mkdir --parents "$home_folder/.tb/tor-browser_$TB_LANG/Docs"
 
-   debug "Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
-   mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
-
    ## Tor Browser changelog has been forgotten to update.
    ## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
    ## To play it safe and having a chance of finding out the installed version,
    ## we create a file ourselves to remember it.
-   debug "Creating version file tor-browser_$TB_LANG/Docs/version."
+   debug "INFO: Creating version file tor-browser_$TB_LANG/Docs/version."
    echo "$tbb_version" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
-   debug "Creating Unbundled Tor Browser startup script..."
-   ## Using this until Tor Browser upstream patch #7266 gets accepted.
-   ##    improve RelativeLink.sh script comments, patch attached
-   ##    https://trac.torproject.org/projects/tor/ticket/7266
-   ##
-   ## After #7266 got accepted, a new patch with TB_STANDALONE will
-   ## be proposed.
-   ##
-   ## Has been copied into Whonix-Workstation at build time.
-   cp "/usr/share/whonix/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
-   chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+   if [ "$tbb_version_first_char" = "2" ]; then
+      debug "INFO: TBB 2.x detected. Patching startup script..."
+
+      debug "INFO: Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
+      mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
+
+      debug "INFO: Creating Unbundled Tor Browser startup script..."
+      ## Using this until Tor Browser upstream patch #7266 gets accepted.
+      ##    improve RelativeLink.sh script comments, patch attached
+      ##    https://trac.torproject.org/projects/tor/ticket/7266
+      ##
+      ## After #7266 got accepted, a new patch with TB_STANDALONE will
+      ## be proposed.
+      ##
+      ## Has been copied into Whonix-Workstation at build time.
+      cp "/usr/share/whonix/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+      chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+   else
+      debug "INFO: TBB 2.x not detected. Patching startup script no longer required."
+   fi
 
    if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
-      debug "Moving old folder $home_folder/tor-browser_$TB_LANG..."
+      debug "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
       mv "$home_folder/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG.old.$(date '+%F-%H:%M:%S')"
    fi
 
-   debug "Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
+   debug "INFO: Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
    mv "$home_folder/.tb/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG"
 
    local TEMP
@@ -981,7 +1077,7 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
    PID="$(pidof firefox)" || true
 
    if [ "$PID" = "" ]; then
-      debug "Starting Tor Browser..."
+      debug "INFO: Starting Tor Browser..."
       cd "$home_folder/tor-browser_$TB_LANG/"
       "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" &
       ## Unfortunately, we must hard code the time to wait before
@@ -994,13 +1090,14 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
       if [ "$LINK" = "" ]; then
          return
       fi
-      debug "Waiting 30 seconds for Tor Browser to start..."
-      sleep 30
+      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
+      sleep 30 &
+      wait "$!"
    else
-      debug "Tor Browser is already running."
+      debug "INFO: Tor Browser is already running."
    fi
 
-   debug "Opening link..."
+   debug "INFO: Opening link..."
 
    #debug "tb_start_new_tab debug: $home_folder/tor-browser_$TB_LANG/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
 
@@ -1021,7 +1118,7 @@ tb_start_recommend() {
    else
       LINK="$IMPORTANTBLOG_OFFLINE_LINK"
    fi
-   debug "Link set to $LINK"
+   debug "INFO: Link set to $LINK"
    tb_start_new_tab
 
    if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
@@ -1029,7 +1126,7 @@ tb_start_recommend() {
    else
       LINK="$FEATUREBLOG_OFFLINE_LINK"
    fi
-   debug "Link set to $LINK"
+   debug "INFO: Link set to $LINK"
    tb_start_new_tab
 
    exit 0
@@ -1058,6 +1155,16 @@ if [ "$TB_UPDATE" = "1" ]; then
    #tbb_recommended_versions_list="2.3.25-16 2.3.25-15"
 
    for tbb_version in $tbb_recommended_versions_list; do
+      ## For testing.
+      #tbb_version="3.0-rc-1"
+      #tbb_version_folder="3.0rc1"
+
+      ## Let's hope version number of the download folder exactly equals
+      ## version number of TBB for the TBB 3.x final release. (No extra dashes
+      ## or something like that.)
+      tbb_version_folder="$tbb_version"
+
+      tbb_version_first_char="${tbb_version:0:1}"
       if [ "$tb_download_ok" = "1" ]; then
          ## Download already succeeded.
          break
