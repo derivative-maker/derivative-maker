@@ -483,6 +483,12 @@ sdwdate_echo() {
 sdwdate_write_log() {
    trap "sdwdate_error_handler" ERR
 
+   ## Default, if the error happens before defaults are set and before config
+   ## files are read.
+   if [ "$LOG_FILE" = "" ]; then
+      LOG_FILE=/var/log/sdwdate.log
+   fi
+
    if [ "$LOG_FILE" = "" ]; then
       true
    else
@@ -523,13 +529,24 @@ sdwdate_safe_log() {
 sdwdate_error_handler() {
    local return_code="$?"
 
-   local error_message="\
+   ## Default, if the error happens before defaults are set and before config
+   ## files are read.
+   if [ "$SDW_EXIT_ON_ERROR" = "" ]; then
+      SDW_EXIT_ON_ERROR="1"
+   fi
+
+   local error_message
+   error_message="
 ############################################
 ## Error detected! Please report this bug! #
+##
 ## 0: $0
+## SDW_EXIT_ON_ERROR: $SDW_EXIT_ON_ERROR
+##
 ## return_code: $return_code
 ## BASH_COMMAND: $BASH_COMMAND
-############################################"
+############################################\
+"
 
    sdwdate_log "$error_message"
 
@@ -551,7 +568,10 @@ sdwdate_error_handler() {
    fi
 
    if [ "$SDW_EXIT_ON_ERROR" = "1" ]; then
+      sdwdate_log "$SCRIPTNAME (not timesync!): Error detected. Exiting."
       exit 1
+   else
+      sdwdate_log "$SCRIPTNAME (not timesync!): Error detected. Continuing."
    fi
 }
 
