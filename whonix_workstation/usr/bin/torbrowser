@@ -150,26 +150,16 @@ debug() {
 
 
 
-TEMP2="As last resort you can also manually update Tor Browser.
+DOWNLOAD_FAIL_HELP="Possible reasons:
 
-Check Whonix News:
-https://www.whonix.org/wiki/Download#Stay_tuned
+- The download server is down.
+- Whonix's Tor Browser Updater has been broken due to upstream changes.
 
-Check for latest version Tor Browser Bundle version:
-https://blog.torproject.org
+Recommendations:
 
-Manually update:
-https://www.whonix.org/wiki/Manually_Updating_Tor_Browser"
-
-
-
-DOWNLOAD_FAIL_HELP="$TEMP2"
-
-
-
-VERSION_DETECTION_ERROR="Could not find out latest Tor Browser version!
-
-$TEMP2"
+- Try again later. If the error persists it probably won't solve itself before the next Whonix update.
+- Check Whonix News: https://www.whonix.org/wiki/Download#Stay_tuned
+- Manually update: https://www.whonix.org/wiki/Manually_Updating_Tor_Browser"
 
 
 
@@ -528,7 +518,7 @@ If whonixcheck reports no problems with internet activity and this still fails, 
 
    NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
 ----------------------------------------------------------------------
-Checking connectivity..."
+Checking connectivity... Will take a moment..."
 
    ## sets: progressbaridx
    get_new_progressbaridx
@@ -683,9 +673,9 @@ $DOWNLOAD_FAIL_HELP"
    if [ "$tbb_recommended_versions_list" = "UNKNOWN" ]; then
       local MSG="$installed_or_not_text
 
-$VERSION_DETECTION_ERROR
+Could not find out latest Tor Browser version! $tbb_recommended_versions_error
 
-$tbb_recommended_versions_error"
+$DOWNLOAD_FAIL_HELP"
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
@@ -888,7 +878,7 @@ tb_download() {
    else
       NOTIFY_MSG="$SCRIPTNAME Update Check (Whonix)
 ----------------------------------------------------------------------
-Downloading Tor Browser signature... Will take a while..."
+Downloading Tor Browser signature... Will take a moment..."
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --typex "info" --titlex "$TITLE" --message "$NOTIFY_MSG" --parentpid "$$" --done
       sleep 1 &
@@ -897,10 +887,10 @@ Downloading Tor Browser signature... Will take a while..."
 
    ## }}
 
-   debug "INFO: Downloading GPG signature..."
+   debug "INFO: Downloading GPG signature... Will take a moment..."
 
    if [ "$tbb_version_first_char" = "2" ]; then
-      debug "INFO: TBB 2.x detected. Using old signature  method for TBB 2.x."
+      debug "INFO: TBB 2.x detected. Using old signature method for TBB 2.x."
       TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz.asc"
       TBB_EXTRA_FOLDER=""
    else
@@ -913,7 +903,7 @@ Downloading Tor Browser signature... Will take a while..."
 
    TBB_SIG_LINK="${TBB_REMOTE_FOLDER}/${TBB_EXTRA_FOLDER}${TBB_SIG_FILENAME}"
 
-   debug "INFO: Downloading: $TBB_SIG_LINK"
+   debug "INFO: Downloading: $TBB_SIG_LINK ... Will take a moment..."
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
