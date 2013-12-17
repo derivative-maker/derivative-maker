@@ -29,18 +29,27 @@ check_operating_system() {
    fi
 
    local check_os_result
-   check_os_result="$("/usr/lib/update-notifier/apt-check" 2>&1)"
-   local first_char
-   first_char="${check_os_result:0:1}"
+   check_os_result="$(apt-get --simulate dist-upgrade 2>&1)"
 
-   if [ "$first_char" = "0" ]; then
+   local number_upgraded
+   number_upgraded="$(echo "$check_os_result" | grep -Po "^\d+ (?=upgraded)")"
+
+   ## Example number_upgraded:
+   ## "55 "
+
+   number_upgraded="$(echo "$number_upgraded" | sed 's/ //g')"
+
+   ## Example number_upgraded:
+   ## 55
+
+   if [ "$number_upgraded" = "0" ]; then
       local MSG="Debian Package Update Check Result: No updates found via apt-get."
       $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
-   local MSG="Debian Package Update Check Result: Apt-get reports that $first_char packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
+   local MSG="Debian Package Update Check Result: Apt-get reports that ${number_upgraded} packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
     sudo apt-get update && sudo apt-get dist-upgrade"
    $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
