@@ -16,6 +16,52 @@ MINUS_X_SET="$?"
 
 set -o pipefail
 
+## {{ Colors
+
+## Thanks to:
+## http://mywiki.wooledge.org/BashFAQ/037
+## Variables for terminal requests.
+[[ -t 2 ]] && {
+    alt=$(      tput smcup  || tput ti      ) # Start alt display
+    ealt=$(     tput rmcup  || tput te      ) # End   alt display
+    hide=$(     tput civis  || tput vi      ) # Hide cursor
+    show=$(     tput cnorm  || tput ve      ) # Show cursor
+    save=$(     tput sc                     ) # Save cursor
+    load=$(     tput rc                     ) # Load cursor
+    bold=$(     tput bold   || tput md      ) # Start bold
+    stout=$(    tput smso   || tput so      ) # Start stand-out
+    estout=$(   tput rmso   || tput se      ) # End stand-out
+    under=$(    tput smul   || tput us      ) # Start underline
+    eunder=$(   tput rmul   || tput ue      ) # End   underline
+    reset=$(    tput sgr0   || tput me      ) # Reset cursor
+    blink=$(    tput blink  || tput mb      ) # Start blinking
+    italic=$(   tput sitm   || tput ZH      ) # Start italic
+    eitalic=$(  tput ritm   || tput ZR      ) # End   italic
+[[ $TERM != *-m ]] && {
+    red=$(      tput setaf 1|| tput AF 1    )
+    green=$(    tput setaf 2|| tput AF 2    )
+    yellow=$(   tput setaf 3|| tput AF 3    )
+    blue=$(     tput setaf 4|| tput AF 4    )
+    magenta=$(  tput setaf 5|| tput AF 5    )
+    cyan=$(     tput setaf 6|| tput AF 6    )
+}
+    white=$(    tput setaf 7|| tput AF 7    )
+    default=$(  tput op                     )
+    eed=$(      tput ed     || tput cd      )   # Erase to end of display
+    eel=$(      tput el     || tput ce      )   # Erase to end of line
+    ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
+    ewl=$eel$ebl                                # Erase whole line
+    draw=$(     tput -S <<< '   enacs
+                                smacs
+                                acsc
+                                rmacs' || { \
+                tput eA; tput as;
+                tput ac; tput ae;         } )   # Drawing characters
+    back=$'\b'
+} 2>/dev/null ||:
+
+## }}
+
 disable_echo() {
    exec 5>&1 1>> "$TEMP_DIR_WHONIX_SCRIPT/output"
    exec 6>&2 2>> "$TEMP_DIR_WHONIX_SCRIPT/output"
@@ -56,7 +102,7 @@ force_echo() {
 }
 
 error_handler() {
-   local return_code="$?"
+   local exit_code="$?"
    local last_err="$BASH_COMMAND"
 
    if [ ! "$WHONIX_DEB_DEBUG" = "1" ]; then
@@ -74,15 +120,18 @@ error_handler() {
    fi
 
    force_echo "
-#############################################################
-## error:
+####################################################################
+## ${red}${bold}BEGIN ERROR in $0 detected!${reset}
+##
+## ${under}ERROR LOG${reset}:
 $output
 ##
-## postinst script: ERROR detected. Please report this bug! #
-## scriptname: $0
-## BASH_COMMAND: $BASH_COMMAND
-## return_code: $return_code
-#############################################################
+## ${under}BASH_COMMAND${reset}: $BASH_COMMAND
+## ${under}EXIT_CODE${reset}: $exit_code
+##
+## ${red}${bold}END ERROR in $0 detected!${reset}
+## ${red}${bold}Please report this Whonix bug!${reset}
+####################################################################
 " 1>&2
 
    exit 1
