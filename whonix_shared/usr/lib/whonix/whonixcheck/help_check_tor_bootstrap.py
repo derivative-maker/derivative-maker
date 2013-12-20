@@ -20,7 +20,9 @@ else:
 
 try:
   with Controller.from_port(port = p) as controller:
-    controller.authenticate("password")
+
+    if os.path.exists("/usr/share/whonix/whonix_gateway"):
+      controller.authenticate("password")
 
     bootstrap_status = controller.get_info("status/bootstrap-phase")
 
