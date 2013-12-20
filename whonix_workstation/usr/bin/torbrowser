@@ -452,33 +452,6 @@ tb_preparation() {
 
    ## Export CURL variable, so it can be read by $CURL_PRGRS.
    export CURL="$CURL"
-
-   ## {{ TODO
-
-   ## This duplicate code must be simplified as soon as TBB 3.x is out.
-
-   ## TODO: Change to new server location. (See TBB_REMOTE_FOLDER below.)
-
-   ## Download from the torproject.org hidden service, instead over clearnet,
-   ## thus not involving any Tor exist nodes.
-   ## $WHONIX is an environment variable only set in Whonix.
-   if [ "$WHONIX" = "1" ]; then
-      TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
-      ## Connections to hidden services are automatically encrypted end-to-end.
-      CURL_FORCE_SSL=""
-   else
-      ## Should only be the case when building Whonix from source while not being inside Whonix.
-      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      CURL_FORCE_SSL="--tlsv1 --proto =https"
-   fi
-
-   if [ "$TB_CLEARNET" = "1" ]; then
-      ## In case the --clearnet option was used.
-      TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      CURL_FORCE_SSL="--tlsv1 --proto =https"
-   fi
-
-   ## }}
 }
 
 
@@ -833,36 +806,17 @@ tb_download() {
    ##   $WHONIX is an environment variable only set in Whonix.
 
    if [ "$WHONIX" = "1" ]; then
-      if [ "$tbb_version_first_char" = "2" ]; then
-         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
-         TBB_REMOTE_FOLDER="http://idnxcnkne4qt76tg.onion/dist/torbrowser/linux"
-      else
-         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
-         TBB_REMOTE_FOLDER="http://j6im4v42ur6dpic3.onion/tor-package-archive/torbrowser"
-      fi
-      ## Connections to hidden services are automatically encrypted end-to-end.
+      TBB_REMOTE_FOLDER="http://j6im4v42ur6dpic3.onion/tor-package-archive/torbrowser"
       CURL_FORCE_SSL=""
    else
       ## Should only be the case when building Whonix from source while not being inside Whonix.
-      if [ "$tbb_version_first_char" = "2" ]; then
-         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
-         TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      else
-         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
-         TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
-      fi
+      TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
       CURL_FORCE_SSL="--tlsv1 --proto =https"
    fi
 
    if [ "$TB_CLEARNET" = "1" ]; then
       ## In case the --clearnet option was used.
-      if [ "$tbb_version_first_char" = "2" ]; then
-         debug "INFO: TBB 2.x detected. Using old remote folder method for TBB 2.x."
-         TBB_REMOTE_FOLDER="https://www.torproject.org/dist/torbrowser/linux"
-      else
-         debug "INFO: TBB 2.x not detected. Using new remote folder method for TBB 3.x."
-         TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
-      fi
+      TBB_REMOTE_FOLDER="https://archive.torproject.org/tor-package-archive/torbrowser"
       CURL_FORCE_SSL="--tlsv1 --proto =https"
    fi
 
@@ -889,17 +843,10 @@ Downloading Tor Browser signature... Will take a moment..."
 
    debug "INFO: Downloading GPG signature... Will take a moment..."
 
-   if [ "$tbb_version_first_char" = "2" ]; then
-      debug "INFO: TBB 2.x detected. Using old signature method for TBB 2.x."
-      TBB_SIG_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz.asc"
-      TBB_EXTRA_FOLDER=""
-   else
-      debug "INFO: TBB 2.x not detected. Using new signature method for TBB 3.x."
-      ## Example signature link:
-      ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz.asc
-      TBB_SIG_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz.asc"
-      TBB_EXTRA_FOLDER="${tbb_version_folder}/"
-   fi
+   ## Example signature link:
+   ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz.asc
+   TBB_SIG_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz.asc"
+   TBB_EXTRA_FOLDER="${tbb_version_folder}/"
 
    TBB_SIG_LINK="${TBB_REMOTE_FOLDER}/${TBB_EXTRA_FOLDER}${TBB_SIG_FILENAME}"
 
@@ -968,17 +915,10 @@ Downloading Tor Browser... Will take a while..."
 
    debug "INFO: Downloading Tor Browser Bundle: $tbb_version"
 
-   if [ "$tbb_version_first_char" = "2" ]; then
-      debug "INFO: TBB 2.x detected. Using old package link method for TBB 2.x."
-      TBB_PACKAGE_FILENAME="tor-browser-gnu-linux-$ARCH-$tbb_version-dev-$TB_LANG.tar.gz"
-      TBB_EXTRA_FOLDER=""
-   else
-      debug "INFO: TBB 2.x not detected. Using package new link method."
-      ## Example package filename:
-      ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz
-      TBB_PACKAGE_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz"
-      TBB_EXTRA_FOLDER="${tbb_version_folder}/"
-   fi
+   ## Example package filename:
+   ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz
+   TBB_PACKAGE_FILENAME="tor-browser-${ARCH_NEW}-${tbb_version}_${TB_LANG}.tar.xz"
+   TBB_EXTRA_FOLDER="${tbb_version_folder}/"
 
    TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/${TBB_EXTRA_FOLDER}$TBB_PACKAGE_FILENAME"
 
@@ -1070,27 +1010,6 @@ tb_extract() {
    debug "INFO: Creating version file tor-browser_$TB_LANG/Docs/version."
    echo "$tbb_version" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
-   if [ "$tbb_version_first_char" = "2" ]; then
-      debug "INFO: TBB 2.x detected. Patching startup script..."
-
-      debug "INFO: Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
-      mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
-
-      debug "INFO: Creating Unbundled Tor Browser startup script..."
-      ## Using this until Tor Browser upstream patch #7266 gets accepted.
-      ##    improve RelativeLink.sh script comments, patch attached
-      ##    https://trac.torproject.org/projects/tor/ticket/7266
-      ##
-      ## After #7266 got accepted, a new patch with TB_STANDALONE will
-      ## be proposed.
-      ##
-      ## Has been copied into Whonix-Workstation at build time.
-      cp "/usr/share/whonix/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
-      chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
-   else
-      debug "INFO: TBB 2.x not detected. Patching startup script no longer required."
-   fi
-
    if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
       debug "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
       mv "$home_folder/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG.old.$(date '+%F-%H:%M:%S')"
@@ -1126,35 +1045,16 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
       exit 1
    fi
 
-   PID="$(pidof firefox)" || true
+   debug "INFO: Starting Tor Browser..."
 
-   if [ "$PID" = "" ]; then
-      debug "INFO: Starting Tor Browser..."
-      cd "$home_folder/tor-browser_$TB_LANG/"
-      "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" &
-      ## Unfortunately, we must hard code the time to wait before
-      ## we try open extra tabs. Just waiting for the pid to exists
-      ## does not do the trick. I do not know a way to ask Firefox,
-      ## if it is only partially or fully load. When trying to open
-      ## a new tab before it is fully load, a popup "profile not found"
-      ## will be shown, which is confusing.
-
-      if [ "$LINK" = "" ]; then
-         return
-      fi
-      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
-      sleep 30 &
-      wait "$!"
+   if [ "$LINK" = "" ]; then
+      LINK="about:blank"
    else
-      debug "INFO: Tor Browser is already running."
+      debug "INFO: Opening link..."
    fi
 
-   debug "INFO: Opening link..."
-
-   #debug "tb_start_new_tab debug: $home_folder/tor-browser_$TB_LANG/App/Firefox/firefox --profile Data/profile -new-tab \"$LINK\" &"
-
-   cd "$home_folder/tor-browser_$TB_LANG"
-   "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" --new-tab "$LINK" &
+   cd "$home_folder/tor-browser_$TB_LANG/"
+   "$home_folder/tor-browser_$TB_LANG/Browser/firefox" --profile Data/Browser/profile.default --new-tab "$LINK" &
 }
 
 
@@ -1164,6 +1064,8 @@ tb_start_recommend() {
 
    root_check
 
+   PID="$(pidof firefox)" || true
+
    if [ ! -e "$IMPORTANTBLOG_OFFLINE_FILE" ]; then
       LINK="$IMPORTANTBLOG_NOT_AVAILABLE_OFFLINE_LINK"
    else
@@ -1171,6 +1073,18 @@ tb_start_recommend() {
    fi
    debug "INFO: Link set to $LINK"
    tb_start_new_tab
+
+   if [ "$PID" = "" ]; then
+      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
+      ## Unfortunately, we must hard code the time to wait before
+      ## we try open extra tabs. Just waiting for the pid to exists
+      ## does not do the trick. We are not aware of a way to ask Firefox,
+      ## if it is only partially or fully load. When trying to open
+      ## a new tab before it is fully load, a popup "profile not found"
+      ## will be shown, which is confusing.
+      sleep 30 &
+      wait "$!"
+   fi
 
    if [ ! -e "$FEATUREBLOG_OFFLINE_FILE" ]; then
       LINK="$FEATUREBLOG_NOT_AVAILABLE_OFFLINE_LINK"
@@ -1185,11 +1099,11 @@ tb_start_recommend() {
 
 
 
-tb_open_link() {
+tb_new_window() {
    trap "tb_error_handler" ERR
 
    cd "$home_folder/tor-browser_$TB_LANG"
-   "$home_folder/tor-browser_$TB_LANG/App/Firefox/firefox" --profile "Data/profile" --new-window "$LINK" &
+   "$home_folder/tor-browser_$TB_LANG/Browser/firefox" --profile Data/Browser/profile.default --new-window "$LINK" &
 }
 
 
@@ -1232,7 +1146,7 @@ if [ "$TB_UPDATE" = "1" ]; then
 elif [ "$tb_recommended_start" = "1" ]; then
    tb_start_recommend
 elif [ "$open_new_window" = "1" ]; then
-   tb_open_link
+   tb_new_window
 elif [ "$open_new_window" = "0" ]; then
    tb_start_new_tab
 elif [[ ! "$@" = "" ]]; then

@@ -1144,3 +1144,25 @@ Local auto bump version. Build from:
 whonix_build_current_git_head: $whonix_build_current_git_head
 whonix_build_new_changelog_version: $whonix_build_new_changelog_version
 whonix_build_closest_git_tag: $whonix_build_closest_git_tag"
+
+   if [ "$tbb_version_first_char" = "2" ]; then
+      debug "INFO: TBB 2.x detected. Patching startup script..."
+
+      debug "INFO: Moving the original Tor Browser Bundle startup script to tor-browser_$TB_LANG/Docs/..."
+      mv "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/Docs/"
+
+      debug "INFO: Creating Unbundled Tor Browser startup script..."
+      ## Using this until Tor Browser upstream patch #7266 gets accepted.
+      ##    improve RelativeLink.sh script comments, patch attached
+      ##    https://trac.torproject.org/projects/tor/ticket/7266
+      ##
+      ## After #7266 got accepted, a new patch with TB_STANDALONE will
+      ## be proposed.
+      ##
+      ## Has been copied into Whonix-Workstation at build time.
+      cp "/usr/share/whonix/start-tor-browser" "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+      chmod +x "$home_folder/.tb/tor-browser_$TB_LANG/start-tor-browser"
+   else
+      debug "INFO: TBB 2.x not detected. Patching startup script no longer required."
+   fi
+
