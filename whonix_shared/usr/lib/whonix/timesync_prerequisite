@@ -12,6 +12,7 @@ IDENTIFIER="timesync"
 
 source /usr/lib/whonix/whonixcheck/10_preparation
 source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
+source /usr/lib/whonix/whonixcheck/19_2_check_tor_bootstrap
 
 error_handler() {
    local return_code="$?"
@@ -50,19 +51,28 @@ Start Menu -> Applications -> System -> whonixsetup - Connection Wizard or in Te
       exit "2"
    fi
 
-   ## Sometimes it does not work on the first run. Small hack.
-   /usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py >/dev/null || true
+   ## required by check_tor_bootstrap_helper
+   VERIFY_TEMPDIR="$(mktemp --directory)"
 
-   tor_bootstrap_status="$(/usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py)" || { tor_bootstrap_percent="$?" ; true; }
+   ## sets: check_bootstrap_script
+   ## sets: lastpid
+   ## sets: check_tor_bootstrap_helper
+   ## sets: TOR_BOOTSTRAP_TIME_START
+   ## sets: TOR_BOOTSTRAP_TIME_NOW
+   ## sets: TOR_BOOTSTRAP_TIME_PASSED
+   ## sets: tor_bootstrap_percent
+   ## sets: tor_bootstrap_status
+   check_tor_bootstrap_helper
 
-   local MSG="Tor is not yet fully bootstrapped. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
+   ## $tor_bootstrap_percent:
+   ## `timeout` returns:
+   ## - 124 if sigterm was sufficient
+   ## - 137 if needed to use kill.
 
    if [ "$tor_bootstrap_percent" = "254" ]; then
       local MSG="Tor Bootstrap Result: \
 /usr/lib/whonix/whonixcheck/help_check_tor_bootstrap.py ERROR ($tor_bootstrap_percent). Please report this bug!"
-   fi
-
-   if [ "$tor_bootstrap_percent" = "255" ]; then
+   elif [ "$tor_bootstrap_percent" = "255" ]; then
       if [ "$VM" = "Whonix-Gateway" ]; then
          local MSG="Tor Bootstrap Result: \
 Tor's Control Port could not be reached. \
@@ -75,6 +85,11 @@ Please run whonixcheck on Whonix-Gateway."
       else
          local MSG="$FUNCNAME: This is neither Whonix-Gateway nor Whonix-Workstation. Please report this bug!"
       fi
+   elif [ "$tor_bootstrap_percent" = "100" ]; then
+      ## Only when manually testing this script using bash -x.
+      local MSG="Tor fully bootstrapped."
+   else
+      local MSG="Tor is not yet fully bootstrapped. $tor_bootstrap_percent % done. Tor reports: $tor_bootstrap_status"
    fi
 
    if [ "$tor_bootstrap_percent" = "100" ]; then
