@@ -606,6 +606,28 @@ sdwdate_signal_sigint() {
 
 trap "sdwdate_signal_sigint" SIGINT
 
+sdwdate_signal_sigusr1() {
+   ## usage: kill -sigusr1 pid
+
+   if [ "$SDWDATE_DEBUG_TRACE_SET" ]; then
+      return 0
+   fi
+
+   set -x
+
+   exec >  >(tee -a "$LOG_FILE")
+   exec 2> >(tee -a "$LOG_FILE" >&2)
+
+   set -o functrace
+   shopt -s extdebug
+
+   trap 'true "BASH_COMMAND: $BASH_COMMAND | FUNCNAME: ${FUNCNAME[1]} | BASH_LINENO: ${BASH_LINENO[0]} | BASH_SOURCE: ${BASH_SOURCE[1]}"' DEBUG
+
+   SDWDATE_DEBUG_TRACE_SET="1"
+}
+
+trap "sdwdate_signal_sigusr1" SIGUSR1
+
 sdwdate_download() {
    trap "sdwdate_error_handler" ERR
 
@@ -1037,14 +1059,14 @@ sdwdate_main() {
          sleeppid="$!"
 
          ## Waiting for sleep to finish, while listening for SIGTERM at the same time.
-         wait "$sleeppid"
+         wait "$sleeppid" || true
 
          continue
       fi
    done
 }
 
-sdwdate_log "Loaded."
+sdwdate_log "Loaded. pid: $$"
 
 sdwdate_main ${1+"$@"}
 
