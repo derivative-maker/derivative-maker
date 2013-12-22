@@ -31,20 +31,85 @@ source variables
 #project="whonix"
 project="whonixdevelopermetafiles"
 
+shopt -s globstar
+
+true "INFO $0: Showing dists..."
+
+set +x
+
+for file in "$WHONIX_BINARY/aptrepo_remote/dists/"**; do
+   if [ -d "$file" ]; then
+      continue
+   fi
+   echo "$file"
+done
+unset file
+
+echo "INFO $0: Please press any key to continue showing pool."
+read temp
+
+echo "INFO $0: Showing pool..."
+
+for file in "$WHONIX_BINARY/aptrepo_remote/pool/"**; do
+   if [ -d "$file" ]; then
+      continue
+   fi
+   echo "$file"
+done
+unset file
+
+set -x
+
+true "INFO $0: Please press any key to continue with dists with --dry-run."
+read temp
+
+true "INFO $0: Running dists with --dry-run..."
 rsync \
+   --dry-run \
    --partial \
    --progress \
    --recursive \
    --verbose \
    --rsh ssh \
-   "$WHONIX_BINARY"/aptrepo_remote/dists/* \
+   "$WHONIX_BINARY/aptrepo_remote/dists/"* \
    adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/internal/dists/
 
+true "INFO $0: Please press any key to continue with pool with --dry-run."
+read temp
+
+true "INFO $0: Running pool with --dry-run..."
+rsync \
+   --dry-run \
+   --partial \
+   --progress \
+   --recursive \
+   --verbose \
+   --rsh ssh \
+   "$WHONIX_BINARY/aptrepo_remote/pool/"* \
+   adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/internal/pool/
+
+
+true "INFO $0: Please press any key to continue to uploading dists and pool."
+read temp
+
+true "INFO $0: Uploading dists..."
 rsync \
    --partial \
    --progress \
    --recursive \
    --verbose \
    --rsh ssh \
-   "$WHONIX_BINARY"/aptrepo_remote/pool/* \
+   "$WHONIX_BINARY/aptrepo_remote/dists/"* \
+   adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/internal/dists/
+
+true "INFO $0: Uploading pool..."
+rsync \
+   --partial \
+   --progress \
+   --recursive \
+   --verbose \
+   --rsh ssh \
+   "$WHONIX_BINARY/aptrepo_remote/pool/"* \
    adrelanos,"$project"@frs.sourceforge.net:/home/frs/project/"$project"/internal/pool/
+
+true "INFO $0: End. No error detected."
