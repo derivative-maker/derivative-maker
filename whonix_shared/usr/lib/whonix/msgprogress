@@ -97,6 +97,7 @@ progress_bar() {
 
    if [ -p "/var/run/msgcollector/${identifier}.${progressbaridx}.fifo" ]; then
       local fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
+      local progress_txt_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progrestxt"
    else
       true "/var/run/msgcollector/${identifier}.${progressbaridx}.fifo does not exist."
       if [ "$progress" -lt "100" ]; then
@@ -130,6 +131,7 @@ progress_bar() {
       ## For extra security against freezing while trying to write to a non-existing pipe, let's use timeout.
       ## || true to catch an error if the pipe no longer exists.
       timeout 1 /bin/bash -c "echo "$progress" | sudo -u user tee "$fifo" > /dev/null" || true
+      timeout 1 /bin/bash -c "echo "$progress" | sudo -u user tee "$progress_txt_file" > /dev/null" || true
 
       ## Debugging.
       #caller="$(ps -p $PPID)" || true
@@ -141,6 +143,7 @@ progress_bar() {
 
          kill -sigterm "$zenity_progress_pid"
          rm --force "$fifo"
+         ## Not deleting $progress_txt_file.
          rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid"
          rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
       fi

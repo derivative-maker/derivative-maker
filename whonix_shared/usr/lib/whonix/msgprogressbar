@@ -117,6 +117,12 @@ output_sigterm() {
 
 trap "output_sigterm" SIGTERM
 
+output_fifotxtfile() {
+   trap "error_handler" ERR
+   output_signal_caught="fifotextfile100"
+   output_ex
+}
+
 start_progress_bar() {
    trap "error_handler" ERR
 
@@ -158,6 +164,7 @@ start_progress_bar() {
    fi
 
    local fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
+   local progress_txt_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progrestxt"
 
    ## Clean up eventual old progress bar.
    rm --force "$fifo"
@@ -191,9 +198,23 @@ start_progress_bar() {
       output_wmctrl "$title"
    fi
 
-   ## Waiting for SIGHUP.
-   ## Happens when zentiy reached 100% or when cancel button is pressed.
-   wait
+   while true; do
+      if [ -f "$progress_txt_file" ]; then
+         ## Sometimes there is a race condition preventing the progressbar
+         ## being closed. Let's use this alternative approach.
+         local progress_txt_file_progress
+         progress_txt_file_progress="$(cat "$progress_txt_file")"
+         if [ "$progress_txt_file_progress" = "100" ]; then
+            output_fifotxtfile
+            break
+         fi
+      fi
+      ## Alternatively (most cases) waiting for SIGHUP.
+      ## Happens when zentiy reached 100% or when cancel button is pressed.
+      ## This will call the output_sighup function.
+      sleep "2" &
+      wait "$!"
+   done
 }
 
 source /usr/lib/whonix/msgwmctrl
