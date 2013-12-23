@@ -24,12 +24,17 @@ rm --force /etc/profile.d/80_desktop.sh
 
 skip_first_run_initializer="0"
 
-if [ ! -f "/usr/share/whonix/build_version" ]; then
+## We can not do the following, because the /usr/share/whonix/build_version by
+## gets created by a chroot-post.d after this postinst.d script runs, which is
+## too late. This will result in users of 137adretemp and earlier build version
+## in suffering from a useless reboot. Since there are probably very few such
+## users, this is a compromise we can make.
+#if [ ! -f "/usr/share/whonix/build_version" ]; then
    ## Earlier versions than 137adretemp had no build_version file.
-   skip_first_run_initializer="1"
-else
-   build_version="$(cat "/usr/share/whonix/build_version")"
-fi
+   #skip_first_run_initializer="1"
+#fi
+
+build_version="$(cat "/usr/share/whonix/build_version")"
 
 if [ "$build_version" = "137adretemp" ]; then
    skip_first_run_initializer="1"
