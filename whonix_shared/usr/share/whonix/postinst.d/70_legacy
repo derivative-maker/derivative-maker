@@ -22,6 +22,7 @@ rm --force /etc/profile.d/80_desktop.sh
 ## should be prevented to avoid fingerprinting Whonix users at ISP level.
 ## (Because Tor is already running on legacy versions.)
 
+## Fallback.
 skip_first_run_initializer="0"
 
 ## We can not do the following, because the /usr/share/whonix/build_version by
@@ -29,12 +30,16 @@ skip_first_run_initializer="0"
 ## too late. This will result in users of 137adretemp and earlier build version
 ## in suffering from a useless reboot. Since there are probably very few such
 ## users, this is a compromise we can make.
-#if [ ! -f "/usr/share/whonix/build_version" ]; then
-   ## Earlier versions than 137adretemp had no build_version file.
-   #skip_first_run_initializer="1"
-#fi
+#build_version="$(cat "/usr/share/whonix/build_version")"
 
-build_version="$(cat "/usr/share/whonix/build_version")"
+if [ ! -f "/usr/share/whonix/build_version" ]; then
+   ## - Earlier versions than 137adretemp had no build_version file.
+   ## - This is also the case when building Whonix from source code.
+   skip_first_run_initializer="1"
+else
+   ## - This is the case when upgrading Whonix from source code.
+   build_version="$(cat "/usr/share/whonix/build_version")"
+fi
 
 if [ "$build_version" = "137adretemp" ]; then
    skip_first_run_initializer="1"
@@ -69,6 +74,9 @@ if [ "$build_version" = "7.3.8" ]; then
 fi
 
 if [ "$skip_first_run_initializer" = "1" ]; then
+   ## Legacy version detected. Creating status files that will make first run
+   ## initializer skip running.
+
    done_file="/home/user/.whonix/first_run_initializer.done"
    legacy_file="/home/user/.whonix/first_run_initializer.legacy"
 
