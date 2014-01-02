@@ -111,7 +111,7 @@ while read -r; do
       continue
    fi
 
-   first="$(echo "$cleaned_reply" | awk '{print $1}')"
+   read -r first_word _ <<< "$cleaned_reply"
 
    ## We do not check any control port password or auth cookies here,
    ## because only only safe commands are accepted anyway. Whonix-Workstation
@@ -120,12 +120,12 @@ while read -r; do
    ## The only useful thing here could be to check if Tors control port is
    ## available at all, but this would also make this script even slower.
 
-   if [ "${first,,}" = "authenticate" ]; then
+   if [ "${first_word,,}" = "authenticate" ]; then
       write_back "250 OK"
       continue
    fi
 
-   if [ "${first,,}" = "quit" ]; then
+   if [ "${first_word,,}" = "quit" ]; then
       break
    fi
 
@@ -160,9 +160,9 @@ while read -r; do
    ## - 124 if sigterm was sufficient
    ## - 137 if needed to use kill.
 
-   TMP="$(mktemp --directory)"
-   IN="$TMP/in"
-   OUT="$TMP/out"
+   temp_directory="$(mktemp --directory)"
+   IN="$temp_directory/in_${ID}"
+   OUT="$temp_directory/out_${ID}"
 
    mkfifo "$IN"
    mkfifo "$OUT"
@@ -172,7 +172,8 @@ while read -r; do
 
    ## CookieAuthFileGroupReadable is set to 1 by Tor default.
    ## User "user" is a part of the group "debian-tor".
-   cookie="$(xxd -c 32 -g 0 /var/run/tor/control.authcookie | awk '{print $2}')"
+   temporary_variable_one="$(xxd -c 32 -g 0 /var/run/tor/control.authcookie)"
+   read -r temporary_variable_two cookie _ <<< "$temporary_variable_one"
 
    ## Open Tor control port connection.
    timeout --kill-after=2s 2s echo "AUTHENTICATE "$cookie"" > "$OUT" &
@@ -189,57 +190,55 @@ while read -r; do
    ## Get results.
    var="$(timeout --kill-after=2s 2s cat "$IN")"
 
-   ## Debugging, can be out commented.
+   ## Debugging.
+   ## Can be out commented.
    ps_return="0"
-   ps -p "$NC_PID" >/dev/null 2>/dev/null || { ps_return="$?"; true; };
-   true "ps_return: $ps_return"
+   ps -p "$NC_PID" >/dev/null 2>/dev/null || { ps_return="$?" ; true; };
+   echo "$ID debug: ps_return: $ps_return" >> "$LOG"
 
    if [ "$var" = "" ]; then
       write_back "$ID ERROR: var is empty."
       break
    fi
 
-   previous_line=""
-   line=""
-
    true "var: $var"
 
-   echo "$var" > "$TMP/temp"
+   echo "$var" > "$temp_directory/temp_${ID}"
 
    ## Get the first line.
-   first="$(cat "$TMP/temp" | sed -n 1,1p)"
-   first="$(echo "$first" | tr '\r' ' ')"
-   first="$(echo "$first" | tr '\n' ' ')"
-   first="$(echo "$first" | sed -e "s/ \{1,\}$//")"
+   first_line="$(cat "$temp_directory/temp_${ID}" | sed -n 1,1p)"
+   first_line="$(echo "$first_line" | tr '\r' ' ')"
+   first_line="$(echo "$first_line" | tr '\n' ' ')"
+   first_line="$(echo "$first_line" | sed -e "s/ \{1,\}$//")"
 
-   if [ "$first" = "250 OK" ]; then
+   if [ "$first_line" = "250 OK" ]; then
       true
    else
-      echo "$ID ERROR: authentication error. first: $first" >> "$LOG"
-      write_back "$first"
+      echo "$ID ERROR: authentication error. first_line: $first_line" >> "$LOG"
+      write_back "$first_line"
       break
    fi
 
    ## Get the second line.
-   second="$(cat "$TMP/temp" | sed -n 2,2p)"
-   second="$(echo "$second" | tr '\r' ' ')"
-   second="$(echo "$second" | tr '\n' ' ')"
-   second="$(echo "$second" | sed -e "s/ \{1,\}$//")"
+   second_line="$(cat "$temp_directory/temp_${ID}" | sed -n 2,2p)"
+   second_line="$(echo "$second_line" | tr '\r' ' ')"
+   second_line="$(echo "$second_line" | tr '\n' ' ')"
+   second_line="$(echo "$second_line" | sed -e "s/ \{1,\}$//")"
 
-   write_back "$second"
+   write_back "$second_line"
 
-   if [ "$second" = "250 OK" ]; then
+   if [ "$second_line" = "250 OK" ]; then
       ## Only got a "250 OK", that's all.
       continue
    fi
 
    ## Get the third line.
-   third="$(cat "$TMP/temp" | sed -n 3,3p)"
-   third="$(echo "$third" | tr '\r' ' ')"
-   third="$(echo "$third" | tr '\n' ' ')"
-   third="$(echo "$third" | sed -e "s/ \{1,\}$//")"
+   third_line="$(cat "$temp_directory/temp_${ID}" | sed -n 3,3p)"
+   third_line="$(echo "$third_line" | tr '\r' ' ')"
+   third_line="$(echo "$third_line" | tr '\n' ' ')"
+   third_line="$(echo "$third_line" | sed -e "s/ \{1,\}$//")"
 
-   write_back "$third"
+   write_back "$third_line"
 
 done
 
