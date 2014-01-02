@@ -13,16 +13,28 @@ run_sdwdate() {
 
    if [ "$AUTOSTARTED" = "1" ]; then
       true "$SCRIPTNAME run_sdwdate: not restarting sdwdate in this case, \
-because the /etc/init.d/sdwdate init script already started sdwdate."
+because the /etc/init.d/sdwdate init should have already started sdwdate (unless /etc/init.d/sdwdate has been set -x).."
    else
       ## When manually run...
-      if [ "$VERBOSE" = "1" ]; then
-         sudo /etc/init.d/sdwdate restartnd &
+      if [ ! -x "/etc/init.d/sdwdate" ]; then
+         local MSG='/etc/init.d/sdwdate not executable.
+
+Most likely you removed the executable bit from /etc/init.d/sdwdate using "sudo chmod -x /etc/init.d/sdwdate"
+
+To undo this, type in terminal:
+sudo chmod +x /etc/init.d/sdwdate'
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+         return 0
       else
-         sudo service sdwdate restartnd
+         if [ "$VERBOSE" = "1" ]; then
+            sudo /etc/init.d/sdwdate restartnd &
+         else
+            sudo service sdwdate restartnd
+         fi
       fi
    fi
 
-   let "PROGRESS=$PROGRESS+1" || true
+   PROGRESS="$(( $PROGRESS + 1 ))"
    $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "$PROGRESS"
 }
