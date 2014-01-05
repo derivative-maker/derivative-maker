@@ -74,7 +74,16 @@ parse_cmd_options() {
 output_ex() {
    trap "error_handler" ERR
 
-   ## This function is called when the cancel button in zenity gets pressed.
+   ## This function is called when the cancel button in zenity gets pressed or
+   ## when $progress_txt_file contains 100.
+
+   ## Debugging.
+   #echo "progress: $progress | caller: $PPID | $caller | killing $zenity_progress_pid" >> /home/user/progresslog
+
+   kill -sigterm "$zenity_progress_pid" >/dev/null 2>/dev/null || true
+   rm --force "$fifo"
+   rm --force "$progress_txt_file"
+   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid"
 
    if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid" ]; then
       parentpid="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid")"
@@ -83,6 +92,8 @@ output_ex() {
 because /var/run/msgcollector/${identifier}.${progressbaridx}.parentpid does not exist."
       exit 0
    fi
+
+   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
 
    ## Check if still running.
    local ps_return
