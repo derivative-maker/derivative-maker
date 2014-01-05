@@ -200,14 +200,31 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    ##
    ## -sa is understood by dpkg-buildpackage, it forces the inclusion of the original source
    ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
+   ##
+   ## Not sure how
+   ##    --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed"
+   ## could be quoted below. Therefore only using.
+   ##    --default-preference-list "SHA512"
    sudo -E -u "$USERNAME" \
          debuild \
             --rootcmd="$WHONIX_SOURCE_HELP_STEPS_FOLDER/gain-root-command" \
             -p"gpg \
+               --no-emit-version \
+               --no-comments \
+               --display-charset utf-8 \
+               --keyserver hkp://qdigse2yzvuglcix.onion \
+               --personal-digest-preferences SHA512 \
+               --cert-digest-algo SHA512 \
+               --default-preference-list "SHA512" \
+               --keyserver-options no-honor-keyserver-url \
+               --fixed-list-mode \
+               --keyid-format 0xlong \
+               --use-agent \
+               --list-options show-uid-validity \
+               --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
                --no-default-keyring \
-               --digest-algo sha512 \
                --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-               --default-key "$DEBEMAIL"
+               --default-key "$DEBEMAIL" \
                " \
             -sa
 
