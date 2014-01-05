@@ -54,6 +54,8 @@ create-debian-packages() {
 
          ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
 
+         ## https://github.com/ioerror/torbirdy/blob/master/gpg.conf
+
          echo "
             Key-Type: RSA
             Key-Length: 4096
@@ -64,10 +66,23 @@ create-debian-packages() {
             Expire-Date: 0
             Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
          " | sudo -E -u "$USERNAME" gpg \
-                                    --no-default-keyring \
-                                    --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                                    --batch \
-                                    --gen-key
+                                       --no-emit-version \
+                                       --no-comments \
+                                       --display-charset utf-8 \
+                                       --keyserver hkp://qdigse2yzvuglcix.onion \
+                                       --personal-digest-preferences SHA512 \
+                                       --cert-digest-algo SHA512 \
+                                       --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed" \
+                                       --keyserver-options no-honor-keyserver-url \
+                                       --fixed-list-mode \
+                                       --keyid-format 0xlong \
+                                       --use-agent \
+                                       --list-options show-uid-validity \
+                                       --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
+                                       --no-default-keyring \
+                                       --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+                                       --batch \
+                                       --gen-key
 
          sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done"
 
