@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source variables
+
+convert_img-to_qcow2() {
+   trap "error_handler_general" ERR INT TERM
+
+   if [ "$whonix_build_script_create_qcow2" = "1" ]; then
+      true "INFO: Skipping $0, because whonix_build_script_create_qcow2 set to 1."
+      return 0
+   fi
+
+   mkdir --parents "$WHONIX_BINARY/"
+   chown --recursive "$USERNAME":"$USERNAME" "$WHONIX_BINARY/"
+
+   sudo -u "$USERNAME" \
+      qemu-img convert -p -O qcow2 "$WHONIX_BINARY/$VMNAME.img" "$WHONIX_BINARY/$VMNAME-$version.qcow2"
+}
+
+if [ "$BARE_METAL" = "1" ]; then
+   true "${green}INFO: Skipping $0, because BARE_METAL is set to 1.${reset}"
+else
+   true "${bold}INFO: Currently running script: $0${reset}"
+   convert_img-to_qcow2
+   true "${bold}INFO: End of: $0 No error detected.${reset}"
+fi
