@@ -4,6 +4,16 @@
 # Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
 # See the file COPYING for copying conditions.
 
+check_sdwdate_terminate_tail() {
+   trap "error_handler" ERR
+
+   local MSG="Stopping watching /var/log/sdwdate.log..."
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   kill -sigterm "$tail_pid"
+   local MSG="Stopped watching /var/log/sdwdate.log."
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+}
+
 check_sdwdate_status() {
    trap "error_handler" ERR
 
@@ -60,9 +70,12 @@ Last resort: manually set the clock! (In UTC!):
       TIMESANITYCHECK_STATUS_WORD="Fail"
    fi
 
-   let "PROGRESS=$PROGRESS+1" || true
-   ## sdwdate not reports status itself.
-   ## old: $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progress "$PROGRESS"
+   PROGRESS="$(( $PROGRESS + 1 ))"
+   ## sdwdate does not reports status (by dispatching the dispatchers) itself,
+   ## because we restarted sdwdate with "sudo service sdwdate restartnd". (The
+   ## "nd" in "restartnd" means "no dispatch". Therefore we let timsync move
+   ## the progress bar.
+   $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "$PROGRESS"
 
    TIME_END="$(date +%s)"
    TIME_DIFF="$(expr "$TIME_END" - "$TIME_START")" || true
@@ -82,6 +95,7 @@ Last resort: manually set the clock! (In UTC!):
 
    if [ "$SDWDATE_STATUS" = "NO_PID_FILE" ] || [ "$SDWDATE_STATUS" = "NO_PID_PROCESS" ]; then
       ## If there is no pid file or no process after we restarted sdwdate, it is a bug.
+      check_sdwdate_terminate_tail
       local MSG="Network Time Synchronization (timesync) failed!!!
 TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"
 "$SDWDATE_STATUS" Please report this bug!
@@ -99,10 +113,12 @@ $HELPTEXT"
 
       if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## Ok.
+         check_sdwdate_terminate_tail
          local MSG="Last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful."
          if [ "$manualrun" = "1" ]; then
             ## When manually started, always use an active popup.
             $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
          elif [ "$DAEMON" = "1" ]; then
             true "No success message in daemon mode."
          ## See timesync_pre for a comment on the (SDW_)MODE variable.
@@ -121,6 +137,7 @@ Neither manualrun ($manualrun), nor DAEMON ($DAEMON), nor AUTOSTARTED ($AUTOSTAR
          return 0
       else
          ## Something went wrong.
+         check_sdwdate_terminate_tail
          local MSG="The clock is not sane,
 although last run (on "$SUCCESS_TIME") of Network Time Synchronization (timesync) was successful.
 Please report this bug!
@@ -129,7 +146,7 @@ Either timesync has a bug or this is an attack. Better manually set your clock!!
 
 $HELPTEXT"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
-$output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       fi
    fi
@@ -138,6 +155,7 @@ $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --m
       if [ "$TIMESANITYCHECK_STATUS" = "0" ]; then
          ## sdwdate done, but no success. The clock is sane. This should rarely happen,
          ## only in case the internet connection was down at this point.
+         check_sdwdate_terminate_tail
          local MSG="Network Time Synchronization (timesync) done, but no success!!!
 Is your internet connection down?
 
@@ -150,6 +168,7 @@ $HELPTEXT"
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       else
+         check_sdwdate_terminate_tail
          local MSG="Network Time Synchronization (timesync) done, but no success!!!
 Is your host clock slow or fast? If so, please power off, fix your host clock and restart.
 If your host clock is sane, please report a bug.
@@ -175,6 +194,7 @@ $HELPTEXT"
    ## This following code should get rarely hit, only in case of a bug,
    ## only in case sdwdate does return neither success nor failure.
    ## Should not happen, because sdwdate has its own timeout.
+   check_sdwdate_terminate_tail
    local MSG="Network Time Synchronization failed!!!
 SDWDATE_STATUS: "$SDWDATE_STATUS"
 TIMESANITYCHECK_STATUS: "$TIMESANITYCHECK_STATUS_WORD"

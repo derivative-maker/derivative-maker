@@ -7,7 +7,7 @@
 run_sdwdate() {
    trap "error_handler" ERR
 
-   let "PROGRESS=$PROGRESS+5" || true
+   PROGRESS="$(( $PROGRESS + 5 ))"
    ## The 5% indicate, that the check has begun.
    $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "$PROGRESS"
 
@@ -27,11 +27,35 @@ sudo chmod +x /etc/init.d/sdwdate'
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
       else
+         if [ ! -f "/var/log/sdwdate.log" ]; then
+            local MSG="/var/log/sdwdate.log does not exist yet. Feel free to manually watch sdwdate's log, for example by running:
+tail -f /var/log/sdwdate.log"
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+         else
+            local MSG="Starting to watch /var/log/sdwdate.log..."
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+
+            tail -f -n 0 "/var/log/sdwdate.log" &
+            tail_pid="$!"
+            local MSG="Watching /var/log/sdwdate.log..."
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+
+            sleep 2 &
+            lastpid="$!"
+            wait "$lastpid" || true
+         fi
+
          if [ "$VERBOSE" = "1" ]; then
+            local MSG='Running "sudo /etc/init.d/sdwdate restartnd"...'
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
             sudo /etc/init.d/sdwdate restartnd &
          else
+            local MSG='Running "sudo service sdwdate restartnd"...'
+            $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
             sudo service sdwdate restartnd
          fi
+         local MSG="Done, restarted sdwdate, which should now be running in background..."
+         $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
       fi
    fi
 
