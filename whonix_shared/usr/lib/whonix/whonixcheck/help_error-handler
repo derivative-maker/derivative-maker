@@ -33,8 +33,21 @@ error_handler() {
    if [ "$command_v_output_return" = "0" ]; then
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG" --done
-      exit 1
    else
       echo "$MSG"
    fi
+
+   ## Check if ex_funct command has been already defined. This is not the case,
+   ## when the script is terminated very early.
+   local command_v_output_return
+   command_v_output_return="0"
+   command -v "ex_funct" >/dev/null || { command_v_output_return="$?" ; true; };
+   if [ "$command_v_output_return" = "0" ]; then
+      echo "$SCRIPTNAME: Error detected. Cleaning up... Exiting..."
+      ex_funct
+   else
+      echo "$SCRIPTNAME: Error detected. Skipping ex_funct since not yet load. Exiting..."
+   fi
+
+   exit 1
 }
