@@ -83,15 +83,61 @@ done
 
 ## }}}
 
+check_tor() {
+   trap error_handler ERR
+
+   if [ -f "/var/run/tor/control.authcookie" ]; then
+      tor_authcookie="0"
+   else
+      tor_authcookie="1"
+   fi
+
+   if [ -f "/var/run/tor/tor.pid" ]; then
+      tor_pid="1"
+
+      ## || true to prevent a race condition.
+      tor_pid="$(cat "/var/run/tor/tor.pid")" || true
+
+      tor_pid_running="0"
+      kill -0 "$tor_pid" || { tor_pid_running="$?" ; true; };
+   else
+      tor_pid="0"
+      tor_pid_running="1"
+   fi
+
+   if [ "$tor_authcookie" = "0" ] && [ "$tor_pid" = "0" ] && [ "$tor_pid_running" = "0" ]; then
+      check_tor_result="0"
+   else
+      check_tor_result="1"
+   fi
+}
+
 write_back() {
+   trap error_handler ERR
+
    printf "${1+"$@"}\r\n"
    echo "$ID BACK: ${1+"$@"}" >> "$LOG"
 }
 
 received() {
+   trap error_handler ERR
+
    true "${1+"$@"}"
    echo "$ID GOT: ${1+"$@"}" >> "$LOG"
 }
+
+check_tor
+if [ "$check_tor_result" = "0" ]; then
+   echo "\
+$ID INFO: \
+check_tor_result: $check_tor_result | \
+tor_pid: $tor_pid | \
+tor_pid_running: $tor_pid_running | \
+tor_authcookie: $tor_authcookie \
+Exiting (1)...\
+" >> "$LOG"
+   exit 0
+fi
 
 while read -r; do
 
@@ -170,9 +216,42 @@ while read -r; do
    nc 127.0.0.1 9051 < "$OUT" > "$IN" &
    NC_PID="$!"
 
+   check_tor
+   if [ "$check_tor_result" = "0" ]; then
+   echo "\
+$ID INFO: \
+check_tor_result: $check_tor_result | \
+tor_pid: $tor_pid | \
+tor_pid_running: $tor_pid_running | \
+tor_authcookie: $tor_authcookie \
+Exiting (2)...\
+" >> "$LOG"      break
+   fi
+
    ## CookieAuthFileGroupReadable is set to 1 by Tor default.
    ## User "user" is a part of the group "debian-tor".
-   temporary_variable_one="$(xxd -c 32 -g 0 /var/run/tor/control.authcookie)"
+
+   ## Still carefully checking if /var/run/tor/control.authcookie could be
+   ## read to prevent a race condition.
+
+   xxd_return="0"
+   temporary_variable_one="$(xxd -c 32 -g 0 "/var/run/tor/control.authcookie")" || { xxd_return="$?" ; true; };
+
+   if [ ! "$xxd_return" = "0" ]; then
+      check_tor
+
+      echo "$ID INFO: xxd returned non-zero: $xxd_return." >> "$LOG"
+      echo "\
+$ID INFO: \
+check_tor_result: $check_tor_result | \
+tor_pid: $tor_pid | \
+tor_pid_running: $tor_pid_running | \
+tor_authcookie: $tor_authcookie \
+Exiting (3)...\
+" >> "$LOG"
+      break
+   fi
+
    read -r temporary_variable_two cookie _ <<< "$temporary_variable_one"
 
    ## Open Tor control port connection.
