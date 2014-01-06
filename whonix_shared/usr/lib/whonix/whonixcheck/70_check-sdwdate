@@ -9,7 +9,11 @@ check_sdwdate_terminate_tail() {
 
    local MSG="Stopping watching /var/log/sdwdate.log..."
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-   kill -sigterm "$tail_pid"
+
+   ## || true is required when tail existed in meanwhile.
+   ## (Console window closed.)
+   kill -sigterm "$tail_pid" || true
+
    local MSG="Stopped watching /var/log/sdwdate.log."
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
 }
