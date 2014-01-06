@@ -38,8 +38,17 @@ sleep 10 &
 sleeppid="$!"
 wait "$sleeppid"
 
-## There is an /etc/sudoers.d exception.
-sudo /sbin/reboot
+## Workaround for CI compatibility.
+if [ "$CI" = "true" ]; then
+   ## Do not try to reboot Travis CI!
+   ## Otherwise you'll run into...
+   ## "I'm sorry but there was an error with the connection to the VM.
+   ## Your job will be requeued shortly."
+   echo "[INFO] [Whonix First Run Initializer]: CI detected. Skipping reboot."
+else
+   ## There is an /etc/sudoers.d exception.
+   sudo /sbin/reboot
+fi
 
 ## The sleep is just in for the look an feel.
 sleep 60 &
