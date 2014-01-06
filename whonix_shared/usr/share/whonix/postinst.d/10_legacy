@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+source /usr/share/whonix/postinst.d/pre.bsh
+
+## The following is required because *-postinst packages have been merged into
+## the *-files packages. The *-postinst packages do not uninstall themselves,
+## due to limitations in Whonix's build script (they are marked as manually
+## installed and not depending on a bigger Whonix package, that could obsolete
+## them. Also the old *-postinst scripts do not remove their dpkg diversion
+## upon removal. That was not implemented at that point.
+
+## Without this script, when running
+##     dpkg-divert --add --rename --divert /usr/share/autostart/kmix_autostart.desktop.real /usr/share/autostart/kmix_autostart.desktop
+## We would see the following error message.
+##     dpkg-divert: error: `diversion of /usr/share/autostart/kmix_autostart.desktop to
+##     /usr/share/autostart/kmix_autostart.desktop.real by whonix-workstation-files' clashes
+##     with `local diversion of /usr/share/autostart/kmix_autostart.desktop to
+##     /usr/share/autostart/kmix_autostart.desktop.real'
+
+sed -i -e 's/whonix-gateway-postinst/whonix-gateway-files/g' /var/lib/dpkg/diversions
+sed -i -e 's/whonix-workstation-postinst/whonix-workstation-files/g' /var/lib/dpkg/diversions
