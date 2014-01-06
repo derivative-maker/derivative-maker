@@ -69,6 +69,22 @@ fi
 
 ## }}}
 
+## {{{ Verbose Logging
+
+if [ "$CONTROL_PORT_FILTER_VERBOSE" = "1" ]; then
+   set -x
+
+   exec >  >(tee -a "$LOG")
+   exec 2> >(tee -a "$LOG" >&2)
+
+   set -o functrace
+   shopt -s extdebug
+
+   trap 'true "BASH_COMMAND: $BASH_COMMAND | FUNCNAME: ${FUNCNAME[1]} | BASH_LINENO: ${BASH_LINENO[0]} | BASH_SOURCE: ${BASH_SOURCE[1]}"' DEBUG
+fi
+
+## }}}
+
 ## {{{ CONTROL_PORT_FILTER_LOWERCASE_WHITELIST
 
 i=0
