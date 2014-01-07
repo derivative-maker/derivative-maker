@@ -28,6 +28,16 @@ esac
 
 sync
 
+true 'INFO: Running "dpkg --audit" to check if the system is functional...'
+## dpkg --audit does not exit with a non-zero exit code if something is wrong.
+## dpkg --audit does not return anything, if everything is fine.
+## Therefore we see if dpkg has to say something, and if yes, the system is
+## broken and we abort.
+dpkg_audit_output="$(dpkg --audit 2>&1)"
+if [ ! "$dpkg_audit_output" = "" ]; then
+   error "dpkg_audit_output not empty!"
+fi
+
 true 'INFO: Running "dpkg --configure -a" to check if the system is functional. Can take a while...'
 dpkg --configure -a
 
