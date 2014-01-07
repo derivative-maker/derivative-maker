@@ -35,7 +35,11 @@ true 'INFO: Running "dpkg --audit" to check if the system is functional...'
 ## broken and we abort.
 dpkg_audit_output="$(dpkg --audit 2>&1)"
 if [ ! "$dpkg_audit_output" = "" ]; then
-   error "dpkg_audit_output not empty!"
+   if [ "$CI" = "true" ]; then
+      true "INFO: dpkg_audit_output not empty! Continuing, because CI detected."
+   else
+      error "dpkg_audit_output not empty!"
+   fi
 fi
 
 true 'INFO: Running "dpkg --configure -a" to check if the system is functional. Can take a while...'
