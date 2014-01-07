@@ -183,6 +183,8 @@ start_progress_bar() {
    sudo -u user mkfifo "$fifo"
 
    ## Do not use < > inside zenity progress messages, zenity will mess that up.
+   ## zenity --auto-kill will result in zenity sending a sighup signal upon
+   ## pressing of cancel button.
    zenity \
       --display="$display" \
       --timeout "86400" \
@@ -194,8 +196,6 @@ start_progress_bar() {
       --text "$msg" \
       < "$fifo" & zenity_progress_pid="$!"
 
-   ## "2>/dev/null" is required to hide the output "Killed zenity --display..."
-   ## later when it gets killed by the progress_bar function.
    exec 3>"$fifo"
 
    echo "$zenity_progress_pid" | sudo -u user tee "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid" > /dev/null
