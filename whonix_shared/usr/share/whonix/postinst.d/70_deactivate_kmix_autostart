@@ -6,10 +6,17 @@
 
 source /usr/share/whonix/postinst.d/pre.bsh
 
+## The DPKG_MAINTSCRIPT_NAME related hack is documented in the 70_uwt
+## postinst.d script.
+DPKG_MAINTSCRIPT_NAME_BACKUP="$DPKG_MAINTSCRIPT_NAME"
+
 ## Deactivating kmix autostart. Workaround to fix Klipper (and others?) autostart.
 ## Working around bug http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=630617 by using
 ## workaround http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=630617#79
+unset DPKG_MAINTSCRIPT_NAME
 dpkg-divert --rename --remove /usr/share/autostart/kmix_autostart.desktop || true
+export DPKG_MAINTSCRIPT_NAME="$DPKG_MAINTSCRIPT_NAME_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/share/autostart/kmix_autostart.desktop.real /usr/share/autostart/kmix_autostart.desktop
 
 #dpkg-divert --list
