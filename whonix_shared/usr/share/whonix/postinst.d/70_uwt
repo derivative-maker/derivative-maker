@@ -6,11 +6,16 @@
 
 source /usr/share/whonix/postinst.d/pre.bsh
 
+## Sanity test.
+command -v readlink
+
 ## Debugging.
 command -v gpg || true
 command -v gpg.real || true
 ls -la /usr/bin/gpg || true
 ls -la /usr/bin/gpg.real || true
+readlink /usr/bin/gpg || true
+readlink /usr/bin/gpg.real || true
 
 ## The DPKG_MAINTSCRIPT_PACKAGE hack is required, because in earlier versions
 ## the *-postinst packages created the dpkg diversions. Since the *-postinst
@@ -19,86 +24,44 @@ ls -la /usr/bin/gpg.real || true
 ## packages remove dpkg diversions created by other packages.
 DPKG_MAINTSCRIPT_PACKAGE_BACKUP="$DPKG_MAINTSCRIPT_PACKAGE"
 
-#unlink /usr/bin/apt-get || true
-#unlink /usr/bin/curl || true
-#unlink /usr/bin/git || true
-#unlink /usr/bin/gpg || true
-#unlink /usr/bin/mixmaster-update || true
-#unlink /usr/bin/rawdog || true
-#unlink /usr/bin/ssh || true
-#unlink /usr/bin/wget || true
-#unlink /usr/bin/aptitude || true
-
 true "INFO: Diverting some /usr/bin/<uwt-wrapped-applications> to /usr/bin/<uwt-wrapped-applications>.real..."
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/apt-get || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/apt-get.real /usr/bin/apt-get
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/curl || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/curl.real /usr/bin/curl
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/git || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/git.real /usr/bin/git
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/gpg || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/gpg.real /usr/bin/gpg
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/mixmaster-update || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/mixmaster-update.real /usr/bin/mixmaster-update
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/rawdog || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/rawdog.real /usr/bin/rawdog
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/ssh || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/ssh.real /usr/bin/ssh
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/wget || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/wget.real /usr/bin/wget
-
-unset DPKG_MAINTSCRIPT_PACKAGE
-dpkg-divert --rename --remove /usr/bin/aptitude || true
-export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
-
-dpkg-divert --add --rename --divert /usr/bin/aptitude.real /usr/bin/aptitude
-
-true "INFO: Diverted some /usr/bin/<uwt-wrapped-applications> to /usr/bin/<uwt-wrapped-applications>.real."
-
 true "INFO: Linking uwt wrappers to /usr/lib/whonix/uwtwrapper master script..."
 
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/apt-get || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/curl || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/git || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/gpg || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/mixmaster-update || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/rawdog || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/ssh || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/wget || true
-ln -s /usr/lib/whonix/uwtwrapper /usr/bin/aptitude || true
+file_list="
+/usr/bin/apt-get
+/usr/bin/curl
+/usr/bin/git
+/usr/bin/gpg
+/usr/bin/mixmaster-update
+/usr/bin/rawdog
+/usr/bin/ssh
+/usr/bin/wget
+/usr/bin/aptitude
+"
 
+for file_name in $file_list; do
+   ## The following step is required so we can remove the dpkg diversion.
+   ## (Legacy)
+   if [ "$(readlink "$file_name")" = "/usr/lib/whonix/uwtwrapper" ]; then
+      unlink "$file_name"
+   fi
+
+   unset DPKG_MAINTSCRIPT_PACKAGE
+   ## Remove old dpkg diversion. (Which is eventually still owned by the
+   ## whonix-gateway/workstation-postinst package.)
+   dpkg-divert --rename --remove "$file_name" || true
+   export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
+   ## Add diversion.
+   dpkg-divert --add --rename --divert "$file_name.real" "$file_name"
+
+   ## Link original name to uwtwrapper.
+   ln -s "/usr/lib/whonix/uwtwrapper" "$file_name" || true
+done
+unset file_name
+unset file_list
+
+true "INFO: Diverted some /usr/bin/<uwt-wrapped-applications> to /usr/bin/<uwt-wrapped-applications>.real."
 true "INFO: Linked uwt wrappers to /usr/lib/whonix/uwtwrapper master script."
 
 ## Debugging.
@@ -106,3 +69,5 @@ command -v gpg || true
 command -v gpg.real || true
 ls -la /usr/bin/gpg || true
 ls -la /usr/bin/gpg.real || true
+readlink /usr/bin/gpg || true
+readlink /usr/bin/gpg.real || true
