@@ -8,14 +8,24 @@ source /usr/share/whonix/postinst.d/pre.bsh
 
 ## dummytor
 
-unlink /usr/bin/tor || true
-unlink /usr/sbin/tor || true
+## The DPKG_MAINTSCRIPT_PACKAGE related hack is documented in the 70_uwt
+## postinst.d script.
+DPKG_MAINTSCRIPT_PACKAGE_BACKUP="$DPKG_MAINTSCRIPT_PACKAGE"
 
+#unlink /usr/bin/tor || true
+#unlink /usr/sbin/tor || true
+
+unset DPKG_MAINTSCRIPT_PACKAGE
 dpkg-divert --rename --remove /usr/sbin/tor || true
+export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/sbin/tor.real /usr/sbin/tor
 
+unset DPKG_MAINTSCRIPT_PACKAGE
 dpkg-divert --rename --remove /usr/bin/tor || true
+export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/bin/tor.real /usr/bin/tor
 
-ln -s /usr/lib/whonix/dummytor /usr/bin/tor
-ln -s /usr/lib/whonix/dummytor /usr/sbin/tor
+ln -s /usr/lib/whonix/dummytor /usr/bin/tor || true
+ln -s /usr/lib/whonix/dummytor /usr/sbin/tor || true

@@ -23,14 +23,27 @@ xchat-reset
 ## Disable plugins to reduce attack surface.
 ## User documentation contains how to re-enable these plugins.
 
+## The DPKG_MAINTSCRIPT_PACKAGE related hack is documented in the 70_uwt
+## postinst.d script.
+DPKG_MAINTSCRIPT_PACKAGE_BACKUP="$DPKG_MAINTSCRIPT_PACKAGE"
+
+unset DPKG_MAINTSCRIPT_PACKAGE
 dpkg-divert --rename --remove /usr/lib/xchat/plugins/python.so || true
+export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/python.so.real /usr/lib/xchat/plugins/python.so
 
+unset DPKG_MAINTSCRIPT_PACKAGE
 dpkg-divert --rename --remove /usr/lib/xchat/plugins/tcl.so || true
+export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/tcl.so.real /usr/lib/xchat/plugins/tcl.so
 
 ## For custom builds perhaps keep perl.so for SASL.
+unset DPKG_MAINTSCRIPT_PACKAGE
 dpkg-divert --rename --remove /usr/lib/xchat/plugins/perl.so || true
+export DPKG_MAINTSCRIPT_PACKAGE="$DPKG_MAINTSCRIPT_PACKAGE_BACKUP"
+
 dpkg-divert --add --rename --divert /usr/lib/xchat/plugins/perl.so.real /usr/lib/xchat/plugins/perl.so
 
 #dpkg-divert --list
