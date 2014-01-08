@@ -61,13 +61,10 @@ $NOTIFY_MSG"
          local progressbaridx
          progressbaridx="${tmp##*.}"
 
-         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
+         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done --animate
 
          local wait
          wait="0"
-
-         local waitprogress
-         waitprogress="0"
 
          ## Debugging.
          #DELAY=30
@@ -76,17 +73,8 @@ $NOTIFY_MSG"
             if [ "$wait" -ge "$DELAY" ]; then
                break
             fi
-            wait="$(expr "$wait" + "1")" || true
-            waitprogress="$(expr "$waitprogress" + "1")" || true
+            wait="$(( $wait + 1))"
 
-            if [ "$waitprogress" -ge "100" ]; then
-               waitprogress="0"
-            fi
-
-            $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "$waitprogress"
-
-            ## Using wait, so we can still react on signal SIGTERM.
-            ## "|| true", so the sleep process can be killed for debugging.
             sleep ".500" &
             lastpid="$!"
             wait "$lastpid" || true

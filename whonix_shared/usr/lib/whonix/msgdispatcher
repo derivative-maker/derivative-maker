@@ -206,10 +206,16 @@ main_function() {
                progressbaridx=${first_two##*.}
                if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx.done" ]; then
                   if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx" ]; then
-                     if [ "$verbose" = "1" ]; then
-                        bash -x /usr/lib/whonix/msgprogressbar --identifier "$identifier" --progressbaridx "${progressbaridx}" --verbose
+                     if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx.animate" ]; then
+                        rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx.animate"
+                        animate="--animate"
                      else
-                        /usr/lib/whonix/msgprogressbar --identifier "$identifier" --progressbaridx "${progressbaridx}" &
+                        unset animate
+                     fi
+                     if [ "$verbose" = "1" ]; then
+                        bash -x /usr/lib/whonix/msgprogressbar --identifier "$identifier" --progressbaridx "${progressbaridx}" --verbose $animate
+                     else
+                        /usr/lib/whonix/msgprogressbar --identifier "$identifier" --progressbaridx "${progressbaridx}" $animate &
                      fi
                      rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.progressbarx.done"
                   else
@@ -217,6 +223,7 @@ main_function() {
                   fi
                fi
             done
+            unset progressbaridx_file
 
             if [ -f "/var/run/msgcollector/${identifier}.waitmessagex.done" ]; then
                if [ -f "/var/run/msgcollector/${identifier}.waitmessagex" ]; then

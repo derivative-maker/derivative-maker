@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# This file is part of Whonix
+# Copyright (C) 2012 - 2013 adrelanos <adrelanos at riseup dot net>
+# See the file COPYING for copying conditions.
+
+## {{{ check_package_manager_running_helper
+
+## Used by timesync_prerequisite.
+## Used by check_package_manager_running.
+
+check_package_manager_running_helper() {
+   trap "error_handler" ERR
+
+   apt_get_return="0"
+   sudo  "/usr/lib/whonix/whonixcheck/apt-get-update-simulate" >/dev/null 2>&1 &
+   apt_get_update_pid="$!"
+   wait "$apt_get_update_pid" || { apt_get_return="$?" ; true; };
+   unset apt_get_update_pid
+}
+
+## }}}
+
+## {{{ check_package_manager_running
+
+check_package_manager_running() {
+   trap "error_handler" ERR
+
+   check_package_manager_running_helper
+
+   if [ "$apt_get_return" = "0" ]; then
+      return 0
+   fi
+
+   if [ ! "$whonixcheck_package_manager_waiting" = "1" ]; then
+      ## When "$AUTOSTARTED" = "1", it could be that whonixcheck was started
+      ## by whonixcheckd because Whonix is currently being upgraded. Therefore
+      ## show a package manager waiting message.
+      if [ "$DAEMON" = "1" ]; then
+         true "No package manager waiting message when running in daemon mode."
+      else
+         whonixcheck_package_manager_waiting="1"
+         local MSG="A package manager is currently running. Waiting for it to finish..."
+         $output ${output_opts[@]} --waitmessagecli --typecli "info" --titlex "$TITLE" --message "$MSG" --done
+         ## Start progress bar to show we are waiting.
+         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done --animate
+      fi
+   fi
+
+   check_package_manager_running
+}
+
+## }}}

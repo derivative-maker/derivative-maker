@@ -53,6 +53,10 @@ parse_cmd_options() {
                progressbaridx="$2"
                shift 2
                ;;
+           --animate)
+               animate="1"
+               shift
+               ;;
            --)
                shift
                break
@@ -78,6 +82,7 @@ cleanup_self() {
    rm --force "$fifo"
    rm --force "$progress_txt_file"
    rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid"
+   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
 }
 
 output_ex() {
@@ -89,17 +94,16 @@ output_ex() {
    ## Debugging.
    #echo "progress: $progress | caller: $PPID | $caller | killing $zenity_progress_pid" >> /home/user/progresslog
 
-   cleanup_self
-
    if [ -f "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid" ]; then
       parentpid="$(cat "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid")"
    else
       true "$output_signal_caught caught. Not killing parentpid $parentpid, \
 because /var/run/msgcollector/${identifier}.${progressbaridx}.parentpid does not exist."
+      cleanup_self
       exit 0
    fi
 
-   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
+   cleanup_self
 
    ## Check if still running.
    local ps_return
@@ -112,8 +116,6 @@ because /var/run/msgcollector/${identifier}.${progressbaridx}.parentpid does not
    else
       true "$output_signal_caught caught. Not killing parentpid $parentpid, because it is already terminated."
    fi
-
-   rm --force "/var/run/msgcollector/${identifier}.${progressbaridx}.parentpid"
 
    exit 0
 }
@@ -224,8 +226,21 @@ start_progress_bar() {
       ## Alternatively (most cases) waiting for SIGHUP.
       ## Happens when zentiy reached 100% or when cancel button is pressed.
       ## This will call the output_sighup function.
-      sleep "2" &
-      wait "$!"
+      if [ "$animate" = "1" ]; then
+         if [ "$waitprogress" = "" ]; then
+            waitprogress="0"
+         fi
+         waitprogress="$(( $waitprogress + 1 ))"
+         if [ "$waitprogress" -ge "100" ]; then
+            waitprogress="0"
+         fi
+         echo "$waitprogress" > "$fifo"
+         sleep ".500" &
+         wait "$!"
+      else
+         sleep "2" &
+         wait "$!"
+      fi
    done
 }
 

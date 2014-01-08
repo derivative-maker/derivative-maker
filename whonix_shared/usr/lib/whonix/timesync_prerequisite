@@ -12,6 +12,7 @@ IDENTIFIER="timesync"
 
 source /usr/lib/whonix/whonixcheck/10_preparation
 source /usr/lib/whonix/whonixcheck/17_check_tor_enabled
+source /usr/lib/whonix/whonixcheck/19_2_1_check_package_manager_running
 source /usr/lib/whonix/whonixcheck/19_2_check_tor_bootstrap
 
 error_handler() {
@@ -64,6 +65,19 @@ Start Menu -> Applications -> System -> whonixsetup - Connection Wizard or in Te
 
    true "$FUNCNAME: CURL: $CURL"
 
+   check_package_manager_running_helper ## 19_2_1_check_package_manager_running
+   if [ "$apt_get_return" = "0" ]; then
+      true "Package manager not busy, ok."
+   else
+      local MSG="A package manager is currently running. Waiting for it to finish..."
+
+      ## Echo message, so sdwdate can integrate it into its log.
+      echo "$MSG"
+
+      ## Exit 2, so sdwdate will wait until this has been fixed.
+      exit "2"
+   fi
+
    ## sets: check_bootstrap_script
    ## sets: lastpid
    ## sets: check_tor_bootstrap_helper
@@ -72,7 +86,7 @@ Start Menu -> Applications -> System -> whonixsetup - Connection Wizard or in Te
    ## sets: TOR_BOOTSTRAP_TIME_PASSED
    ## sets: tor_bootstrap_percent
    ## sets: tor_bootstrap_status
-   check_tor_bootstrap_helper
+   check_tor_bootstrap_helper ## 19_2_check_tor_bootstrap
 
    ## $tor_bootstrap_percent:
    ## `timeout` returns:
