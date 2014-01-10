@@ -176,8 +176,20 @@ start_progress_bar() {
       display=":0"
    fi
 
-   local fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
-   local progress_txt_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progresstxt"
+   fifo="/var/run/msgcollector/${identifier}.${progressbaridx}.fifo"
+   progress_txt_file="/var/run/msgcollector/${identifier}.${progressbaridx}.progresstxt"
+
+   if [ -f "$progress_txt_file" ]; then
+      ## Sometimes there is a race condition preventing the progressbar
+      ## being closed. Let's use this alternative approach.
+      local progress_txt_file_progress
+      progress_txt_file_progress="$(cat "$progress_txt_file")"
+      if [ "$progress_txt_file_progress" = "100" ]; then
+         true "Already 100%. Not even opening progress bar."
+         cleanup_self
+         exit 0
+      fi
+   fi
 
    ## Clean up eventual old progress bar.
    rm --force "$fifo"
