@@ -60,7 +60,7 @@ download_blog() {
    $CURL \
       --fail \
       $CURL_VERBOSE \
-      --socks5-hostname socks5h://"$GATEWAY_IP":"$SOCKS_PORT_WHONIX_NEWS"/ \
+      --socks5-hostname "socks5h://$GATEWAY_IP:$SOCKS_PORT_WHONIX_NEWS/" \
       --max-time 180 \
       --location \
       --output "$FEED_FILE" \
@@ -77,7 +77,7 @@ download_blog() {
    local curl_status_message
    curl_status_message="$(/usr/lib/whonix/curl_return_codes "$DOWNLOAD_BLOG_RETURN")"
 
-   local MSG="Whonix Blog Download Result: Could not download "$BLOG_NAME". (curl return code: "$curl_status_message")"
+   local MSG="Whonix Blog Download Result: Could not download $BLOG_NAME. (curl return code: $curl_status_message)"
    $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
    $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
 }
@@ -87,15 +87,15 @@ parse_blog() {
 
    ## rawdog unfortunately always requires a config file in /home/$user/.rawdog/config,
    ## see man rawdog.
-   cp /etc/whonixcheck_rawdog/config /home/rawdog/.rawdog/config
+   cp "/etc/whonixcheck_rawdog/config" "/home/rawdog/.rawdog/config"
 
    ## rawdog default config file suggest to place a style.css in the same folder as the
    ## output file.
-   cp /etc/whonixcheck_rawdog/style.css /var/lib/whonix/whonixcheck/
+   cp "/etc/whonixcheck_rawdog/style.css" "/var/lib/whonix/whonixcheck/"
 
    ## Delete the state file, because we use curl to download the feed and
    ## our own interval anyway. Maybe not necessary.
-   rm -f /home/rawdog/.rawdog/state
+   rm -f "/home/rawdog/.rawdog/state"
 
    local RAWDOG_RETURN
    RAWDOG_RETURN="0"
@@ -114,7 +114,7 @@ parse_blog() {
    if [ "$RAWDOG_RETURN" = "0" ]; then
       BLOG_SUCCESS="$(expr "$BLOG_SUCCESS" + 1)"
    else
-      local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (rawdog return code: "$RAWDOG_RETURN")"
+      local MSG="Whonix Blog Download Result: Could not parse $BLOG_NAME. (rawdog return code: $RAWDOG_RETURN)"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
@@ -127,8 +127,8 @@ parse_blog() {
       pandoc \
          --read=html \
          --write=plain \
-         --output=/var/lib/whonix/whonixblog/"$BLOG_TXT_FILE" \
-         /var/lib/whonix/whonixcheck/"$BLOG_HTML_FILE" \
+         --output="/var/lib/whonix/whonixblog/$BLOG_TXT_FILE" \
+         "/var/lib/whonix/whonixcheck/$BLOG_HTML_FILE" \
          &
 
    lastpid="$!"
@@ -137,7 +137,7 @@ parse_blog() {
    if [ "$PANDOC_RETURN" = "0" ]; then
       true
    else
-      local MSG="Whonix Blog Download Result: Could not parse "$BLOG_NAME". (pandoc return code: "$PANDOC_RETURN")"
+      local MSG="Whonix Blog Download Result: Could not parse $BLOG_NAME. (pandoc return code: $PANDOC_RETURN)"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
