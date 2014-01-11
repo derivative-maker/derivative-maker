@@ -11,7 +11,6 @@ set +x
 
 ## {{ Sanity Tests.
 
-command -v lsb_release >/dev/null
 command -v logname >/dev/null
 command -v whoami >/dev/null
 command -v dirname >/dev/null
@@ -23,7 +22,8 @@ command -v grep >/dev/null
 
 ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
 ## This does not work on drone.io systems.
-export USERNAME="$(logname)" || true
+USERNAME="$(logname)" || true
+export USERNAME
 
 ## drone.io specific workaround.
 if [ "$USERNAME" = "" ]; then
@@ -34,8 +34,11 @@ fi
 export HOMEVAR="/home/$USERNAME"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
-export WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
+WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
+export WHONIX_SOURCE_FOLDER
+
+WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
+export WHONIX_SOURCE_PARENTDIR
 
 export WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
 
@@ -148,13 +151,22 @@ export EMPTY_DIR="/tmp/empty"
 
 WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
 
-## Let's find out on which host operating system the build script is running.
-## Using export, so this variable can be read by whonix_shared/usr/share/whonix/chroot-scripts-post.d/70_update_command_not_found.
-export whonix_build_on_operating_system="$(lsb_release --short --i)"
-## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
-export whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
-## Example whonix_build_on_operating_system: debian
-## Example whonix_build_on_operating_system: ubuntu
+## {{{ whonix_build_on_operating_system
+
+if [ "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
+   ## Probably run by prepare-build-machine script.
+   ## lsb_release not yet installed.
+   whonix_build_on_operating_system="skipped"
+else
+   ## Let's find out on which host operating system the build script is running.
+   whonix_build_on_operating_system="$(lsb_release --short --i)"
+   ## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
+   whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
+   ## Example whonix_build_on_operating_system: debian
+   ## Example whonix_build_on_operating_system: ubuntu
+fi
+
+## }}}
 
 ## {{{ whonix_build_closest_git_tag
 
@@ -231,8 +243,9 @@ temp="$($git_bin describe --always --abbrev=1000000000)"
 ## Example temp:
 ## 7-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
+whonix_build_whonix_version_new="$(echo "$temp" | sed 's/-/./g')"
 ## Using `export`, so whonix_shared/usr/share/whonix/chroot-scripts-post.d/70_log_build_version can read it.
-export whonix_build_whonix_version_new="$(echo "$temp" | sed 's/-/./g')"
+export whonix_build_whonix_version_new
 
 ## Example whonix_build_whonix_version_new:
 ## 7.13.g20e1b49ff27053784e3e9e163dfd4c98dced73f5

@@ -18,6 +18,7 @@ WHONIX_BUILD_PARSED="1"
 VMNAME="internalrun"
 no_git="1"
 no_dpkg_parsechangelog="1"
+whonix_build_on_operating_system_detect_skip="1"
 
 source pre
 source variables
@@ -257,6 +258,8 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    ##      faketime
    ## - manual verification of reproducible builds
    ##      vbindiff
+   ## - contains lsb_release, required for detecting host operating system (Ubuntu (CI) or Debian)
+   ##      lsb_release
    apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
       sudo \
       ruby-ronn \
@@ -276,7 +279,19 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       grep \
       debian-archive-keyring \
       faketime \
-      vbindiff
+      vbindiff \
+      lsb_release
+
+   ## {{{ whonix_build_on_operating_system
+
+   ## Let's find out on which host operating system the build script is running.
+   whonix_build_on_operating_system="$(lsb_release --short --i)"
+   ## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
+   whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
+   ## Example whonix_build_on_operating_system: debian
+   ## Example whonix_build_on_operating_system: ubuntu
+
+   ## }}}
 
    if [ "$BARE_METAL" = "1" ]; then
       ###########################################
