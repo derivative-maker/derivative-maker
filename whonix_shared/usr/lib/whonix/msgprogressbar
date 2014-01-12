@@ -5,6 +5,9 @@
 # See the file COPYING for copying conditions.
 
 #set -x
+#exec >  >(tee -a "/home/user/msgprogressbarlog")
+#exec 2> >(tee -a "/home/user/msgprogressbarlog" >&2)
+
 set -o pipefail
 
 scriptname="$(basename $0)"
@@ -232,27 +235,28 @@ start_progress_bar() {
          progress_txt_file_progress="$(cat "$progress_txt_file")"
          if [ "$progress_txt_file_progress" = "100" ]; then
             cleanup_self
-            break
+            exit 0
          fi
       fi
       ## Alternatively (most cases) waiting for SIGHUP.
       ## Happens when zentiy reached 100% or when cancel button is pressed.
       ## This will call the output_sighup function.
-      if [ "$animate" = "1" ]; then
-         if [ "$waitprogress" = "" ]; then
-            waitprogress="0"
-         fi
-         waitprogress="$(( $waitprogress + 1 ))"
-         if [ "$waitprogress" -ge "100" ]; then
-            waitprogress="0"
-         fi
-         echo "$waitprogress" > "$fifo"
-         sleep ".500" &
-         wait "$!"
-      else
+
+      #if [ "$animate" = "1" ]; then
+         #if [ "$waitprogress" = "" ]; then
+            #waitprogress="0"
+         #fi
+         #waitprogress="$(( $waitprogress + 1 ))"
+         #if [ "$waitprogress" -ge "100" ]; then
+            #waitprogress="0"
+         #fi
+         #echo "$waitprogress" > "$fifo"
+         #sleep ".500" &
+         #wait "$!"
+      #else
          sleep "2" &
          wait "$!"
-      fi
+      #fi
    done
 }
 

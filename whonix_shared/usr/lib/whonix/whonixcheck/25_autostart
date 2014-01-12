@@ -76,7 +76,7 @@ $NOTIFY_MSG"
          local progressbaridx
          progressbaridx="${tmp##*.}"
 
-         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done --animate
+         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
 
          local wait
          wait="0"
@@ -89,6 +89,16 @@ $NOTIFY_MSG"
                break
             fi
             wait="$(( $wait + 1))"
+
+            if [ "$waitprogress" = "" ]; then
+               waitprogress="0"
+            fi
+            waitprogress="$(( $waitprogress + 1 ))"
+            if [ "$waitprogress" -ge "100" ]; then
+               waitprogress="0"
+            fi
+
+            $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "$waitprogress"
 
             sleep ".500" &
             lastpid="$!"

@@ -29,6 +29,9 @@ check_package_manager_running() {
    check_package_manager_running_helper
 
    if [ "$apt_get_return" = "0" ]; then
+      if [ "$whonixcheck_package_manager_waiting" = "1" ]; then
+         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
+      fi
       return 0
    fi
 
@@ -40,13 +43,21 @@ check_package_manager_running() {
          true "No package manager waiting message when running in daemon mode."
       else
          whonixcheck_package_manager_waiting="1"
+
+         local tmp
+         tmp="$(mktemp)"
+         local progressbaridx
+         progressbaridx="${tmp##*.}"
+
          local MSG="A package manager is currently running. Waiting for it to finish..."
          $output ${output_opts[@]} --waitmessagecli --typecli "info" --titlex "$TITLE" --message "$MSG" --done
          ## Start progress bar to show we are waiting.
-         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done --animate
+         $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
       fi
    fi
 
+   sleep "1" &
+   wait "$!" || true
    check_package_manager_running
 }
 
