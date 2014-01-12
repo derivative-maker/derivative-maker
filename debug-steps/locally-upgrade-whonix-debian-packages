@@ -28,6 +28,13 @@ locally-upgrade-whonix-debian-packages() {
       fi
    fi
 
+   ## Lockfile for whonixcheck.
+   mkdir --parents "/var/run/whonix"
+   chown --recursive user:user /var/run/whonix
+   chmod --recursive o+w /var/run/whonix
+   chmod --recursive g+w /var/run/whonix
+   sudo -u user touch "/var/run/whonix/package_manager_lock"
+
    sync
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
@@ -125,6 +132,9 @@ locally-upgrade-whonix-debian-packages() {
 
    ## Implemented in help-steps/pre.
    disable_apt_cache
+
+   ## Remove lockfile for whonixcheck.
+   rm --force "/var/run/whonix/package_manager_lock"
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img
    #"$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
