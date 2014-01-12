@@ -78,6 +78,7 @@ download_whonix_news() {
    check_whonix_build_version
    check_whonix_debian_news
    check_whonix_build_news
+   check_whonix_blog
 }
 
 verify_whonix_news() {
@@ -399,4 +400,43 @@ check_whonix_build_news() {
 
    $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+}
+
+check_whonix_blog() {
+   trap "error_handler" ERR
+
+   BLOG_SUCCESS="0"
+
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_important_blog.txt"
+
+   if [ ! -f "$filename" ]; then
+      local MSG="Whonix Blog Download Result: $filename does not exist."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   else
+      cp "$filename" "/var/lib/whonix/whonixblog/important_blog.txt"
+
+      BLOG_SUCCESS="$(( $BLOG_SUCCESS + 1))"
+   fi
+
+   local filename
+   filename="$VERIFY_TEMPDIR/news/whonix_feature_blog.txt"
+
+   if [ ! -f "$filename" ]; then
+      local MSG="Whonix Blog Download Result: $filename does not exist."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   else
+      cp "$filename" "/var/lib/whonix/whonixblog/feature_blog.txt"
+      BLOG_SUCCESS="$(( $BLOG_SUCCESS + 1))"
+   fi
+
+   ## Let's make just one success message, not two.
+   if [ "$BLOG_SUCCESS" = "2" ]; then
+      local MSG="Whonix Blog Download Result: Success."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
 }

@@ -120,24 +120,31 @@ parse_blog() {
       return 0
    fi
 
-   local PANDOC_RETURN
-   PANDOC_RETURN="0"
+   local html_to_text_parser_return
+   html_to_text_parser_return="0"
+
+   ## Rawdog has been (temporarily) removed from Debian testing.
+   #sudo -u rawdog \
+      #pandoc \
+         #--read=html \
+         #--write=plain \
+         #--output="/var/lib/whonix/whonixblog/$BLOG_TXT_FILE" \
+         #"/var/lib/whonix/whonixcheck/$BLOG_HTML_FILE" \
+         #&
 
    sudo -u rawdog \
-      pandoc \
-         --read=html \
-         --write=plain \
-         --output="/var/lib/whonix/whonixblog/$BLOG_TXT_FILE" \
+      html2text \
+         -o "/var/lib/whonix/whonixblog/$BLOG_TXT_FILE" \
          "/var/lib/whonix/whonixcheck/$BLOG_HTML_FILE" \
          &
 
    lastpid="$!"
-   wait "$lastpid" || { PANDOC_RETURN="$?" ; true; };
+   wait "$lastpid" || { html_to_text_parser_return="$?" ; true; };
 
-   if [ "$PANDOC_RETURN" = "0" ]; then
+   if [ "$html_to_text_parser_return" = "0" ]; then
       true
    else
-      local MSG="Whonix Blog Download Result: Could not parse $BLOG_NAME. (pandoc return code: $PANDOC_RETURN)"
+      local MSG="Whonix Blog Download Result: Could not parse $BLOG_NAME. (html to text parser return code: $html_to_text_parser_return)"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
