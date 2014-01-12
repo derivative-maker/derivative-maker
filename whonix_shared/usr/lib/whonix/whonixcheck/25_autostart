@@ -44,17 +44,30 @@ check_autostart() {
       if [ "$NOSLEEP" = "1" ]; then
          return 0
       else
+         if [ "$NEVER_RUN" = "1" ]; then
+            local temp="First run of $SCRIPTNAME. Running $SCRIPTNAME in $DELAY seconds (randomly chosen)..."
+         else
+            local temp="$SCRIPTNAME has not been completed for more than one day. Running $SCRIPTNAME again in $DELAY seconds (randomly chosen)..."
+         fi
+
          local MSG="\
-$SCRIPTNAME has not been completed for more than one day. Running $SCRIPTNAME again in $DELAY seconds...
+$temp
+
+The delay is a security feature, which is documented here:
+https://www.whonix.org/wiki/whonixcheck
 
 You can also cancel waiting and manually start $SCRIPTNAME right away."
 
          $output ${output_opts[@]} --waitmessagecli --typecli "info" --titlecli "$TITLE" --message "$MSG" --done
 
          local MSG="\
-$SCRIPTNAME has not been completed for more than one day. Running $SCRIPTNAME again in $DELAY seconds...
+$temp
 
-You can also cancel waiting and start whonixcheck right away by double clicking on the whonixcheck icon or entering \"whonixcheck\" in a terminal emulator (such as Konsole)."
+The delay is a security feature, which is documented here:
+https://www.whonix.org/wiki/whonixcheck
+
+You can also cancel waiting and start whonixcheck right away by double clicking on the whonixcheck icon or
+entering \"whonixcheck\" in a terminal emulator (such as Konsole).
 
 $NOTIFY_MSG"
 
