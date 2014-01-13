@@ -1,5 +1,171 @@
+Testers wanted! Testers-Only version Whonix 7.7.2 Debian Packages released!
+###########################################################################
+
+testers-only, which means apt-get could hang in half-broken state which
+can likely be manually fixed. (Advanced Linux users, those comfortable
+with Debian sid or so can even fix them themselves.) There is never 100%
+security. Having snapshots/backups around is recommended. No
+anonymity/privacy/security issues expected. By switching to the
+testers-only repository you'll help a lot improving Whonix and speeding
+up development (more eyeballs catching bugs). Stable releases will then
+work better for everyone.
+
+If you want to build images from source code:
+=============================================
+
+Currently not possible (or at least very difficult), due to two bugs
+which have been recently introduced in Debian testing.
+
+* http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
+* http://ml.grml.org/pipermail/grml/2014-January/011547.html
+
+It might take a while until these get fixed. I plan to base next
+Whonix version on Debian stable instead of Debian testing to avoid
+that kind of build bugs and to avoid
+
+If you want to upgrade from Whonix's repository:
+================================================
+
+Switch to Whonix's '''testers-only''' apt repository.
+
+First do these steps on Whonix-Gateway, then repeat on
+Whonix-Workstation. There might be small bugs related to
+whonixcheck/timesync, and you may need to reboot.
+
+export WHONIX_APT_REPOSITORY_DISTRIBUTION_ENV=testers
+
+Apply changes to which Whonix apt repository will be used.
+
+sudo -E whonix_repository
+
+The usage of the whonix_repository tool will be greatly simplified after
+this upgrade, because a graphical user interface has been added so it
+becomes easier to switch around.
+
+Update and upgrade.
+
+sudo apt-get update
+sudo apt-get dist-upgrade
+
+If you want to upgrade from source code:
+========================================
+
+The tag for this '''testers-only''' version is '''7.7.2''' (don't use
+7.3.7). Please refer to
+https://www.whonix.org/wiki/Dev/Build_Documentation and see "Build
+Documentation for upgrading Whonix debian packages from source code".
+
+Bonus: this is the first upload of Whonix's Debian Packages that is
+verifiable [1]. If one would care to check if they can get the same
+checksums as uploaded to Whonix's repository, that'll be awesome.
+
+[1]
+https://www.whonix.org/wiki/Verifiable_Builds#Verifiable_Whonix_Debian_Packages
+
+Changelog between Whonix 7 and Whonix 7.7.2 (testers-only version):
+===================================================================
+
+* In new installations, automatic updates of Whonix's debian packages
+are disabled by default. During first start, users can decide if they
+want to enable Whonix's APT repository or want to leave it disabled.
+* Fixed Whonix's Tor Browser download and start script for TBB 3.5.
+* Fixed physical isolation build script.
+* Verifiable Builds. Whonix now has a feature which allows the community
+to check that Whonix .ova releases are verifiably created from project's
+own source code. Also made ade Whonix's APT repository verifiable (even
+deterministic!). Please see
+https://www.whonix.org/wiki/Verifiable_Builds for details.
+* Made Whonix build script configurable (can now build terminal-only
+Whonix-Gateway's and/or Whonix-Workstations; 64 bit builds and more)
+* Improved Whonix News's security. All Whonix News Files are now inside
+one tarball, which is signed. This stops leaking how many users are
+using a particular version.
+* whonixcheck's Whonix News download now checks if Whonix News are still
+valid (currently up to 4 weeks) and therefore detects indefinite freeze
+and replay attacks.
+* whonix_repository tool now has a graphical user interface; added more
+command line switches.
+* Set default locale to en_US.UTF-8.
+* Simplified custom user installation of TorChat, thanks to dummytor.
+(Protecting from Tor over Tor.)
+* Removed apper and synaptic from default installation, because they are
+too confusing / have too many bugs, do not always work in all cases for
+all users, #104, can still be manually installed if wanted, see also
+https://www.whonix.org/wiki/Dev/Automatic_Updates
+* whonixcheck: more configuration options, any function can now be
+disabled, this is useful for users who wish to disable control port
+filter proxy, they can disable the check_tor_bootstrap function
+* whonixcheck: added protection against possibly malicious strings from
+check.torproject.org (in case of a bug, compromise of check.tpo server
+or CA compromise), IP strings are now max 50 characters long. User will
+be warned in case the limit is exceeded.
+* Whonix-Workstation: no longer installing Tor Browser by default, this
+simplified implementing verifiable builds (#113), installing iceweasel
+by default, which can be used to download Tor Browser, added local
+iceweasel browser homepage saying that iceweasel should not be used for
+anything other than downloading Tor Browser, unless one knows what one
+is doing.
+* Removed galternatives from whonix-workstation-default-applications
+because galternatives has been (temporarily) removed from Debian testing
+* Building Whonix from frozen repository, from snapshot.debian.org to
+make the build script more resistant from upstream changes and also to
+make Whonix verifiable.
+* The Whonix Team can now use separate keys for Whonix's APT Repository
+and Whonix News.
+* Added technical documentation about keys in Whonix
+whonix_shared/usr/share/whonix/keys/readme.
+* new man page: man/whonix_shared/sdwdate.8.ronn
+* Deactivated Maximizing Windows by dragging them to the top of the
+screen to prevent users from accidentally maximizing their browser
+window when they are using resolutions higher than 1024x768. See
+https://www.whonix.org/wiki/Higher_Screen_Resolution ;
+https://github.com/Whonix/Whonix/issues/110 and
+https://trac.torproject.org/projects/tor/ticket/7255 for more
+information. #108
+* added udisks to whonix-shared-packages-recommended for mounting
+removable drives
+* KDE settings changes, set to oxygen as suggested by scarp in
+"[Whonix-devel] Plastique kwin style & Widget Style"
+* whonixcheck: increased timeout for the tor bootstrap.py utility from 5
+to 10 seconds to make it compatible with slow systems as per bug report
+https://www.whonix.org/wiki/Special:AWCforum/st/id248/whonixcheck%3A_tor_bootstrap_statu....html
+* added secure-delete, because it contains sfill, which can be used to
+zero out free space, which is required for disk shrinking
+* Deactivated running update-command-not-found during build, since not
+deterministic (verifiable). Manually running is of course still possible.
+* whonix_shared/etc/apt/sources.list.d/torproject.list: removed the "deb
+http://deb.torproject.org/torproject.org tor-0.2.4.x-jessie main"
+repository, since that repository has been removed by The Tor Project
+(Tor is now in their Debian testing repository, which is already added)
+* fixed a bug reported by scarp,
+whonix_shared/usr/share/whonix/postinst.d/70_disable_kdm_autostart: was
+not disabling other display managers other than kdm. Now using the more
+generic
+/usr/lib/whonix/display-manager-dpkg-post-invoke.
+* msgcollector: fix race condition not always closing progress bar when
+it reached 100%
+* Whonix-Gateway: Workaround for
+http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=732578
+https://www.whonix.org/wiki/Download#Connection_Issues_-
+_Tor_stops_working_after_an_Upgrade_and_needs_a_Workaround
+https://www.whonix.org/wiki/Special:AWCforum/st/id287/
+new_tor_and_debian_updates_today....html
+Set in /etc/default/tor:
+USE_AA_EXEC="no"
+Can be commented out when that bug gets fixed.
+* optionally (opt-in) building qcow2 images, first rudimentary
+implementation, build target (VirtualBox or qcow2 or both) should
+probably be configurable in whonix_build script (#122)
+* Whonix News Blog Download / Whonix News: Whonix News Blogs (Whonix
+Feature Blog and Whonix Important Blog) are now deployed over the same
+mechanism as Whonix News.
+* Removed rawdog and pandoc since no longer required.
+* Improved messages.
+* Lots of smaller fixes.
+* Code refactoring.
+* For more details, see the git log.
+
 Older Entries
 #############
 
 https://anonymousoperatingsystem.wordpress.com/
-
