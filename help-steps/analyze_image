@@ -183,6 +183,7 @@ unmount_image() {
 preparation() {
    trap "error_handler" ERR INT TERM
 
+   true "INFO: USERNAME is set to $USERNAME"
    true 'INFO: Benchmarking "sudo -u "$USERNAME" echo "This is a test echo."" using "time"...'
    time sudo -u "$USERNAME" echo "This is a test echo."
 
@@ -385,10 +386,17 @@ parse_vbr() {
    true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
 }
 
+cp_to_user() {
+   trap "error_handler" ERR INT TERM
+
+   cp "$1" "$2"
+   chown --recursive "$USERNAME:$USERNAME" "$2"
+}
+
 parse_special_files() {
    trap "error_handler" ERR INT TERM
 
-   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+   cp_to_user "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
    echo "$manual_analysis_folder/build_timestamp BEGIN..."
    sudo -u "$USERNAME" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
    echo "END $manual_analysis_folder/build_timestamp."
@@ -397,36 +405,36 @@ parse_special_files() {
 
    if [ "$CI" = "true" ]; then
       ## Reading /etc/shadow does usually not work on CI systems. Not even as root.
-      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow" || true
-      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-" || true
+      cp_to_user "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow" || true
+      cp_to_user "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-" || true
    else
-      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
-      sudo -u "$USERNAME" cp "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
+      cp_to_user "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
+      cp_to_user "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
    fi
 
    ## "|| true", because CI (Ubuntu) and custom builders may not use sysvinit.
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.boot" "$manual_analysis_folder/etc_init.d_.depend.boot" || true
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.start" "$manual_analysis_folder/etc_init.d_.depend.start" || true
-   sudo -u "$USERNAME" cp "$mount_folder/etc/init.d/.depend.stop" "$manual_analysis_folder/etc_init.d_.depend.stop" || true
+   cp_to_user "$mount_folder/etc/init.d/.depend.boot" "$manual_analysis_folder/etc_init.d_.depend.boot" || true
+   cp_to_user "$mount_folder/etc/init.d/.depend.start" "$manual_analysis_folder/etc_init.d_.depend.start" || true
+   cp_to_user "$mount_folder/etc/init.d/.depend.stop" "$manual_analysis_folder/etc_init.d_.depend.stop" || true
 
-   sudo -u "$USERNAME" cp "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
+   cp_to_user "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
 
    sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
    if [ "$CI" = "true" ]; then
-      sudo -u "$USERNAME" cp "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/" || true
+      cp_to_user "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/" || true
    else
-      sudo -u "$USERNAME" cp "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/"
+      cp_to_user "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/"
    fi
 
    ## }}
 
    ## {{ debug_folder
 
-   sudo -u "$USERNAME" cp "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
+   cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
 
-   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
-   sudo -u "$USERNAME" cp "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
+   cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
+   cp_to_user "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
 
    sudo -u "$USERNAME" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
@@ -438,20 +446,20 @@ parse_special_files() {
    for file in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
       i="$(expr "$i" + "1")"
       echo "$i $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
-      sudo -u "$USERNAME" cp "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
+      cp_to_user "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
    unset file
 
    sudo -u "$USERNAME" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
-   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" "$debug_folder/var_lib_dpkg_info_whonix-x/"
+   cp_to_user "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" "$debug_folder/var_lib_dpkg_info_whonix-x/"
 
    ## "|| true", because that file usually gets deleted.
-   sudo -u "$USERNAME" cp "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
+   cp_to_user "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
 
    ## "|| true", because that those files usually get deleted.
-   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/available" "$debug_folder/var_lib_dpkg_available" || true
-   sudo -u "$USERNAME" cp "$mount_folder/var/lib/dpkg/available-old" "$debug_folder/var_lib_dpkg_available-old" || true
+   cp_to_user "$mount_folder/var/lib/dpkg/available" "$debug_folder/var_lib_dpkg_available" || true
+   cp_to_user "$mount_folder/var/lib/dpkg/available-old" "$debug_folder/var_lib_dpkg_available-old" || true
 
    ## }}
 }
@@ -463,9 +471,9 @@ parse_initrd() {
    ls -la "$mount_folder/boot/" || true
 
    if [ "$CI" = "true" ]; then
-      sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder" || true
+      cp_to_user "$mount_folder/boot/initrd.img"* "$initrd_folder" || true
    else
-      sudo -u "$USERNAME" cp "$mount_folder/boot/initrd.img"* "$initrd_folder"
+      cp_to_user "$mount_folder/boot/initrd.img"* "$initrd_folder"
    fi
 
    local file
