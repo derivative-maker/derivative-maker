@@ -166,7 +166,7 @@ debug_echo() {
 
 unmount_image() {
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -187,9 +187,49 @@ preparation() {
    true 'INFO: Benchmarking "sudo -u "$USERNAME" echo "This is a test echo."" using "time"...'
    time sudo -u "$USERNAME" echo "This is a test echo."
 
+   ## {{ Sanity Tests.
+
+   local tool
+   local tools
+   tools="
+      readlink
+      sha512sum
+      dirname
+      basename
+      pwd
+      sudo
+      echo
+      mkdir
+      touch
+      command
+      rm
+      cp
+      chown
+      dd
+      sync
+      guestmount
+      guestfish
+      virt-filesystems
+      find
+      sort
+      stat
+   "
+   for tool in $tools; do
+      command -v "$tool" >/dev/null
+   done
+   unset tool
+   unset tools
+
+   ## }}
+
    rm --force "$report_file"
    rm --force "$file_list_file"
    sync
+
+   ## The WHONIX_BINARY folder should already be created. Just make sure it
+   ## really is to allow running this script in non-Whonix environments as
+   ## well.
+   sudo -u "$USERNAME" mkdir --parents "$WHONIX_BINARY"
 
    sudo -u "$USERNAME" touch "$report_file"
    sync
@@ -252,7 +292,7 @@ extract_ova() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -275,7 +315,7 @@ convert_vmdk_to_vdi() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -304,7 +344,7 @@ convert_vdi_to_raw() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -323,7 +363,7 @@ mount_image() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -342,7 +382,7 @@ parse_file_system() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -358,7 +398,7 @@ parse_mbr() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -374,7 +414,7 @@ parse_vbr() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1."
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
       return 0
    fi
 
@@ -396,10 +436,16 @@ cp_to_user() {
 parse_special_files() {
    trap "error_handler" ERR INT TERM
 
-   cp_to_user "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
-   echo "$manual_analysis_folder/build_timestamp BEGIN..."
-   sudo -u "$USERNAME" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
-   echo "END $manual_analysis_folder/build_timestamp."
+   ## Allow running this script in non-Whonix environments as well.
+   if [ -f "$mount_folder/usr/share/whonix/build_timestamp" ]; then
+      cp_to_user "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+      echo "$manual_analysis_folder/build_timestamp BEGIN..."
+      sudo -u "$USERNAME" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+      echo "END $manual_analysis_folder/build_timestamp."
+   else
+      msg="Strange, $mount_folder/usr/share/whonix/build_timestamp does not exist. Perhaps not running in Whonix."
+      echo "$msg" > "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+   fi
 
    ## {{ manual_analysis_folder
 
@@ -431,7 +477,13 @@ parse_special_files() {
 
    ## {{ debug_folder
 
-   cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
+   ## Allow running this script in non-Whonix environments as well.
+   if [ -f "$mount_folder/usr/share/whonix/build_version" ]; then
+      cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
+   else
+      msg="Strange, $mount_folder/usr/share/whonix/build_version does not exist. Perhaps not running in Whonix."
+      echo "$msg" > "$debug_folder/usr_share_whonix_build_version"
+   fi
 
    cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
    cp_to_user "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
@@ -444,20 +496,38 @@ parse_special_files() {
    local file
 
    for file in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
-      i="$(expr "$i" + "1")"
-      echo "$i $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
+      i="$(( $i + 1 ))"
+
+      ## Allow running this script in non-Whonix environments as well.
+      if [ ! -f "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz" ]; then
+         echo "file number: $i | file: $file is not a file. Folder probably empty." >> "$debug_folder/usr_share_doc_whonix-x/file_list"
+         continue
+      fi
+
+      echo "file number: $i | file: $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
       cp_to_user "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
    unset file
 
    sudo -u "$USERNAME" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
-   cp_to_user "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" "$debug_folder/var_lib_dpkg_info_whonix-x/"
 
-   ## "|| true", because that file usually gets deleted.
+   for file in "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums"; do
+
+      ## Allow running this script in non-Whonix environments as well.
+      if [ ! -f "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" ]; then
+         echo "file number: $i | file: $file is not a file. Folder probably empty." >> "$debug_folder/var_lib_dpkg_info_whonix-x/empty"
+         continue
+      fi
+
+      cp_to_user "$file" "$debug_folder/var_lib_dpkg_info_whonix-x/"
+   done
+
+   unset file
+
+   ## "|| true", because these files are expected to be deleted.
+   ## Copying them out of the image for easier analysis just in case.
    cp_to_user "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
-
-   ## "|| true", because that those files usually get deleted.
    cp_to_user "$mount_folder/var/lib/dpkg/available" "$debug_folder/var_lib_dpkg_available" || true
    cp_to_user "$mount_folder/var/lib/dpkg/available-old" "$debug_folder/var_lib_dpkg_available-old" || true
 
@@ -514,7 +584,7 @@ parse_folder() {
    set +x
 
    while read -r -d '' file; do
-      i="$(expr "$i" + "1")"
+      i="$(( $i + 1 ))"
 
       if [ "$CI" = "true" ]; then
          if [ "$i" -gt "$parse_max" ]; then
@@ -539,6 +609,9 @@ parse_folder() {
       dir_name="${file%/*}"
       local dir_name_absolute
       dir_name_absolute="${dir_name#"$folder"}"
+      local file_size
+
+      file_size="$(stat -c '%s' "$file")"
 
       ## Check if $file is a symlink.
       if [ -h "$file" ]; then
@@ -546,8 +619,11 @@ parse_folder() {
 
          ## Not using readlink with -f, so we can compare the relative links.
          local file_link
-         file_link="$(readlink "$file")"
-         echo "($sub_folder) $absolute_file_name: symlinks_to $file_link" >> "$report_file"
+         local read_link_exit_code
+         read_link_exit_code="0"
+         file_link="$(readlink "$file" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
+
+         echo "($sub_folder) $absolute_file_name: $read_link_exit_code | size: $file_size | symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
@@ -575,18 +651,30 @@ parse_folder() {
          fi
       fi
 
+      ## "sudo sudo sha512sum /dev/xconsole" would run forever.
       if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: skipped | size: $file_size" >> "$report_file"
          continue
       fi
+      ## "sudo sha512sum /dev/initctl" would run forever.
       if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: skipped | size: $file_size" >> "$report_file"
          continue
       fi
 
       local maybe_timeout
       if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
+            ## For example "sudo sha512sum /dev/tty1" would run forever.
+            maybe_timeout="timeout --kill-after=1 1"
+         elif [[ "$absolute_file_name" == "/proc/"** ]]; then
+            ## For example "sudo sha512sum /proc/kmsg" would run forever.
+            maybe_timeout="timeout --kill-after=1 1"
+         elif [[ "$absolute_file_name" == "/run/"** ]]; then
+            ## For example "sha512sum /run/acpi_fakekey" would run forever.
+            maybe_timeout="timeout --kill-after=1 1"
+         elif [[ "$absolute_file_name" == "/tmp/"** ]]; then
+            ## For example "sudo sha512sum /tmp/20140115122244.19545.trace" would run forever.
             maybe_timeout="timeout --kill-after=1 1"
          else
             maybe_timeout=""
@@ -598,17 +686,20 @@ parse_folder() {
       local checksum_return
       local checksum_exit_code
       checksum_exit_code="0"
-      checksum_return="$($maybe_timeout sha512sum "$file")" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      checksum_return="$($maybe_timeout sha512sum "$file" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
       if [ ! "$checksum_exit_code" = "0" ]; then
          ## Handling cases such as:
          ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
          ## sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
-         echo "($sub_folder) $absolute_file_name: $checksum_exit_code" >> "$report_file"
+         if [ "$checksum_return" = "" ]; then
+            checksum_return="sha512sum_echoed_nothing"
+         fi
+         echo "($sub_folder) $absolute_file_name: $checksum_exit_code | size: $file_size | $checksum_return" >> "$report_file"
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_return"
-         echo "($sub_folder) $absolute_file_name: $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name: $checksum_exit_code | size: $file_size | $checksum" >> "$report_file"
          continue
       fi
    done < <(find "$folder/" -print0 | sort -z)
