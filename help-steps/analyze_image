@@ -116,17 +116,17 @@ parse_cmd() {
          ## A bit of a hack.
          BARE_METAL="1"
       else
-         echo "ERROR: ova_file $ova_file does not exist!"
+         echo "${red}${bold} ERROR: ova_file $ova_file does not exist! ${reset}"
          exit 1
       fi
    fi
 
    if [ "$report_file" = "" ]; then
-      echo "ERROR: no report_file chosen!"
+      echo "${red}${bold} ERROR: no report_file chosen! ${reset}"
       exit 1
    fi
    if [ "$tempfolder" = "" ]; then
-      echo "ERROR: no tempfolder chosen!"
+      echo "${red}${bold} ERROR: no tempfolder chosen! ${reset}"
       exit 1
    fi
 }
@@ -601,7 +601,7 @@ parse_folder() {
       echo "$absolute_file_name" >> "$file_list_file"
 
       if [ -d "$file" ]; then
-         echo "($sub_folder) $absolute_file_name: directory" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | directory" >> "$report_file"
          continue
       fi
 
@@ -611,7 +611,24 @@ parse_folder() {
       dir_name_absolute="${dir_name#"$folder"}"
       local file_size
 
-      file_size="$(stat -c '%s' "$file")"
+      if [ ! -f "$file" ]; then
+         msg="($sub_folder) $absolute_file_name | $file does_not_exist"
+         echo "${cyan} $msg ${reset}"
+         echo "$msg" >> "$report_file"
+         if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
+            ## File might no longer exist on bare metal.
+            ## For example "sudo stat /proc/13165" could fail.
+            continue
+         else
+            ## Should not happen inside virtual machine images, because /proc
+            ## is not mounted there.
+            error "$msg"
+         fi
+      fi
+
+      local stat_exit_code
+      stat_exit_code="0"
+      file_size="$(stat -c '%s' "$file" 2>&1)" || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
 
       ## Check if $file is a symlink.
       if [ -h "$file" ]; then
@@ -623,7 +640,7 @@ parse_folder() {
          read_link_exit_code="0"
          file_link="$(readlink "$file" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
-         echo "($sub_folder) $absolute_file_name: $read_link_exit_code | size: $file_size | symlinks_to $file_link" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
@@ -646,19 +663,19 @@ parse_folder() {
             ## file, because this is a reminder to diff the mf and the ofv file
             ## and because the ova could also contain more than the three
             ## expected files.
-            echo "($sub_folder) $absolute_file_name: skipped" >> "$report_file"
+            echo "($sub_folder) $absolute_file_name | skipped" >> "$report_file"
             continue
          fi
       fi
 
       ## "sudo sudo sha512sum /dev/xconsole" would run forever.
       if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "($sub_folder) $absolute_file_name: skipped | size: $file_size" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
          continue
       fi
       ## "sudo sha512sum /dev/initctl" would run forever.
       if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "($sub_folder) $absolute_file_name: skipped | size: $file_size" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
          continue
       fi
 
@@ -694,12 +711,12 @@ parse_folder() {
          if [ "$checksum_return" = "" ]; then
             checksum_return="sha512sum_echoed_nothing"
          fi
-         echo "($sub_folder) $absolute_file_name: $checksum_exit_code | size: $file_size | $checksum_return" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | checksum_return: $checksum_return" >> "$report_file"
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_return"
-         echo "($sub_folder) $absolute_file_name: $checksum_exit_code | size: $file_size | $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | checksum: $checksum" >> "$report_file"
          continue
       fi
    done < <(find "$folder/" -print0 | sort -z)
