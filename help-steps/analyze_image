@@ -191,6 +191,7 @@ preparation() {
 
    local tool
    local tools
+
    tools="
       readlink
       sha512sum
@@ -207,9 +208,6 @@ preparation() {
       chown
       dd
       sync
-      guestmount
-      guestfish
-      virt-filesystems
       find
       sort
       stat
@@ -219,6 +217,25 @@ preparation() {
    done
    unset tool
    unset tools
+
+   if [ "$CI" = "true" ]; then
+      ## Tools for VM mouting not installed (not required) in this case.
+      true
+   elif [ "$BARE_METAL" = "1" ]; then
+      ## Tools for VM mouting not installed (not required) in this case.
+      true
+   else
+      tools="
+         guestmount
+         guestfish
+         virt-filesystems
+      "
+      for tool in $tools; do
+         command -v "$tool" >/dev/null
+      done
+      unset tool
+      unset tools
+   fi
 
    ## }}
 
