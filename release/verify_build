@@ -81,13 +81,13 @@ preparation() {
    temp_folder="$WHONIX_BINARY/verification"
    whonix_source="$temp_folder/Whonix-$whonix_build_whonix_version_new"
 
-   sudo -u "$USERNAME" mkdir --parents "$temp_folder"
-   sudo -u "$USERNAME" mkdir --parents "$temp_folder/status"
+   sudo -u "$user_name" mkdir --parents "$temp_folder"
+   sudo -u "$user_name" mkdir --parents "$temp_folder/status"
 
    if [ ! -f "$temp_folder/status/whonix_source_code_copied" ]; then
       true "${bold}${cyan}INFO: Making a copy of Whonix source code, which we will use for verification... ${reset}"
-      sudo -u "$USERNAME" cp -r "$WHONIX_SOURCE_FOLDER" "$whonix_source"
-      sudo -u "$USERNAME" touch "$temp_folder/status/whonix_source_code_copied"
+      sudo -u "$user_name" cp -r "$WHONIX_SOURCE_FOLDER" "$whonix_source"
+      sudo -u "$user_name" touch "$temp_folder/status/whonix_source_code_copied"
    else
       true "${bold}${cyan}INFO: We already have a copy of Whonix source code. ${reset}"
    fi
@@ -97,13 +97,13 @@ preparation() {
 
    true "${bold}${cyan}INFO: Git reset --hard uncommitted changes, so git checkout will work. \
 (This is useful in case you tweaked the verification script without committing your changes. Feel free to comment this out.) ${reset}"
-   sudo -u "$USERNAME" git reset --hard
+   sudo -u "$user_name" git reset --hard
 
    true "${bold}${cyan}INFO: Git OpenPGP verify the Whonix version we want to audit... (Feel free to comment this out.) ${reset}"
-   sudo -u "$USERNAME" git tag -v "$whonix_build_whonix_version_new"
+   sudo -u "$user_name" git tag -v "$whonix_build_whonix_version_new"
 
    true "${bold}${cyan}INFO: Git checkout the Whonix version we want to audit... ${reset}"
-   sudo -u "$USERNAME" git checkout "$whonix_build_whonix_version_new"
+   sudo -u "$user_name" git checkout "$whonix_build_whonix_version_new"
 
    true "${bold}${cyan}INFO: Get into the verification folder, so \"apt-get download\" stores its downloads there.... ${reset}"
    cd "$temp_folder"
@@ -136,7 +136,7 @@ preparation() {
          error "${red}${bold}ERROR: "$ova" does not exist. ${reset}"
       else
          true "${bold}${cyan}INFO: Unpacking .ova... ${reset}"
-         sudo -u "$USERNAME" tar -xvf "$ova"
+         sudo -u "$user_name" tar -xvf "$ova"
          true "${bold}${cyan}INFO: Unpacked .ova. ${reset}"
       fi
    fi
@@ -152,7 +152,7 @@ preparation() {
    else
       ## Convert .vmdk to .img, since there is no Free Software for mounting .vmdk using command line.
       true "${bold}${cyan}INFO: Converting vmdk to img... ${reset}"
-      sudo -u "$USERNAME" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
+      sudo -u "$user_name" qemu-img convert "$vmdk" -O raw "$WHONIX_BUILD_MOUNT_IMG_FILE"
       true "${bold}${cyan}INFO: Converted vmdk to img. ${reset}"
    fi
 
@@ -300,7 +300,7 @@ download_packages() {
    if [ "$pkg_list" = "" ]; then
       true "${cyan}${bold}$0 INFO: Already downloaded all required packages. ${reset}"
    else
-      sudo -E -u "$USERNAME" \
+      sudo -E -u "$user_name" \
          apt-get download $pkg_list
 
       true "${cyan}${bold}$0 INFO: apt_get_return: $? ${reset}"
@@ -338,13 +338,13 @@ extract_packages() {
 
       local extract_folder="$temp_folder/${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}"
 
-      sudo -u "$USERNAME" \
+      sudo -u "$user_name" \
          dpkg-deb \
             --raw-extract \
             "${pkg}_${pkg_vers_without[$pkg]}_${pkg_arch[$pkg]}.deb" \
             "$extract_folder"
 
-      sudo -u "$USERNAME" \
+      sudo -u "$user_name" \
          touch "$status_file"
 
    done

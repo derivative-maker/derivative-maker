@@ -21,59 +21,59 @@ general_setup() {
    trap "error_handler_general" ERR INT TERM
 
    ## Create a new VM. Name: $VMNAME
-   sudo -u "$USERNAME" VBoxManage createvm --name "$VMNAME" --register
+   sudo -u "$user_name" VBoxManage createvm --name "$VMNAME" --register
 
    ## Debian
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --ostype Debian
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ostype Debian
 
    ## Add SATA Controller.
-   sudo -u "$USERNAME" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
+   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
 
    ## HDD gets added in specific_setup.
 
    ## Only 4 sata ports instead of 30. Speeds up booting.
-   sudo -u "$USERNAME" VBoxManage storagectl "$VMNAME" --name "$VMNAME" --sataportcount 4
+   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --name "$VMNAME" --sataportcount 4
 
    ## Add CD-ROM
-   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
 
    ## RAM
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --memory $VMRAM
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --memory $VMRAM
 
    ## Enable PAE.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --pae on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --pae on
 
    ## Hide hosts CPU info. This does not have a GUI option.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --synthcpu on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --synthcpu on
 
    ## REVIEW
    ## ACPI speeds up the VM boot process. It has not been reviewed if this is good or bad for security.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --acpi on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --acpi on
 
    ## REVIEW
    ## ACPI speeds up the VM boot process. It has not been reviewed if this is good or bad for security.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --ioapic on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ioapic on
 
    ## Set system clock of VM to UTC.
    ## When VirtualBox starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
    ## and sets the VM clock to that date and time. The following option translates the date
    ## and time to UTC, thus hiding the hosts timezone from the guest.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --rtcuseutc on
 
    ## Deactivate time synchronization between host and VMs.
    ## This is documented in Whonix Design on TimeSync page
    ## Thanks to
    ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
 
    ## Disable clipboard sharing. Only matters if guest additions are installed which is recommended against. Just in case.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --clipboard disabled
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --clipboard disabled
 
    ## Disable Drag'n'Drop support. Only matters if guest additions are installed which is recommended against. Just in case.
    ## TODO: Get ride of || true.
    ## || true to make this work on Debian Wheezy. We do not yet have the requirement to build on Debian Jessi.
    ## This VirtualBox feature was introduced first in the version which is also in Debian Jessi.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --draganddrop disabled || true
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --draganddrop disabled || true
 
    sync
 }
@@ -82,29 +82,29 @@ gateway_specific() {
    trap "error_handler_general" ERR INT TERM
 
    ## Attach the HDD.
-   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Leave Adapter 1 as NAT.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic1 nat
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic1 nat
 
    ## Prevents leaking DNS info from the host into the guest.
    ## Also useful in other cases.
    ## https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
 
    ## Prevents leaking DNS info from the host into the guest.
    ## Also useful in other cases.
    ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
 
    ## Do not pass the domain name for network name resolution to the VM.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 
    ## Enable Adapter 2, set to "Internal Network".
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic2 intnet
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic2 intnet
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
 
    sync
 }
@@ -113,31 +113,31 @@ workstation_specific() {
    trap "error_handler_general" ERR INT TERM
 
    ## Attach the HDD.
-   sudo -u "$USERNAME" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## 128 MB Video RAM.
    ## Settings->Display->Video Memory->128 MB.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --vram 128
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --vram 128
 
    ## Add Adapter 1 (will be eth0), an internal network, IMPORTANT!
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --nic1 intnet
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic1 intnet
 
    ## Probably a relict. Should work without as well. Needs testing, if its on by default anyway. Low priority.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
 
    ## Enable audio controller ac97.
    ## sb16 should be obsolete.
    ## ac97 is hopefully better supported than intel hda.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 
    ## Host audio driver can be oss, alsa or pulse.
    ## Unfortunately, no auto detection available.
    ## Depends on host driver.
    ## Ubuntu host uses pulse audio.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --audio pulse
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --audio pulse
 
    sync
 }

@@ -22,9 +22,9 @@ fi
 ## and does not safe any energy. That is something the host should do, if
 ## wanted.
 
-USERNAME="user"
+user_name="user"
 setterm -blank 0 -powerdown 0
-sudo -u "$USERNAME" setterm -blank 0 -powerdown 0
+sudo -u "$user_name" setterm -blank 0 -powerdown 0
 
 #set +x
 

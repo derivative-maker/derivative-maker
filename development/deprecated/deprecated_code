@@ -18,21 +18,21 @@
 # Javascript is enabeld in Tor Browser by default and javascript
 # can read the resolution.
 #
-# ( echo '/<applications>/a'; echo '<application class="Tor*" role="browser"> <maximized>yes</maximized> </application>'; echo '.'; echo 'wq') | sudo -u "$USERNAME" ed -s .config/openbox/rc.xml
+# ( echo '/<applications>/a'; echo '<application class="Tor*" role="browser"> <maximized>yes</maximized> </application>'; echo '.'; echo 'wq') | sudo -u "$user_name" ed -s .config/openbox/rc.xml
 
 # Win+Space shows Openbox menu.
 #
 # Out commented. We never advertised this feature and it's
 # probably better if the user decides to activate it.
 #
-# ( echo '/<keyboard>/a'; echo '<keybind key="W-space"><action name="ShowMenu"><menu>root-menu</menu></action></keybind>'; echo '.'; echo 'wq') | sudo -u "$USERNAME" ed -s .config/openbox/rc.xml
+# ( echo '/<keyboard>/a'; echo '<keybind key="W-space"><action name="ShowMenu"><menu>root-menu</menu></action></keybind>'; echo '.'; echo 'wq') | sudo -u "$user_name" ed -s .config/openbox/rc.xml
 
 # Fix ugly corners in tint2rc.
 #
 # Out commented. It's up to the user to decide which
 # style settings to choose.
 #
-# sudo -u "$USERNAME" ed -s .config/tint2/tint2rc <<< $',s/rounded = 7/rounded = 0/g\nw'
+# sudo -u "$user_name" ed -s .config/tint2/tint2rc <<< $',s/rounded = 7/rounded = 0/g\nw'
 
 
 # No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
@@ -145,9 +145,9 @@ trap "error_handler" ERR INT TERM
 # Fixing black on black for gnome-terminal.
 # Thanks to: http://ubuntuforums.org/showthread.php?t=1513791
 # Thanks to: https://gist.github.com/1397104
-sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
-sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
-sudo -u "$USERNAME" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/foreground_color" --type string "#FFFFFFFFFFFF"
+sudo -u "$user_name" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_background" --type bool false
+sudo -u "$user_name" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/use_theme_colors" --type bool false
+sudo -u "$user_name" gconftool-2 --set "/apps/gnome-terminal/profiles/Default/foreground_color" --type string "#FFFFFFFFFFFF"
 }
 
 # Remove unnecessary packages to slim down the system.
@@ -180,7 +180,7 @@ service rsyslog stop || true
 # TO DO
 # Which are safe?
 # rm /usr/share/icons/nuoveXT2/icon-theme.cache
-# cd /usr/share/locale &&  ls | grep -v en | xargs rm -r && cd /home/"$USERNAME"
+# cd /usr/share/locale &&  ls | grep -v en | xargs rm -r && cd /home/"$user_name"
 # rm -r /usr/share/doc/* #(are we even allowed to do that, see licenses?)
 
 config_vidalia() {
@@ -206,17 +206,17 @@ chmod --recursive g+rw /etc/tor/torrc
 chmod --recursive o+rw /etc/tor/torrc
 }
 
-usermod -a -G audio "$USERNAME"
-sudo -u "$USERNAME" amixer
-sudo -u "$USERNAME" amixer set Master 70 unmute
-sudo -u "$USERNAME" amixer set PCM 70 unmute
+usermod -a -G audio "$user_name"
+sudo -u "$user_name" amixer
+sudo -u "$user_name" amixer set Master 70 unmute
+sudo -u "$user_name" amixer set PCM 70 unmute
 
 start_vm() {
    trap "error_handler" ERR INT TERM
 
    : echo "whonix_createvm: $VMNAME starting..."
 
-   sudo -u "$USERNAME" VBoxSDL --startvm "$VMNAME"
+   sudo -u "$user_name" VBoxSDL --startvm "$VMNAME"
 
    : echo "whonix_createvm: VirtualBox terminated without error messages."
    : echo "whonix_createvm: This is no guarantee everything went well inside the VM."
@@ -229,7 +229,7 @@ start_vm() {
 ################################################################
 if [[ $# == 0 ]]; then
    : echo "No option chosen. Use -help for help."
-   touch /home/"$USERNAME"/whonix_binary/WHONIX_BUILD_FAILED || true
+   touch /home/"$user_name"/whonix_binary/WHONIX_BUILD_FAILED || true
    exit 1
 fi
 
@@ -295,7 +295,7 @@ fi
 if [[ "$1" = "-tg-copyinto" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    copy_into_vm_image_whonix_gateway
    unmount_img
@@ -309,7 +309,7 @@ fi
 if [[ "$1" = "-tg-chroot" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    inside_chroot
@@ -325,7 +325,7 @@ fi
 if [[ "$1" = "-tg-interactive" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    interactive_chroot
@@ -341,7 +341,7 @@ fi
 if [[ "$1" = "-tg-source" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    download_sources
@@ -360,8 +360,8 @@ if [[ "$1" = "-tg-export" ]]; then
    VMNAME="Whonix-Gateway"
    ## TO DO: Snapshot not included in exported ova.
    #: echo "whonix_createvm: Creating snapshot..."
-   #sudo -u "$USERNAME" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
-   sudo -u "$USERNAME" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
+   #sudo -u "$user_name" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   sudo -u "$user_name" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
    : echo "BUILD INFO: Done."
    exit 0
 fi
@@ -442,7 +442,7 @@ fi
 if [[ "$1" = "-tw-copyinto" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    copy_into_vm_image_whonix_workstation
    unmount_img
@@ -456,7 +456,7 @@ fi
 if [[ "$1" = "-tw-chroot" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    inside_chroot
@@ -472,7 +472,7 @@ fi
 if [[ "$1" = "-tw-interactive" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    interactive_chroot
@@ -488,7 +488,7 @@ fi
 if [[ "$1" = "-tw-source" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    do_chroot
    download_sources
@@ -507,8 +507,8 @@ if [[ "$1" = "-tw-export" ]]; then
    VMNAME="Whonix-Workstation"
    ## TO DO: Snapshot not included in exported ova.
    #: echo "whonix_createvm: Creating snapshot..."
-   #sudo -u "$USERNAME" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
-   sudo -u "$USERNAME" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
+   #sudo -u "$user_name" VBoxManage snapshot "$VMNAME" take "default" --description "$SNAPSHOT_DESCRIPTION"
+   sudo -u "$user_name" VBoxManage export "$VMNAME" --output "$HOMEVAR/whonix_binary/$VMNAME".ova
    : echo "BUILD INFO: Done."
    exit 0
 fi
@@ -541,7 +541,7 @@ fi
 if [[ "$1" = "-tg-mountimg" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
@@ -557,7 +557,7 @@ fi
 if [[ "$1" = "-tg-unmountimg" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    unmount_img
    : echo "INFO: unmount done."
    exit 0
@@ -569,7 +569,7 @@ fi
 if [[ "$1" = "-tw-mountimg" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_img
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
@@ -585,7 +585,7 @@ fi
 if [[ "$1" = "-tw-unmountimg" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    unmount_img
    echo "INFO: unmount done."
    exit 0
@@ -597,7 +597,7 @@ fi
 if [[ "$1" = "-tg-mountvdi" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_vdi
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
@@ -613,7 +613,7 @@ fi
 if [[ "$1" = "-tg-unmountvdi" ]]; then
    root_check
    VMNAME="Whonix-Gateway"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    unmount_vdi
    : echo "INFO: unmount done."
    exit 0
@@ -625,7 +625,7 @@ fi
 if [[ "$1" = "-tw-mountvdi" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    mount_vdi
    : echo "INFO: mount done."
    : echo "- Mounted to: cd \"$CHROOT_FOLDER\""
@@ -641,7 +641,7 @@ fi
 if [[ "$1" = "-tw-unmountvdi" ]]; then
    root_check
    VMNAME="Whonix-Workstation"
-   CHROOT_FOLDER=/home/"$USERNAME"/whonix_binary/"$VMNAME"_image
+   CHROOT_FOLDER=/home/"$user_name"/whonix_binary/"$VMNAME"_image
    unmount_vdi
    echo "INFO: unmount done."
    exit 0
@@ -784,7 +784,7 @@ sudo -u user crontab -l
 tb_create_user_js() {
 trap "tb_error_handler" ERR
 
-## Editing /home/"$USERNAME"/tor-browser_"$TB_LANG"/Data/profile/users.js
+## Editing /home/"$user_name"/tor-browser_"$TB_LANG"/Data/profile/users.js
 ## http://kb.mozillazine.org/User.js_file
 ## Configuring Tor Button to use SOCKSPort
 
@@ -898,91 +898,91 @@ hardware_modifications() {
    ## Hiding BIOS information.
    ##
    ##
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor'        'American Megatrends Inc.'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion'       'string:N61Jq.204'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate'   'string:01/05/2010'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor'  '4'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor'  '6'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor' '152'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor' '152'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor'      'ASUSTeK Computer Inc.'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct'     'N61Jq'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion'     '1.0'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial'      '###############'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid'        '###############'
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" 'VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily'      'To Be Filled By O.E.M.'
    ##
    ##
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVendor"        "BIOS Vendor"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSVersion"       "BIOS Version"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseDate"   "BIOS Release Date"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMajor"  1
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSReleaseMinor"  2
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMajor" 3
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBIOSFirmwareMinor" 4
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor"      "System Vendor"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct"     "System Product"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVersion"     "System Version"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSerial"      "System Serial"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemSKU"         "System SKU"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemFamily"      "System Family"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemUuid"        "9852bf98-b83c-49db-a8de-182c42c7226b"
 
    ## TO DO VBOX: Wait for next VirtualBox version.
    ## Not yet available.
    ## http://wiki.ubuntuusers.de/Dualboot-Windows_virtualisieren
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisAssetTag" "<EMPTY>"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisSerial" "<EMPTY>"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVendor" "string:Medion"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVersion" "string:N/A"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisAssetTag" "<EMPTY>"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisSerial" "<EMPTY>"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVendor" "string:Medion"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiChassisVersion" "string:N/A"
    ## https://forums.virtualbox.org/viewtopic.php?f=2&t=43678
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardProduct""D2560-A2"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardVendor" "FUJITSU SIEMENS"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct" "ESPRIMO P"
-   #sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor" "FUJITSU SIEMENS"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardProduct""D2560-A2"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiBoardVendor" "FUJITSU SIEMENS"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct" "ESPRIMO P"
+   #sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/pcbios/0/Config/DmiSystemVendor" "FUJITSU SIEMENS"
 
    ## Configuring the hard disk vendor product data (VPD)
    ## http://www.virtualbox.org/manual/ch09.html#changevpd
 
    ## Port0 (hdd)
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/SerialNumber" "serial"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/FirmwareRevision" "firmware"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ModelNumber" "model"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIVendorId" "vendor"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIProductId" "product"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port0/ATAPIRevision" "revi"
 
    ## Port1 (cd-rom)
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
-   sudo -u "$USERNAME" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/SerialNumber" "serial"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/FirmwareRevision" "firmware"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ModelNumber" "model"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIVendorId" "vendor"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIProductId" "product"
+   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/ahci/0/Config/Port1/ATAPIRevision" "revi"
 
    ## Show changes.
-   sudo -u "$USERNAME" VBoxManage getextradata "$VMNAME" enumerate
+   sudo -u "$user_name" VBoxManage getextradata "$VMNAME" enumerate
 }
 
    ## VM UUID
    ## Thanks to:
    ## http://www.windowstablettv.com/windows-tips/190-virtualbox-clone-windows-activation/
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --hardwareuuid "dbc5316a-2600-4d6e-8964-a07f3de5ded8"
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --hardwareuuid "dbc5316a-2600-4d6e-8964-a07f3de5ded8"
 
    ## HD UUID
    ## Thanks to:
    ## http://michail.flouris.net/2011/11/virtualbox-vm-disk-clone-uuid-problem/
-   sudo -u "$USERNAME" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "0156199f-6e83-4cd6-97b7-c9e24d9cd26d"
+   sudo -u "$user_name" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "0156199f-6e83-4cd6-97b7-c9e24d9cd26d"
 
    ## VM UUID
    ## Thanks to:
    ## https://forums.virtualbox.org/viewtopic.php?f=2&t=22653&start=75
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --hardwareuuid "05f2222c-9697-485b-b105-267a36c401fc"
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --hardwareuuid "05f2222c-9697-485b-b105-267a36c401fc"
 
    ## HD UUID
    ## Thanks to:
    ## http://mixeduperic.com/ubuntu/how-to-copy-a-virtualbox-virtual-machine-in-ubuntu.html
-   sudo -u "$USERNAME" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "77d55d86-800c-4667-9e60-678f81a50913"
+   sudo -u "$user_name" VBoxManage internalcommands sethduuid "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi" "77d55d86-800c-4667-9e60-678f81a50913"
 
 export SNAPSHOT_DESCRIPTION="
    Reverts your Virtual Machine back to a clean state.
@@ -990,7 +990,7 @@ export SNAPSHOT_DESCRIPTION="
 "
 
    for FINGERPRINT in $(\
-      sudo -u "$USERNAME" gpg \
+      sudo -u "$user_name" gpg \
          --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
          --no-default-keyring \
          --with-colons \
@@ -1042,13 +1042,13 @@ get_local_whonix_version() {
    ## - See Whonix Security page about Whonix in public networks / MAC address
    ## - In case the Gateway gets broken, this one can not be used as identifier.
    ##   Gets interesting in future with multiple gateways.
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress1 002682475ce1
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --macaddress1 002682475ce1
 
    ## Enter following MAC address: 0013029cf191
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress2 0013029cf191
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --macaddress2 0013029cf191
 
    ## Enter following MAC address: 0021004d8f08
-   sudo -u "$USERNAME" VBoxManage modifyvm "$VMNAME" --macaddress1 0021004d8f08
+   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --macaddress1 0021004d8f08
 
 
    ## Check if config-package-dev with debhelper support is installed.
@@ -1131,7 +1131,7 @@ Description: Dummy Tor Package
    ## /home/user/whonix_binary/$tempfolder/raw_folder/Whonix-Gateway-7.img:107374182400B:file:512:512:msdos:;
    ## 1:2097152B:107374182399B:107372085248B:ext4::;
 
-   sudo -E -u "$USERNAME" \
+   sudo -E -u "$user_name" \
       faketime -f "2013-08-15 11:02:35" \
          debchange \
             $debchange_vendor_cmd "whonix" \

@@ -47,10 +47,10 @@ create-debian-packages() {
       if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
          true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
 
-         sudo -E -u "$USERNAME" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+         sudo -E -u "$user_name" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
 
          ## chmod 700, so gpg will not complain about folder permissions
-         sudo -E -u "$USERNAME" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+         sudo -E -u "$user_name" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
 
          ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
 
@@ -65,7 +65,7 @@ create-debian-packages() {
             Name-Email: whonix@local-signing.key
             Expire-Date: 0
             Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
-         " | sudo -E -u "$USERNAME" gpg \
+         " | sudo -E -u "$user_name" gpg \
                                        --no-emit-version \
                                        --no-comments \
                                        --display-charset utf-8 \
@@ -84,7 +84,7 @@ create-debian-packages() {
                                        --batch \
                                        --gen-key
 
-         sudo -E -u "$USERNAME" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done"
+         sudo -E -u "$user_name" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done"
 
          true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
       else
@@ -96,7 +96,7 @@ create-debian-packages() {
 
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
-   sudo -E -u "$USERNAME" gpg \
+   sudo -E -u "$user_name" gpg \
                           --no-default-keyring \
                           --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
                           --keyid-format "0xlong" \
@@ -202,7 +202,7 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    ##    --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed"
    ## could be quoted below. Therefore only using.
    ##    --default-preference-list "SHA512"
-   sudo -E -u "$USERNAME" \
+   sudo -E -u "$user_name" \
          debuild \
             --rootcmd="$WHONIX_SOURCE_HELP_STEPS_FOLDER/gain-root-command" \
             -p"gpg \
@@ -233,7 +233,7 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
       true "${cyan}$0 INFO: Purging ${under}local${eunder} APT repository... ${reset}"
 
-      sudo -E -u "$USERNAME" \
+      sudo -E -u "$user_name" \
          reprepro \
             -V \
             -V \
@@ -248,7 +248,7 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    true "${cyan}$0 INFO: Creating ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
 
-   sudo -E -u "$USERNAME" \
+   sudo -E -u "$user_name" \
       reprepro \
          -V \
          -V \
@@ -259,7 +259,7 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
 
    true "${cyan}$0 INFO: Importing .changes file... ${reset}"
 
-   sudo -E -u "$USERNAME" \
+   sudo -E -u "$user_name" \
       reprepro \
          -V \
          -V \
@@ -269,7 +269,7 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    true "${cyan}$0 INFO: Done, imported .changes file. ${reset}"
 
 ## Old method. We do not need to import .deb files for now.
-#   sudo -E -u "$USERNAME" \
+#   sudo -E -u "$user_name" \
 #      reprepro \
 #         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
 #         --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \

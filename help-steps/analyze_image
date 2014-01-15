@@ -183,9 +183,9 @@ unmount_image() {
 preparation() {
    trap "error_handler" ERR INT TERM
 
-   true "INFO: USERNAME is set to $USERNAME"
-   true 'INFO: Benchmarking "sudo -u "$USERNAME" echo "This is a test echo."" using "time"...'
-   time sudo -u "$USERNAME" echo "This is a test echo."
+   true "INFO: user_name is set to $user_name"
+   true 'INFO: Benchmarking "sudo -u "$user_name" echo "This is a test echo."" using "time"...'
+   time sudo -u "$user_name" echo "This is a test echo."
 
    ## {{ Sanity Tests.
 
@@ -246,9 +246,9 @@ preparation() {
    ## The WHONIX_BINARY folder should already be created. Just make sure it
    ## really is to allow running this script in non-Whonix environments as
    ## well.
-   sudo -u "$USERNAME" mkdir --parents "$WHONIX_BINARY"
+   sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY"
 
-   sudo -u "$USERNAME" touch "$report_file"
+   sudo -u "$user_name" touch "$report_file"
    sync
 
    if [ "$BARE_METAL" = "1" ]; then
@@ -284,15 +284,15 @@ preparation() {
 
    file_list_file="$auto_hash_folder/file_list"
 
-   sudo -u "$USERNAME" mkdir --parents "$extracted_ova_folder"
-   sudo -u "$USERNAME" mkdir --parents "$mount_folder" || true
-   sudo -u "$USERNAME" mkdir --parents "$vdi_folder"
-   sudo -u "$USERNAME" mkdir --parents "$raw_folder"
-   sudo -u "$USERNAME" mkdir --parents "$auto_hash_folder"
-   sudo -u "$USERNAME" mkdir --parents "$initrd_folder"
-   sudo -u "$USERNAME" mkdir --parents "$extracted_initrd_folder"
-   sudo -u "$USERNAME" mkdir --parents "$debug_folder"
-   sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder"
+   sudo -u "$user_name" mkdir --parents "$extracted_ova_folder"
+   sudo -u "$user_name" mkdir --parents "$mount_folder" || true
+   sudo -u "$user_name" mkdir --parents "$vdi_folder"
+   sudo -u "$user_name" mkdir --parents "$raw_folder"
+   sudo -u "$user_name" mkdir --parents "$auto_hash_folder"
+   sudo -u "$user_name" mkdir --parents "$initrd_folder"
+   sudo -u "$user_name" mkdir --parents "$extracted_initrd_folder"
+   sudo -u "$user_name" mkdir --parents "$debug_folder"
+   sudo -u "$user_name" mkdir --parents "$manual_analysis_folder"
    sync
 }
 
@@ -322,7 +322,7 @@ extract_ova() {
          error "${red}${bold}ERROR: $ova_file does not exist. ${reset}"
       else
          true "${bold}${cyan}INFO: Unpacking ova: $ova_file... (This can take a while.) ${reset}"
-         sudo -u "$USERNAME" tar -xvf "$ova_file"
+         sudo -u "$user_name" tar -xvf "$ova_file"
          true "${bold}${cyan}INFO: Unpacked ova_file. ${reset}"
       fi
    fi
@@ -349,9 +349,9 @@ convert_vmdk_to_vdi() {
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
       ## https://bugs.launchpad.net/qemu/+bug/1253465
-      #sudo -u "$USERNAME" qemu-img convert "$vmdk_file" -O RAW "$vdi_file"
+      #sudo -u "$user_name" qemu-img convert "$vmdk_file" -O RAW "$vdi_file"
 
-      sudo -u "$USERNAME" VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
+      sudo -u "$user_name" VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
 
       true "${bold}${cyan}INFO: Converted vmdk to vdi. ${reset}"
    fi
@@ -370,7 +370,7 @@ convert_vdi_to_raw() {
    else
       true "${bold}${cyan}INFO: Converting vdi to img... (This can take a while.) ${reset}"
 
-      sudo -u "$USERNAME" qemu-img convert -p -O raw "$vdi_file" "$raw_file"
+      sudo -u "$user_name" qemu-img convert -p -O raw "$vdi_file" "$raw_file"
 
       true "${bold}${cyan}INFO: Converted vdi to img. ${reset}"
    fi
@@ -447,7 +447,7 @@ cp_to_user() {
    trap "error_handler" ERR INT TERM
 
    cp "$1" "$2"
-   chown --recursive "$USERNAME:$USERNAME" "$2"
+   chown --recursive "$user_name:$user_name" "$2"
 }
 
 parse_special_files() {
@@ -457,7 +457,7 @@ parse_special_files() {
    if [ -f "$mount_folder/usr/share/whonix/build_timestamp" ]; then
       cp_to_user "$mount_folder/usr/share/whonix/build_timestamp" "$manual_analysis_folder/usr_share_whonix_build_timestamp"
       echo "$manual_analysis_folder/build_timestamp BEGIN..."
-      sudo -u "$USERNAME" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
+      sudo -u "$user_name" cat "$manual_analysis_folder/usr_share_whonix_build_timestamp"
       echo "END $manual_analysis_folder/build_timestamp."
    else
       msg="Strange, $mount_folder/usr/share/whonix/build_timestamp does not exist. Perhaps not running in Whonix."
@@ -482,7 +482,7 @@ parse_special_files() {
 
    cp_to_user "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
 
-   sudo -u "$USERNAME" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
+   sudo -u "$user_name" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
    if [ "$CI" = "true" ]; then
       cp_to_user "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/" || true
@@ -505,7 +505,7 @@ parse_special_files() {
    cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
    cp_to_user "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
 
-   sudo -u "$USERNAME" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
+   sudo -u "$user_name" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
    rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
@@ -527,7 +527,7 @@ parse_special_files() {
 
    unset file
 
-   sudo -u "$USERNAME" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
+   sudo -u "$user_name" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
 
    for file in "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums"; do
 
@@ -573,9 +573,9 @@ parse_initrd() {
       if [ "$basename_file" = "*" ]; then
          continue
       fi
-      sudo -u "$USERNAME" mkdir --parents "$basename_file"
+      sudo -u "$user_name" mkdir --parents "$basename_file"
       cd "$basename_file"
-      sudo -u "$USERNAME" gzip -dc < "$file" | sudo -u "$USERNAME" cpio -i
+      sudo -u "$user_name" gzip -dc < "$file" | sudo -u "$user_name" cpio -i
    done
 }
 
