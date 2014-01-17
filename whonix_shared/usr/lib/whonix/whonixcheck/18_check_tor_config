@@ -10,11 +10,11 @@ check_tor_config_do() {
    trap "error_handler" ERR
 
    ## Fallback.
-   tor_verify_config_return_code="0"
+   tor_verify_config_exit_code="0"
 
    ## Only check on Whonix-Gateway.
    if [ ! -e "/usr/share/whonix/whonix_gateway" ]; then
-      tor_verify_config_return_code="0"
+      tor_verify_config_exit_code="0"
       return 0
    fi
 
@@ -24,8 +24,8 @@ check_tor_config_do() {
    for file in $file_list; do
       tor_verify_config_file="$file"
       ## This has a /etc/sudoers.d exception.
-      tor_verify_config_return_msg="$(sudo tor --verify-config -f "$file")" || { tor_verify_config_return_code="$?" ; true; };
-      if [ ! "$tor_verify_config_return_code" = "0" ]; then
+      tor_verify_config_return_msg="$(sudo tor --verify-config -f "$file")" || { tor_verify_config_exit_code="$?" ; true; };
+      if [ ! "$tor_verify_config_exit_code" = "0" ]; then
          break
       fi
    done
@@ -36,12 +36,12 @@ check_tor_config_do() {
 check_tor_config() {
    trap "error_handler" ERR
 
-   ## returns: tor_verify_config_return_code, tor_verify_config_return_msg
+   ## returns: tor_verify_config_exit_code, tor_verify_config_return_msg
    check_tor_config_do
 
-   if [ ! "$tor_verify_config_return_code" = "0" ]; then
+   if [ ! "$tor_verify_config_exit_code" = "0" ]; then
       local MSG="Tor Config Check Result:
-Your $tor_verify_config_file file contains at least one error. (Tor return code: $tor_verify_config_return_code) Tor reports:
+Your $tor_verify_config_file file contains at least one error. (Tor return code: $tor_verify_config_exit_code) Tor reports:
 $tor_verify_config_return_msg
 
 You have to fix this error, before you can use Tor.
