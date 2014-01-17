@@ -122,7 +122,7 @@ maybe_start_whonixsetup() {
 ram-adjusted-desktop-starter() {
    trap "error_handler_rads" ERR
 
-   for i in /etc/whonix.d/*; do
+   for i in "/etc/whonix.d/"*; do
       if [ -f "$i" ]; then
          ## If the last character is a ~, ignore that file,
          ## because it was created by some editor,
@@ -141,9 +141,9 @@ ram-adjusted-desktop-starter() {
 
    ## Sanity Tests, Defaults, Debugging
    if [ -z "$whonixdesktop_debug" ]; then
-      whonixdesktop_debug=0
+      whonixdesktop_debug="0"
    fi
-   if [ "$whonixdesktop_debug" = 1 ]; then
+   if [ "$whonixdesktop_debug" = "1" ]; then
       set -x
    fi
    if [ -z "$x_default_dm_config_file" ]; then
@@ -153,33 +153,33 @@ ram-adjusted-desktop-starter() {
       if [ -f "$x_default_dm_config_file" ]; then
          whonixdesktop_display_manager="$(basename "$(cat "$x_default_dm_config_file")")"
          if [ "$whonixdesktop_display_manager" = "" ]; then
-            whonixdesktop_display_manager=kdm
+            whonixdesktop_display_manager="kdm"
          fi
       else
          whonixdesktop_no_x_default_dm="1"
       fi
    fi
    if [ -z "$whonixdesktop_minium_ram" ]; then
-      whonixdesktop_minium_ram=500
+      whonixdesktop_minium_ram="500"
    fi
    if [ -z "$whonixdesktop_start_display_manager" ]; then
-      whonixdesktop_start_display_manager=1
+      whonixdesktop_start_display_manager="1"
    fi
    if [ -z "$whonixdesktop_skip_ram_test" ]; then
-      whonixdesktop_skip_ram_test=0
+      whonixdesktop_skip_ram_test="0"
    fi
    if [ -z "$whonixdesktop_wait" ]; then
-      whonixdesktop_wait=1
+      whonixdesktop_wait="1"
    fi
    if [ -z "$whonixdesktop_wait_seconds" ]; then
-      whonixdesktop_wait_seconds=10
+      whonixdesktop_wait_seconds="10"
    fi
    if [ -z "$whonixdesktop_autostart_decision_feature" ]; then
-      whonixdesktop_autostart_decision_feature=1
+      whonixdesktop_autostart_decision_feature="1"
    fi
 
    if [ ! "$whonixdesktop_autostart_decision_feature" = "1" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] whonixdesktop_autostart_decision_feature is not set to 1, doing nothing."
          set +x
       fi
@@ -190,7 +190,7 @@ ram-adjusted-desktop-starter() {
    command -v "$whonixdesktop_display_manager" >/dev/null || { command_v_exit_code="$?" ; true; };
 
    if [ ! "$command_v_exit_code" = "0" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] display manager \
 $whonixdesktop_display_manager configured in /etc/whonix.d/ \
 configuration folder does not exist. Not starting a desktop environment."
@@ -201,7 +201,7 @@ configuration folder does not exist. Not starting a desktop environment."
    fi
 
    if [ "$whonixdesktop_no_x_default_dm" = "1" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] config file \
 $x_default_dm_config_file \
 does not exist. Probably no desktop environment installed. Not starting a desktop environment."
@@ -216,7 +216,7 @@ does not exist. Probably no desktop environment installed. Not starting a deskto
    sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return1="$?" ; true; };
 
    if [ "$service_return1" = "0" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] \
 Not starting kdm, already running."
          set +x
@@ -224,7 +224,7 @@ Not starting kdm, already running."
       exit 0
    fi
 
-   if [ "$whonixdesktop_debug" = 1 ]; then
+   if [ "$whonixdesktop_debug" = "1" ]; then
       temp="INFO: [RAM Adjusted Desktop Starter] $(/bin/date) | \
       whoami: $(/usr/bin/whoami) | caller: $0 | path: $PATH"
       true "$temp"
@@ -239,8 +239,8 @@ Not starting kdm, already running."
    ## http://stackoverflow.com/a/10277712
    total_ram="$(free -m | sed  -n -e '/^Mem:/s/^[^0-9]*\([0-9]*\) .*/\1/p')"
 
-   if [ "$whonixdesktop_start_display_manager" = 0 ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+   if [ "$whonixdesktop_start_display_manager" = "0" ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] \
 whonixdesktop_start_display_manager is set to 0 in /etc/whonix.d/ \
 configuration folder, not starting a desktop environment."
@@ -263,7 +263,7 @@ configuration folder.)"
    fi
 
    if [ "$whonixdesktop_wait" = "0" ]; then
-      if [ "$whonixdesktop_debug" = 1 ]; then
+      if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: Waiting feature disabled."
       fi
    else
@@ -314,7 +314,7 @@ here: https://www.whonix.org/wiki/Desktop"
          echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Starting login manager \
 (graphical desktop environment) $whonixdesktop_display_manager..."
 
-         if [ "$service_return3" = 0 ]; then
+         if [ "$service_return3" = "0" ]; then
             true "INFO: [RAM Adjusted Desktop Starter] Successfully started $whonixdesktop_display_manager."
          else
             echo "[${red}${bold}ERROR${reset}] [RAM Adjusted Desktop Starter] \
@@ -334,7 +334,7 @@ Could not start $whonixdesktop_display_manager. Please report this Whonix bug!"
       maybe_start_whonixsetup
    fi
 
-   if [ "$whonixdesktop_debug" = 1 ]; then
+   if [ "$whonixdesktop_debug" = "1" ]; then
       true "INFO: End."
       set +x
    fi
