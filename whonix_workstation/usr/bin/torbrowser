@@ -485,11 +485,11 @@ tb_connectivity_checks() {
    fi
 
    ## Let's reuse that code.
-   local connection_checker_return
-   connection_checker_return="0"
-   /usr/lib/whonix/timesync_prerequisite || { connection_checker_return="$?" ; true; };
+   local connection_checker_exit_code
+   connection_checker_exit_code="0"
+   /usr/lib/whonix/timesync_prerequisite || { connection_checker_exit_code="$?" ; true; };
 
-   if [ ! "$connection_checker_return" = "0" ]; then
+   if [ ! "$connection_checker_exit_code" = "0" ]; then
       MSG="Tor not fully bootstrapped.
 
 Possible reasons:
@@ -521,7 +521,7 @@ Checking connectivity... Will take a moment..."
    sleep 1 &
    wait "$!"
 
-   CURL_RETURN="0"
+   curl_exit_code="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
    ## Define what CURL_PRGRS is supposed to eval.
@@ -537,11 +537,11 @@ Checking connectivity... Will take a moment..."
       &
 
    LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
    LAST_CURL_PRGRS_PID=""
 
    ## Check if curl failed.
-   if [ ! "$CURL_RETURN" = "0" ]; then
+   if [ ! "$curl_exit_code" = "0" ]; then
       MSG="$TBB_REMOTE_FOLDER could not be reached.
 
 Possible reasons:
@@ -609,7 +609,7 @@ Checking Tor Browser version... Will take a moment..."
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
 
-   CURL_RETURN="0"
+   curl_exit_code="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
    ## Define what CURL_PRGRS is supposed to eval.
@@ -626,11 +626,11 @@ Checking Tor Browser version... Will take a moment..."
       &
 
    LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
    LAST_CURL_PRGRS_PID=""
 
    ## Check if curl failed.
-   if [ ! "$CURL_RETURN" = "0" ]; then
+   if [ ! "$curl_exit_code" = "0" ]; then
       MSG="Failed to download: $LINK
 
 $DOWNLOAD_FAIL_HELP"
@@ -855,7 +855,7 @@ Downloading Tor Browser signature... Will take a moment..."
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
 
-   CURL_RETURN="0"
+   curl_exit_code="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
    ## Define what CURL_PRGRS is supposed to eval.
@@ -871,7 +871,7 @@ Downloading Tor Browser signature... Will take a moment..."
       &
 
    LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
    LAST_CURL_PRGRS_PID=""
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
@@ -879,7 +879,7 @@ Downloading Tor Browser signature... Will take a moment..."
    wait "$!"
 
    ## Check if curl failed.
-   if [ ! "$CURL_RETURN" = "0" ]; then
+   if [ ! "$curl_exit_code" = "0" ]; then
       if [ "$last_try" = "0" ]; then
          MSG="Failed to download: $TBB_SIG_LINK
 There are other recommended versions. Will try to download the next recommended version..."
@@ -924,7 +924,7 @@ Downloading Tor Browser... Will take a while..."
 
    debug "INFO: Downloading: $TBB_PACKAGE_LINK"
 
-   CURL_RETURN="0"
+   curl_exit_code="0"
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
@@ -943,11 +943,11 @@ Downloading Tor Browser... Will take a while..."
       &
 
    LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { CURL_RETURN="$?" ; true; };
+   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
    LAST_CURL_PRGRS_PID=""
 
    ## Check if curl failed.
-   if [ ! "$CURL_RETURN" = "0" ]; then
+   if [ ! "$curl_exit_code" = "0" ]; then
       MSG="Failed to download: $TBB_PACKAGE_LINK
 
 $DOWNLOAD_FAIL_HELP"
@@ -972,14 +972,14 @@ tb_verify() {
 ## user's keyring will be ignored.
 "
 
-   TB_GPG_VERIFY_RETURN="0"
+   tb_gpg_verify_exit_code="0"
    gpg \
       --homedir "$home_folder/.tb/gpgtmpdir/" \
       --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
       "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
-      || { TB_GPG_VERIFY_RETURN="$?" ; true; };
+      || { tb_gpg_verify_exit_code="$?" ; true; };
 
-   if [ ! "$TB_GPG_VERIFY_RETURN" = "0" ]; then
+   if [ ! "$tb_gpg_verify_exit_code" = "0" ]; then
       local MSG="\
 GPG download signature could NOT be verified.
 Tor Browser update failed! Try again later.\

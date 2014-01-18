@@ -12,15 +12,15 @@ check_operating_system() {
    ## Minimal custom script.
    local MSG="Debian Package Update Check: Checking for software updates via apt-get..."
    $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-   local apt_get_return
-   apt_get_return="0"
+   local apt_get_exit_code
+   apt_get_exit_code="0"
    sudo "/usr/lib/whonix/whonixcheck/apt-get-update" >/dev/null &
    apt_get_update_pid="$!"
-   wait "$apt_get_update_pid" || { apt_get_return="$?" ; true; };
+   wait "$apt_get_update_pid" || { apt_get_exit_code="$?" ; true; };
    unset apt_get_update_pid
 
-   if [ ! "$apt_get_return" = "0" ]; then
-      local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $apt_get_return) Please manually check:
+   if [ ! "$apt_get_exit_code" = "0" ]; then
+      local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $apt_get_exit_code) Please manually check:
 (Open a terminal, Start menu -> Applications -> System -> Terminal.)
     sudo apt-get update && sudo apt-get dist-upgrade"
       $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
@@ -28,11 +28,11 @@ check_operating_system() {
       return 0
    fi
 
-   local check_os_result
-   check_os_result="$(apt-get --simulate dist-upgrade 2>&1)"
+   local check_os_output
+   check_os_output="$(apt-get --simulate dist-upgrade 2>&1)"
 
    local number_upgraded
-   number_upgraded="$(echo "$check_os_result" | grep -Po "^\d+ (?=upgraded)")"
+   number_upgraded="$(echo "$check_os_output" | grep -Po "^\d+ (?=upgraded)")"
 
    ## Example number_upgraded:
    ## "55 "

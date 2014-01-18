@@ -24,7 +24,7 @@ check_tor_config_do() {
    for file in $file_list; do
       tor_verify_config_file="$file"
       ## This has a /etc/sudoers.d exception.
-      tor_verify_config_return_msg="$(sudo tor --verify-config -f "$file")" || { tor_verify_config_exit_code="$?" ; true; };
+      tor_verify_config_output="$(sudo tor --verify-config -f "$file" 2>&1)" || { tor_verify_config_exit_code="$?" ; true; };
       if [ ! "$tor_verify_config_exit_code" = "0" ]; then
          break
       fi
@@ -36,13 +36,13 @@ check_tor_config_do() {
 check_tor_config() {
    trap "error_handler" ERR
 
-   ## returns: tor_verify_config_exit_code, tor_verify_config_return_msg
+   ## returns: tor_verify_config_exit_code, tor_verify_config_output
    check_tor_config_do
 
    if [ ! "$tor_verify_config_exit_code" = "0" ]; then
       local MSG="Tor Config Check Result:
 Your $tor_verify_config_file file contains at least one error. (Tor return code: $tor_verify_config_exit_code) Tor reports:
-$tor_verify_config_return_msg
+$tor_verify_config_output
 
 You have to fix this error, before you can use Tor.
 

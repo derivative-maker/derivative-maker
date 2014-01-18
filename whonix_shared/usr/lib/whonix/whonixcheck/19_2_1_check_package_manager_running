@@ -13,14 +13,14 @@ check_package_manager_running_helper() {
    trap "error_handler" ERR
 
    if [ -f "/var/run/whonix/package_manager_lock" ]; then
-      apt_get_return="/var/run/whonix/package_manager_lock exists."
+      check_apt_get_exit_code="/var/run/whonix/package_manager_lock exists."
       return 0
    fi
 
-   apt_get_return="0"
+   check_apt_get_exit_code="0"
    sudo  "/usr/lib/whonix/whonixcheck/apt-get-update-simulate" >/dev/null 2>&1 &
    apt_get_update_pid="$!"
-   wait "$apt_get_update_pid" || { apt_get_return="$?" ; true; };
+   wait "$apt_get_update_pid" || { check_apt_get_exit_code="$?" ; true; };
    unset apt_get_update_pid
 }
 
@@ -33,7 +33,7 @@ check_package_manager_running() {
 
    check_package_manager_running_helper
 
-   if [ "$apt_get_return" = "0" ]; then
+   if [ "$check_apt_get_exit_code" = "0" ]; then
       if [ "$whonixcheck_package_manager_waiting" = "1" ]; then
          $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
       fi

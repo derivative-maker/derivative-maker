@@ -15,8 +15,8 @@ download_whonix_news() {
    mkdir --parents "$VERIFY_TEMPDIR/news"
 
    declare -A -g whonix_news_link_list
-   declare -A -g whonix_news_download_return
-   declare -A -g whonix_news_verify_return
+   declare -A -g whonix_news_download_exit_code
+   declare -A -g whonix_news_verify_check_exit_code
 
    whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v3/whonix_news.tar.gz.asc/download]="whonix_news.tar.gz.asc"
 
@@ -34,7 +34,7 @@ download_whonix_news() {
       true "link: $link"
       true "filename: $filename"
 
-      whonix_news_download_return[$link]="0"
+      whonix_news_download_exit_code[$link]="0"
 
       $CURL \
          $CURL_VERBOSE \
@@ -47,11 +47,11 @@ download_whonix_news() {
          &
 
       lastpid="$!"
-      wait "$lastpid" || { whonix_news_download_return[$link]="$?" ; true; };
+      wait "$lastpid" || { whonix_news_download_exit_code[$link]="$?" ; true; };
 
-      if [ ! "${whonix_news_download_return[$link]}" = "0" ]; then
+      if [ ! "${whonix_news_download_exit_code[$link]}" = "0" ]; then
          local curl_status_message
-         curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${whonix_news_download_return[$link]}")"
+         curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${whonix_news_download_exit_code[$link]}")"
          local MSG="Whonix News Result: Could not download Whonix News File "$filename". (curl return code: $curl_status_message)"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -62,15 +62,15 @@ download_whonix_news() {
 
    verify_whonix_news
 
-   if [ ! "$whonix_news_verify_return" = "0" ]; then
-      true "$0 WARNING: whonix_news_verify_return is not 0, it is $whonix_news_verify_return, return"
+   if [ ! "$whonix_news_verify_check_exit_code" = "0" ]; then
+      true "$0 WARNING: whonix_news_verify_check_exit_code is not 0, it is $whonix_news_verify_check_exit_code, return"
       return 0
    fi
 
    extract_whonix_news
 
-   if [ ! "$whonix_news_tar_return" = "0" ]; then
-      true "$0 ERROR: whonix_news_tar_return is not 0, it is $whonix_news_tar_return, return"
+   if [ ! "$whonix_news_tar_exit_code" = "0" ]; then
+      true "$0 ERROR: whonix_news_tar_exit_code is not 0, it is $whonix_news_tar_exit_code, return"
       return 0
    fi
 
@@ -95,17 +95,17 @@ verify_whonix_news() {
    mkdir --parents "$whonix_news_gpg_temp_dir"
    chmod --recursive 700 "$whonix_news_gpg_temp_dir"
 
-   whonix_news_verify_return_general="0"
+   whonix_news_verify_general_exit_code="0"
 
-   true "a whonix_news_verify_return_general: $whonix_news_verify_return_general"
+   true "a whonix_news_verify_general_exit_code: $whonix_news_verify_general_exit_code"
 
    gpg \
       --homedir "$whonix_news_gpg_temp_dir" \
       --fingerprint \
       >/dev/null 2>/dev/null \
-      || { whonix_news_verify_return_general="$?" ; true; };
+      || { whonix_news_verify_general_exit_code="$?" ; true; };
 
-   true "b whonix_news_verify_return_general: $whonix_news_verify_return_general"
+   true "b whonix_news_verify_general_exit_code: $whonix_news_verify_general_exit_code"
 
    local key
 
@@ -123,24 +123,24 @@ verify_whonix_news() {
          --homedir "$whonix_news_gpg_temp_dir" \
          --import "$key" \
          2>/dev/null \
-         || { whonix_news_verify_return_general="$?" ; true; };
-      if [ ! "$whonix_news_verify_return_general" = "0" ]; then
+         || { whonix_news_verify_general_exit_code="$?" ; true; };
+      if [ ! "$whonix_news_verify_general_exit_code" = "0" ]; then
          break
       fi
    done
 
-   true "c whonix_news_verify_return_general: $whonix_news_verify_return_general"
+   true "c whonix_news_verify_general_exit_code: $whonix_news_verify_general_exit_code"
 
-   if [ ! "$whonix_news_verify_return_general" = "0" ]; then
+   if [ ! "$whonix_news_verify_general_exit_code" = "0" ]; then
       local MSG="Whonix News Download Result: General Whonix News OpenPGP Verification Error. Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
-   whonix_news_verify_return="0"
+   whonix_news_verify_check_exit_code="0"
 
-   true "d whonix_news_verify_return: ${whonix_news_verify_return}"
+   true "d whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
 
    local filename
    filename="whonix_news.tar.gz"
@@ -153,7 +153,7 @@ verify_whonix_news() {
          --homedir "$whonix_news_gpg_temp_dir" \
          --verify "$VERIFY_TEMPDIR/news/$signature" \
          2>/dev/null \
-   )" || { whonix_news_verify_return="$?" ; true; };
+   )" || { whonix_news_verify_check_exit_code="$?" ; true; };
 
    ## Example gpg_fd_one:
    ## [GNUPG:] SIG_ID ckz4Z2Th1KU9o1sVsWMY8JXdg+A 2013-10-13 1381635738
@@ -165,10 +165,10 @@ verify_whonix_news() {
    ## [GNUPG:] ERRSIG 9C131AD3713AAEEF 1 10 00 1381635738 9
    ## [GNUPG:] NO_PUBKEY 9C131AD3713AAEEF
 
-   true "e whonix_news_verify_return: ${whonix_news_verify_return}"
+   true "e whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
 
-   if [ ! "${whonix_news_verify_return}" = "0" ]; then
-         local MSG="Whonix News Download Result: Could not OpenPGP verify authenticity of Whonix News $filename!!! (gpg return code: ${whonix_news_verify_return}) This is either a Whonix Bug or an attack on Whonix!!!"
+   if [ ! "${whonix_news_verify_check_exit_code}" = "0" ]; then
+         local MSG="Whonix News Download Result: Could not OpenPGP verify authenticity of Whonix News $filename!!! (gpg return code: ${whonix_news_verify_check_exit_code}) This is either a Whonix Bug or an attack on Whonix!!!"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          return 0
@@ -187,7 +187,7 @@ verify_whonix_news() {
    done
 
    if [ "$signed_on_unixtime" = "" ]; then
-      whonix_news_verify_return="1000"
+      whonix_news_verify_check_exit_code="1000"
       local MSG="Whonix News Check: variable signed_on_unixtime is empty. Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -199,7 +199,7 @@ verify_whonix_news() {
    if [[ "$signed_on_unixtime" != *[!0-9]* ]]; then
       true "'$signed_on_unixtime' is strictly numeric."
    else
-      whonix_news_verify_return="2000"
+      whonix_news_verify_check_exit_code="2000"
       local MSG="Whonix News Check: Variable signed_on_unixtime includes a non-digit: $signed_on_unixtime Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -228,7 +228,7 @@ verify_whonix_news() {
    maximum_age_in_seconds="$month_has_seconds"
 
    if [ "$current_unixtime" -le "$signed_on_unixtime" ]; then
-      whonix_news_verify_return="3000"
+      whonix_news_verify_check_exit_code="3000"
       local MSG="Whonix News Check: Your clock is slow. According to your system, Whonix News File was signed $difference_in_minutes minutes before current time.
 Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
                      or in Terminal: timesync"
@@ -241,7 +241,7 @@ Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
    local in_future_in_minutes="$(expr "$in_future_in_seconds" / "60")" || true
 
    if [ "$difference_in_seconds" -ge "$maximum_age_in_seconds" ]; then
-      whonix_news_verify_return="4000"
+      whonix_news_verify_check_exit_code="4000"
       local MSG="Whonix News Check: Whonix News File is no longer valid (outdated).
 Either,
 - your clock is fast (at least $in_future_in_minutes minutes fast)
@@ -264,12 +264,12 @@ extract_whonix_news() {
    local filename
    filename="whonix_news.tar.gz"
 
-   whonix_news_tar_return="0"
+   whonix_news_tar_exit_code="0"
 
-   tar -xvzf "$VERIFY_TEMPDIR/news/$filename" -C "$VERIFY_TEMPDIR/news/" . >/dev/null || { whonix_news_tar_return="$?" ; true; };
+   tar -xvzf "$VERIFY_TEMPDIR/news/$filename" -C "$VERIFY_TEMPDIR/news/" . >/dev/null || { whonix_news_tar_exit_code="$?" ; true; };
 
-   if [ ! "$whonix_news_tar_return" = "0" ]; then
-      local MSG="Whonix News Download Result: Could not extract $filename! (tar return code: ${whonix_news_tar_return}) Please report this bug!"
+   if [ ! "$whonix_news_tar_exit_code" = "0" ]; then
+      local MSG="Whonix News Download Result: Could not extract $filename! (tar return code: ${whonix_news_tar_exit_code}) Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0

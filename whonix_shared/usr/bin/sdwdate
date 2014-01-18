@@ -438,7 +438,7 @@ sdwdate_preparation() {
    rm --force "$DONE_FILE"
    rm --force "$SUCCESS_FILE"
 
-   declare -A -g SDWDATE_CURL_RETURN
+   declare -A -g sdwdate_curl_exit_code
    declare -A -g SDWDATE_CURL_PID
    declare -A -g SDWDATE_DOWNLOAD_TOOK_TIME
 
@@ -650,7 +650,7 @@ sdwdate_download() {
 
    sdwdate_log "getUrlDateDiff: "$LINK""
 
-   SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
+   sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]="0"
 
    local TIME_START
    TIME_START="$(date +%s)"
@@ -678,10 +678,10 @@ sdwdate_download() {
 
    SDWDATE_CURL_PID[$SDWDATE_CURRENT_POOL]="$!"
 
-   SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="0"
-   wait "${SDWDATE_CURL_PID[$SDWDATE_CURRENT_POOL]}" || { SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]="$?" ; true; };
+   sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]="0"
+   wait "${SDWDATE_CURL_PID[$SDWDATE_CURRENT_POOL]}" || { sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]="$?" ; true; };
 
-   true "INFO: SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}"
+   true "INFO: sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]: ${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}"
 
    local TIME_END
    TIME_END="$(date +%s)"
@@ -696,9 +696,9 @@ sdwdate_download() {
 
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
 
-   if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
+   if [ ! "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
       local curl_status_message
-      curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}")"
+      curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}")"
       sdwdate_log "No file could be downloaded from $LINK. (curl_status_message: $curl_status_message)"
    fi
 }
@@ -810,7 +810,7 @@ sdwdate_loop() {
 
       sdwdate_download "${array[$random_integer]}"
 
-      if [ ! "${SDWDATE_CURL_RETURN[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
+      if [ ! "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
          remember[$random_integer]=1
          continue
       fi
@@ -924,10 +924,10 @@ sdwdate_dispatcher_prerequisite() {
 
          local prerequisite_exit_code
          prerequisite_exit_code="0"
-         prerequisite_return_stdout="$(eval $DISPATCH_PREREQUISITE)" || { prerequisite_exit_code="${PIPESTATUS[0]}" ; true; };
+         prerequisite_stdout="$(eval $DISPATCH_PREREQUISITE)" || { prerequisite_exit_code="${PIPESTATUS[0]}" ; true; };
 
          true "prerequisite_exit_code: $prerequisite_exit_code"
-         true "prerequisite_return_stdout: $prerequisite_return_stdout"
+         true "prerequisite_stdout: $prerequisite_stdout"
 
          if [ "$prerequisite_exit_code" = "0" ]; then
             ## Ok.
@@ -935,16 +935,16 @@ sdwdate_dispatcher_prerequisite() {
             break
          elif [ "$prerequisite_exit_code" = "1" ]; then
             ## Error.
-            error_text="DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_return_stdout | requested explicit exiting..."
+            error_text="DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_stdout | requested explicit exiting..."
             error "DISPATCH_PREREQUISITE returned 1"
          elif [ "$prerequisite_exit_code" = "2" ]; then
             ## Wait.
-            sdwdate_safe_log "DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_return_stdout | waiting..."
+            sdwdate_safe_log "DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_stdout | waiting..."
             sleep 10 &
             wait "$!" || true
          else
             ## Unexpected error.
-            error_text="DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_return_stdout | unexpected error, exiting..."
+            error_text="DISPATCH_PREREQUISITE returned $prerequisite_exit_code | $prerequisite_stdout | unexpected error, exiting..."
             error "DISPATCH_PREREQUISITE returned neither 0, 1, or 2."
          fi
 

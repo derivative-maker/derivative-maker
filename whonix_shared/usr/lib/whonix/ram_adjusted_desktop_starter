@@ -208,11 +208,11 @@ does not exist. Probably no desktop environment installed. Not starting a deskto
       exit 0
    fi
 
-   service_return1="0"
+   service_1_exit_code="0"
    ## There is a /etc/sudoers.d/kdm exception for this.
-   sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return1="$?" ; true; };
+   sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_1_exit_code="$?" ; true; };
 
-   if [ "$service_return1" = "0" ]; then
+   if [ "$service_1_exit_code" = "0" ]; then
       if [ "$whonixdesktop_debug" = "1" ]; then
          true "INFO: [RAM Adjusted Desktop Starter] \
 Not starting kdm, already running."
@@ -279,37 +279,37 @@ here: https://www.whonix.org/wiki/Desktop"
    fi
 
    ## Fallback.
-   sleep_return="0"
+   sleep_1_exit_code="0"
 
    ## Returns 0, if sleep was not terminated (CTRL + C not pressed) , otherwise 1.
    ## This is implemented in a separate script, because `sh` does not support `trap`s.
    sleep "$whonixdesktop_wait_seconds" &
-   wait "$!" || { sleep_return="$?" ; true; };
+   wait "$!" || { sleep_1_exit_code="$?" ; true; };
 
-   if [ "$sleep_return" = "0" ]; then
-      service_return2="0"
+   if [ "$sleep_1_exit_code" = "0" ]; then
+      service_2_exit_code="0"
       ## There is a /etc/sudoers.d/kdm exception for this.
-      sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_return2="$?" ; true; };
+      sudo service "$whonixdesktop_display_manager" status >/dev/null || { service_2_exit_code="$?" ; true; };
 
-      if [ "$service_return2" = "0" ]; then
+      if [ "$service_2_exit_code" = "0" ]; then
          echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] $whonixdesktop_display_manager already running, not starting."
       else
          echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Trying to start login manager \
 (graphical desktop environment) $whonixdesktop_display_manager..."
 
          ## Sleep for the look and feel. Users should be able to see"Trying to start login manager..."
-         sleep_return_3="0"
+         sleep_3_exit_code="0"
          sleep 5 &
-         wait "$!" || { sleep_return_3="$?" ; true; };
+         wait "$!" || { sleep_3_exit_code="$?" ; true; };
 
-         service_return3="0"
+         service_3_exit_code="0"
          ## There is a /etc/sudoers.d/kdm exception for this.
-         sudo service "$whonixdesktop_display_manager" start || { service_return3="$?" ; true; };
+         sudo service "$whonixdesktop_display_manager" start || { service_3_exit_code="$?" ; true; };
 
          echo "[${green}INFO${reset}] [RAM Adjusted Desktop Starter] Starting login manager \
 (graphical desktop environment) $whonixdesktop_display_manager..."
 
-         if [ "$service_return3" = "0" ]; then
+         if [ "$service_3_exit_code" = "0" ]; then
             true "INFO: [RAM Adjusted Desktop Starter] Successfully started $whonixdesktop_display_manager."
          else
             echo "[${red}${bold}ERROR${reset}] [RAM Adjusted Desktop Starter] \

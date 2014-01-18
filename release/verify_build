@@ -182,13 +182,13 @@ verify_whonix_source_files_helper() {
 
       debug_echo "${cyan}INFO${reset}: Diffing original \"$i\" with \"$chroot_file\" (absolute_file_name: \"$absolute_file_name\")..."
 
-      local diff_return="0"
-      diff "$i" "$chroot_file" || { local diff_return="$?" ; true; };
+      local diff_exit_code="0"
+      diff "$i" "$chroot_file" || { local diff_exit_code="$?" ; true; };
 
-      if [ "$diff_return" = "0" ]; then
+      if [ "$diff_exit_code" = "0" ]; then
          remembered_file[$absolute_file_name]="0"
       else
-         echo "${red}${bold}ERROR: Diff returned "$diff_return" for "$chroot_file"...${reset}"
+         echo "${red}${bold}ERROR: Diff returned "$diff_exit_code" for "$chroot_file"...${reset}"
          WHONIX_BUILD_VERIFY_MISMATCH="$(expr "$WHONIX_BUILD_VERIFY_MISMATCH" + "1")"
          remembered_file[$absolute_file_name]="1"
       fi
@@ -303,7 +303,7 @@ download_packages() {
       sudo -E -u "$user_name" \
          apt-get download $pkg_list
 
-      true "${cyan}${bold}$0 INFO: apt_get_return: $? ${reset}"
+      true "${cyan}${bold}$0 INFO: apt_get_exit_code: $? ${reset}"
    fi
 
    ## TODO: Use snapshot.debian.org?

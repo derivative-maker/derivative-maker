@@ -25,11 +25,11 @@ maybe_kill_apt_get_update() {
 
    ## Can not use `kill`, must use `ps`, because kill will always return a
    ## a non-zero return code if the process is owned by a different user.
-   local ps_p_return
-   ps_p_return="0"
-   ps -p "$apt_get_update_pid" >/dev/null 2>/dev/null || { ps_p_return="$?" ; true; };
+   local ps_p_exit_code
+   ps_p_exit_code="0"
+   ps -p "$apt_get_update_pid" >/dev/null 2>/dev/null || { ps_p_exit_code="$?" ; true; };
 
-   if [ ! "$ps_p_return" = "0" ]; then
+   if [ ! "$ps_p_exit_code" = "0" ]; then
       ## apt-get-update already terminated, nothing to do.
       return 0
    fi
@@ -71,10 +71,10 @@ ex_funct() {
 
    ## Check if $output command has been already defined. This is not the case,
    ## when the script is terminated very early.
-   local command_v_output_return
-   command_v_output_return="0"
-   command -v "$output" >/dev/null || { command_v_output_return="$?" ; true; };
-   if [ "$command_v_output_return" = "0" ]; then
+   local command_v_output_exit_code
+   command_v_output_exit_code="0"
+   command -v "$output" >/dev/null || { command_v_output_exit_code="$?" ; true; };
+   if [ "$command_v_output_exit_code" = "0" ]; then
       $output ${output_opts[@]} --progressbaridx "$progressbaridx_main" --progressx "100"
       $output ${output_opts[@]} --messagex --done
       $output ${output_opts[@]} --messagecli --done
@@ -121,19 +121,19 @@ cleanup() {
    if [ ! "$manualrun" = "1" ]; then
       ## Not manually started.
 
-      local output_status_return
-      output_status_return="0"
-      $output ${output_opts[@]} --identifier whonixcheck --status --messagecli || { output_status_return="$?" ; true; };
+      local output_status_exit_code
+      output_status_exit_code="0"
+      $output ${output_opts[@]} --identifier whonixcheck --status --messagecli || { output_status_exit_code="$?" ; true; };
 
-      if [ "$output_status_return" = "0" ]; then
+      if [ "$output_status_exit_code" = "0" ]; then
          ## We have messages to show.
          ## Add press enter to return back to your normal prompt message below.
          local MSG="Please feel free to press <enter> to return back to your normal prompt."
          $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-      elif [ "$output_status_return" = "1" ]; then
+      elif [ "$output_status_exit_code" = "1" ]; then
          true "No messages for --messagecli in the queue. Not adding press enter to return back to your normal prompt message below."
       else
-         local MSG="$output returned $output_status_return. Please report this Whonix bug!"
+         local MSG="$output returned $output_status_exit_code. Please report this Whonix bug!"
          $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
          $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       fi

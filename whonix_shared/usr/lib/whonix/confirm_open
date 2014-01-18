@@ -64,10 +64,10 @@ main_function() {
          local title="Whonix Confirm Open"
          #local msg="${1+"$@"} will be opened in $open_in_tool_bin_name. Continue?"
 
-         local open_in_tool_return
-         open_in_tool_return="0"
-         $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_return="$?" ; true; };
-         exit "$open_in_tool_return"
+         local open_in_tool_exit_code
+         open_in_tool_exit_code="0"
+         $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_exit_code="$?" ; true; };
+         exit "$open_in_tool_exit_code"
       else
          local title="Whonix Confirm Open ERROR"
          local msg="Whonix does not support opening links on Whonix-Gateway for security reasons.
@@ -164,16 +164,16 @@ $temp$extra_long_link"
       exit 1
    fi
 
-   local open_in_tool_return
-   open_in_tool_return="0"
-   $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_return="$?" ; true; };
+   local open_in_tool_exit_code
+   open_in_tool_exit_code="0"
+   $open_in_tool_bin $open_in_tool_extra_opts ${1+"$@"} >/dev/null 2>/dev/null || { open_in_tool_exit_code="$?" ; true; };
 
-   if [ ! "$open_in_tool_return" = "0" ]; then
-      local msg="ERROR: $open_in_tool_bin returned $open_in_tool_return! Please report this bug!"
+   if [ ! "$open_in_tool_exit_code" = "0" ]; then
+      local msg="ERROR: $open_in_tool_bin returned $open_in_tool_exit_code! Please report this bug!"
       zenity --no-markup --title="$title" --error --window-icon "$icon" --text "$msg"
    fi
 
-   exit "$open_in_tool_return"
+   exit "$open_in_tool_exit_code"
 }
 
 main_function "${1+"$@"}"
