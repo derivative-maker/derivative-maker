@@ -39,10 +39,10 @@ Note: whonixsetup enables Tor networking by uncommenting "DisableNetwork 0" in /
 
 TITLE="whonixsetup - Connect to the Tor network."
 
-returncode="0"
-dialog --title "$TITLE" --yesno "$MSG" 640 480 || { returncode="$?" ; true; };
+exit_code="0"
+dialog --title "$TITLE" --yesno "$MSG" 640 480 || { exit_code="$?" ; true; };
 
-if [ ! "$returncode" = "0" ]; then
+if [ ! "$exit_code" = "0" ]; then
    ## Back to main menu.
    exit 0
 fi
@@ -65,13 +65,13 @@ done < "/etc/tor/torrc"
 
 if [ "$already_commented_in" = "0" ]; then
    ## Comment in DisableNetwork 0 in /etc/tor/torrc.
-   returncode="0"
-   ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 0/DisableNetwork 0/g\nw' || { returncode="$?" ; true; };
+   exit_code="0"
+   ed -s /etc/tor/torrc <<< $',s/\#DisableNetwork 0/DisableNetwork 0/g\nw' || { exit_code="$?" ; true; };
 
    ## Ensure changes get written to the disk right now.
    sync
 
-   if [ ! "$returncode" = "0" ]; then
+   if [ ! "$exit_code" = "0" ]; then
       TITLE="whonixsetup - Info"
 
       MSG='
@@ -94,52 +94,52 @@ Press Enter to reload Tor and check its status.
    dialog --title "$TITLE" --msgbox "$MSG" 640 480
 fi
 
-returncode="0"
-service tor status || { returncode="$?" ; true; };
+exit_code="0"
+service tor status || { exit_code="$?" ; true; };
 sync
 sleep 1
 
-if [ ! "$returncode" = "0" ]; then
-   returncode="0"
-   service tor start || { returncode="$?" ; true; };
+if [ ! "$exit_code" = "0" ]; then
+   exit_code="0"
+   service tor start || { exit_code="$?" ; true; };
    sync
    sleep 1
 else
-   returncode="0"
-   service tor reload || { returncode="$?" ; true; };
+   exit_code="0"
+   service tor reload || { exit_code="$?" ; true; };
    sync
    sleep 1
 fi
 
-returncode="0"
-service tor status >/dev/null || { returncode="$?" ; true; };
+exit_code="0"
+service tor status >/dev/null || { exit_code="$?" ; true; };
 sync
 sleep 1
 
-if [ ! "$returncode" = "0" ]; then
+if [ ! "$exit_code" = "0" ]; then
    ## Working around a bug in Tor.
    ## Reloading Tor did not work. Starting it.
-   returncode="0"
-   service tor start || { returncode="$?" ; true; };
+   exit_code="0"
+   service tor start || { exit_code="$?" ; true; };
    sync
    sleep 1
 fi
 
 ## Working around another bug in Tor.
 ## When starting Tor fails, it does not return a non-zero return code.
-returncode="0"
-service tor status || { returncode="$?" ; true; };
+exit_code="0"
+service tor status || { exit_code="$?" ; true; };
 sync
 sleep 1
 
-if [ ! "$returncode" = "0" ]; then
+if [ ! "$exit_code" = "0" ]; then
 
    TITLE="whonixsetup - Error!"
 
    MSG="
     sudo service tor status
 
-returned exit code $returncode. There is something wrong with your /etc/tor/torrc
+returned exit code $exit_code. There is something wrong with your /etc/tor/torrc
 Tor will NOT work. Please fix your /etc/tor/torrc
 
 You can open /etc/tor/torrc in the terminal:
