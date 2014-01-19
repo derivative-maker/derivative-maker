@@ -81,18 +81,18 @@ output_wmctrl() {
       local temp
       temp="$(wmctrl -l 2>/dev/null)"
 
-      local grep_result
-      grep_result="0"
-      echo "$temp" | grep --quiet "$title" || { grep_result="$?" ; true; };
+      local grep_exit_code
+      grep_exit_code="0"
+      echo "$temp" | grep --quiet "$title" || { grep_exit_code="$?" ; true; };
 
-      if [ "$grep_result" = "0" ]; then
+      if [ "$grep_exit_code" = "0" ]; then
          break
       fi
 
       sleep "1" &
       wait "$!" || true
 
-      counter="$(expr "$counter" + "1")" || true
+      counter="$(( $counter + 1 ))"
 
       if [ "$counter" -ge "$max_wait" ]; then
          true "Giving up on wmctrl. Break."
