@@ -50,16 +50,10 @@ fallbacks() {
    fi
 }
 
-output_wmctrl() {
-   ## Move windows to the left top, so they do not overlap.
-   ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
+output_wait_for_window() {
+   ## also used by whonix-autosetup
 
    trap "error_handler" ERR
-
-   if [ "$no_x" = "1" ]; then
-      true "no_x is set to 1, do not try wmctrl, return 0 from output_wmctrl."
-      return 0
-   fi
 
    local title="${1+"$@"}"
 
@@ -99,6 +93,22 @@ output_wmctrl() {
          break
       fi
    done
+}
+
+output_wmctrl() {
+   ## Move windows to the left top, so they do not overlap.
+   ## Thanks to: http://user.cavenet.com/rolandl/timer.txt
+
+   trap "error_handler" ERR
+
+   if [ "$no_x" = "1" ]; then
+      true "no_x is set to 1, do not try wmctrl, return 0 from output_wmctrl."
+      return 0
+   fi
+
+   local title="${1+"$@"}"
+
+   output_wait_for_window "$title"
 
    wmctrl -r "$title" -e 0,0,0,-1,-1 >/dev/null 2>/dev/null || true
 
