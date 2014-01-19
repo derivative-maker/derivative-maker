@@ -1,0 +1,40 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+
+true "Currently running script: $0"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$MYDIR"
+
+source ../../Whonix/help-steps/pre
+source ../../Whonix/help-steps/variables
+
+delete_vm() {
+   trap "error_handler_general" ERR INT TERM
+
+   ## Turning off the VM without saving.
+   sudo -u "$user_name" VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+
+   ## Delete old Whonix-Gateway.
+   sudo -u "$user_name" VBoxManage unregistervm "$VMNAME" --delete || true
+   sync
+
+   ## The "VBoxManage unregistervm  --delete" does not do its job,
+   ## we have to manually delete the VM folder.
+   rm -r "$HOMEVAR/VirtualBox VMs/$VMNAME" || true
+   sync
+
+   ## Delete old ova.
+   rm ""$WHONIX_BINARY"/$VMNAME".ova || true
+   sync
+}
+
+true "${bold}INFO: Currently running script: $0${reset}"
+delete_vm
+true "${bold}INFO: End of: $0 No error detected.${reset}"
