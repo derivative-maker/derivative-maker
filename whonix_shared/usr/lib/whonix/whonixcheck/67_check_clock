@@ -15,11 +15,11 @@ check_bootclockrandomization() {
    trap "error_handler" ERR
 
    ## There is an exception in /etc/sudoers.d/bootclockrandomization.
-   local returncode
-   returncode="0"
-   sudo service bootclockrandomization status || { returncode="$?" ; true; };
+   local exit_code
+   exit_code="0"
+   sudo service bootclockrandomization status || { exit_code="$?" ; true; };
 
-   if [ "$returncode" = "0" ]; then
+   if [ "$exit_code" = "0" ]; then
       local MSG="bootclockrandomization success."
       #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       #$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
@@ -37,32 +37,32 @@ check_timesanitycheck() {
    trap "error_handler" ERR
 
    ## There is an exception in /etc/sudoers.d/timesanitycheck.
-   local returncode
-   returncode="0"
-   sudo service timesanitycheck status || { returncode="$?" ; true; };
+   local exit_code
+   exit_code="0"
+   sudo service timesanitycheck status || { exit_code="$?" ; true; };
 
    ## When autostarted...
    if [ "$AUTOSTARTED" = "1" ]; then
-      ## returncode 2 means, that timesanitycheck has neither created a success nor a fail file (yet).
-      if [ "$returncode" = "2" ]; then
+      ## exit_code 2 means, that timesanitycheck has neither created a success nor a fail file (yet).
+      if [ "$exit_code" = "2" ]; then
          local MSG="It may have happened, that sdwdate was run before timesanitycheck.
 Let us wait a few seconds and try checking timesanitycheck status again."
          sleep "10" &
          lastpid="$!"
          wait "$lastpid"
          ## There is an exception in /etc/sudoers.d/timesanitycheck.
-         local returncode
-         returncode="0"
-         sudo service timesanitycheck status || { returncode="$?" ; true; };
+         local exit_code
+         exit_code="0"
+         sudo service timesanitycheck status || { exit_code="$?" ; true; };
       fi
    fi
 
-   if [ "$returncode" = "0" ]; then
+   if [ "$exit_code" = "0" ]; then
       local MSG="timesanitycheck success."
       #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
       #$output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
    else
-      local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!! (code: $returncode)
+      local MSG="Time Sanity Check failed before running Network Time Synchronization (timesync)!!! (code: $exit_code)
 Last 6 lines of /var/log/timesanitycheck.log:
 $(tail -n 6 /var/log/timesanitycheck.log)
 
