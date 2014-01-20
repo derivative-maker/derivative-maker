@@ -29,6 +29,8 @@ install-pkg() {
 
    true "${cyan}INFO: Installing $pkg, because whonix_build_script_whonix_package does not include it.${reset}"
    $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts --yes --no-install-recommends install "$pkg"
+   $CHROOT sync
+   sync
 }
 
 install-meta-packages() {
@@ -110,7 +112,9 @@ install-meta-packages() {
    ## Debugging.
    $CHROOT apt-get clean
    $CHROOT apt-get autoclean
-   $CHROOT apt-get -f install
+   $CHROOT apt-get --fix-broken --yes install
+   $CHROOT apt-get --fix-missing --yes install
+   $CHROOT apt-get --fix-broken --fix-missing --yes install
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
 
@@ -151,6 +155,11 @@ install-meta-packages() {
       $CHROOT apt-cache policy zenity
       $CHROOT apt-get $apt_dir_opts $apt_timeout_opts install zenity
    fi
+
+   ## Debugging.
+   $CHROOT apt-cache policy kde-workspace || true
+   $CHROOT apt-cache policy kdm || true
+   $CHROOT apt-cache policy okular || true
 
    if [ "$whonix_build_script_whonix_package" = "" ]; then
       true "${bold}${cyan}INFO $0: Variable whonix_build_script_whonix_package is empty. \
