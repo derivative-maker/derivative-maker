@@ -20,11 +20,13 @@ error_handler() {
 trap "error_handler" ERR
 
 own_filename="$(basename $0)"
-case $WHONIX_BUILD_SKIP_SCRIPTS in
-   *$own_filename*) true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
-                    exit 0
-                    ;;
-esac
+for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
+   if [ "$skip_script" = "$own_filename" ]; then
+      true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
+      exit 0
+   fi
+done
+unset skip_script
 
 ## just another backup
 mkdir --parents /var/lib/whonix/grub-backup
