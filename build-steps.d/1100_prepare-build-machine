@@ -260,29 +260,13 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## - for creating VirtualBox VM images
       ##      virtualbox
       ## - required for mounting vdi images
-      ##      libguestfs-tools
-      ##      guestmount (wheezy only)
+      ##      libguestfs-tools (not installed here, but below)
       apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          qemu-utils \
          grml-debootstrap \
          parted \
          kpartx \
-         mksh \
-         libguestfs-tools
-
-      if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-         ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
-         true
-      else
-         ## Hack for Debian Wheezy.
-         ## guestmount has been merged into libguestfs-tools in Debian.
-         ## || true because this would fail on Debian Jessie.
-         apt-get $apt_timeout_opts $apt_unattended_opts --yes install guestmount || true
-      fi
-
-      ## Sanity test.
-      command -v guestmount >/dev/null
-      command -v guestunmount >/dev/null
+         mksh
 
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
@@ -309,10 +293,15 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## Check if libguestfs-tools is installed.
    ## (Build Dependency for Whonix Build Script for creating .deb packages.)
-   local dpkg_exit_code
-   dpkg_exit_code="0"
-   dpkg-query -Wf '${db:Status-abbrev}' "libguestfs-tools" 2>/dev/null | grep -q '^i' || { dpkg_exit_code="$?" ; true; };
-   if [ ! "$dpkg_exit_code" = "0" ]; then
+
+   #local dpkg_exit_code
+   #dpkg_exit_code="0"
+   #dpkg-query -Wf '${db:Status-abbrev}' "libguestfs-tools" 2>/dev/null | grep -q '^i' || { dpkg_exit_code="$?" ; true; };
+   #if [ ! "$dpkg_exit_code" = "0" ]; then
+
+   local command_v_return="0"
+   command -v guestunmount >/dev/null || { command_v_return="$?" ; true; };
+   if [ "$command_v_return" = "0" ]; then
       if [ "$BARE_METAL" = "1" ]; then
          true "INFO: BARE_METAL is $BARE_METAL, installation of libguestfs-tools not required, ok."
       else
@@ -353,7 +342,21 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          install \
          config-package-dev/$codename
 
-      ## libguestfs-tools is not required in CI/VM.
+      ## libguestfs-tools, guestmount, guestunmount
+      ## - libguestfs-tools is not required in CI/VM.
+      ## - guestmount has been merged into libguestfs-tools in Debian.
+      ## - guestunmount is only available beginning from Jessie.
+      if [ "$BARE_METAL" = "1" ]; then
+         true "INFO: BARE_METAL is $BARE_METAL, installation of libguestfs-tools not required, ok."
+      else
+         ## install libguestfs-tools, guestmount, guestunmount
+         apt-get --yes \
+            $apt_timeout_opts \
+            $apt_unattended_opts \
+            -o APT::Default-Release="$default_release" \
+            install \
+            libguestfs-tools/$codename
+      fi
 
       if [ "$CI" = "true" ]; then
          ## Small hack for CI.
@@ -382,6 +385,10 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          --list-cleanup \
          update
    fi
+
+   ## Sanity test.
+   command -v guestmount >/dev/null
+   command -v guestunmount >/dev/null
 
    ## }}}
 
