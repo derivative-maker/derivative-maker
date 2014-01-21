@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -x
+
+true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+
+## Last resort only.
+#export GPG_AGENT_INFO=/tmp/gpg-ayQ880/S.gpg-agent:5863:1
+
+## Idea, hopefully not required.
+#source /home/user/.gnupg/gpg-agent-info-host
+
+gpg_exit_code="0"
+
+      gpg \
+               --no-emit-version \
+               --no-comments \
+               --display-charset utf-8 \
+               --keyserver hkp://qdigse2yzvuglcix.onion \
+               --personal-digest-preferences SHA512 \
+               --cert-digest-algo SHA512 \
+               --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed" \
+               --keyserver-options no-honor-keyserver-url \
+               --fixed-list-mode \
+               --keyid-format 0xlong \
+               --use-agent \
+               --list-options show-uid-validity \
+               --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
+               --no-default-keyring \
+               ${1+"$@"}
+
+gpg_exit_code="$?"
+
+true "${bold}INFO: End of: $0 No error detected.${reset}"
+
+exit "$gpg_exit_code"

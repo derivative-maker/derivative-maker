@@ -15,7 +15,6 @@ cd ..
 cd help-steps
 
 WHONIX_BUILD_PARSED="1"
-ROOT_CHECK="0"
 VMNAME="internalrun"
 
 source pre
@@ -24,7 +23,7 @@ source variables
 cd "$MYDIR"
 cd ..
 
-create-debian-packages() {
+signing_key() {
    trap "error_handler_general" ERR INT TERM
 
    ## We need to create a local signing key for signing our local APT repository. Otherwise,
@@ -109,11 +108,20 @@ create-debian-packages() {
                           --keyid-format "0xlong" \
                           --fingerprint \
                           --list-secret-keys
+}
 
-   if [ "$whonix_build_new_changelog_version" = "$whonix_build_old_changelog_version" ]; then
-      true "${bold}${cyan}$0 INFO: whonix_build_new_changelog_version equals whonix_build_old_changelog_version, not creating new Debian packages. ${reset}"
-      exit 0
-   fi
+check_changelog_version() {
+   trap "error_handler_general" ERR INT TERM
+
+   #if [ "$whonix_build_new_changelog_version" = "$whonix_build_old_changelog_version" ]; then
+      #true "${bold}${cyan}$0 INFO: whonix_build_new_changelog_version equals whonix_build_old_changelog_version, not creating new Debian packages. ${reset}"
+      #exit 0
+   #fi
+   true
+}
+
+check_for_uncommited_changes() {
+   trap "error_handler_general" ERR INT TERM
 
    if [ -n "$(git status --porcelain)" ]; then
       true "${bold}${red}$0 ERROR: Git reports uncommitted changes! ${reset}"
@@ -131,6 +139,10 @@ ${cyan}or if you know what you are doing:${reset}
 
       error "Uncommitted changes! See above!"
    fi
+}
+
+cleanup_old_packages() {
+   trap "error_handler_general" ERR INT TERM
 
    true "${cyan}$0 INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    sleep 3
@@ -143,8 +155,66 @@ ${cyan}or if you know what you are doing:${reset}
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files"
 
    true "${cyan}$0 INFO: Cleaned old packages. ${reset}"
+}
+
+get_extra_packages() {
+   trap "error_handler_general" ERR INT TERM
+
+   true "${cyan}$0 INFO: Getting extra packages... ${reset}"
+
+   if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+      ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
+      local codename="trusty"
+   else
+      ## Hack for Debian Wheezy.
+      local codename="testing"
+   fi
+
+   local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
+   cp "$whonix_build_sources_list" "$TEMP"
+
+   rm --recursive --force "$WHONIX_BINARY/temp_packages"
+   sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_packages"
+   cd "$WHONIX_BINARY/temp_packages"
+
+   ## Implemented in help-steps/pre.
+   maybe_enable_apt_cache
+
+   ## Update package lists.
+   apt-get update \
+      $apt_timeout_opts \
+      -o Dir::Etc::sourcelist="$TEMP" \
+      -o Dir::Etc::sourceparts="-" \
+      -o APT::Get::List-Cleanup="0"
+
+   sudo -E -u "$user_name" \
+      apt-get download --yes \
+         $apt_timeout_opts \
+         $apt_unattended_opts \
+         --target-release "$codename" \
+         python-stem
+
+   ## Removing temporary repository.
+   rm --force "$TEMP"
+
+   ## Update package lists again to get rid of temporary repository.
+   apt-get update \
+      --no-download \
+      --list-cleanup
+
+   ## Implemented in help-steps/pre.
+   disable_apt_cache
+
+   true "${cyan}$0 INFO: Got extra packages... ${reset}"
+}
+
+bump_debian_changelog_version() {
+   trap "error_handler_general" ERR INT TERM
 
    true "${cyan}$0 INFO: Automatically bumping version number in debian/changelog... ${reset}"
+
+   cd "$MYDIR"
+   cd ..
 
    ## debchange in Ubuntu somehow does not support --vendor, only --distributor.
    ## Small workaround for travis-ci (using Ubuntu).
@@ -162,7 +232,7 @@ ${cyan}or if you know what you are doing:${reset}
 
    ## bump changelog version numbers
    ## whonix is written in lower case,
-   ## because that's the name of the file in /etc/dpkg/origins/
+   ## because that is the name of the file in /etc/dpkg/origins/
    local package
    package="whonix"
    echo "\
@@ -187,15 +257,24 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    cat ./debian/changelog
 
    true "${cyan}$0 INFO: Bumped version number in debian/changelog. ${reset}"
+}
+
+create_whonix_upstream_tarball() {
+   trap "error_handler_general" ERR INT TERM
 
    ## Creating upstream tarball, because we are creating a non-native Debian package.
    true "${cyan}$0 INFO: Creating upstream tarball... ${reset}"
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/make-debian-package-upstream-tarball"
+   sudo -E -u "$user_name" \
+       "$WHONIX_SOURCE_HELP_STEPS_FOLDER/make-debian-package-upstream-tarball"
 
    true "${cyan}$0 INFO: Created upstream tarball. ${reset}"
+}
 
-   true "${cyan}$0 INFO: Creating deb packages... ${reset}"
+create_whonix_debian_packages() {
+   trap "error_handler_general" ERR INT TERM
+
+   true "${cyan}$0 INFO: Creating Whonix Debian Packages... ${reset}"
 
    ## --rootcmd as per https://wiki.debian.org/ReproducibleBuilds#How_to_build_a_deb_using_faketime
    ##
@@ -204,38 +283,29 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    ##
    ## -sa is understood by dpkg-buildpackage, it forces the inclusion of the original source
    ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
-   ##
-   ## Not sure how
-   ##    --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed"
-   ## could be quoted below. Therefore only using.
-   ##    --default-preference-list "SHA512"
+
+   true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
+   if [ "$GPG_AGENT_INFO" = "" ]; then
+      true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. \
+      gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
+   fi
+
    sudo -E -u "$user_name" \
          debuild \
             --rootcmd="$WHONIX_SOURCE_HELP_STEPS_FOLDER/gain-root-command" \
-            -p"gpg \
-               --no-emit-version \
-               --no-comments \
-               --display-charset utf-8 \
-               --keyserver hkp://qdigse2yzvuglcix.onion \
-               --personal-digest-preferences SHA512 \
-               --cert-digest-algo SHA512 \
-               --default-preference-list "SHA512" \
-               --keyserver-options no-honor-keyserver-url \
-               --fixed-list-mode \
-               --keyid-format 0xlong \
-               --use-agent \
-               --list-options show-uid-validity \
-               --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
-               --no-default-keyring \
-               --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-               --default-key "$DEBEMAIL" \
-               " \
+            -p"$WHONIX_SOURCE_HELP_STEPS_FOLDER/package-sign-cmd \
+               --homedir $WHONIX_LOCAL_SIGNING_KEY_FOLDER \
+               --default-key $DEBEMAIL" \
             -sa
 
    ## Debugging.
    ls -la ./debian/changelog || true
 
-   true "${cyan}$0 INFO: Created deb packages. ${reset}"
+   true "${cyan}$0 INFO: Created Whonix Debian Packages. ${reset}"
+}
+
+create_whonix_repository() {
+   trap "error_handler_general" ERR INT TERM
 
    if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
       true "${cyan}$0 INFO: Purging ${under}local${eunder} APT repository... ${reset}"
@@ -275,13 +345,12 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
 
    true "${cyan}$0 INFO: Done, imported .changes file. ${reset}"
 
-## Old method. We do not need to import .deb files for now.
-#   sudo -E -u "$user_name" \
-#      reprepro \
-#         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-#         --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
-#         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-#         includedeb "$WHONIX_BUILD_APT_CODENAME" ../*.deb
+   sudo -E -u "$user_name" \
+      reprepro \
+         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+         --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+         includedeb "$WHONIX_BUILD_APT_CODENAME" "$WHONIX_BINARY/temp_packages/"*".deb"
 
    ## Debugging.
    true "${cyan}$0 INFO: Displaying sha512sum of $WHONIX_APT_REPOSITORY_FOLDER/pool/**... ${reset}"
@@ -294,6 +363,20 @@ $package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgen
    true "${cyan}$0 INFO: Done, created ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
 }
 
-true "${bold}INFO: Currently running script: $0 ${reset}"
+create-debian-packages() {
+   trap "error_handler_general" ERR INT TERM
+
+   signing_key
+   check_changelog_version
+   cleanup_old_packages
+   check_for_uncommited_changes
+   get_extra_packages
+   bump_debian_changelog_version
+   create_whonix_upstream_tarball
+   create_whonix_debian_packages
+   create_whonix_repository
+}
+
+true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
 create-debian-packages
 true "${bold}INFO: End of: $0 No error detected.${reset}"
