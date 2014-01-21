@@ -171,7 +171,7 @@ get_extra_packages() {
    fi
 
    local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
-   cp "$whonix_build_sources_list" "$TEMP"
+   cp "$whonix_build_sources_list_newer" "$TEMP"
 
    rm --recursive --force "$WHONIX_BINARY/temp_packages"
    sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_packages"
@@ -285,9 +285,13 @@ create_whonix_debian_packages() {
    ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
 
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$GPG_AGENT_INFO" = "" ]; then
-      true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. \
-      gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
+   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
+      true
+   else
+      if [ "$GPG_AGENT_INFO" = "" ]; then
+         true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. \
+         gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
+      fi
    fi
 
    sudo -E -u "$user_name" \
