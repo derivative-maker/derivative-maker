@@ -475,7 +475,9 @@ parse_special_files() {
       echo "$msg" > "$manual_analysis_folder/usr_share_whonix_build_timestamp"
    fi
 
-   ## {{ manual_analysis_folder
+   ###########################
+   ## manual_analysis_folder #
+   ###########################
 
    if [ "$CI" = "true" ]; then
       ## Reading /etc/shadow does usually not work on CI systems. Not even as root.
@@ -493,17 +495,25 @@ parse_special_files() {
 
    cp_to_user "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
 
+   ## {{{ /var/lib/initramfs-tools/
+
    sudo -u "$user_name" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
-   if [ "$CI" = "true" ]; then
-      cp_to_user "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/" || true
-   else
-      cp_to_user "$mount_folder/var/lib/initramfs-tools/"* "$manual_analysis_folder/var_lib_initramfs-tools/"
-   fi
+   local file
+   shopt -s nullglob dotglob
 
-   ## }}
+   for file in "$mount_folder/var/lib/initramfs-tools/"*; do
+      cp_to_user "$file" "$manual_analysis_folder/var_lib_initramfs-tools/"
+   done
 
-   ## {{ debug_folder
+   unset file
+   shopt -u nullglob dotglob
+
+   ## }}}
+
+   #################
+   ## debug_folder #
+   #################
 
    ## Allow running this script in non-Whonix environments as well.
    if [ -f "$mount_folder/usr/share/whonix/build_version" ]; then
@@ -516,64 +526,73 @@ parse_special_files() {
    cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
    cp_to_user "$mount_folder/etc/debootstrap/stages/default_locales" "$debug_folder/etc_debootstrap_stages_default_locales" || true
 
+   ## {{{ /usr/share/doc/whonix-*/changelog.Debian.gz
+
    sudo -u "$user_name" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
    rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
    i="0"
    local file
+   shopt -s nullglob dotglob
 
    for file in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
       i="$(( $i + 1 ))"
-
-      ## Allow running this script in non-Whonix environments as well.
-      if [ ! -f "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz" ]; then
-         echo "file number: $i | file: $file is not a file. Folder probably empty." >> "$debug_folder/usr_share_doc_whonix-x/file_list"
-         continue
-      fi
-
       echo "file number: $i | file: $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
       cp_to_user "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
    unset file
+   shopt -u nullglob dotglob
+
+   ## }}}
 
    sudo -u "$user_name" mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
 
+   ## {{{ /var/lib/dpkg/info/whonix-*.md5sums
+
+   local file
+   shopt -s nullglob dotglob
+
    for file in "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums"; do
-
-      ## Allow running this script in non-Whonix environments as well.
-      if [ ! -f "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums" ]; then
-         echo "file number: $i | file: $file is not a file. Folder probably empty." >> "$debug_folder/var_lib_dpkg_info_whonix-x/empty"
-         continue
-      fi
-
       cp_to_user "$file" "$debug_folder/var_lib_dpkg_info_whonix-x/"
    done
 
    unset file
+   shopt -u nullglob dotglob
+
+   ## }}}
 
    ## "|| true", because these files are expected to be deleted.
    ## Copying them out of the image for easier analysis just in case.
    cp_to_user "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
    cp_to_user "$mount_folder/var/lib/dpkg/available" "$debug_folder/var_lib_dpkg_available" || true
    cp_to_user "$mount_folder/var/lib/dpkg/available-old" "$debug_folder/var_lib_dpkg_available-old" || true
-
-   ## }}
 }
 
 parse_initrd() {
    trap "error_handler" ERR INT TERM
 
+   ## {{{ /boot/*
+
    ## Debugging.
    ls -la "$mount_folder/boot/" || true
 
-   if [ "$CI" = "true" ]; then
-      cp_to_user "$mount_folder/boot/initrd.img"* "$initrd_folder" || true
-   else
-      cp_to_user "$mount_folder/boot/initrd.img"* "$initrd_folder"
-   fi
+   local file
+   shopt -s nullglob dotglob
 
+   for file in "$mount_folder/boot/initrd.img"*; do
+      cp_to_user "$file" "$initrd_folder"
+   done
+
+   unset file
+   shopt -u nullglob dotglob
+
+   ## }}}
+
+   ## {{{ $initrd_folder/*
+
+   shopt -s nullglob dotglob
    local file
 
    for file in "$initrd_folder"/*; do
@@ -581,13 +600,15 @@ parse_initrd() {
       true "file: $file"
       local basename_file
       basename_file="$(basename "$file")"
-      if [ "$basename_file" = "*" ]; then
-         continue
-      fi
       sudo -u "$user_name" mkdir --parents "$basename_file"
       cd "$basename_file"
       sudo -u "$user_name" gzip -dc < "$file" | sudo -u "$user_name" cpio -i
    done
+
+   unset file
+   shopt -u nullglob dotglob
+
+   ## }}}
 }
 
 parse_folder() {
