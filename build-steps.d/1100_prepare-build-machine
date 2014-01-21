@@ -260,7 +260,8 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## - for creating VirtualBox VM images
       ##      virtualbox
       ## - required for mounting vdi images
-      ##      libguestfs-tools (gets installed not here, but below)
+      ##      libguestfs-tools
+      ##      guestmount (wheezy only)
       apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          qemu-utils \
          grml-debootstrap \
@@ -268,6 +269,20 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          kpartx \
          mksh \
          libguestfs-tools
+
+      if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+         ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
+         true
+      else
+         ## Hack for Debian Wheezy.
+         ## guestmount has been merged into libguestfs-tools in Debian.
+         ## || true because this would fail on Debian Jessie.
+         apt-get $apt_timeout_opts $apt_unattended_opts --yes install guestmount || true
+      fi
+
+      ## Sanity test.
+      command -v guestmount >/dev/null
+      command -v guestunmount >/dev/null
 
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
