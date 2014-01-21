@@ -142,7 +142,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## Update package lists and install apt-cacher-ng.
       apt-get $apt_timeout_opts update
       ## --no-install-recommends to prevent installing avahi-daemon.
-      apt-get install $apt_unattended_opts $apt_timeout_opts --no-install-recommends --yes apt-cacher-ng
+      apt-get $apt_unattended_opts $apt_timeout_opts --no-install-recommends --yes install apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
@@ -211,7 +211,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    ##      vbindiff
    ## - contains lsb_release, required for detecting host operating system (Ubuntu (CI) or Debian)
    ##      lsb-release
-   apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
+   apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
       sudo \
       ruby-ronn \
       diffutils \
@@ -261,17 +261,19 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ##      virtualbox
       ## - required for mounting vdi images
       ##      libguestfs-tools (gets installed not here, but below)
-      apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
+      apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          qemu-utils \
          grml-debootstrap \
          parted \
          kpartx \
-         mksh
+         mksh \
+         libguestfs-tools
 
       #######################################################################
       ## Build Dependencies for creating VirtualBox Images (.vdi and .ova) #
       #######################################################################
-      apt-get install $apt_timeout_opts $apt_unattended_opts --yes \
+      ## TODO enable
+      apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          virtualbox
    fi
 
@@ -319,26 +321,31 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          echo "deb http://ftp.us.debian.org/debian $codename main" > "$TEMP"
       fi
 
-      ## Update package lists and install config-package-dev from temporary repository.
-      apt-get update \
+      ## Update package lists to include temporary repository.
+      apt-get \
          $apt_timeout_opts \
          -o Dir::Etc::sourcelist="$TEMP" \
          -o Dir::Etc::sourceparts="-" \
-         -o APT::Get::List-Cleanup="0"
+         -o APT::Get::List-Cleanup="0" \
+         update
 
-      apt-get install --yes \
+      apt-get --yes \
          $apt_timeout_opts \
          $apt_unattended_opts \
-         --target-release "$codename" \
-         config-package-dev libguestfs-tools
+         -o APT::Default-Release="stable" \
+         install \
+         config-package-dev/$codename
+
+      ## libguestfs-tools is not required in CI/VM.
 
       if [ "$CI" = "true" ]; then
          ## Small hack for CI.
          ## Get newer faketime, because faketime 0.8 segfaults on Ubuntu.
-         apt-get install --yes \
+         apt-get --yes \
             $apt_timeout_opts \
             $apt_unattended_opts \
             --target-release "$codename" \
+            install \
             faketime
       fi
 
@@ -353,9 +360,10 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       rm --force "$TEMP"
 
       ## Update package lists again to get rid of temporary repository.
-      apt-get update \
+      apt-get \
          --no-download \
-         --list-cleanup
+         --list-cleanup \
+         update
    fi
 
    ## }}}
