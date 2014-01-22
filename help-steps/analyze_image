@@ -517,7 +517,7 @@ parse_special_files() {
    #################
 
    ## Allow running this script in non-Whonix environments as well.
-   if [ -f "$mount_folder/usr/share/whonix/build_version" ]; then
+   if [ -e "$mount_folder/usr/share/whonix/build_version" ]; then
       cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
    else
       msg="Strange, $mount_folder/usr/share/whonix/build_version does not exist. Perhaps not running in Whonix."
@@ -661,19 +661,27 @@ parse_folder() {
       dir_name_absolute="${dir_name#"$folder"}"
       local file_size
 
-      if [ ! -f "$file" ]; then
-         msg="($sub_folder) $absolute_file_name | $file does_not_exist"
-         echo "${cyan} $msg ${reset}"
-         echo "$msg" >> "$report_file"
-         if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
-            ## File might no longer exist on bare metal.
-            ## For example "sudo stat /proc/13165" could fail.
-            continue
+      ## Check if $file exists. Somehow on Debian Wheezy it does not exit 0 for
+      ## symlinks.
+      if [ ! -e "$file" ]; then
+         ## Check if $file is a symlink.
+         if [ -h "$file" ]; then
+            ## Symlinks are parsed below.
+            true
          else
-            ## Should not happen inside virtual machine images, because /proc
-            ## is not mounted there.
-            set -x
-            error "$msg"
+            msg="($sub_folder) $absolute_file_name | $file does_not_exist"
+            echo "${cyan} $msg ${reset}"
+            echo "$msg" >> "$report_file"
+            if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
+               ## File might no longer exist on bare metal.
+               ## For example "sudo stat /proc/13165" could fail.
+               continue
+            else
+               ## Should not happen inside virtual machine images, because /proc
+               ## is not mounted there.
+               set -x
+               error "$msg"
+            fi
          fi
       fi
 
