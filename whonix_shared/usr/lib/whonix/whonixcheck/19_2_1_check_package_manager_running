@@ -14,6 +14,8 @@ check_package_manager_running_helper() {
 
    if [ -f "/var/run/whonix/package_manager_lock" ]; then
       check_apt_get_exit_code="/var/run/whonix/package_manager_lock exists."
+      whonixcheck_package_manager_waiting_msg="Lock file \
+/var/run/whonix/package_manager_lock exists. Waiting for it to be removed..."
       return 0
    fi
 
@@ -22,6 +24,13 @@ check_package_manager_running_helper() {
    apt_get_update_pid="$!"
    wait "$apt_get_update_pid" || { check_apt_get_exit_code="$?" ; true; };
    unset apt_get_update_pid
+
+   if [ ! "$check_apt_get_exit_code" = "0" ]; then
+      whonixcheck_package_manager_waiting_msg="A package manager is currently running. Waiting for it to finish..."
+   else
+      whonixcheck_package_manager_waiting_msg="No package manger currently running. \
+You should not see this message. Please report this Whonix bug!"
+   fi
 }
 
 ## }}}
@@ -54,7 +63,7 @@ check_package_manager_running() {
          local progressbaridx
          progressbaridx="${tmp##*.}"
 
-         local MSG="A package manager is currently running. Waiting for it to finish..."
+         local MSG="$whonixcheck_package_manager_waiting_msg"
          $output ${output_opts[@]} --waitmessagecli --typecli "info" --titlex "$TITLE" --message "$MSG" --done
          ## Start progress bar to show we are waiting.
          $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressbarx --titlex "$TITLE" --message "$MSG" --done
