@@ -23,6 +23,10 @@ source variables
 parse_apt_get_unmet_dependency() {
    ## no error handler
 
+   true "INFO: Running \"dpkg -l | grep $pkg\"..."
+   dpkg -l | grep "$pkg"
+   apt-cache policy "$pkg"
+
    ## Thanks to:
    ## http://blog.edwards-research.com/2010/01/quick-bash-trick-looping-through-output-lines/
 
@@ -47,6 +51,9 @@ parse_apt_get_unmet_dependency() {
          echo "${bold}${cyan}INFO: Found unmet dependency: $unmet_dependency. \
 Will try to manually install it for debugging...${reset}"
          set -x
+         true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
+         dpkg -l | grep "$unmet_dependency"
+         apt-cache policy "$unmet_dependency"
          install-pkg "$unmet_dependency"
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
