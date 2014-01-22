@@ -423,11 +423,14 @@ export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
 ## Would be more pretty to have this in the pre script, but the variables script
 ## runs before pre to get pretty colors.
 own_filename="$(basename $0)"
-case $WHONIX_BUILD_SKIP_SCRIPTS in
-   *$own_filename*) echo "${bold}${green}INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it. ${reset}"
-                    exit 0
-                    ;;
-esac
+for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
+   if [ "$own_filename" = "$skip_script" ]; then
+      unset skip_script
+      echo "${bold}${green}INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it. ${reset}"
+      exit 0
+   fi
+done
+unset skip_script
 
 ## }}}
 
