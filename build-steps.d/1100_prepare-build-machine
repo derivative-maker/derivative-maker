@@ -260,8 +260,10 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## - for creating VirtualBox VM images
       ##      virtualbox
       ## - required for mounting vdi images
+      ##   libguestfs-tools is not required in CI/VM.
       ##      libguestfs-tools
       ##      guestmount (wheezy only)
+      ##      guestfish (wheezy only)
       apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          qemu-utils \
          grml-debootstrap \
@@ -314,22 +316,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       true "INFO: config-package-dev already installed, ok."
    fi
 
-   ## Check if libguestfs-tools is installed.
-   ## (Build Dependency for Whonix Build Script for creating .deb packages.)
-   local dpkg_exit_code
-   dpkg_exit_code="0"
-   dpkg-query -Wf '${db:Status-abbrev}' "libguestfs-tools" 2>/dev/null | grep -q '^i' || { dpkg_exit_code="$?" ; true; };
-   if [ ! "$dpkg_exit_code" = "0" ]; then
-      if [ "$BARE_METAL" = "1" ]; then
-         true "INFO: BARE_METAL is $BARE_METAL, installation of libguestfs-tools not required, ok."
-      else
-         local install_from_testing_required="1"
-         local libguestfs_tools_install_required="1"
-      fi
-   else
-      true "INFO: libguestfs-tools already installed, ok."
-   fi
-
    if [ "$install_from_testing_required" = "1" ]; then
       local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
 
@@ -360,8 +346,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          install \
          config-package-dev/$codename
 
-      ## libguestfs-tools is not required in CI/VM.
-
       if [ "$CI" = "true" ]; then
          ## Small hack for CI.
          ## Get newer faketime, because faketime 0.8 segfaults on Ubuntu.
@@ -371,13 +355,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
             --target-release "$codename" \
             install \
             faketime
-      fi
-
-      if [ "$libguestfs_tools_install_required" = "1" ]; then
-         ## This is required to prevent the error
-         ## "libguestfs: error: /usr/bin/supermin-helper exited with error status 1."
-         ## TODO: create done file
-         update-guestfs-appliance
       fi
 
       ## Removing temporary repository.
@@ -391,6 +368,14 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    fi
 
    ## }}}
+
+   if [ ! -f "$WHONIX_BINARY/status_files/update-guestfs-appliance_done" = "1" ]; then
+      sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY/status_files"
+      ## This is required to prevent the error
+      ## "libguestfs: error: /usr/bin/supermin-helper exited with error status 1."
+      update-guestfs-appliance
+      sudo -u "$user_name" touch "$WHONIX_BINARY/status_files/update-guestfs-appliance_done"
+   fi
 
    ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
    #sudo apt-get update
