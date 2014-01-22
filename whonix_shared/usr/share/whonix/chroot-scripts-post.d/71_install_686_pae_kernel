@@ -32,6 +32,21 @@ ARCH="$(uname --machine)"
 
 true "$0 INFO: Architecture $ARCH detected."
 
+if [ "$BARE_METAL" = "1" ]; then
+   ## Bare metal users have already a working kernel, otherwise the build
+   ## script could not have reached this point. Installing a kernel for bare
+   ## metal users is not necessary. Installing an extra kernel could even
+   ## trigger a bug in grub and make the systen unbootable or install a pae
+   ## kernel for users who either do not a system supporting pae or who do not
+   ## have pae.
+   ##
+   ## Installing a kernel is only necessary for virtual machine builds,
+   ## because virtual machine images are created while their kernel is neither
+   ## running nor installed at this point.
+   true "$0 INFO: Skipping installation of a kernel, because BARE_METAL is set to $BARE_METAL, ok."
+   exit 0
+fi
+
 if [ ! "$ARCH" = "i686" ]; then
    true "$0 INFO: Architecture $ARCH is not i686, not installing linux-image-686-pae."
    true "         (This is because, trying to install linux-image-686-pae on x86_64 would fail?)"
