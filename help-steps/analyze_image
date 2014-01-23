@@ -711,23 +711,29 @@ parse_folder() {
       if [ "$skip" = "1" ]; then
          local file_extension
          file_extension="${file##*.}"
-         if [ "$file_extension" = "vmdk" ] || [ "$file_extension" = "mf" ] || [ "$file_extension" = "ovf" ]; then
-            ## Skipping creating a sha512sum of the vmdk, because that wastes
-            ## a lot time and we know in advance, there there will be
-            ## differences. (Because there are no deterministically built
-            ## operating systems yet.) We mount and analyze that image later,
-            ## which is the whole point of this script.
-            ##
-            ## Skipping creation of sha512sum for mf and ovf file because those
-            ## contain checksums and disk uuids which we expect to differ.
-            ## Auditors are advised to manually diff those files.
-            ##
-            ## Still useful to have the file name and "skipped" in the report
-            ## file, because this is a reminder to diff the mf and the ofv file
-            ## and because the ova could also contain more than the three
-            ## expected files.
-            echo "($sub_folder) $absolute_file_name | skipped" >> "$report_file"
-            continue
+         if \
+            [ "$file_extension" = "vmdk" ] || \
+            [ "$file_extension" = "mf"   ] || \
+            [ "$file_extension" = "ovf"  ] || \
+            [ "$file_extension" = "img"  ] || \
+            [ "$file_extension" = "vdi"  ]    \
+            ; then
+               ## Skipping creating a sha512sum of the vmdk, because that wastes
+               ## a lot time and we know in advance, there there will be
+               ## differences. (Because there are no deterministically built
+               ## operating systems yet.) We mount and analyze that image later,
+               ## which is the whole point of this script.
+               ##
+               ## Skipping creation of sha512sum for mf and ovf file because those
+               ## contain checksums and disk uuids which we expect to differ.
+               ## Auditors are advised to manually diff those files.
+               ##
+               ## Still useful to have the file name and "skipped" in the report
+               ## file, because this is a reminder to diff the mf and the ofv file
+               ## and because the ova could also contain more than the three
+               ## expected files.
+               echo "($sub_folder) $absolute_file_name | skipped" >> "$report_file"
+               continue
          fi
       fi
 
