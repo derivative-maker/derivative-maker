@@ -601,7 +601,6 @@ sdwdate_sanity_tests() {
    command -v printf >/dev/null
    command -v od >/dev/null
    command -v grep >/dev/null
-   command -v /usr/lib/whonix/curl_exit_codes > /dev/null
 }
 
 sdwdate_signal_sigint() {
@@ -697,9 +696,17 @@ sdwdate_download() {
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
 
    if [ ! "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
-      local curl_status_message
-      curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}")"
-      sdwdate_log "No file could be downloaded from $LINK. (curl_status_message: $curl_status_message)"
+      local command_v_exit_code="0"
+      command -v /usr/lib/whonix/curl_exit_codes > /dev/null || { command_v_exit_code="$?" ; true; };
+      if [ "$command_v_exit_code" = "0" ]; then
+         ## Whonix specific. /usr/lib/whonix/curl_exit_codes available.
+         local curl_status_message
+         curl_status_message="$(/usr/lib/whonix/curl_exit_codes "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}")"
+         sdwdate_log "No file could be downloaded from $LINK. (curl_status_message: $curl_status_message)"
+      else
+         ## Fallback if /usr/lib/whonix/curl_exit_codes is not available.
+         sdwdate_log "No file could be downloaded from $LINK. (curl_exit_code: ${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]})"
+      fi
    fi
 }
 
