@@ -202,8 +202,21 @@ maybe_run /sbin/insserv --showall
 maybe_run /sbin/insserv --verbose
 
 ## non-deterministic [15]
+## /var/lib/urandom/random-seed
 ## This is no longer required for Debian Jessie?
 rm --force /var/lib/urandom/random-seed
+
+## non-deterministic [16]
+## /etc/blkid.tab
+## Although man blkid says /etc/blkid.tab is a cache file (and therefore should
+## be rather in /var/cache) for historical reasons it is in /etc. Should be
+## dispensable. (Gets automatically recreated if necessary.)
+## Show the content of these files, just in case we ever need it for debugging.
+## This is no longer required for Debian Jessie?
+cat /etc/blkid.tab || true
+cat /etc/blkid.tab.old || true
+rm --force /etc/blkid.tab
+rm --force /etc/blkid.tab.old
 
 ## Truncate all log files, keeping user groups and permissions.
 find /var/log -type f -exec cp /dev/null {} \;
