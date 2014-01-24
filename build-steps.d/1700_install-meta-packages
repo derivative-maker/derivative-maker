@@ -89,7 +89,8 @@ this may take several minutes...${reset}"
          $( \
             $CHROOT \
                apt-get \
-                  $apt_dir_opts \
+                  $apt_sourcelist_empty \
+                  $apt_sourceparts \
                   $apt_timeout_opts \
                   $apt_verify_opts \
                   --yes \
@@ -189,7 +190,7 @@ install-meta-packages() {
       ## Debugging Travis CI.
       $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
       $CHROOT apt-cache policy zenity || true
-      $CHROOT apt-get $apt_dir_opts $apt_timeout_opts install zenity || true
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity || true
    fi
 
    ## Debugging.
@@ -202,7 +203,7 @@ install-meta-packages() {
    $CHROOT dpkg --audit
 
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
-   $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts update
+   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts update
 
    ## Workaround for Travis CI.
    ## Not sure if that should be applied in any case. Should the build process
@@ -224,9 +225,9 @@ install-meta-packages() {
    if [ "$CI" = "true" ]; then
       true "INFO $0: skipping dist-upgrade, because CI detected."
       true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
-      #$CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+      #$CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    else
-      $CHROOT apt-get $apt_dir_opts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    fi
 
    ## Debugging.
@@ -236,7 +237,7 @@ install-meta-packages() {
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
-      $CHROOT apt-get $apt_dir_opts $apt_timeout_opts install zenity
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity
    fi
 
    ## Debugging.
