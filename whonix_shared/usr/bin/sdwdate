@@ -589,7 +589,6 @@ sdwdate_sanity_tests() {
    trap "sdwdate_error_handler" ERR
 
    command -v bash >/dev/null
-   command -v expr >/dev/null
    command -v python >/dev/null
    command -v uuidgen >/dev/null
    command -v basename >/dev/null
@@ -693,7 +692,7 @@ sdwdate_download() {
       eval ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}
    fi
 
-   SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(expr "$TIME_END" - "$TIME_START")" || true
+   SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(( $TIME_END - $TIME_START ))"
 
    if [ ! "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
       local command_v_exit_code="0"
@@ -719,7 +718,7 @@ sdwdate_parse_date() {
    i="0"
    local LINE
    while read LINE; do
-      i="$(expr "$i" + "1")"
+      i="$(( $i + 1 ))"
       true "INFO: LINE: $LINE"
 
       if [ "$i" -gt "20" ]; then
@@ -841,7 +840,7 @@ sdwdate_loop() {
       local OLD_UNIXTIME
       OLD_UNIXTIME="$(date +%s)"
 
-      SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(expr "$WEB_DATE_UNIXTIME" - "$OLD_UNIXTIME")" || true
+      SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]="$(( $WEB_DATE_UNIXTIME - $OLD_UNIXTIME ))"
 
       ## TODO
       sdwdate_log "$LINK (took ${SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]}s) => diff = ${SDWDATE_TIME_DIFF[$SDWDATE_CURRENT_POOL]} second(s)"
@@ -878,10 +877,10 @@ sdwdate_pick() {
 sdwdate_build_median() {
    trap "sdwdate_error_handler" ERR
 
-   temp="$(expr "${SDWDATE_TIME_DIFF[SDWDATE_POOL_PAL]}" + "${SDWDATE_TIME_DIFF[SDWDATE_POOL_NEUTRAL]}")" || true
-   temp="$(expr "$temp" + "${SDWDATE_TIME_DIFF[SDWDATE_POOL_FOE]}")" || true
+   temp="$(( ${SDWDATE_TIME_DIFF[SDWDATE_POOL_PAL]} + ${SDWDATE_TIME_DIFF[SDWDATE_POOL_NEUTRAL]} ))"
+   temp="$(( $temp + ${SDWDATE_TIME_DIFF[SDWDATE_POOL_FOE]} ))"
 
-   SDWDATE_MEDIAN_TIME="$(expr "$temp" / "3")" || true
+   SDWDATE_MEDIAN_TIME="$(( $temp / 3 ))"
 
    local OLD_UNIXTIME
    OLD_UNIXTIME="$(date +%s)"
@@ -906,7 +905,7 @@ sdwdate_set_new_time() {
    ## Do not needlessly try to change time, when there is no difference.
    if [ ! "$SDWDATE_MEDIAN_TIME" = "0" ]; then
       local SDWDATE_NEW_TIME
-      SDWDATE_NEW_TIME="$(expr "$OLD_UNIXTIME" + "$SDWDATE_MEDIAN_TIME")" || true
+      SDWDATE_NEW_TIME="$(( $OLD_UNIXTIME + $SDWDATE_MEDIAN_TIME ))"
 
       sdwdate_log "Setting time to $SDWDATE_NEW_TIME..."
 
@@ -916,7 +915,7 @@ sdwdate_set_new_time() {
    fi
 
    #new_unixtime="$(date +%s)"
-   #check="$(expr $OLD_UNIXTIME - $new_unixtime)" || true
+   #check="$(( $OLD_UNIXTIME - $new_unixtime ))"
    #sdwdate_log "check: $check"
 }
 
@@ -1070,14 +1069,14 @@ sdwdate_main() {
          if [ "$RANDOMIZE" = "1" ]; then
             minutes="$(( ($(od -An -N2 -i /dev/random) )%($INTERVAL) ))"
             if [ "$MIN_INTERVAL" -ge "$minutes" ]; then
-               minutes="$(expr "$minutes" + "$MIN_INTERVAL")" || true
+               minutes="$(( $minutes + $MIN_INTERVAL ))"
             fi
          else
             minutes="$INTERVAL"
          fi
 
          local seconds
-         seconds="$(expr "$minutes" \* "60")" || true
+         seconds="$(( $minutes * 60 ))"
 
          sdwdate_log "Sleeping for $minutes minutes."
 
