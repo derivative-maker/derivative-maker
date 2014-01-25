@@ -180,7 +180,9 @@ get_extra_packages() {
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
 
-   ## Update package lists.
+   ## Update $whonix_build_sources_list_newer package list while keeping
+   ## previously updated regular package lists. In other words, prevent
+   ## needlessly updating regular package lists.
    apt-get update \
       $apt_timeout_opts \
       $apt_verify_opts \
@@ -188,6 +190,7 @@ get_extra_packages() {
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0"
 
+   ## Download python-stem from $whonix_build_sources_list_newer.
    sudo -E -u "$user_name" \
       apt-get download --yes \
          $apt_timeout_opts \
@@ -196,10 +199,12 @@ get_extra_packages() {
          --target-release "$codename" \
          python-stem
 
-   ## Removing temporary repository.
+   ## Removing $whonix_build_sources_list_newer package list.
    rm --force "$TEMP"
 
-   ## Update package lists again to get rid of temporary repository.
+   ## Get rid of $whonix_build_sources_list_newer package list, while keeping
+   ## regular package lists. In other words, prevent needlessly forgetting
+   ## about regular package lists.
    apt-get update \
       --no-download \
       --list-cleanup
