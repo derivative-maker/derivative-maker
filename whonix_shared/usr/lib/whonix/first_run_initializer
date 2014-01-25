@@ -11,7 +11,15 @@ set -o pipefail
 ## /usr/share/whonix/postinst.d/70_legacy prevents this script from getting run
 ## on older versions not supporting the verifiable builds feature.
 
+error_handler() {
+   ## Debugging.
+   true "WARNING: exited with non-zero exit code: $?"
+}
+
+trap "error_handler" ERR
+
 maybe_run() {
+   trap "error_handler" ERR
    if [ ! -x "$1" ]; then
       true "$1 does not exist. Either the package is not installed, that script does not provide that script or else..."
       return 0
