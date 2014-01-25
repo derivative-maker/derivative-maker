@@ -23,6 +23,63 @@ whonix_build_on_operating_system_detect_skip="1"
 source pre
 source variables
 
+check-virtualbox-vm-exists() {
+   trap "error_handler_general" ERR INT TERM
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${cyan}INFO: BARE_METAL is set to $BARE_METAL, skipping check if a \
+VirtualBox VM named $VMNAME already exists, ok.${reset}"
+      return 0
+   fi
+
+   ## {{ Checking, if a VM named $VMNAME already exists in VirtualBox.
+
+   local command_v_exit_code="0"
+   command -v VBoxManage >/dev/null || { command_v_exit_code="$?" ; true; }
+
+   if [ ! "$command_v_exit_code" = "0" ]; then
+      true "${cyan}INFO: VBoxManage command not yet available, ok.${reset}"
+      return 0
+   fi
+
+   echo "${cyan}INFO: Checking, if a VirtualBox VM named $VMNAME already exists...${reset}"
+
+   ## For example, we are checking if there is a VM named Whonix-Gateway or
+   ## Whonix-Workstation in VirtualBox. There must be for example no VM named
+   ## Whonix-Gateway in Virtual Box, because in the create-vbox-vm step we will
+   ## create a VM named Whonix-Gateway. This would not be possible, if a VM
+   ## with that name would be already in VirtualBox.
+
+   ## We are checking this here and not in the create-vbox-vm step, because it
+   ## is better to break the build at this early stage rather than after the
+   ## majority of the build time, which would be demotivating for the builder.
+
+   local vboxmanage_exit_code
+   vboxmanage_exit_code="0"
+   ## Do not use sudo -E or it will fail.
+   sudo -u "$user_name" VBoxManage showvminfo "$VMNAME" >/dev/null 2>/dev/null || { vboxmanage_exit_code="$?" ; true; };
+
+   if [ "$vboxmanage_exit_code" = "0" ]; then
+      true "${bold}${red}$0 ERROR: $VMNAME already exists! ${reset}"
+      true "${cyan}$0 You most likely want to delete already existing Virtual Machines.
+(Feel free to comment this check out, if you know what you are doing.)
+To delete $VMNAME, run:${reset}
+    sudo ./whonix_build --clean $vmname_lowercase_long_option
+
+To delete both virtual machines, use:
+
+    sudo ./whonix_build --clean --tor-gateway
+    sudo ./whonix_build --clean --tor-workstation
+
+${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from VirtualBox as well!"
+      error "A VirtualBox VM named $VMNAME already exists!"
+   fi
+
+   echo "${cyan}INFO: Done, no VirtualBox VM named $VMNAME does exist, ok.${reset}"
+
+   ## }}
+}
+
 prepare-build-machine() {
    trap "error_handler_general" ERR INT TERM
 
@@ -55,6 +112,11 @@ prepare-build-machine() {
    done
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
+
+   ## VirtualBox might not be installed at this point.
+   ## Trying anyway, in case this script has already been run and installed
+   ## VirtualBox beforehand.
+   check-virtualbox-vm-exists
 
    ## If whonix_build is run with --fast1 switch.
    if [ "$WHONIX_BUILD_FAST1" = "1" ]; then
@@ -299,6 +361,9 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## TODO enable
       apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
          virtualbox
+
+      ## VirtualBox will be be installed at this point.
+      check-virtualbox-vm-exists
    fi
 
    ## {{{

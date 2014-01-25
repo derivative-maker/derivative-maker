@@ -20,51 +20,6 @@ source variables
 create-debian-img() {
    trap "error_handler_general" ERR INT TERM
 
-   ## {{ Checking, if a VM named $VMNAME already exists in VirtualBox.
-
-   ## For example, we are checking if there is a VM named Whonix-Gateway or
-   ## Whonix-Workstation in VirtualBox. There must be for example no VM named
-   ## Whonix-Gateway in Virtual Box, because in the create-vbox-vm step we will
-   ## create a VM named Whonix-Gateway. This would not be possible, if a VM
-   ## with that name would be already in VirtualBox.
-
-   ## We are not checking this in the prepare-build-machine step, because that
-   ## step might be skipped. Also because we need VirtualBox installed in the
-   ## first place to check this.
-   ## We are not checking this in the create-debian-packages step, because it
-   ## would be legit just to create Whonix Debian packages while having VMs
-   ## named that way.
-   ## We are checking this here and not in the create-vbox-vm step, because it
-   ## is better to break the build at this early stage rather than after the
-   ## majority of the build time, which would be demotivating for the builder.
-
-   echo "${cyan}INFO: Checking, if a VM named $VMNAME already exists in VirtualBox... $0. ${reset}"
-
-   local vboxmanage_exit_code
-   vboxmanage_exit_code="0"
-   ## Do not use sudo -E or it will fail.
-   sudo -u "$user_name" VBoxManage showvminfo "$VMNAME" >/dev/null 2>/dev/null || { vboxmanage_exit_code="$?" ; true; };
-
-   if [ "$vboxmanage_exit_code" = "0" ]; then
-      true "${bold}${red}$0 ERROR: $VMNAME already exists! ${reset}"
-      true "${cyan}$0 You most likely want to delete already existing Virtual Machines.
-(Feel free to comment this check out, if you know what you are doing.)
-To delete $VMNAME, run:${reset}
-    sudo ./whonix_build --clean $vmname_lowercase_long_option
-
-To delete both virtual machines, use:
-
-    sudo ./whonix_build --clean --tor-gateway
-    sudo ./whonix_build --clean --tor-workstation
-
-${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from VirtualBox as well!"
-      error "$VMNAME already exists!"
-   fi
-
-   echo "${cyan}INFO: Done, no VM named $VMNAME does exist yet in VirtualBox, ok. $0. ${reset}"
-
-   ## }}
-
    mkdir --parents "$WHONIX_BINARY/"
    chown --recursive "$user_name:$user_name" "$WHONIX_BINARY/"
 
