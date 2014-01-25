@@ -635,7 +635,9 @@ parse_folder() {
 
    set +x
 
+   ## read: using "-d ''" for NUL-delimited output.
    while read -r -d '' file; do
+
       i="$(( $i + 1 ))"
 
       if [ "$CI" = "true" ]; then
@@ -788,6 +790,11 @@ parse_folder() {
          echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | checksum: $checksum" >> "$report_file"
          continue
       fi
+
+   ## The output of "find" when run on different images is non-deterministic,
+   ## therefore piping it through "sort".
+   ## find: using "-print0" for NUL-delimited output.
+   ## sort: using "-z" for NUL-delimited output.
    done < <(find "$folder/" -print0 | sort -z)
 
    set -x
