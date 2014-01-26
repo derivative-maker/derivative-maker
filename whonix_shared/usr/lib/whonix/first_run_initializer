@@ -65,15 +65,32 @@ install_initial_packages() {
 ## Deactivated for now. Let's see if we can substitute that we dpkg.
 #install_initial_packages
 
+## Using a simpler method to install initial packages.
+## Leaving dependency resolution to dpkg.
+##
+## Modifications comment:
+## It has a little disadvantage, it may re-install packages, which have been
+## uninstalled by advanced users between running chroot-post.d scripts and
+## finalizing/importing the image. It should not hinder creation modifications
+## of Whonix, because in the cleanup chroot-post.d script, we do not download
+## packages (for later re-installation at this point), which are not installed
+## at that point.
+dpkg --install "/var/lib/whonix/initial-packages/"*
+
+## This may not be necessary.
+## Re-running the same command, so we can see in the log, if it runs without
+## any warnings the second time.
+dpkg --install "/var/lib/whonix/initial-packages/"*
+
 ## }}}
 
 ## {{{ dpkg-reconfigure
 
-cp --preserve --verbose /usr/share/whonix/policy-rc.d /usr/sbin/policy-rc.d
+#cp --preserve --verbose /usr/share/whonix/policy-rc.d /usr/sbin/policy-rc.d
 
-dpkg-reconfigure --force --all
+#dpkg-reconfigure --force --all
 
-rm --verbose --force /usr/sbin/policy-rc.d
+#rm --verbose --force /usr/sbin/policy-rc.d
 
 ## }}}
 
