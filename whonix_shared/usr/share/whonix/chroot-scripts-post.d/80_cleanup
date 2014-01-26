@@ -28,6 +28,9 @@ for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
 done
 unset skip_script
 
+## Enable apt-cacher-ng proxy.
+export http_proxy="http://127.0.0.1:3142"
+
 ## {{{ variables
 
 DPKG_MAINTSCRIPT_PACKAGE_BACKUP="$DPKG_MAINTSCRIPT_PACKAGE"
@@ -36,13 +39,34 @@ DPKG_ADMINDIR_BACKUP="$DPKG_ADMINDIR"
 DPKG_NO_TSTP_BACKUP="$DPKG_NO_TSTP"
 DPKG_MAINTSCRIPT_ARCH_BACKUP="$DPKG_MAINTSCRIPT_ARCH"
 
-DPKG_RUNNING_VERSION="$(dpkg-query --show --showformat='${Version}' "dpkg")"
-export DPKG_RUNNING_VERSION
+if [ "$DPKG_RUNNING_VERSION" = "" ]; then
+   DPKG_RUNNING_VERSION="$(dpkg-query --show --showformat='${Version}' "dpkg")"
+   export DPKG_RUNNING_VERSION
+fi
 
-export DPKG_ADMINDIR="/var/lib/dpkg"
-export DPKG_NO_TSTP="yes"
+if [ "$DPKG_ADMINDIR" = "" ]; then
+   export DPKG_ADMINDIR="/var/lib/dpkg"
+fi
+
+if [ "$DPKG_NO_TSTP" = "" ]; then
+   export DPKG_NO_TSTP="yes"
+fi
 
 ## }}}
+
+declare -A -g downloaded
+
+download_package() {
+   trap "error_handler" ERR
+   local package="$1"
+   if [ "${downloaded[$package]}" = "1" ]; then
+      true "INFO: Already downloaded $package."
+   else
+      true "INFO: Downloading $package..."
+      apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts download "$package"
+      downloaded[$package]="1"
+   fi
+}
 
 maybe_run() {
    trap "error_handler" ERR
@@ -54,41 +78,44 @@ maybe_run() {
       basename_script="$(basename "$script")"
       ## Example basename_script:
       ## libc6:i386.prerm
-      package="$(echo "$basename_script" | tr ":" " " | awk '{print $1}')"
-      ## Example package:
-      ## libc6
-      export DPKG_MAINTSCRIPT_PACKAGE="$package"
-      export DPKG_MAINTSCRIPT_NAME="prerm"
-      ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
+      ## libgdk-pixbuf2.0-0:i386.postrm
+      ## libgdk-pixbuf2.0-0.postrm
+      basename_script_without_extension="${basename_script%.*}"
+      ## Example basename_script_without_extension:
+      ## libgdk-pixbuf2.0-0:i386
+      ## libgdk-pixbuf2.0-0
+      package="$basename_script_without_extension"
       if [ ! -e "$script" ]; then
          true "INFO: $script does not exist."
       elif [ ! -x "$script" ]; then
          true "INFO: $script not executable."
       else
+         download_package "$package"
          true "INFO: Running... "$script" remove"
+         export DPKG_MAINTSCRIPT_PACKAGE="$package"
+         ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
+         export DPKG_MAINTSCRIPT_NAME="prerm"
          ## Example:
          ## /var/lib/dpkg/info/fontconfig.prerm remove
          "$script" remove
       fi
    done
 
-   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE
+   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE DPKG_MAINTSCRIPT_NAME
 
    for script in $1.postrm; do
       basename_script="$(basename "$script")"
-      ## Example basename_script:
-      ## libc6:i386.prerm
-      package="$(echo "$basename_script" | tr ":" " " | awk '{print $1}')"
-      ## Example package:
-      ## libc6
-      export DPKG_MAINTSCRIPT_PACKAGE="$package"
-      export DPKG_MAINTSCRIPT_NAME="postrm"
-      ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
+      basename_script_without_extension="${basename_script%.*}"
+      package="$basename_script_without_extension"
       if [ ! -e "$script" ]; then
          true "INFO: $script does not exist."
       elif [ ! -x "$script" ]; then
          true "INFO: $script not executable."
       else
+         download_package "$package"
+         export DPKG_MAINTSCRIPT_PACKAGE="$package"
+         ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
+         export DPKG_MAINTSCRIPT_NAME="postrm"
          true "INFO: Running... "$script" purge"
          ## Example:
          ## /var/lib/dpkg/info/fontconfig.postrm purge
@@ -96,52 +123,15 @@ maybe_run() {
       fi
    done
 
-   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE
+   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE DPKG_MAINTSCRIPT_NAME
 
    shopt -u nullglob dotglob
 }
 
 echo "INFO: Cleaning up..."
 
-## Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
-killall dhclient3 || true
-## There are .leases.
-rm /var/lib/dhcp/*.leases || true
-## And there are .lease.
-rm /var/lib/dhcp/*.lease || true
-## We are best of deleting the whole folder.
-rm -r /var/lib/dhcp/* || true
-
-## Cleanup.
-## || true to support re-running the script.
-apt-get --yes autoremove --purge || true
-
-## Get rid of /var/cache/apt/pkgcache.bin. (non-deterministic)
-## || true to support re-running the script.
-apt-get --yes clean || true
-
-## No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
-## Therefore /var/lib/tor should be empty.
-## Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
-## rm -r /var/lib/tor/* || true
-
-## Delete logs and other stuff.
-rm -r /tmp/* || true
-rm /var/log/installer/* || true
-rm -r /var/cache/apt/* || true
-rm -r /var/lib/apt/lists/* || true
-rm -r /var/log/installer || true
-rm /var/lib/dpkg/*-old || true
-rm /var/cache/debconf/*-old || true
-## Erase rotated logs (usually wont appear unless you left your VM running for several days).
-rm /var/log/*.[0-9] || true
-rm /var/log/*.[0-9].gz || true
-
-## non-deterministic [0]
-## /var/lib/dpkg/available
-## /var/lib/dpkg/available-old
-dpkg --clear-avail
-rm -f /var/lib/dpkg/available-old
+mkdir --parents "/var/lib/whonix/initial-packages"
+cd "/var/lib/whonix/initial-packages"
 
 ## non-deterministic [1]
 ## /var/cache/fontconfig
@@ -214,6 +204,46 @@ maybe_run "/var/lib/dpkg/info/python-support"
 ## /var/lib/gconf/defaults/%gconf-tree.xml
 maybe_run "/var/lib/dpkg/info/gconf2-common"
 
+## Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
+killall dhclient3 || true
+## There are .leases.
+rm /var/lib/dhcp/*.leases || true
+## And there are .lease.
+rm /var/lib/dhcp/*.lease || true
+## We are best of deleting the whole folder.
+rm -r /var/lib/dhcp/* || true
+
+## Cleanup.
+## || true to support re-running the script.
+apt-get --yes autoremove --purge || true
+
+## Get rid of /var/cache/apt/pkgcache.bin. (non-deterministic)
+## || true to support re-running the script.
+apt-get --yes clean || true
+
+## No longer deleting /var/lib/tor. We install but forbid to run software such as Tor we install.
+## Therefore /var/lib/tor should be empty.
+## Ensure to delete /var/lib/tor. It contains sensitive stuff like the Tor consensus and the Tor entry guards.
+## rm -r /var/lib/tor/* || true
+
+## Delete logs and other stuff.
+rm -r /tmp/* || true
+rm /var/log/installer/* || true
+rm -r /var/cache/apt/* || true
+rm -r /var/lib/apt/lists/* || true
+rm -r /var/log/installer || true
+rm /var/lib/dpkg/*-old || true
+rm /var/cache/debconf/*-old || true
+## Erase rotated logs (usually wont appear unless you left your VM running for several days).
+rm /var/log/*.[0-9] || true
+rm /var/log/*.[0-9].gz || true
+
+## non-deterministic [0]
+## /var/lib/dpkg/available
+## /var/lib/dpkg/available-old
+dpkg --clear-avail
+rm -f /var/lib/dpkg/available-old
+
 ## non-deterministic [14]
 ## /etc/init.d/.depend.boot
 ## /etc/init.d/.depend.start
@@ -253,6 +283,9 @@ rm --force /etc/apt/trustdb.gpg
 
 ## Truncate all log files, keeping user groups and permissions.
 find /var/log -type f -exec cp /dev/null {} \;
+
+## Disable apt-cacher-ng proxy.
+unset http_proxy
 
 ## This will not work in chroot.
 ## Take care of development leaks and make resulting ova image smaller.
