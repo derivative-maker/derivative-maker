@@ -29,11 +29,54 @@ done
 unset skip_script
 
 maybe_run() {
-   if [ ! -x "$1" ]; then
-      true "INFO: $1 does not exist. Either the package is not installed, that script does not provide that script or else..."
-      return 0
-   fi
-   $1 $2
+   trap "error_handler" ERR
+
+   local script basename_script package
+   shopt -s nullglob dotglob
+
+   for script in $1.prerm; do
+      basename_script="$(basename "$script")"
+      ## Example basename_script:
+      ## libc6:i386.prerm
+      package="$(echo "$basename_script" | tr ":" " " | awk '{print $1}')"
+      ## Example package:
+      ## libc6
+      export DPKG_MAINTSCRIPT_PACKAGE="$package"
+      if [ ! -e "$script" ]; then
+         true "INFO: $script does not exist."
+      elif [ ! -x "$script" ]; then
+         true "INFO: $script not executable."
+      else
+         ## Example:
+         ## /var/lib/dpkg/info/fontconfig.prerm remove
+         "$script" remove
+      fi
+   done
+
+   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE
+
+   for script in $1.postrm; do
+      basename_script="$(basename "$script")"
+      ## Example basename_script:
+      ## libc6:i386.prerm
+      package="$(echo "$basename_script" | tr ":" " " | awk '{print $1}')"
+      ## Example package:
+      ## libc6
+      export DPKG_MAINTSCRIPT_PACKAGE="$package"
+      if [ ! -e "$script" ]; then
+         true "INFO: $script does not exist."
+      elif [ ! -x "$script" ]; then
+         true "INFO: $script not executable."
+      else
+         ## Example:
+         ## /var/lib/dpkg/info/fontconfig.postrm purge
+         "$script" purge
+      fi
+   done
+
+   unset script basename_script package DPKG_MAINTSCRIPT_PACKAGE
+
+   shopt -u nullglob dotglob
 }
 
 echo "INFO: Cleaning up..."
@@ -81,49 +124,35 @@ rm -f /var/lib/dpkg/available-old
 ## non-deterministic [1]
 ## /var/cache/fontconfig
 ## does not exist: /var/lib/dpkg/info/fontconfig.prerm remove
-maybe_run /var/lib/dpkg/info/fontconfig.prerm remove
-maybe_run /var/lib/dpkg/info/fontconfig.postrm purge
+maybe_run /var/lib/dpkg/info/fontconfig
 
 ## non-deterministic [2]
 ## /var/cache/ldconfig/aux-cache
-for script in libc6*.prerm; do
-   maybe_run $script remove
-done
-unset script
-for script in libc6*.postrm; do
-   maybe_run $script purge
-done
-unset script
-rm -f /var/cache/ldconfig/aux-cache
+maybe_run /var/lib/dpkg/info/libc6*
 
 ## non-deterministic [3]
 ## /var/cache/man folder
-maybe_run /var/lib/dpkg/info/man-db.prerm remove
-maybe_run /var/lib/dpkg/info/man-db.postrm purge
+maybe_run /var/lib/dpkg/info/man-db
 
 ## non-deterministic [14]
 ## /etc/xml/docbook-xsl.xml
 ## /var/lib/xml-core/docbook-xsl
-maybe_run /var/lib/dpkg/info/docbook-xsl.prerm remove
-maybe_run /var/lib/dpkg/info/docbook-xsl.postrm purge
+maybe_run /var/lib/dpkg/info/docbook-xsl
 
 ## non-deterministic [7]
 ## /etc/xml/docbook-xml.xml
 ## /etc/xml/docbook-xml.xml.old
-maybe_run /var/lib/dpkg/info/docbook-xml.prerm remove
-maybe_run /var/lib/dpkg/info/docbook-xml.postrm purge
+maybe_run /var/lib/dpkg/info/docbook-xml
 
 ## non-deterministic [5]
 ## /etc/xml/sgml-data
 ## /etc/xml/sgml-data.old
-maybe_run /var/lib/dpkg/info/sgml-data.prerm remove
-maybe_run /var/lib/dpkg/info/sgml-data.postrm purge
+maybe_run /var/lib/dpkg/info/sgml-data
 
 ## non-deterministic [6]
 ## /var/lib/sgml-base/supercatalog
 ## /var/lib/sgml-base/supercatalog.old
-maybe_run /var/lib/dpkg/info/sgml-base.prerm remove
-maybe_run /var/lib/dpkg/info/sgml-base.postrm purge
+maybe_run /var/lib/dpkg/info/sgml-base
 
 ## non-deterministic [4]
 ## /var/lib/xml-core folder
@@ -131,8 +160,7 @@ maybe_run /var/lib/dpkg/info/sgml-base.postrm purge
 ## /etc/xml/catalog.old
 ## /etc/xml/xml-core.xml
 ## /etc/xml/xml-core.xml.old
-maybe_run /var/lib/dpkg/info/xml-core.prerm remove
-maybe_run /var/lib/dpkg/info/xml-core.postrm purge
+maybe_run /var/lib/dpkg/info/xml-core
 
 ## non-deterministic [8]
 ## There is no postrm script for the base-files package.
@@ -142,53 +170,26 @@ rm -f /usr/share/info/dir.old ## no regeneration, since not required
 ## non-deterministic [9]
 ## /usr/lib/*/gdk-pixbuf*/*/loaders.cache
 ## ex: /usr/lib/i386-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache
-for script in /var/lib/dpkg/info/libgdk-pixbuf*.prerm; do
-   maybe_run $script remove
-done
-unset script
-for script in /var/lib/dpkg/info/libgdk-pixbuf*.postrm; do
-   maybe_run $script purge
-done
-unset script
+maybe_run /var/lib/dpkg/info/libgdk-pixbuf*
 
 ## non-deterministic [10]
 ## /usr/lib/i386-linux-gnu/gio/modules/giomodule.cache
-for script in /var/lib/dpkg/info/libglib*.prerm; do
-   ## The "|| true" is required for Ubuntu CI, otherwise we'll get a
-   ## "dpkg-maintscript-helper: error: couldn't identify the package" error.
-   maybe_run $script remove || true
-done
-unset script
-for script in /var/lib/dpkg/info/libglib*.postrm; do
-   true "The dpkg-trigger error is expected."
-   maybe_run $script purge || true
-   true "The dpkg-trigger error was expected."
-done
-unset script
+maybe_run /var/lib/dpkg/info/libglib*
 
 ## non-deterministic [11]
 ## /usr/lib/i386-linux-gnu/*/*/immodules.cache
 ## /usr/lib/i386-linux-gnu/gtk-2.0/2.10.0/immodules.cache
 ## /usr/lib/i386-linux-gnu/gtk-3.0/3.0.0/immodules.cache
-for script in /var/lib/dpkg/info/libgtk*.prerm; do
-   maybe_run $script remove
-done
-unset script
-for script in /var/lib/dpkg/info/libgtk*.postrm; do
-   maybe_run $script purge
-done
-unset script
+maybe_run /var/lib/dpkg/info/libgtk*
 
 ## non-deterministic [12]
 ## some /usr/lib/pymodules/python2.7/**/__init__.pyc
-## does not exist: /var/lib/dpkg/info/python-support.prerm remove
-maybe_run /var/lib/dpkg/info/python-support.prerm remove
-maybe_run /var/lib/dpkg/info/python-support.postrm purge
+## does not exist: /var/lib/dpkg/info/python-support
+maybe_run /var/lib/dpkg/info/python-support
 
 ## non-deterministic [13]
 ## /var/lib/gconf/defaults/%gconf-tree.xml
-maybe_run /var/lib/dpkg/info/gconf2-common.prerm remove
-maybe_run /var/lib/dpkg/info/gconf2-common.postrm purge
+maybe_run /var/lib/dpkg/info/gconf2-common
 
 ## non-deterministic [14]
 ## /etc/init.d/.depend.boot
@@ -198,8 +199,10 @@ maybe_run /var/lib/dpkg/info/gconf2-common.postrm purge
 ##
 ## Only attempt to run `insserv` when it's installed. This ensures, that this
 ## works on CI systems (Ubuntu) and in modified Whonix versions as well.
-maybe_run /sbin/insserv --showall
-maybe_run /sbin/insserv --verbose
+if [ -x /sbin/insserv ]; then
+   /sbin/insserv --showall
+   /sbin/insserv --verbose
+fi
 
 ## non-deterministic [15]
 ## /var/lib/urandom/random-seed
