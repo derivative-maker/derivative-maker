@@ -29,34 +29,51 @@ export DEBIAN_FRONTEND="noninteractive"
 
 ## {{{ /var/lib/whonix/initial-packages
 
-shopt -s nullglob dotglob
+install_initial_packages() {
+   trap "error_handler" ERR
 
-for file_name in "/var/lib/whonix/initial-packages/"*; do
-   ## Example file_name:
-   ## /var/lib/whonix/initial-packages/nano_2.2.6-1+b1_i386.deb
-   file_basename="$(basename "$file_name")"
-   ## Example file_name:
-   ## nano_2.2.6-1+b1_i386.deb
-   package="$(echo "$file_basename" | tr "_" " " | awk '{print $1}')"
-   ## Example package:
-   ## nano
-   dpkg_status="$(dpkg-query --show --showformat='${db:Status-Abbrev}' "$package")"
-   ## Example dpkg_status:
-   ## ii
-   status_second_char="${dpkg_status:1:1}"
-   ## Example status_second_char:
-   ## i
-   if [ "$status_second_char" = "i" ]; then
-      ## Installed. Reinstall...
-      true "INFO: Reinstalling $package ($file_name)..."
-      dpkg --install "$file_name"
-   else
-      ## Not installed. Skipping.
-      true "INFO: $package ($file_name) not installed, skipping."
-   fi
-done
+   shopt -s nullglob dotglob
 
-shopt -u nullglob dotglob
+   for file_name in "/var/lib/whonix/initial-packages/"*; do
+      ## Example file_name:
+      ## /var/lib/whonix/initial-packages/nano_2.2.6-1+b1_i386.deb
+      file_basename="$(basename "$file_name")"
+      ## Example file_name:
+      ## nano_2.2.6-1+b1_i386.deb
+      package="$(echo "$file_basename" | tr "_" " " | awk '{print $1}')"
+      ## Example package:
+      ## nano
+      dpkg_status="$(dpkg-query --show --showformat='${db:Status-Abbrev}' "$package")"
+      ## Example dpkg_status:
+      ## ii
+      status_second_char="${dpkg_status:1:1}"
+      ## Example status_second_char:
+      ## i
+      if [ "$status_second_char" = "i" ]; then
+         ## Installed. Reinstall...
+         true "INFO: Reinstalling $package ($file_name)..."
+         dpkg --install "$file_name"
+      else
+         ## Not installed. Skipping.
+         true "INFO: $package ($file_name) not installed, skipping."
+      fi
+   done
+
+   shopt -u nullglob dotglob
+}
+
+## Deactivated for now. Let's see if we can substitute that we dpkg.
+#install_initial_packages
+
+## }}}
+
+## {{{ dpkg-reconfigure
+
+cp --preserve --verbose /usr/share/whonix/policy-rc.d /usr/sbin/policy-rc.d
+
+dpkg-reconfigure --force --all
+
+rm --verbose --force /usr/sbin/policy-rc.d
 
 ## }}}
 
