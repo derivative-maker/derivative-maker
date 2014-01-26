@@ -18,7 +18,21 @@ error_handler() {
 
 trap "error_handler" ERR
 
+## {{{ variables
+
 DPKG_MAINTSCRIPT_PACKAGE_BACKUP="$DPKG_MAINTSCRIPT_PACKAGE"
+DPKG_RUNNING_VERSION_BACKUP="$DPKG_RUNNING_VERSION"
+DPKG_ADMINDIR_BACKUP="$DPKG_ADMINDIR"
+DPKG_NO_TSTP_BACKUP="$DPKG_NO_TSTP"
+DPKG_MAINTSCRIPT_ARCH_BACKUP="$DPKG_MAINTSCRIPT_ARCH"
+
+DPKG_RUNNING_VERSION="$(dpkg-query --show --showformat='${Version}' "dpkg")"
+export DPKG_RUNNING_VERSION
+
+export DPKG_ADMINDIR="/var/lib/dpkg"
+export DPKG_NO_TSTP="yes"
+
+## }}}
 
 maybe_run() {
    trap "error_handler" ERR
@@ -34,6 +48,8 @@ maybe_run() {
       ## Example package:
       ## libc6
       export DPKG_MAINTSCRIPT_PACKAGE="$package"
+      export DPKG_MAINTSCRIPT_NAME="preinst"
+      ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
       if [ ! -e "$script" ]; then
          true "INFO: $script does not exist."
       elif [ ! -x "$script" ]; then
@@ -56,6 +72,8 @@ maybe_run() {
       ## Example package:
       ## libc6
       export DPKG_MAINTSCRIPT_PACKAGE="$package"
+      export DPKG_MAINTSCRIPT_NAME="postinst"
+      ## TODO: export DPKG_MAINTSCRIPT_ARCH="?"
       if [ ! -e "$script" ]; then
          true "INFO: $script does not exist."
       elif [ ! -x "$script" ]; then
