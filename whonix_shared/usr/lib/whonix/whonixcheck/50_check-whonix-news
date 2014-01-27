@@ -142,18 +142,39 @@ verify_whonix_news() {
 
    true "d whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
 
-   local filename
+   local filename signature timeout_after kill_after gpg_fd_one gpg_fd_one_file
    filename="whonix_news.tar.xz"
-   local signature
    signature="whonix_news.tar.xz.asc"
 
-   gpg_fd_one="$(\
-      gpg \
-         --status-fd 1 \
-         --homedir "$whonix_news_gpg_temp_dir" \
-         --verify "$VERIFY_TEMPDIR/news/$signature" \
-         2>/dev/null \
-   )" || { whonix_news_verify_check_exit_code="$?" ; true; };
+   timeout_after="10"
+   kill_after="10"
+
+   ## Debugging.
+   #timeout_after="0.001"
+   #kill_after="0.001"
+
+   gpg_fd_one_file="$VERIFY_TEMPDIR/news_gpg_fd_one"
+   rm --force "$gpg_fd_one_file"
+
+   timeout --kill-after="$kill_after" "$timeout_after" \
+         gpg \
+            --status-fd 1 \
+            --homedir "$whonix_news_gpg_temp_dir" \
+            --verify "$VERIFY_TEMPDIR/news/$signature" \
+            >"$gpg_fd_one_file"
+            2>/dev/null \
+            &
+
+   lastpid="$!"
+   wait "$lastpid" || { whonix_news_verify_check_exit_code="$?" ; true; }
+
+   ## `timeout` returns:
+   ## - 124 if sigterm was sufficient
+   ## - 137 if needed to use kill.
+
+   if [ -f "$gpg_fd_one_file" ]; then
+      gpg_fd_one="$(cat "$gpg_fd_one_file")"
+   fi
 
    ## Example gpg_fd_one:
    ## [GNUPG:] SIG_ID ckz4Z2Th1KU9o1sVsWMY8JXdg+A 2013-10-13 1381635738
@@ -261,20 +282,35 @@ Either,
 extract_whonix_news() {
    trap "error_handler" ERR
 
-   local filename
+   local filename timeout_after kill_after
    filename="whonix_news.tar.xz"
+
+   ## Debugging.
+   #timeout_after="0.001"
+   #kill_after="0.001"
+
+   timeout_after="10"
+   kill_after="10"
 
    whonix_news_tar_exit_code="0"
 
-   tar \
-      --extract \
-      --verbose \
-      --xz \
-      --file="$VERIFY_TEMPDIR/news/$filename" \
-      --directory="$VERIFY_TEMPDIR/news/" \
-      . \
-      >/dev/null \
-      || { whonix_news_tar_exit_code="$?" ; true; };
+   timeout --kill-after="$kill_after" "$timeout_after" \
+      tar \
+         --extract \
+         --verbose \
+         --xz \
+         --file="$VERIFY_TEMPDIR/news/$filename" \
+         --directory="$VERIFY_TEMPDIR/news/" \
+         . \
+         >/dev/null \
+         &
+
+   lastpid="$!"
+   wait "$lastpid" || { whonix_news_tar_exit_code="$?" ; true; }
+
+   ## `timeout` returns:
+   ## - 124 if sigterm was sufficient
+   ## - 137 if needed to use kill.
 
    if [ ! "$whonix_news_tar_exit_code" = "0" ]; then
       local MSG="Whonix News Download Result: Could not extract $filename! (tar return code: ${whonix_news_tar_exit_code}) Please report this bug!"
