@@ -18,9 +18,9 @@ download_whonix_news() {
    declare -A -g whonix_news_download_exit_code
    declare -A -g whonix_news_verify_check_exit_code
 
-   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v3/whonix_news.tar.gz.asc/download]="whonix_news.tar.gz.asc"
+   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v4/whonix_news.tar.xz.asc/download]="whonix_news.tar.xz.asc"
 
-   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v3/whonix_news.tar.gz/download]="whonix_news.tar.gz"
+   whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v4/whonix_news.tar.xz/download]="whonix_news.tar.xz"
 
    ## sf.net does not support ssl.
    ## --location is required since sf.net uses redirects to mirrors.
@@ -143,9 +143,9 @@ verify_whonix_news() {
    true "d whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
 
    local filename
-   filename="whonix_news.tar.gz"
+   filename="whonix_news.tar.xz"
    local signature
-   signature="whonix_news.tar.gz.asc"
+   signature="whonix_news.tar.xz.asc"
 
    gpg_fd_one="$(\
       gpg \
@@ -262,11 +262,11 @@ extract_whonix_news() {
    trap "error_handler" ERR
 
    local filename
-   filename="whonix_news.tar.gz"
+   filename="whonix_news.tar.xz"
 
    whonix_news_tar_exit_code="0"
 
-   tar -xvzf "$VERIFY_TEMPDIR/news/$filename" -C "$VERIFY_TEMPDIR/news/" . >/dev/null || { whonix_news_tar_exit_code="$?" ; true; };
+   tar -xvJf "$VERIFY_TEMPDIR/news/$filename" -C "$VERIFY_TEMPDIR/news/" . >/dev/null || { whonix_news_tar_exit_code="$?" ; true; };
 
    if [ ! "$whonix_news_tar_exit_code" = "0" ]; then
       local MSG="Whonix News Download Result: Could not extract $filename! (tar return code: ${whonix_news_tar_exit_code}) Please report this bug!"
