@@ -29,9 +29,6 @@ create-debian-img() {
       exit 0
    fi
 
-   ## vmsize 100 GB does not matter because only space,
-   ## which gets actually filled up, will take disk space.
-
    if [ -z "$WHONIX_TARGET_ARCH" ]; then
       ## Default architecture.
       export WHONIX_TARGET_ARCH="i386"
@@ -42,6 +39,14 @@ create-debian-img() {
    fi
 
    true "${cyan}INFO: WHONIX_TARGET_ARCH: $WHONIX_TARGET_ARCH${reset}"
+
+   ## Create backup of grml-debootstrap's original chroot-script.
+   cp --no-clobber "/etc/debootstrap/chroot-script" "/etc/debootstrap/chroot-script.backup"
+
+   ## Use chroot-script with fixed DPKG_OPTIONS variable.
+   ## This hack can be dropped as soon as
+   ## https://github.com/grml/grml-debootstrap/pull/11 is lands in Debian.
+   cp "$WHONIX_SOURCE_FOLDER/grml_chroot-script" "/etc/debootstrap/chroot-script"
 
    mkdir --parents "/etc/debootstrap/etc/apt/"
    cp "$WHONIX_SOURCE_FOLDER/$whonix_build_sources_list" "/etc/debootstrap/etc/apt/sources.list"
@@ -57,6 +62,10 @@ create-debian-img() {
 
    export DPKG_OPTIONS="$apt_timeout_opts $apt_verify_opts"
 
+   ## Not using grml-debootstrap to install a kernel. A chroot-post.d script
+   ## will take care of that.
+   export KERNEL="none"
+
    ## More variables in grml_config file. Unfortunately, grml-debootstrap does
    ## neither support using command line nor environment variables for all
    ## options.
@@ -65,6 +74,9 @@ create-debian-img() {
 
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
+
+   ## vmsize 100 GB does not matter because only space,
+   ## which gets actually filled up, will take disk space.
 
    grml-debootstrap \
       --debopt "--verbose" \
