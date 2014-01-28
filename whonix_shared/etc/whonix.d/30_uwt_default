@@ -42,13 +42,18 @@ uwtport["/usr/bin/ssh"]="9106"
 uwtport["/usr/bin/wget"]="9109"
 uwtport["/usr/bin/aptitude"]="9124"
 
-if [ -f "/usr/share/whonix/whonix_workstation" ]; then
-   uwtwrapper_gateway_ip="192.168.0.10"
-elif [ -f "/usr/share/whonix/whonix_gateway" ]; then
-   uwtwrapper_gateway_ip="127.0.0.1"
+if [ "$UWT_DEV_PASSTHROUGH" = "1" ]; then
+   ## Can be the case when building Whonix from source code.
+   uwtwrapper_gateway_ip="UWT_DEV_PASSTHROUGH"
 else
-   error "/usr/bin/"$SCRIPTNAME" uwt wrapper could not determine if this is Whonix-Workstation or Whonix-Gateway."
-   error "Please report this bug!"
+   if [ -f "/usr/share/whonix/whonix_workstation" ]; then
+      uwtwrapper_gateway_ip="192.168.0.10"
+   elif [ -f "/usr/share/whonix/whonix_gateway" ]; then
+      uwtwrapper_gateway_ip="127.0.0.1"
+   else
+      error "/usr/bin/"$SCRIPTNAME" uwt wrapper could not determine if this is Whonix-Workstation or Whonix-Gateway."
+      error "Please report this bug!"
+   fi
 fi
 
 ## Technical Comment:
