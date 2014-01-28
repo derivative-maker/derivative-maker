@@ -31,9 +31,15 @@ script_help() {
 
    echo "\
 Required options:
---ova ovafile
 --report reportfile
 --tempfolder folder
+
+And either one of the following:
+--ova ovafile
+--vdi vdifile
+--qcow qcowfile
+--qcow2 qcow2file
+--raw rawfile
 
 Optional options:
 --topcomment comment
@@ -65,8 +71,16 @@ parse_cmd() {
       error "no option chosen. Use --help."
    fi
 
-   ## TODO:
-   ## - specify .img or .vdi instead of .ova
+   ## defaults
+   ova="0"
+   vmdk="0"
+   vdi="0"
+   qcow="0"
+   qcow2="0"
+   raw="0"
+   if [ "$BARE_METAL" = "" ]; then
+      BARE_METAL="0"
+   fi
 
    while :
    do
@@ -76,7 +90,40 @@ parse_cmd() {
                exit 0
                ;;
            -o | --ova)
+               ova="1"
+               vmdk="1"
+               vdi="1"
                ova_file="$2"
+               shift 2
+               ;;
+           -vmdk | --vmdk)
+               vmdk="1"
+               vdi="1"
+               vmdk_file="$2"
+               shift 2
+               ;;
+           -q | --vdi)
+               vdi="1"
+               vdi_file="$2"
+               shift 2
+               ;;
+           -q | --qcow)
+               qcow="1"
+               qcow_file="$2"
+               shift 2
+               ;;
+           -q2 | --qcow2)
+               qcow2="1"
+               qcow2_file="$2"
+               shift 2
+               ;;
+           -raw | --raw)
+               raw="1"
+               raw_file="$2"
+               shift 2
+               ;;
+           -bm | --bare-metal)
+               BARE_METAL="1"
                shift 2
                ;;
            -r | --report)
@@ -175,7 +222,7 @@ unmount_image() {
       return 0
    fi
 
-   true "${bold}${cyan}INFO: Unmounting vdi... ${reset}"
+   true "${bold}${cyan}INFO: Unmounting raw image... ${reset}"
 
    sync
 
@@ -193,7 +240,7 @@ unmount_image() {
 
    sync
 
-   true "${bold}${cyan}INFO: Unmounted vdi. ${reset}"
+   true "${bold}${cyan}INFO: Unmounted raw image. ${reset}"
 }
 
 preparation() {
@@ -280,6 +327,8 @@ preparation() {
 
    extracted_ova_folder="$tempfolder/extracted_ova_folder"
    vdi_folder="$tempfolder/vdi_folder"
+   qcow_folder="$tempfolder/qcow_folder"
+   qcow2_folder="$tempfolder/qcow2_folder"
    raw_folder="$tempfolder/raw_folder"
    auto_hash_folder="$tempfolder/auto_hash_folder"
    initrd_folder="$tempfolder/initrd_folder"
@@ -288,19 +337,33 @@ preparation() {
    manual_analysis_folder="$tempfolder/manual_analysis_folder"
 
    ova_absolute_filename_without_extension="${ova_file%.*}"
+   ## Example ova_absolute_filename_without_extension:
+   ## /home/user/whonix_binary/Whonix-Gateway-7
+
    folder_name="$(dirname "$ova_file")"
    ova_filename="$(basename "$ova_file")"
    ova_filename_without_extension="${ova_filename%.*}"
 
-   ## Example ova_absolute_filename_without_extension:
-   ## /home/user/whonix_binary/Whonix-Gateway-7
-
-   vmdk_file="$extracted_ova_folder/$ova_filename_without_extension-disk1.vmdk"
-   vdi_file="$vdi_folder/$ova_filename_without_extension.vdi"
-   raw_file="$raw_folder/$ova_filename_without_extension.img"
+   if [ "$vmdk_file" = "" ]; then
+      vmdk_file="$extracted_ova_folder/$ova_filename_without_extension-disk1.vmdk"
+   fi
+   if [ "$vdi_file" = "" ]; then
+      vdi_file="$vdi_folder/$ova_filename_without_extension.vdi"
+   fi
+   if [ "$qcow_file" = "" ]; then
+      qcow_file="$qcow_folder/$ova_filename_without_extension.qcow"
+   fi
+   if [ "$qcow2_file" = "" ]; then
+      qcow2_file="$qcow2_folder/$ova_filename_without_extension.qcow2"
+   fi
+   if [ "$raw_file" = "" ]; then
+      raw_file="$raw_folder/$ova_filename_without_extension.raw"
+   fi
 
    vmdk_file_basename="$(basename "$vmdk_file")"
    vdi_file_basename="$(basename "$vdi_file")"
+   qcow_file_basename="$(basename "$qcow_file")"
+   qcow2_file_basename="$(basename "$qcow2_file")"
    raw_file_basename="$(basename "$raw_file")"
 
    file_list_file="$auto_hash_folder/file_list"
@@ -308,6 +371,8 @@ preparation() {
    sudo -u "$user_name" mkdir --parents "$extracted_ova_folder"
    sudo -u "$user_name" mkdir --parents "$mount_folder" || true
    sudo -u "$user_name" mkdir --parents "$vdi_folder"
+   sudo -u "$user_name" mkdir --parents "$qcow_folder"
+   sudo -u "$user_name" mkdir --parents "$qcow2_folder"
    sudo -u "$user_name" mkdir --parents "$raw_folder"
    sudo -u "$user_name" mkdir --parents "$auto_hash_folder"
    sudo -u "$user_name" mkdir --parents "$initrd_folder"
@@ -328,6 +393,11 @@ parse_topcomment() {
 
 extract_ova() {
    trap "error_handler" ERR INT TERM
+
+   if [ "$ova" = "0" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no ova chosen. ${reset}"
+      return 0
+   fi
 
    if [ "$BARE_METAL" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
@@ -351,6 +421,11 @@ extract_ova() {
 
 convert_vmdk_to_vdi() {
    trap "error_handler" ERR INT TERM
+
+   if [ "$vmdk" = "0" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no vmdk chosen. ${reset}"
+      return 0
+   fi
 
    if [ "$BARE_METAL" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
@@ -378,7 +453,7 @@ convert_vmdk_to_vdi() {
    fi
 }
 
-convert_vdi_to_raw() {
+convert_x_to_raw() {
    trap "error_handler" ERR INT TERM
 
    if [ "$BARE_METAL" = "1" ]; then
@@ -387,13 +462,27 @@ convert_vdi_to_raw() {
    fi
 
    if [ -f "$raw_file" ]; then
-      true "${bold}${cyan}INFO: Converting vdi to raw not required, already done, skipping. ${reset}"
+      true "${bold}${cyan}INFO: Converting x to raw not required, already done, skipping. ${reset}"
    else
-      true "${bold}${cyan}INFO: Converting vdi to img... (This can take a while.) ${reset}"
 
-      sudo -u "$user_name" qemu-img convert -p -O raw "$vdi_file" "$raw_file"
+      if [ "$vdi" = "1" ]; then
+         image_type="vdi"
+         image_file="$vdi_file"
+      fi
+      if [ "$qcow" = "1" ]; then
+         image_type="qcow"
+         image_file="$qcow_file"
+      fi
+      if [ "$qcow2" = "1" ]; then
+         image_type="qcow2"
+         image_file="$qcow2_file"
+      fi
 
-      true "${bold}${cyan}INFO: Converted vdi to img. ${reset}"
+      true "${bold}${cyan}INFO: Converting $image_type to raw... (This can take a while.) ${reset}"
+
+      sudo -u "$user_name" qemu-img convert -p -O "$image_type" "$image_file" "$raw_file"
+
+      true "${bold}${cyan}INFO: Converted $image_type to raw. ${reset}"
    fi
 }
 
@@ -405,16 +494,16 @@ mount_image() {
       return 0
    fi
 
-   true "${bold}${cyan}INFO: Mounting vdi... ${reset}"
+   true "${bold}${cyan}INFO: Mounting raw image... ${reset}"
 
    sync
 
    ## Mounting read-only so the user or script can not accidentally delete
    ## files within the image.
-   guestmount -o allow_other -a "$vdi_file" -m /dev/sda1 --ro "$mount_folder"
+   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
    sync
 
-   true "${bold}${cyan}INFO: Mounted vdi. ${reset}"
+   true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
 }
 
 parse_file_system() {
@@ -427,7 +516,15 @@ parse_file_system() {
 
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
-   virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a"
+   if [ "$vdi" = "1" ]; then
+      virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a"
+   fi
+   if [ "$qcow" = "1" ]; then
+      virt-filesystems -a "$qcow_file" > "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a"
+   fi
+   if [ "$qcow2" = "1" ]; then
+      virt-filesystems -a "$qcow2_file" > "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a"
+   fi
    virt-filesystems -a "$raw_file" > "$auto_hash_folder/$raw_file_basename.virt-filesystems-a"
 
    true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
@@ -459,8 +556,16 @@ parse_vbr() {
 
    true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
 
+   if [ "$vdi" = "1" ]; then
+      guestfish --ro -a "$vdi_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$vdi_file_basename.sda1_pread-device.512"
+   fi
+   if [ "$qcow" = "1" ]; then
+      guestfish --ro -a "$qcow_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$qcow_file_basename.sda1_pread-device.512"
+   fi
+   if [ "$qcow2" = "1" ]; then
+      guestfish --ro -a "$qcow2_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$qcow2_file_basename.sda1_pread-device.512"
+   fi
    guestfish --ro -a "$raw_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$raw_file_basename.sda1_pread-device.512"
-   guestfish --ro -a "$vdi_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$vdi_file_basename.sda1_pread-device.512"
 
    true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
 }
@@ -724,11 +829,13 @@ parse_folder() {
          local file_extension
          file_extension="${file##*.}"
          if \
-            [ "$file_extension" = "vmdk" ] || \
-            [ "$file_extension" = "mf"   ] || \
-            [ "$file_extension" = "ovf"  ] || \
-            [ "$file_extension" = "img"  ] || \
-            [ "$file_extension" = "vdi"  ]    \
+            [ "$file_extension" = "vmdk"  ] || \
+            [ "$file_extension" = "mf"    ] || \
+            [ "$file_extension" = "ovf"   ] || \
+            [ "$file_extension" = "qcow"  ] || \
+            [ "$file_extension" = "qcow2" ] || \
+            [ "$file_extension" = "vdi"   ] || \
+            [ "$file_extension" = "img"   ] \
             ; then
                ## Skipping creating a sha512sum of the vmdk, because that wastes
                ## a lot time and we know in advance, there there will be
@@ -842,7 +949,7 @@ parse_topcomment
 
 extract_ova
 convert_vmdk_to_vdi
-convert_vdi_to_raw
+convert_x_to_raw
 
 parse_file_system
 parse_vbr
@@ -863,6 +970,14 @@ parse_folder
 
 skip="1"
 folder="$vdi_folder"
+parse_folder
+
+skip="1"
+folder="$qcow_folder"
+parse_folder
+
+skip="1"
+folder="$qcow2_folder"
 parse_folder
 
 skip="1"
