@@ -68,8 +68,23 @@ download_package() {
    fi
 }
 
+maybe_rm() {
+   trap "error_handler" ERR
+
+   if [ "$whonix_build_script_skip_verifiable" = "1" ]; then
+      true "INFO: whonix_build_script_skip_verifiable is set to 1, skipping rm $1, ok."
+   else
+      rm -f "$1"
+   fi
+}
+
 maybe_run() {
    trap "error_handler" ERR
+
+   if [ "$whonix_build_script_skip_verifiable" = "1" ]; then
+      true "INFO: whonix_build_script_skip_verifiable is set to 1, skipping maybe_run $1, ok."
+      return 0
+   fi
 
    local script basename_script package
    shopt -s nullglob dotglob
@@ -141,7 +156,7 @@ maybe_run "/var/lib/dpkg/info/fontconfig"
 ## non-deterministic [2]
 ## /var/cache/ldconfig/aux-cache
 maybe_run "/var/lib/dpkg/info/libc6*"
-rm -f /var/cache/ldconfig/aux-cache
+maybe_rm /var/cache/ldconfig/aux-cache
 
 ## non-deterministic [3]
 ## /var/cache/man folder
@@ -177,8 +192,8 @@ maybe_run "/var/lib/dpkg/info/xml-core"
 
 ## non-deterministic [8]
 ## There is no postrm script for the base-files package.
-rm -f /usr/share/info/dir
-rm -f /usr/share/info/dir.old ## no regeneration, since not required
+maybe_rm -f /usr/share/info/dir
+maybe_rm -f /usr/share/info/dir.old ## no regeneration, since not required
 
 ## non-deterministic [9]
 ## /usr/lib/*/gdk-pixbuf*/*/loaders.cache
@@ -243,7 +258,7 @@ rm /var/log/*.[0-9].gz || true
 ## /var/lib/dpkg/available
 ## /var/lib/dpkg/available-old
 dpkg --clear-avail
-rm -f /var/lib/dpkg/available-old
+maybe_rm -f /var/lib/dpkg/available-old
 
 ## non-deterministic [14]
 ## /etc/init.d/.depend.boot
@@ -261,6 +276,7 @@ fi
 ## non-deterministic [15]
 ## /var/lib/urandom/random-seed
 ## This is no longer required for Debian Jessie?
+## Not using maybe_rm, this should always be deleted for security reasons.
 rm --force /var/lib/urandom/random-seed
 
 ## non-deterministic [16]
@@ -272,15 +288,15 @@ rm --force /var/lib/urandom/random-seed
 ## This is no longer required for Debian Jessie?
 cat /etc/blkid.tab || true
 cat /etc/blkid.tab.old || true
-rm --force /etc/blkid.tab
-rm --force /etc/blkid.tab.old
+maybe_rm --force /etc/blkid.tab
+maybe_rm --force /etc/blkid.tab.old
 
 ## non-deterministic [17]
 ## /etc/apt/trustdb.gpg
 ## Thanks to:
 ## https://unix.stackexchange.com/questions/110500/how-to-regenerate-etc-apt-trustdb-gpg-on-debian
 ## This is no longer required for Debian Jessie?
-rm --force /etc/apt/trustdb.gpg
+maybe_rm --force /etc/apt/trustdb.gpg
 
 ## Truncate all log files, keeping user groups and permissions.
 find /var/log -type f -exec cp /dev/null {} \;
