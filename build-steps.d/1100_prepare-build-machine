@@ -372,6 +372,27 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    ## install some build dependencies from Debian testing #
    ########################################################
 
+   ## {{ grml-debootstrap
+
+   ## Installing newer grml-debootstrap, because it contains the locales fix.
+   ## This snippet can be removed in Debain jessie.
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true
+   else
+      grml_debootstrap_version="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"
+      local dpkg_exit_code="0"
+      dpkg --compare-versions "$grml_debootstrap_version" ge "0.59" || { dpkg_exit_code="$?" ; true; };
+      if [ "$dpkg_exit_code" = "0" ]; then
+         true
+      else
+         local install_from_testing_required="1"
+      fi
+      sleep 10
+   fi
+
+   ## }}
+
    ## Check if config-package-dev with debhelper support is installed.
    ## (Build Dependency for Whonix Build Script for creating .deb packages.)
    if [ ! -d "/usr/share/doc/config-package-dev/examples/debhelper/" ]; then
@@ -410,6 +431,13 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          -o APT::Default-Release="$default_release" \
          install \
          config-package-dev/$codename
+
+      apt-get --yes \
+         $apt_timeout_opts \
+         $apt_unattended_opts \
+         -o APT::Default-Release="$default_release" \
+         install \
+         grml-debootstrap/$codename
 
       if [ "$CI" = "true" ]; then
          ## Small hack for CI.
