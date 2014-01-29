@@ -190,15 +190,20 @@ error_handler() {
    local exit_code="$?"
    local bash_command="$BASH_COMMAND"
 
+   ## Re-enable xtrace, in case it was deactivated.
+   set -x
+
    unmount_image
 
-   echo "
+   true "
 ${red}${bold}bash_command${reset}: $bash_command
 ${red}${bold}exit_code${reset}: $exit_code
 "
 
    if [ "$errorcomment" = "" ]; then
-      errorcomment="No error comment"
+      errorcomment="\
+################################################################################
+ERROR: Unfinished report! Error detected!"
    fi
 
    errorcomment="$errorcomment
@@ -227,6 +232,9 @@ unmount_image() {
 
    true "${bold}${cyan}INFO: Unmounting raw image... ${reset}"
 
+   sync
+   sleep 1 &
+   wait "$!"
    sync
 
    local command_v_exit_code="0"
@@ -386,7 +394,9 @@ parse_topcomment() {
    trap "error_handler" ERR INT TERM
 
    if [ "$topcomment" = "" ]; then
-      topcomment="No topcomment."
+      topcomment="\
+No topcomment.
+################################################################################"
    fi
    echo "$topcomment" >> "$report_file"
 }
@@ -945,7 +955,9 @@ parse_endcomment() {
    trap "error_handler" ERR INT TERM
 
    if [ "$endcomment" = "" ]; then
-      endcomment="No endcomment."
+      endcomment="\
+################################################################################
+No endcomment."
    fi
 
    echo "$endcomment" >> "$report_file"
