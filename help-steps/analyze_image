@@ -201,12 +201,12 @@ ${red}${bold}exit_code${reset}: $exit_code
 "
 
    if [ "$errorcomment" = "" ]; then
-      errorcomment="\
-################################################################################
-ERROR: Unfinished report! Error detected!"
+      errorcomment="ERROR: Unfinished report! Error detected!"
    fi
 
-   errorcomment="$errorcomment
+   errorcomment="\
+################################################################################
+$errorcomment
 bash_command: $bash_command
 exit_code: $exit_code"
 
@@ -394,13 +394,12 @@ parse_topcomment() {
    trap "error_handler" ERR INT TERM
 
    if [ "$topcomment" = "" ]; then
-      topcomment="\
-No topcomment.
-################################################################################"
+      topcomment="No topcomment."
    fi
    topcomment="\
 $topcomment
-command and parameter: $0 ${1+"$@"}"
+command and parameter: $0 ${1+"$@"}
+################################################################################"
    echo "$topcomment" >> "$report_file"
 }
 
@@ -958,10 +957,12 @@ parse_endcomment() {
    trap "error_handler" ERR INT TERM
 
    if [ "$endcomment" = "" ]; then
-      endcomment="\
-################################################################################
-No endcomment."
+      endcomment="INFO: No endcomment. No error detected."
    fi
+
+   endcomment="\
+################################################################################
+$endcomment"
 
    echo "$endcomment" >> "$report_file"
 }
