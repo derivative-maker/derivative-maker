@@ -300,7 +300,6 @@ preparation() {
    ## }}
 
    rm --force "$report_file"
-   rm --force "$file_list_file"
    sync
 
    ## The WHONIX_BINARY folder should already be created. Just make sure it
@@ -364,6 +363,8 @@ preparation() {
    raw_file_basename="$(basename "$raw_file")"
 
    file_list_file="$auto_hash_folder/file_list"
+   rm --force "$file_list_file"
+   sudo -u "$user_name" touch "$file_list_file"
 
    sudo -u "$user_name" mkdir --parents "$extracted_ova_folder"
    sudo -u "$user_name" mkdir --parents "$mount_folder" || true
@@ -535,10 +536,25 @@ parse_mbr() {
       return 0
    fi
 
+   ## For information about disk signatures, see:
+   ## https://en.wikipedia.org/wiki/Master_boot_record
+
    true "${bold}${cyan}INFO: Parsing MBR... ${reset}"
 
-   ## ~1 MB
+   ## Read ~1 MB at once.
    dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.1000000" bs=1000000 count=1
+
+   ## Read byte by byte from 0 to 440.
+   ## There should be no differences here.
+   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.0-440" bs=1 count=440
+
+   ## Read byte by byte from 441 to 443.
+   ## Disk signature may differ.
+   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.441-443" bs=1 skip=440 count=3
+
+   ## Read byte by byte from 444 to 1000000.
+   ## There should be no differences here.
+   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.444-1000000" bs=1 skip=443 count=1000000
 
    true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
 }
@@ -644,6 +660,7 @@ parse_special_files() {
    sudo -u "$user_name" mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
    rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
+   sudo -u "$user_name" touch "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
    i="0"
    local file
