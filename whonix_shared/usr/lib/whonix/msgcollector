@@ -597,6 +597,8 @@ return_status() {
 }
 
 return_status_file() {
+   trap "error_handler" ERR
+
    if [ -f "$write_to_file" ]; then
       exit 0
    else
@@ -605,6 +607,8 @@ return_status_file() {
 }
 
 forget() {
+   trap "error_handler" ERR
+
    ## & disown to prevent long waiting.
    ## Setting progress to 100, so any eventually still open progress bars get closed.
    ## Deactivated.
@@ -641,28 +645,30 @@ forget() {
    ## "/var/run/msgcollector/${identifier}.${progressbaridx}.zenityprogresspid"
    ## because that could confuse /usr/lib/whonix/msgprogress.
 
-   local file
-
-   for file in "${file_list[@]}"; do
-      if [ -e "$file" ]; then
-         rm --force "$file"
+   local file_name
+   for file_name in "${file_list[@]}"; do
+      if [ -e "$file_name" ]; then
+         rm --force "$file_name"
       fi
    done
+   unset file_name
 }
 
 forgetwaitcli() {
+   trap "error_handler" ERR
+
    local file_list=(
       "/var/run/msgcollector/${identifier}.waitmessagecli.done"
       "/var/run/msgcollector/${identifier}.waitmessagecli"
    )
 
-   local file
-
-   for file in "${file_list[@]}"; do
-      if [ -e "$file" ]; then
-         rm --force "$file"
+   local file_name
+   for file_name in "${file_list[@]}"; do
+      if [ -e "$file_name" ]; then
+         rm --force "$file_name"
       fi
    done
+   unset local file_name
 }
 
 ## Debugging.

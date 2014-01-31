@@ -19,16 +19,16 @@ check_tor_config_do() {
    fi
 
    local file_list="/etc/tor/torrc /usr/share/tor/tor-service-defaults-torrc"
-   local file
-
-   for file in $file_list; do
-      tor_verify_config_file="$file"
+   local file_name
+   for file_name in $file_list; do
+      tor_verify_config_file="$file_name"
       ## This has a /etc/sudoers.d exception.
-      tor_verify_config_output="$(sudo tor --verify-config -f "$file" 2>&1)" || { tor_verify_config_exit_code="$?" ; true; };
+      tor_verify_config_output="$(sudo tor --verify-config -f "$file_name" 2>&1)" || { tor_verify_config_exit_code="$?" ; true; };
       if [ ! "$tor_verify_config_exit_code" = "0" ]; then
          break
       fi
    done
+   unset file_name
 
    return 0
 }

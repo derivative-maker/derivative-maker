@@ -642,14 +642,14 @@ parse_special_files() {
 
    sudo -u "$user_name" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
-   local file
+   local file_name
    shopt -s nullglob dotglob
 
-   for file in "$mount_folder/var/lib/initramfs-tools/"*; do
-      cp_to_user "$file" "$manual_analysis_folder/var_lib_initramfs-tools/"
+   for file_name in "$mount_folder/var/lib/initramfs-tools/"*; do
+      cp_to_user "$file_name" "$manual_analysis_folder/var_lib_initramfs-tools/"
    done
 
-   unset file
+   unset file_name
    shopt -u nullglob dotglob
 
    ## }}}
@@ -677,16 +677,16 @@ parse_special_files() {
    sudo -u "$user_name" touch "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
    i="0"
-   local file
+   local file_name
    shopt -s nullglob dotglob
 
-   for file in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
+   for file_name in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
       i="$(( $i + 1 ))"
-      echo "file number: $i | file: $file" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
-      cp_to_user "$file" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
+      echo "file_name number: $i | file_name: $file_name" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
+      cp_to_user "$file_name" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
-   unset file
+   unset file_name
    shopt -u nullglob dotglob
 
    ## }}}
@@ -695,14 +695,14 @@ parse_special_files() {
 
    ## {{{ /var/lib/dpkg/info/whonix-*.md5sums
 
-   local file
+   local file_name
    shopt -s nullglob dotglob
 
-   for file in "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums"; do
-      cp_to_user "$file" "$debug_folder/var_lib_dpkg_info_whonix-x/"
+   for file_name in "$mount_folder/var/lib/dpkg/info/whonix-"*".md5sums"; do
+      cp_to_user "$file_name" "$debug_folder/var_lib_dpkg_info_whonix-x/"
    done
 
-   unset file
+   unset file_name
    shopt -u nullglob dotglob
 
    ## }}}
@@ -722,14 +722,14 @@ parse_initrd() {
    ## Debugging.
    ls -la "$mount_folder/boot/" || true
 
-   local file
+   local file_name
    shopt -s nullglob dotglob
 
-   for file in "$mount_folder/boot/initrd.img"*; do
-      cp_to_user "$file" "$initrd_folder"
+   for file_name in "$mount_folder/boot/initrd.img"*; do
+      cp_to_user "$file_name" "$initrd_folder"
    done
 
-   unset file
+   unset file_name
    shopt -u nullglob dotglob
 
    ## }}}
@@ -737,19 +737,19 @@ parse_initrd() {
    ## {{{ $initrd_folder/*
 
    shopt -s nullglob dotglob
-   local file
+   local file_name
 
-   for file in "$initrd_folder"/*; do
+   for file_name in "$initrd_folder"/*; do
       cd "$extracted_initrd_folder"
-      true "file: $file"
+      true "file_name: $file_name"
       local basename_file
-      basename_file="$(basename "$file")"
+      basename_file="$(basename "$file_name")"
       sudo -u "$user_name" mkdir --parents "$basename_file"
       cd "$basename_file"
-      sudo -u "$user_name" gzip -dc < "$file" | sudo -u "$user_name" cpio -i
+      sudo -u "$user_name" gzip -dc < "$file_name" | sudo -u "$user_name" cpio -i
    done
 
-   unset file
+   unset file_name
    shopt -u nullglob dotglob
 
    ## }}}
@@ -772,14 +772,14 @@ parse_folder() {
    local sub_folder
    sub_folder="$(basename "$folder/")"
 
-   local file
+   local file_name
 
    true "${bold}${cyan}Parsing $sub_folder... ${reset}"
 
    set +x
 
    ## read: using "-d ''" for NUL-delimited output.
-   while read -r -d '' file; do
+   while read -r -d '' file_name; do
 
       i="$(( $i + 1 ))"
 
@@ -795,30 +795,30 @@ parse_folder() {
       absolute_file_name="${file#"$folder"}"
 
       ## Too verbose.
-      #echo "$absolute_file_name: $file"
+      #echo "$absolute_file_name: $file_name"
 
       echo "$absolute_file_name" >> "$file_list_file"
 
-      if [ -d "$file" ]; then
+      if [ -d "$file_name" ]; then
          echo "($sub_folder) $absolute_file_name | directory" >> "$report_file"
          continue
       fi
 
       local dir_name
-      dir_name="${file%/*}"
+      dir_name="${file_name%/*}"
       local dir_name_absolute
       dir_name_absolute="${dir_name#"$folder"}"
       local file_size
 
-      ## Check if $file exists. Somehow on Debian Wheezy it does not exit 0 for
+      ## Check if $file_name exists. Somehow on Debian Wheezy it does not exit 0 for
       ## symlinks.
-      if [ ! -e "$file" ]; then
-         ## Check if $file is a symlink.
-         if [ -h "$file" ]; then
+      if [ ! -e "$file_name" ]; then
+         ## Check if $file_name is a symlink.
+         if [ -h "$file_name" ]; then
             ## Symlinks are parsed below.
             true
          else
-            msg="($sub_folder) $absolute_file_name | $file does_not_exist"
+            msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
             echo "$msg" >> "$report_file"
             if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
@@ -836,17 +836,17 @@ parse_folder() {
 
       local stat_exit_code
       stat_exit_code="0"
-      file_size="$(stat -c '%s' "$file" 2>&1)" || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
+      file_size="$(stat -c '%s' "$file_name" 2>&1)" || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
 
-      ## Check if $file is a symlink.
-      if [ -h "$file" ]; then
+      ## Check if $file_name is a symlink.
+      if [ -h "$file_name" ]; then
          ## Symlink found...
 
          ## Not using readlink with -f, so we can compare the relative links.
          local file_link
          local read_link_exit_code
          read_link_exit_code="0"
-         file_link="$(readlink "$file" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
+         file_link="$(readlink "$file_name" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
          echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | symlinks_to $file_link" >> "$report_file"
 
@@ -855,7 +855,7 @@ parse_folder() {
 
       if [ "$skip" = "1" ]; then
          local file_extension
-         file_extension="${file##*.}"
+         file_extension="${file_name##*.}"
          if \
             [ "$file_extension" = "vmdk"  ] || \
             [ "$file_extension" = "mf"    ] || \
@@ -920,7 +920,7 @@ parse_folder() {
       local checksum_output
       local checksum_exit_code
       checksum_exit_code="0"
-      checksum_output="$($maybe_timeout sha512sum "$file" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      checksum_output="$($maybe_timeout sha512sum "$file_name" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
       if [ ! "$checksum_exit_code" = "0" ]; then
          ## Handling cases such as:
          ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
