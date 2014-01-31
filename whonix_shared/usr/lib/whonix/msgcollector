@@ -43,6 +43,8 @@ error_handler() {
    exit 1
 }
 
+trap "error_handler" ERR
+
 parse_cmd_options() {
    trap "error_handler" ERR
 
@@ -259,6 +261,8 @@ true && {
 }
 
 loop_protection() {
+   trap "error_handler" ERR
+
    prot="$(( $prot + 1 ))"
    if [ $prot -gt "60" ]; then
       exit 2
@@ -268,6 +272,8 @@ loop_protection() {
 ## {{ In case /etc/init.d/msgcollector has not started yet, i.e. has not
 ##    created "/var/run/msgcollector" yet, wait a bit.
 maybe_wait() {
+   trap "error_handler" ERR
+
    ## initialize prot variable
    if [ "$prot" = "" ]; then
       prot="0"
