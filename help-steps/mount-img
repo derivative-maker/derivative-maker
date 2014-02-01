@@ -24,11 +24,7 @@ mount_img() {
 
    sync
 
-   if [ "$WHONIX_BUILD_MOUNT_IMG_FILE" = "" ]; then
-      local img="$WHONIX_BINARY/$VMNAME.img"
-   else
-      local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
-   fi
+   local img="$WHONIX_BINARY/$VMNAME.img"
 
    kpartx -av "$img"
    sync
@@ -38,6 +34,9 @@ mount_img() {
 
    mount /dev/mapper/loop0p1 "$CHROOT_FOLDER"
    sync
+
+   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
+
 }
 
 if [ "$BARE_METAL" = "1" ]; then
