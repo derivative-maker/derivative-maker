@@ -53,13 +53,14 @@ command -v ft_m_5 >/dev/null
 command -v ft_m_6 >/dev/null
 command -v ft_m_7 >/dev/null
 command -v ft_m_8 >/dev/null
+command -v ft_m_end >/dev/null
 
 command -v dialog >/dev/null
 command -v ed >/dev/null
 command -v service >/dev/null
 
-if [ -e "/usr/share/whonix/whonix_gateway" ]; then
-   if [ ! -e "/etc/tor/torrc" ]; then
+if [ -f "/usr/share/whonix/whonix_gateway" ]; then
+   if [ ! -f "/etc/tor/torrc" ]; then
       error "/etc/tor/torrc does not exist. Please report this bug!"
       exit 1
    fi
@@ -81,27 +82,48 @@ echo "Starting Whonix Repository Tool..."
 whonix_repository
 echo "End of Whonix Repository Tool."
 
-## Do not start Whonix Connection Wizard on Whonix-Workstation.
+## Start timesync progress bar and whonixcheck on Whonix-Workstation here.
+## (On Whonix-Gateway ft_m_1 will start it.)
 if [ -f "/usr/share/whonix/whonix_workstation" ]; then
+   TITLE="whonixsetup - Success!"
+
+   MSG="
+Press Enter to run whonixcheck and exit.
+"
+
+   dialog --title "$TITLE" --msgbox "$MSG" 640 480
+
+   ## Start timesync progress bar and whonixcheck.
+   exit_code="0"
+   ft_m_end || { exit_code="$?" ; true; };
+
    echo "You can always enter whonixsetup again, by starting: sudo whonixsetup"
    exit 0
+
+elif [ -f "/usr/share/whonix/whonix_gateway" ]; then
+
+   ## Start Whonix Connection Wizard.
+   while true; do
+      exit_code="0"
+      ft_main || { exit_code="$?" ; true; };
+
+      ## if the cancel button gets pressed, exit_code will be 0
+
+      exit_code_ft_m_x="0"
+      "ft_m_$exit_code" || { exit_code_ft_m_x="$?" ; true; };
+
+      if [ ! "$exit_code_ft_m_x" = "0" ]; then
+         break
+      fi
+   done
+
+   echo "You can always enter whonixsetup again, by starting: sudo whonixsetup"
+   exit 0
+
+else
+
+   echo "ERROR: This neither Whonix-Gateway nor Whonix-Workstation detected! Please report this Whonix bug!"
+   echo "You can always enter whonixsetup again, by starting: sudo whonixsetup"
+   exit 1
+
 fi
-
-## Start Whonix Connection Wizard.
-while true; do
-   exit_code="0"
-   ft_main || { exit_code="$?" ; true; };
-
-   ## if the cancel button gets pressed, exit_code will be 0
-
-   exit_code_ft_m_x="0"
-   "ft_m_$exit_code" || { exit_code_ft_m_x="$?" ; true; };
-
-   if [ ! "$exit_code_ft_m_x" = "0" ]; then
-      break
-   fi
-done
-
-echo "You can always enter whonixsetup again, by starting: sudo whonixsetup"
-
-exit 0

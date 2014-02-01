@@ -1,0 +1,64 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -o pipefail
+
+error_handler() {
+   local MSG="\
+###########################################################
+## Something went wrong. Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+###########################################################\
+"
+   echo "$MSG"
+   exit 1
+}
+
+trap "error_handler" ERR
+
+## root check
+if [ "$(id -u)" != "0" ]; then
+    echo "ERROR: This must be run as root (sudo)!"
+    exit 1
+fi
+
+if [ -f "/usr/share/whonix/whonix_gateway" ]; then
+   true "INFO: Opening timesync progress bar..."
+    ## When Tor was not enabled when /usr/bin/sdwdate started
+   ## /usr/lib/whonix/timesync_pre then timesync_pre exited without starting a
+   ## progress bar (for better look and feel during first start, not needlessly
+   ## start the timesync waiting progress bar if Tor has not been enabled yet in
+   ## whonixsetup). Let's catch up on that and let /usr/lib/whonix/timesync_pre
+   ## start the timesync progress bar.
+   ##
+   ## ">/dev/null 2>/dev/null" to hide duplicate `echo`s, because `sdw_pre` will
+   ## use `msgcollector`.
+   ##
+   ## "sudo -u user" because sdwdate also runs as user "user".
+   ##
+   ## (Developer comment: When modifying the next line, also consider modifying
+   ##                     /etc/sdwdate.d/30_sdwdate_default.)
+   sudo -u user /usr/lib/whonix/timesync_pre --autostart --mode "startup" >/dev/null 2>/dev/null & disown
+   ## Wait. Only for the look and feel. Prevent mixing up timesync message with whonixcheck.
+   sleep 5 &
+   wait "$!"
+   true "INFO: Opened timesync progress bar."
+   true "INFO: (This is only of interest when Tor was disabled while Whonix was booted)."
+fi
+
+true "INFO: Starting whonixcheck..."
+
+## || true, so in case whonixcheck returns a non-zero exit code, it won't be
+## interpreted as an error in whonixsetup.
+exit_code="0"
+sudo -u user whonixcheck || { exit_code="$?" ; true; };
+
+true "INFO: End of whonixcheck. You can always start whonixcheck again with:
+    whonixcheck"
+
+exit "$exit_code"
