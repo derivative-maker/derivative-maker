@@ -33,7 +33,17 @@ unmount_img_force() {
 
    sync || true
 
-   umount "$CHROOT_FOLDER" || true
+   local command_v_exit_code="0"
+   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
+
+   if [ "$command_v_exit_code" = "0" ]; then
+      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+      guestunmount "$CHROOT_FOLDER" || true
+   else
+      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
+      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+      fusermount -u "$CHROOT_FOLDER" || true
+   fi
    sync || true
 
    ## Delete temporary folder.

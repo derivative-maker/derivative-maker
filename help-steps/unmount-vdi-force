@@ -33,13 +33,18 @@ unmount_vdi_force() {
 
    sync || true
 
-   ## Shutdown the ndb.
-   qemu-nbd -d /dev/nbd0 || true
-   sync || true
+   local command_v_exit_code="0"
+   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
 
-   ## In the end unmount.
-   umount "$CHROOT_FOLDER" || true
-   sync || true
+   if [ "$command_v_exit_code" = "0" ]; then
+      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+      guestunmount "$CHROOT_FOLDER" || true
+   else
+      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
+      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+      fusermount -u "$CHROOT_FOLDER" || true
+   fi
+   sync
 
    ## Delete temporary folder.
    ## It did not contain anything. It was only a mount point.

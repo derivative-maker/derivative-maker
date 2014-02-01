@@ -29,31 +29,18 @@ mount_vdi() {
    sync
 
    ## Find name of .vdi file. New:
-   local VDI
-   VDI="$(find "$HOMEVAR/VirtualBox VMs/$VMNAME/"*".vdi")"
+   local vdi_file
+   vdi_file="$(find "$HOMEVAR/VirtualBox VMs/$VMNAME/"*".vdi")"
    ## example result: "$HOMEVAR"/VirtualBox VMs/whonix-Gateway/whonix-Gateway-disk1.vdi
    ## For debugging it's useful to clone a VM, where only the operating system has been installed,
    ## before running the script or before copying into it.
    ## When restoring the VMClone to VM, the VDI may have another name.
 
-   ## Make sure required module to mount vdi images is installed.
-   #modprobe nbd
-   ## Working around a bug.
-   #    sudo mount -o noatime,noexec /dev/nbd0p1 /tmp/vdi/
-   #    mount: special device /dev/nbd0p1 does not exist
-   ## https://bugs.launchpad.net/ubuntu/+source/linux/+bug/342563
-   ## Also present in Debian Wheezy.
-   modprobe nbd max_part=15
-
-   ## Create loopback dev for the image. New:
-   qemu-nbd -c /dev/nbd0 "$VDI"
-
    ## Folder has to exist to mount the image.
    mkdir --parents "$CHROOT_FOLDER"
    sync
 
-   ## Mount the partitions, that are exposed as /dev/nbd0pXXX.
-   mount -o noatime /dev/nbd0p1 "$CHROOT_FOLDER"
+   guestmount -o allow_other -a "$vdi_file" -m /dev/sda1 "$CHROOT_FOLDER"
    sync
 }
 

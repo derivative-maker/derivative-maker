@@ -22,17 +22,19 @@ source "$MYDIR"/variables
 unmount_vdi() {
    trap "error_handler_unmount-vdi" ERR INT TERM
 
-   ## Called after copying into vm.
-   ## Should not throw any errors.
-
    sync
 
-   ## Shutdown the ndb.
-   qemu-nbd -d /dev/nbd0
-   sync
+   local command_v_exit_code="0"
+   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
 
-   ## In the end unmount.
-   umount "$CHROOT_FOLDER"
+   if [ "$command_v_exit_code" = "0" ]; then
+      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+      guestunmount "$CHROOT_FOLDER"
+   else
+      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
+      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+      fusermount -u "$CHROOT_FOLDER"
+   fi
    sync
 
    ## Delete temporary folder.

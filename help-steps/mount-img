@@ -22,21 +22,12 @@ source "$MYDIR"/variables
 mount_img() {
    trap "error_handler_mount-img" ERR INT TERM
 
-   sync
-
-   local img="$WHONIX_BINARY/$VMNAME.img"
-
-   kpartx -av "$img"
-   sync
-
+   local raw_file="$WHONIX_BINARY/$VMNAME.img"
    mkdir --parents "$CHROOT_FOLDER"
    sync
 
-   mount /dev/mapper/loop0p1 "$CHROOT_FOLDER"
+   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 "$CHROOT_FOLDER"
    sync
-
-   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
-
 }
 
 if [ "$BARE_METAL" = "1" ]; then

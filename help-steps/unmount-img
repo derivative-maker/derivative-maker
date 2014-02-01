@@ -23,21 +23,27 @@ unmount_img() {
    trap "error_handler_unmount-img" ERR INT TERM
 
    sync
-
-   umount "$CHROOT_FOLDER"
-   sync
-
-   local img="$WHONIX_BINARY/$VMNAME.img"
-
    ## Sleep to work around some obscure bug.
    ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
-   sleep 2
-
-   kpartx -d "$img"
+   sleep 2 &
+   wait "$!"
    sync
 
-   # Delete temporary folder.
-   # It did not contain anything. It was only a mount point.
+   local command_v_exit_code="0"
+   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
+
+   if [ "$command_v_exit_code" = "0" ]; then
+      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+      guestunmount "$CHROOT_FOLDER"
+   else
+      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
+      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+      fusermount -u "$CHROOT_FOLDER"
+   fi
+   sync
+
+   ## Delete temporary folder.
+   ## It did not contain anything. It was only a mount point.
    rm -r "$CHROOT_FOLDER"
    sync
 }
