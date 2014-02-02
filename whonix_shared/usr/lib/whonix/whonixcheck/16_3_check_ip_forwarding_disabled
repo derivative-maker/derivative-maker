@@ -1,0 +1,80 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+check_ip_forwarding_disabled() {
+   trap "error_handler" ERR
+
+   if [ ! -f "/usr/share/whonix/whonix_gateway" ]; then
+      local MSG="IP Forwarding Result: not running on Whonix-Gatway, skipping, ok."
+      return 0
+   fi
+
+   local file_list file_name
+   file_list="/proc/sys/net/ipv4/ip_forward /proc/sys/net/ipv6/ip_forward"
+
+   for file_name in $file_list; do
+      local ip_forwarding=""
+      local temp=""
+      local MSG=""
+
+      if [ ! -f "$file_name" ]; then
+         local temp="$file_name does not exist."
+         if [ "$file_name" = "/proc/sys/net/ipv6/ip_forward" ]; then
+            ## If /proc/sys/net/ipv4/ip_forward would not exist, whonixcheck
+            ## would probably run on an unsupported platform.
+            ## /proc/sys/net/ipv6/ip_forward not existing is expected, because
+            ## Whonix does not enable IPv6 by default yet, because the Tor
+            ## network does not yet support IPv6.
+            continue
+         fi
+      else
+         ip_forwarding="$(cat "$file_name")"
+
+         if [ "$ip_forwarding" = "0" ]; then
+            local MSG="IP Forwarding Result: $file_name is 0, ok."
+            continue
+         else
+            local temp="$file_name is $ip_forwarding."
+         fi
+      fi
+
+      if [ "$WHONIXCHECK_NO_EXIT_ON_IP_FORWARDING_DETECTION" = "1" ]; then
+         local MSG="IP Forwarding Result: $temp"
+
+         $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+         continue
+      else
+         local MSG="\
+IP Forwarding Result:
+
+$temp
+
+IP Forwarding enabled!
+
+This is unsupported by Whonix developers! Whonixcheck aborted!
+
+Using IP Forwarding on Whonix-Gateway is recommended against, due to risks of leaks.
+
+This might endanger your anonymity. Do not proceed unless you know what you are doing.
+
+If you wish to ignore this warning and to continue whonixcheck anyway, you can set
+    WHONIXCHECK_NO_EXIT_ON_IP_FORWARDING_DETECTION=\"1\"
+in /etc/whonix.d/30_whonixcheck_default.
+
+Recommended action:
+- Shut down.
+"
+
+         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+         EXIT_CODE="1"
+         cleanup "1"
+         continue
+      fi
+
+   done
+}
