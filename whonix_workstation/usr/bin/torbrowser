@@ -764,7 +764,7 @@ Upgrade now?\
    else
       zenity --title="$TITLE" --question --text "$MSG" || { answer="$?" ; true; };
 
-      ## zenity return codes
+      ## zenity exit codes
       ## no 1
       ## yes 0
 
@@ -801,7 +801,7 @@ Upgrade now?\
          ## Folder is empty.
          continue
       fi
-      gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "$key"
+      gpg --homedir "$home_folder/.tb/gpgtmpdir/" --import "$key" 2>/dev/null
    done
 }
 
@@ -852,7 +852,9 @@ Downloading Tor Browser signature... Will take a moment..."
 
    TBB_SIG_LINK="${TBB_REMOTE_FOLDER}/${TBB_EXTRA_FOLDER}${TBB_SIG_FILENAME}"
 
-   debug "INFO: Downloading: $TBB_SIG_LINK ... Will take a moment..."
+   debug "\
+INFO: Downloading:
+      $TBB_SIG_LINK ... Will take a moment..."
 
    #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
    #debug "$0 CURL: $CURL"
@@ -926,7 +928,9 @@ Downloading Tor Browser... Will take a while..."
 
    TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/${TBB_EXTRA_FOLDER}$TBB_PACKAGE_FILENAME"
 
-   debug "INFO: Downloading: $TBB_PACKAGE_LINK"
+   debug "\
+INFO: Downloading:
+      $TBB_PACKAGE_LINK ... Will take a while..."
 
    curl_exit_code="0"
 
@@ -1024,11 +1028,31 @@ tb_extract() {
 
    local TEMP
    TEMP="$home_folder/tor-browser_$TB_LANG/"
-   MSG="Finished installing Tor Browser. Can be found in $TEMP."
 
-   $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
-   $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG" --done
-   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG" --done
+   if [ "$TB_FORCE_INSTALL" = "1" ]; then
+      MSG="Finished installing Tor Browser. Can be found in $TEMP."
+      echo "$MSG"
+      return 0
+   fi
+
+   MSG="Finished installing Tor Browser. Can be found in $TEMP.
+
+Start Tor Browser?"
+
+   local answer
+   answer="0"
+
+   zenity --title="$TITLE" --question --text "$MSG" || { answer="$?" ; true; };
+
+   ## zenity exit codes
+   ## no 1
+   ## yes 0
+
+   if [ "$answer" = "1" ]; then
+      debug "INFO: Canceled starting Tor Browser, ok."
+   else
+      $0
+   fi
 }
 
 
