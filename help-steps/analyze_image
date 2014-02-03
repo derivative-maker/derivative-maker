@@ -854,6 +854,7 @@ parse_folder() {
          continue
       fi
 
+      local skip_hash="0"
       if [ "$skip" = "1" ]; then
          local file_extension
          file_extension="${file_name##*.}"
@@ -881,8 +882,7 @@ parse_folder() {
                ## file, because this is a reminder to diff the mf and the ofv file
                ## and because the ova could also contain more than the three
                ## expected files.
-               echo "($sub_folder) $absolute_file_name | skipped" >> "$report_file"
-               continue
+               skip_hash="1"
          fi
       fi
 
@@ -918,14 +918,19 @@ parse_folder() {
          maybe_timeout=""
       fi
 
-      local checksum_output
-      local checksum_exit_code
-      checksum_exit_code="0"
-      checksum_output="$($maybe_timeout sha512sum "$file_name" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      local checksum_output checksum_exit_code
+      if [ "$skip_hash" = "1" ]; then
+         checksum_exit_code="skipped"
+         checksum_output="skipped"
+      else
+         checksum_exit_code="0"
+         checksum_output="$($maybe_timeout sha512sum "$file_name" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
+      fi
       if [ ! "$checksum_exit_code" = "0" ]; then
          ## Handling cases such as:
-         ## sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
-         ## sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
+         ## - sha512sum /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14
+         ##   sha512sum: /home/user/whonix_binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
+         ## - [ "$skip_hash" = "1" ]
          if [ "$checksum_output" = "" ]; then
             checksum_output="sha512sum_echoed_nothing"
          fi
