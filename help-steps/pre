@@ -15,7 +15,9 @@ error_handler_general() {
    ## Removing temporary debian testing (jessie) repository.
    rm --force "/etc/apt/sources.list.d/whonix_temp.list"
 
+   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    echo "
+(benchmark: $benchmark_took_time)
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}exit_code${reset}: $exit_code
 ${red}${bold}ERROR $0: | caller: $(caller)${reset}
@@ -27,7 +29,8 @@ ${red}${bold}ERROR $0: | caller: $(caller)${reset}
 trap "error_handler_general" ERR INT TERM
 
 error_handler_unchroot_unprevent_unmount() {
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting...${reset}"
+   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting... (benchmark: $benchmark_took_time)${reset}"
    ## Remove lockfile for whonixcheck.
    rm --force "/var/run/whonix/package_manager_lock"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
@@ -39,7 +42,8 @@ error_handler_unchroot_unprevent_unmount() {
 }
 
 error_handler_unmount() {
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting...${reset}"
+   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting... (benchmark: $benchmark_took_time)${reset}"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
    echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME! Aborted.${reset}"
    exit 1
@@ -140,6 +144,31 @@ disable_apt_cache() {
 
    unset http_proxy
 }
+
+## Thanks to  perreal for the convertsecs function.
+## http://stackoverflow.com/a/12199798
+convertsecs() {
+   ((h=${1}/3600))
+   ((m=(${1}%3600)/60))
+   ((s=${1}%60))
+   printf "%02d:%02d:%02d\n" $h $m $s
+   true
+}
+
+benchmark_time_start() {
+   benchmark_time_start="$(date +%s)"
+   true
+}
+
+benchmark_time_end() {
+   benchmark_time_end="$(date +%s)"
+   benchmark_took_seconds="$((  $benchmark_time_end - $benchmark_time_start ))"
+   benchmark_took_time="$(convertsecs "$benchmark_took_seconds")"
+   true
+}
+
+## start benchmark_time_end
+benchmark_time_start
 
 #echo "${bold}Currently running script: $0${reset}"
 
