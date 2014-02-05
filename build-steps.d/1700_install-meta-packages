@@ -27,6 +27,8 @@ parse_apt_get_unmet_dependency() {
    dpkg -l | grep "$pkg"
    apt-cache policy "$pkg"
 
+   local line
+
    ## Thanks to:
    ## http://blog.edwards-research.com/2010/01/quick-bash-trick-looping-through-output-lines/
 
@@ -37,10 +39,10 @@ parse_apt_get_unmet_dependency() {
 
    set +x
 
-   for LINE in ${apt_get_output} ; do
+   for line in ${apt_get_output} ; do
       IFS="${OIFS}"
       local unmet_dependency=""
-      unmet_dependency="$(echo "${LINE}" | grep -o "Depends:.*" | awk '{print $2}')"
+      unmet_dependency="$(echo "${line}" | grep -o "Depends:.*" | awk '{print $2}')"
       if [ "$unmet_dependency" = "" ]; then
          ## no match
          IFS="${NIFS}"
@@ -85,6 +87,33 @@ install-pkg() {
 This may take a while...${reset}"
 
    local apt_get_exit_code="0"
+   $CHROOT \
+      apt-get \
+         $apt_sourcelist_empty \
+         $apt_sourceparts \
+         $apt_timeout_opts \
+         $apt_verify_opts \
+         --yes \
+         --no-install-recommends \
+         install \
+         "$pkg" \
+         || { apt_get_exit_code="$?" ; true; };
+
+   $CHROOT sync
+   sync
+
+   if [ ! "$apt_get_exit_code" = "0" ]; then
+      true "${cyan}INFO: Installed $pkg, no error detected.${reset}"
+      return 0
+   fi
+
+   true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+Attempting to gather debug output to diagnose the problem...${reset}"
+
+   true "${bold}${cyan}INFO: Read output of apt-get trying to install $pkg into a \
+variable for debugging. This may take a while...${reset}"
+
+   local apt_get_exit_code="0"
    apt_get_output=" \
          $( \
             $CHROOT \
@@ -94,7 +123,8 @@ This may take a while...${reset}"
                   $apt_timeout_opts \
                   $apt_verify_opts \
                   --yes \
-                  --no-install-recommends install \
+                  --no-install-recommends \
+                  install \
                   "$pkg" \
                   2>&1 \
          ) \
@@ -105,16 +135,18 @@ This may take a while...${reset}"
    sync
 
    if [ ! "$apt_get_exit_code" = "0" ]; then
-      true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
-trying to diagnose the problem using function parse_apt_get_unmet_dependency...${reset}"
-      parse_apt_get_unmet_dependency
+      true "${bold}${red}ERROR: Second attempt installing $pkg did not fail?!?${reset}"
       error "See above!"
-      ## Should not be required, because the error handler will cause to exit,
-      ## but let's make sure forever, using "exit 1" to prevent an endless loop.
-      exit 1
-   else
-      true "${cyan}INFO: Installed $pkg, no error detected.${reset}"
    fi
+
+   true "${bold}${red}ERROR: As expected, failed again to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+Trying to diagnose the problem using function parse_apt_get_unmet_dependency...${reset}"
+
+   parse_apt_get_unmet_dependency
+   error "See above!"
+   ## Should not be required, because the error handler will cause to exit,
+   ## but let's make sure forever, using "exit 1" to prevent an endless loop.
+   exit 1
 }
 
 install-meta-packages() {
