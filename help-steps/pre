@@ -55,6 +55,31 @@ maybe_set_plus_x() {
    fi
 }
 
+## Thanks to  perreal for the convertsecs function.
+## http://stackoverflow.com/a/12199798
+convertsecs() {
+   ((h=${1}/3600))
+   ((m=(${1}%3600)/60))
+   ((s=${1}%60))
+   printf "%02d:%02d:%02d\n" $h $m $s
+   true
+}
+
+benchmark_time_start() {
+   benchmark_time_start="$(date +%s)"
+   true
+}
+
+benchmark_time_end() {
+   benchmark_time_end="$(date +%s)"
+   benchmark_took_seconds="$((  $benchmark_time_end - $benchmark_time_start ))"
+   benchmark_took_time="$(convertsecs "$benchmark_took_seconds")"
+   true
+}
+
+## start benchmark_time_end
+benchmark_time_start
+
 ## Thanks to:
 ## http://mywiki.wooledge.org/BashFAQ/037
 ## Variables for terminal requests.
@@ -144,31 +169,6 @@ disable_apt_cache() {
 
    unset http_proxy
 }
-
-## Thanks to  perreal for the convertsecs function.
-## http://stackoverflow.com/a/12199798
-convertsecs() {
-   ((h=${1}/3600))
-   ((m=(${1}%3600)/60))
-   ((s=${1}%60))
-   printf "%02d:%02d:%02d\n" $h $m $s
-   true
-}
-
-benchmark_time_start() {
-   benchmark_time_start="$(date +%s)"
-   true
-}
-
-benchmark_time_end() {
-   benchmark_time_end="$(date +%s)"
-   benchmark_took_seconds="$((  $benchmark_time_end - $benchmark_time_start ))"
-   benchmark_took_time="$(convertsecs "$benchmark_took_seconds")"
-   true
-}
-
-## start benchmark_time_end
-benchmark_time_start
 
 #echo "${bold}Currently running script: $0${reset}"
 
