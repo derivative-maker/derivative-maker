@@ -11,12 +11,16 @@ set -o pipefail
 ## /usr/share/whonix/postinst.d/70_legacy prevents this script from getting run
 ## on older versions not supporting the verifiable builds feature.
 
+first_run_initializer_exit_code="0"
+
 error_handler() {
-   ## Debugging.
-   true "WARNING: exited with non-zero exit code: $?"
+   first_run_initializer_exit_code="1"
+   true "ERROR: exited with non-zero exit code: $?"
 }
 
 trap "error_handler" ERR
+
+true "INFO: Running Whonix First Run Initializer..."
 
 if [ "$(id -u)" != "0" ]; then
     echo "ERROR: This must be run as root (sudo)!"
@@ -39,12 +43,23 @@ export DEBIAN_FRONTEND="noninteractive"
 ## of Whonix, because in the cleanup chroot-post.d script, we do not download
 ## packages (for later re-installation at this point), which are not installed
 ## at that point.
-dpkg --install "/var/lib/whonix/initial-packages/"*
+
+true "\
+INFO: Running dpkg --install /var/lib/whonix/initial-packages/* for the first time...
+      The errors:
+      - update-xmlcatalog: error: root catalog /etc/xml/catalog not found
+      - update-xmlcatalog: error: package catalog /etc/xml/docbook-xml.xml not found
+      are expected and can be ignored. When running dpkg for the second time, they will be gone."
+dpkg --install "/var/lib/whonix/initial-packages/"* || true
+true "INFO: Done running dpkg for the first time."
 
 ## This may not be necessary.
 ## Re-running the same command, so we can see in the log, if it runs without
 ## any warnings the second time.
+true "Running dpkg --install /var/lib/whonix/initial-packages/* for the \
+second and final time..."
 dpkg --install "/var/lib/whonix/initial-packages/"*
+true "INFO: Done running dpkg for the second and final time."
 
 ## }}}
 
@@ -66,6 +81,8 @@ apt-key update
 
 dpkg --configure -a
 
+true "INFO: End of First Run Initializer."
+
 ## exit 0 would not be required, but that makes it easier to check the last
 ## command in the log using a script.
-exit 0
+exit "$first_run_initializer_exit_code"
