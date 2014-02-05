@@ -15,18 +15,21 @@ create_local_temp_apt_repo() {
    trap "error_handler_general" ERR INT TERM
 
    ## Apt signing key.
-   gpg \
+   sudo -u "$user_name" gpg \
+      --no-options \
       --no-default-keyring \
       --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
       --export "$DEBEMAIL" \
-      | \
-      gpg \
-         --no-default-keyring \
-         --keyring "$CHROOT_FOLDER/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg" \
-         --import
+         | \
+            gpg \
+               --no-options \
+               --no-default-keyring \
+               --keyring "$CHROOT_FOLDER/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg" \
+               --import
 
    ## For debugging.
    gpg \
+      --no-options \
       --no-default-keyring \
       --keyring "$CHROOT_FOLDER/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg" \
       --keyid-format "0xlong" \
