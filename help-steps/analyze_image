@@ -19,15 +19,14 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
 cd ..
 
-WHONIX_BUILD_PARSED="1"
-VMNAME="internalrun"
+## WHONIX_BUILD_PARSED is read by help-steps/variables (help-steps/parse-cmd)
+## and by help-steps/mount-img and help-steps/unmount-img.
+export WHONIX_BUILD_PARSED="1"
+export VMNAME="internalrun"
 
 cd help-steps
 source pre
 source variables
-
-## Enable (1) or disable (0) debug_echo's.
-debug="0"
 
 script_help() {
    trap "error_handler_general" ERR INT TERM
@@ -219,13 +218,6 @@ exit_code: $exit_code"
 
 trap "error_handler" ERR INT TERM
 
-debug_echo() {
-   trap "error_handler" ERR INT TERM
-   if [ "$debug" = 1 ]; then
-      echo "$*"
-   fi
-}
-
 unmount_image() {
    if [ "$BARE_METAL" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
@@ -234,22 +226,26 @@ unmount_image() {
 
    true "${bold}${cyan}INFO: Unmounting raw image... ${reset}"
 
-   sync
-   sleep 1 &
-   wait "$!"
-   sync
+   ## WHONIX_BUILD_MOUNT_IMG_FILE us read by help-steps/mount-img
+   export WHONIX_BUILD_MOUNT_IMG_FILE="$raw_file"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
 
-   local command_v_exit_code="0"
-   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
+   #sync
+   #sleep 1 &
+   #wait "$!"
+   #sync
 
-   if [ "$command_v_exit_code" = "0" ]; then
-      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
-      guestunmount "$mount_folder"
-   else
+   #local command_v_exit_code="0"
+   #command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
+
+   #if [ "$command_v_exit_code" = "0" ]; then
+      #true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+      #guestunmount "$mount_folder"
+   #else
       ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
-      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
-      fusermount -u "$mount_folder"
-   fi
+      #true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+      #fusermount -u "$mount_folder"
+   #fi
 
    sync
 
@@ -509,12 +505,15 @@ mount_image() {
 
    true "${bold}${cyan}INFO: Mounting raw image... ${reset}"
 
-   sync
+   ## WHONIX_BUILD_MOUNT_IMG_FILE us read by help-steps/mount-img
+   export WHONIX_BUILD_MOUNT_IMG_FILE="$raw_file"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-img
 
+   #sync
    ## Mounting read-only so the user or script can not accidentally delete
    ## files within the image.
-   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
-   sync
+   #guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
+   #sync
 
    true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
 }

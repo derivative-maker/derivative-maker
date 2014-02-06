@@ -28,18 +28,20 @@ unmount_img() {
    sleep 2 &
    wait "$!"
    sync
+   umount "$CHROOT_FOLDER"
+   sync
 
-   local command_v_exit_code="0"
-   command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
-
-   if [ "$command_v_exit_code" = "0" ]; then
-      true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
-      guestunmount "$CHROOT_FOLDER"
+   if [ "$WHONIX_BUILD_MOUNT_IMG_FILE" = "" ]; then
+      local img="$WHONIX_BINARY/$VMNAME.img"
    else
-      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
-      true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
-      fusermount -u "$CHROOT_FOLDER"
+      local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
    fi
+
+   ## Sleep to work around some obscure bug.
+   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
+   sleep 2
+
+   kpartx -d "$img"
    sync
 
    ## Delete temporary folder.

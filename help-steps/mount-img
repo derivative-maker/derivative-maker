@@ -22,11 +22,21 @@ source "$MYDIR"/variables
 mount_img() {
    trap "error_handler_mount-img" ERR INT TERM
 
-   local raw_file="$WHONIX_BINARY/$VMNAME.img"
+   sync
+
+   if [ "$WHONIX_BUILD_MOUNT_IMG_FILE" = "" ]; then
+      local img="$WHONIX_BINARY/$VMNAME.img"
+   else
+      local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
+   fi
+
+   kpartx -av "$img"
+   sync
+
    mkdir --parents "$CHROOT_FOLDER"
    sync
 
-   guestmount -o allow_other -a "$raw_file" -m /dev/sda1 "$CHROOT_FOLDER"
+   mount /dev/mapper/loop0p1 "$CHROOT_FOLDER"
    sync
 }
 
@@ -36,6 +46,5 @@ if [ "$BARE_METAL" = "1" ]; then
 else
    true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
    mount_img
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
+   true "${bold}INFO: End of: $0 No error detected.${reset}"
 fi
