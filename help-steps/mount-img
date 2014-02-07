@@ -37,13 +37,17 @@ mount_img() {
       local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
    fi
 
-   kpartx -a -v "$img"
+   local kpartx_output a b device
+   kpartx_output="$(kpartx -a -v "$img")"
    sync
+
+   read a b device _ <<< "$kpartx_output"
+   dev_mapper_device="/dev/mapper/$device"
 
    mkdir --parents "$CHROOT_FOLDER"
    sync
 
-   mount /dev/mapper/loop0p1 "$CHROOT_FOLDER"
+   mount "$dev_mapper_device" "$CHROOT_FOLDER"
    sync
 }
 
