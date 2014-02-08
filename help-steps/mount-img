@@ -38,8 +38,11 @@ mount_img() {
    fi
 
    ## Debugging.
-   #losetup --all
-   #sync
+   losetup --all
+   sync
+
+   sleep 2 &
+   wait "$!"
 
    ## Debugging.
    kpartx -l -s -v "$img"
@@ -48,6 +51,11 @@ mount_img() {
    local kpartx_output a b device
    kpartx_output="$(kpartx -a -s -v "$img" 2>&1)"
    sync
+
+   if [ "$kpartx_output" = "" ]; then
+      local msg="kpartx did not output anything."
+      error "$msg"
+   fi
 
    ## Debugging.
    #losetup --all
