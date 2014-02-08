@@ -14,6 +14,7 @@ check_tor_config_do() {
 
    ## Only check on Whonix-Gateway.
    if [ ! -e "/usr/share/whonix/whonix_gateway" ]; then
+      tor_verify_config_file="Not running on Whonix-Gateway"
       tor_verify_config_exit_code="0"
       return 0
    fi
@@ -62,6 +63,10 @@ Restart whonixcheck after fixing this error.
       cleanup "1"
       return 0
    else
-      local MSG="Tor Config Check Result: $tor_verify_config_file ok."
+      local MSG="Tor Config Check Result: $tor_verify_config_file, ok."
+      if [ "$verbose" = "1" ]; then
+         $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+         $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      fi
    fi
 }
