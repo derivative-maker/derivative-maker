@@ -120,10 +120,10 @@ trap_tb() {
 
    MSG="INFO $SCRIPTNAME: SIG-(TERM/INT) received. Exiting."
 
-   if [ "$LAST_CURL_PRGRS_PID" = "" ]; then
+   if [ "$last_pid" = "" ]; then
       true
    else
-      kill -1 "$LAST_CURL_PRGRS_PID"
+      kill -1 "$last_pid"
    fi
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
@@ -538,9 +538,9 @@ Checking connectivity... Will take a moment..."
       "$TBB_REMOTE_FOLDER" \
       &
 
-   LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
-   LAST_CURL_PRGRS_PID=""
+   last_pid="$!"
+   wait "$last_pid" || { curl_exit_code="$?" ; true; };
+   last_pid=""
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
@@ -627,9 +627,9 @@ Checking Tor Browser version... Will take a moment..."
       "$LINK" \
       &
 
-   LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
-   LAST_CURL_PRGRS_PID=""
+   last_pid="$!"
+   wait "$last_pid" || { curl_exit_code="$?" ; true; };
+   last_pid=""
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
@@ -876,9 +876,9 @@ INFO: Downloading:
       "$TBB_SIG_LINK" \
       &
 
-   LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
-   LAST_CURL_PRGRS_PID=""
+   last_pid="$!"
+   wait "$last_pid" || { curl_exit_code="$?" ; true; };
+   last_pid=""
 
    $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
    sleep 1
@@ -950,9 +950,9 @@ INFO: Downloading:
       "$TBB_PACKAGE_LINK" \
       &
 
-   LAST_CURL_PRGRS_PID="$!"
-   wait "$LAST_CURL_PRGRS_PID" || { curl_exit_code="$?" ; true; };
-   LAST_CURL_PRGRS_PID=""
+   last_pid="$!"
+   wait "$last_pid" || { curl_exit_code="$?" ; true; };
+   last_pid=""
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
@@ -980,13 +980,25 @@ tb_verify() {
 ## user's keyring will be ignored.
 "
 
+   local timeout_after="60"
+   local kill_after="10"
+
    tb_gpg_verify_exit_code="0"
-   gpg \
-      --no-options \
-      --homedir "$home_folder/.tb/gpgtmpdir/" \
-      --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
-      "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
-      || { tb_gpg_verify_exit_code="$?" ; true; };
+   timeout --kill-after="$kill_after" "$timeout_after" \
+      gpg \
+         --no-options \
+         --homedir "$home_folder/.tb/gpgtmpdir/" \
+         --verify "$home_folder/.tb/$TBB_SIG_FILENAME" \
+         "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
+         &
+
+   last_pid="$!"
+   wait "$last_pid" || { tb_gpg_verify_exit_code="$?" ; true; };
+   last_pid=""
+
+   ## `timeout` returns:
+   ## - 124 if sigterm was sufficient
+   ## - 137 if needed to use kill.
 
    if [ ! "$tb_gpg_verify_exit_code" = "0" ]; then
       local MSG="\
