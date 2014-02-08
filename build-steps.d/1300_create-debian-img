@@ -48,9 +48,11 @@ create-debian-img() {
    true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
    cat "/etc/debootstrap/etc/apt/sources.list"
 
-   ## {{ grml-debootstrap variables
+   ## {{ grml-debootstrap environment variables
 
-   ## grml-debootstrap variables are documented in grml_config.
+   ## grml-debootstrap variables are documented in /etc/debootstrap/config and
+   ## https://github.com/grml/grml-debootstrap/blob/master/config
+
    ## Using export, so grml-debootstrap can read it.
 
    export DPKG_OPTIONS="$apt_timeout_opts $apt_verify_opts"
@@ -59,9 +61,36 @@ create-debian-img() {
    ## will take care of that.
    export KERNEL="none"
 
-   ## More variables in grml_config file. Unfortunately, grml-debootstrap does
-   ## neither support using command line nor environment variables for all
-   ## options.
+   ## Do not install non-Free software.
+   export COMPONENTS='main'
+
+   ## Integrity test.
+   export FSCK='yes'
+
+   ## Set time zone to UTC. Not that important, we will install our own
+   ## /etc/timezone file later anyway. Just in case.
+   export TIMEZONE='UTC'
+
+   ## Do not clean APT cache after installation is finished to safe time. We do
+   ## this later in a chroot-post.d script.
+   export RM_APTCACHE='no'
+
+   ## We do not need to upgrade the image, because when we create an image,
+   ## we end up with the most current versions from the repository we are using
+   ## anyway. We also do not install any other packages or use any other
+   ## repositories, just use grml-debootstrap to create a minimal image.
+   ## Would be also no good idea to rely on grml-debootstrap's upgrade
+   ## function, because grml-debootstrap does not honor our apt options. (For
+   ## higher network timeouts, ignore valid-until, since we are building from
+   ## the frozen snapshot.debian.org repository. See also
+   ## buildconfig-d/30_apt.) https://github.com/grml/grml-debootstrap/issues/8
+   ## Even if we wanted to upgrade the system, we'd be better off using our own
+   ## build-step for that.
+   export UPGRADE_SYSTEM='no'
+
+   ## See also /etc/debootstrap/config or
+   ## https://github.com/grml/grml-debootstrap/blob/master/config to learn
+   ## about other grml-debootstrap options and defaults.
 
    ## }}
 
@@ -83,7 +112,6 @@ create-debian-img() {
       --verbose \
       --vmfile \
       --vmsize "100G" \
-      --config "$WHONIX_SOURCE_FOLDER/grml_config" \
       --packages "$WHONIX_SOURCE_FOLDER/grml_packages" \
       --target "$WHONIX_BINARY/$VMNAME.img" \
       --mirror "$whonix_build_grml_sources_list"
