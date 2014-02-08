@@ -223,6 +223,14 @@ maybe_run "/var/lib/dpkg/info/python-support"
 ## /var/lib/gconf/defaults/%gconf-tree.xml
 maybe_run "/var/lib/dpkg/info/gconf2-common"
 
+## non-deterministic [20]
+## /var/cache/debconf/config.dat
+## Only required for Debian Wheezy, not required on Debian Jessie?
+## debconf's prerm script does not delete /var/cache/debconf/* and there is no
+## postrm script. Therefore we manually delete files in that folder.
+maybe_run "/var/lib/dpkg/info/debconf"
+maybe_rm /var/cache/debconf/*
+
 ## Kill dhclient3 to prevent rewrite of /var/lib/dhcp/*.
 killall dhclient3 || true
 ## There are .leases.
@@ -311,14 +319,6 @@ maybe_rm /etc/apt/trustdb.gpg
 ## because grml-debootstrap does not get installed and because it only contains
 ## comments. Maybe not necessary on Debian Jessie for some reason.
 maybe_rm /etc/debootstrap/config
-
-## non-deterministic [20]
-## /var/cache/debconf/config.dat
-## Only required for Debian Wheezy, not required on Debian Jessie?
-## debconf's prerm script does not delete /var/cache/debconf/* and there is no
-## postrm script. Therefore we manually delete files in that folder.
-maybe_run "/var/lib/dpkg/info/debconf"
-maybe_rm /var/cache/debconf/*
 
 ## Truncate all log files, keeping user groups and permissions.
 find /var/log -type f -exec cp /dev/null {} \;
