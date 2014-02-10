@@ -813,16 +813,17 @@ parse_folder() {
 
       echo "$absolute_file_name" >> "$file_list_file"
 
+      local skip_hash="0"
+      local dir_name
       if [ -d "$file_name" ]; then
-         echo "($sub_folder) $absolute_file_name | directory" >> "$report_file"
-         continue
+         dir_name="$file_name"
+         skip_hash="1"
+      else
+         dir_name="${file_name%/*}"
       fi
 
-      local dir_name
-      dir_name="${file_name%/*}"
       local dir_name_absolute
       dir_name_absolute="${dir_name#"$folder"}"
-      local file_size
 
       ## Check if $file_name exists. Somehow on Debian Wheezy it does not exit 0 for
       ## symlinks.
@@ -850,7 +851,26 @@ parse_folder() {
 
       local stat_exit_code
       stat_exit_code="0"
-      file_size="$(stat -c '%s' "$file_name" 2>&1)" || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
+      local stat_output
+      stat_output="$(stat \
+         --format "\
+Access rights in octal: %a \
+Number of blocks allocated: %b  \
+The size in bytes of each block reported by _b: %B  \
+Device number in decimal: %d \
+Raw mode in hex: %f \
+File type: %F \
+Group ID of owner: %g \
+Group name of owner: %G \
+Number of hard links: %h \
+Inode number: %i \
+I/O block size: %o \
+Total size, in bytes: %s \
+Major device type in hex: %t \
+Minor device type in hex: %T \
+User ID of owner: %u \
+User name of owner: %U" "$file_name" 2>&1)" \
+         || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
 
       ## Check if $file_name is a symlink.
       if [ -h "$file_name" ]; then
@@ -862,12 +882,11 @@ parse_folder() {
          read_link_exit_code="0"
          file_link="$(readlink "$file_name" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
-         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | symlinks_to $file_link" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output: $stat_output (stat_exit_code: $stat_exit_code) | symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
 
-      local skip_hash="0"
       if [ "$skip" = "1" ]; then
          local file_extension
          file_extension="${file_name##*.}"
@@ -899,14 +918,24 @@ parse_folder() {
          fi
       fi
 
-      ## "sudo sudo sha512sum /dev/xconsole" would run forever.
+      ## "sudo sha512sum /dev/console" would run forever.
+      if [ "$absolute_file_name" = "/dev/console" ]; then
+         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         continue
+      fi
+      ## "sudo sha512sum /dev/xconsole" would run forever.
       if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
          continue
       fi
       ## "sudo sha512sum /dev/initctl" would run forever.
       if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         continue
+      fi
+      ## "sudo sha512sum /dev/full" would run forever.
+      if [ "$absolute_file_name" = "/dev/full" ]; then
+         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
          continue
       fi
 
@@ -947,12 +976,12 @@ parse_folder() {
          if [ "$checksum_output" = "" ]; then
             checksum_output="sha512sum_echoed_nothing"
          fi
-         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | checksum_output: $checksum_output" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output: $stat_output (stat_exit_code: $stat_exit_code) | checksum_output: $checksum_output" >> "$report_file"
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_output"
-         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | file_size: $file_size (stat_exit_code: $stat_exit_code) | checksum: $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output: $stat_output (stat_exit_code: $stat_exit_code) | checksum: $checksum" >> "$report_file"
          continue
       fi
 
