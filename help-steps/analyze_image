@@ -899,6 +899,17 @@ parse_folder() {
          fi
       fi
 
+      ## "sudo sudo sha512sum /dev/xconsole" would run forever.
+      if [ "$absolute_file_name" = "/dev/xconsole" ]; then
+         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         continue
+      fi
+      ## "sudo sha512sum /dev/initctl" would run forever.
+      if [ "$absolute_file_name" = "/dev/initctl" ]; then
+         echo "($sub_folder) $absolute_file_name | skipped | file_size: $file_size (stat_exit_code: $stat_exit_code)" >> "$report_file"
+         continue
+      fi
+
       local maybe_timeout
       if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
