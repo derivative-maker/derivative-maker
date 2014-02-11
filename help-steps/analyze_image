@@ -12,7 +12,7 @@ MINUS_X_SET="$?"
 
 set -x
 
-true "Currently running script: $0 ${1+"$@"}"
+true "INFO: Currently running script: $0 ${1+"$@"}"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -788,7 +788,13 @@ parse_folder() {
 
    local file_name
 
-   true "${bold}${cyan}Parsing $sub_folder... ${reset}"
+   true "${bold}${cyan}INFO: Parsing $sub_folder... ${reset}"
+   true "\
+${bold}${cyan}INFO: \"set +x\", because output would be too verbose. Feel \
+free to comment this out. ${reset}"
+   true "\
+${bold}${cyan}INFO: To view the progress of this or to check if it hangs, \
+you could run \"ps aux | grep sha512sum\" in another terminal window. ${reset}"
 
    set +x
 
@@ -849,28 +855,94 @@ parse_folder() {
          fi
       fi
 
+      ## Get exit code and output of "stat".
       local stat_exit_code
       stat_exit_code="0"
       local stat_output
       stat_output="$(stat \
          --format "\
-Access rights in octal: %a \
-Number of blocks allocated: %b  \
-The size in bytes of each block reported by _b: %B  \
-Device number in decimal: %d \
-Raw mode in hex: %f \
-File type: %F \
-Group ID of owner: %g \
-Group name of owner: %G \
-Number of hard links: %h \
-Inode number: %i \
-I/O block size: %o \
-Total size, in bytes: %s \
-Major device type in hex: %t \
-Minor device type in hex: %T \
-User ID of owner: %u \
-User name of owner: %U" "$file_name" 2>&1)" \
+Access_rights_in_octal: %a \
+Number_of_blocks_allocated: %b \
+The_size_in_bytes_of_each_block_reported_by_b: %B \
+Device_number_in_decimal: %d \
+Raw_mode_in_hex: %f \
+Group_ID_of_owner: %g \
+Number_of_hard_links: %h \
+IO_block_size: %o \
+Total_size_in_bytes: %s \
+Major_device_type_in_hex: %t \
+Minor_device_type_in_hex: %T \
+User_ID_of_owner: %u \
+Type_in_hex: %t" "$file_name" 2>&1)" \
          || { stat_exit_code="${PIPESTATUS[0]}" ; true; };
+
+      ## Initialize local variables.
+      local \
+         temp1="" Access_rights_in_octal="" \
+         temp2="" Number_of_blocks_allocated="" \
+         temp3="" The_size_in_bytes_of_each_block_reported_by_b="" \
+         temp4="" Device_number_in_decimal="" \
+         temp5="" Raw_mode_in_hex="" \
+         temp6="" Group_ID_of_owner="" \
+         temp7="" Number_of_hard_links="" \
+         temp7="" IO_block_size="" \
+         temp9="" Total_size_in_bytes="" \
+         temp10="" Major_device_type_in_hex="" \
+         temp11="" Minor_device_type_in_hex="" \
+         temp12="" User_ID_of_owner="" \
+         temp13="" Type_in_hex="" \
+
+      ## Read local variables from stat_output.
+      read -r \
+         temp1 Access_rights_in_octal \
+         temp2 Number_of_blocks_allocated \
+         temp3 The_size_in_bytes_of_each_block_reported_by_b \
+         temp4 Device_number_in_decimal \
+         temp5 Raw_mode_in_hex \
+         temp6 Group_ID_of_owner \
+         temp7 Number_of_hard_links \
+         temp8 IO_block_size \
+         temp9 Total_size_in_bytes \
+         temp10 Major_device_type_in_hex \
+         temp11 Minor_device_type_in_hex \
+         temp12 User_ID_of_owner \
+         temp13 Type_in_hex \
+         _ \
+         <<< "$stat_output"
+
+      ## Debugging.
+      #true "
+         #$temp1 Access_rights_in_octal
+         #$temp2 Number_of_blocks_allocated
+         #$temp3 The_size_in_bytes_of_each_block_reported_by_b
+         #$temp4 Device_number_in_decimal
+         #$temp5 Raw_mode_in_hex
+         #$temp6 Group_ID_of_owner
+         #$temp7 Number_of_hard_links
+         #$temp8 IO_block_size
+         #$temp9 Total_size_in_bytes
+         #$temp10 Major_device_type_in_hex
+         #$temp11 Minor_device_type_in_hex
+         #$temp12 User_ID_of_owner
+         #$temp13 Type_in_hex
+      #"
+
+      ## Debugging.
+      #true "
+         #$temp1 $Access_rights_in_octal
+         #$temp2 $Number_of_blocks_allocated
+         #$temp3 $The_size_in_bytes_of_each_block_reported_by_b
+         #$temp4 $Device_number_in_decimal
+         #$temp5 $Raw_mode_in_hex
+         #$temp6 $Group_ID_of_owner
+         #$temp7 $Number_of_hard_links
+         #$temp8 $IO_block_size
+         #$temp9 $Total_size_in_bytes
+         #$temp10 $Major_device_type_in_hex
+         #$temp11 $Minor_device_type_in_hex
+         #$temp12 $User_ID_of_owner
+         #$temp13 $Type_in_hex
+      #"
 
       ## Check if $file_name is a symlink.
       if [ -h "$file_name" ]; then
@@ -918,25 +990,23 @@ User name of owner: %U" "$file_name" 2>&1)" \
          fi
       fi
 
-      ## "sudo sha512sum /dev/console" would run forever.
-      if [ "$absolute_file_name" = "/dev/console" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
-         continue
-      fi
-      ## "sudo sha512sum /dev/xconsole" would run forever.
-      if [ "$absolute_file_name" = "/dev/xconsole" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
-         continue
-      fi
-      ## "sudo sha512sum /dev/initctl" would run forever.
-      if [ "$absolute_file_name" = "/dev/initctl" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
-         continue
-      fi
-      ## "sudo sha512sum /dev/full" would run forever.
-      if [ "$absolute_file_name" = "/dev/full" ]; then
-         echo "($sub_folder) $absolute_file_name | skipped | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
-         continue
+      if [ "$Number_of_blocks_allocated" = "0" ]; then
+         ## Check if Number_of_blocks_allocated and Total_size_in_bytes are 0,
+         ## to avoid any kind of trickery.
+         if [ "$Total_size_in_bytes" = "0" ]; then
+            ## Do the probably most expensive (from performance view)
+            ## conditions check ("/dev/"**) at the end.
+            if [[ "$absolute_file_name" == "/dev/"** ]]; then
+               ## File in /dev with size of 0. No need to build a checksum of
+               ## these. Also it would be difficult, because for example:
+               ## "sudo sha512sum /dev/console",
+               ## "sudo sha512sum /dev/xconsole",
+               ## "sudo sha512sum /dev/initctl" or
+               ## "sudo sha512sum /dev/full" would run forever.
+               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output: $stat_output (stat_exit_code: $stat_exit_code)" >> "$report_file"
+               continue
+            fi
+         fi
       fi
 
       local maybe_timeout
@@ -962,8 +1032,8 @@ User name of owner: %U" "$file_name" 2>&1)" \
 
       local checksum_output checksum_exit_code
       if [ "$skip_hash" = "1" ]; then
-         checksum_exit_code="skipped"
-         checksum_output="skipped"
+         checksum_exit_code="skipped_hash"
+         checksum_output="skipped_hash"
       else
          checksum_exit_code="0"
          checksum_output="$($maybe_timeout sha512sum "$file_name" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
