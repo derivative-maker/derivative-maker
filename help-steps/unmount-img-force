@@ -40,7 +40,30 @@ unmount_img_force() {
 
    sync || true
 
+   ## Sleep to work around some obscure bug.
+   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
+   sleep 2 & || true
+   wait "$!" || true
+   sync || true
+
    umount "$CHROOT_FOLDER" || true
+   sync || true
+
+   ## Sleep to work around some obscure bug.
+   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
+   sleep 2 & || true
+   wait "$!" || true
+   sync  || true
+
+   ## Debugging.
+   losetup --all || true
+   sync || true
+
+   kpartx -d -s -v "$img" || true
+   sync || true
+
+   ## Debugging.
+   losetup --all || true
    sync || true
 
    ## Delete temporary folder.
