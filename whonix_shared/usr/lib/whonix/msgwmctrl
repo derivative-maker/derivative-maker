@@ -57,7 +57,8 @@ output_wait_for_window() {
 
    local title="${1+"$@"}"
 
-   sleep .5
+   sleep .5 &
+   wait "$!" || true
 
    ## TODO
    if [ "$autostart" = "1" ]; then
@@ -111,6 +112,10 @@ output_wmctrl_move_window_to_left_top() {
 
    output_wait_for_window "$title"
 
+   ## Wait a bit longer. Otherwise it might still fail in some cases.
+   sleep "1" &
+   wait "$!" || true
+
    ## Move windows to the left top.
    wmctrl -r "$title" -e 0,0,0,-1,-1 >/dev/null 2>/dev/null || true
 }
@@ -130,6 +135,10 @@ output_wmctrl_maximize_window() {
    if [ "$progressbar" = "1" ]; then
       true "Not maximizing progress bar."
    else
+      ## Wait a bit longer. Otherwise it might still fail in some cases.
+      sleep "1" &
+      wait "$!" || true
+
       ## Maximize window.
       wmctrl -r "$title" -b add,maximized_vert,maximized_horz >/dev/null 2>/dev/null || true
    fi
