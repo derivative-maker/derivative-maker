@@ -960,6 +960,25 @@ $temp11 $User_ID_of_owner | \
 $temp12 $Type_in_hex\
 "
 
+      ## $Number_of_blocks_allocated is non deterministic for some files such
+      ## as /usr/lib/python2.7/dist-packages/twisted/web/test/test_http.pyc.
+      ## Therefore leaving it out. Alternatively, we could remove these files
+      ## using the cleanup chroot-post.d script and re-create them later using
+      ## Whonix First Run Initializer.
+      stat_output_log_file="\
+$temp1 $Access_rights_in_octal | \
+$temp3 $The_size_in_bytes_of_each_block_reported_by_b | \
+$temp4 $Raw_mode_in_hex | \
+$temp5 $Group_ID_of_owner | \
+$temp6 $Number_of_hard_links | \
+$temp7 $IO_block_size | \
+$temp8 $Total_size_in_bytes | \
+$temp9 $Major_device_type_in_hex | \
+$temp10 $Minor_device_type_in_hex | \
+$temp11 $User_ID_of_owner | \
+$temp12 $Type_in_hex\
+"
+
       ## Check if $file_name is a symlink.
       if [ -h "$file_name" ]; then
          ## Symlink found...
@@ -970,7 +989,7 @@ $temp12 $Type_in_hex\
          read_link_exit_code="0"
          file_link="$(readlink "$file_name" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
-         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output: $stat_output | stat_exit_code: $stat_exit_code | symlinks_to $file_link" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | symlinks_to $file_link" >> "$report_file"
 
          continue
       fi
@@ -1019,7 +1038,7 @@ $temp12 $Type_in_hex\
                ## "sudo sha512sum /dev/xconsole",
                ## "sudo sha512sum /dev/initctl" or
                ## "sudo sha512sum /dev/full" would run forever.
-               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output: $stat_output | stat_exit_code: $stat_exit_code" >> "$report_file"
+               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code" >> "$report_file"
                continue
             fi
          fi
@@ -1065,13 +1084,13 @@ $temp12 $Type_in_hex\
          if [ "$skip_hash" = "directory" ]; then
             echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_directory: $stat_output_log_directory | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" >> "$report_file"
          else
-            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output: $stat_output | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" >> "$report_file"
+            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" >> "$report_file"
          fi
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_output"
-         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output: $stat_output | stat_exit_code: $stat_exit_code | checksum: $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum: $checksum" >> "$report_file"
          continue
       fi
 
