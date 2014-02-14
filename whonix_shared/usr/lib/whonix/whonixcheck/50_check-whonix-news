@@ -16,7 +16,7 @@ download_whonix_news() {
 
    declare -A -g whonix_news_link_list
    declare -A -g whonix_news_download_exit_code
-   declare -A -g whonix_news_verify_check_exit_code
+   declare -A -g whonix_news_verify_check_gpg_exit_code
 
    ## whonix_news_link_list[link]="filename"
    whonix_news_link_list[http://sourceforge.net/projects/whonixdevelopermetafiles/files/internal/news_v4/whonix_news.tar.xz.asc/download]="whonix_news.tar.xz.asc"
@@ -62,8 +62,8 @@ download_whonix_news() {
 
    verify_whonix_news
 
-   if [ ! "$whonix_news_verify_check_exit_code" = "0" ]; then
-      true "$0 WARNING: whonix_news_verify_check_exit_code is not 0, it is $whonix_news_verify_check_exit_code, return"
+   if [ ! "$whonix_news_verified_ok" = "true" ]; then
+      true "$0 WARNING: whonix_news_verified_ok is not true, it is $whonix_news_verified_ok, return"
       return 0
    fi
 
@@ -87,6 +87,9 @@ verify_whonix_news() {
    ## Sanity tests.
    command -v date >/dev/null
    command -v gpg >/dev/null
+
+   ## Fallback
+   whonix_news_verified_ok="false"
 
    local whonix_news_gpg_temp_dir
    whonix_news_gpg_temp_dir="$VERIFY_TEMPDIR/news_gpg"
@@ -134,15 +137,16 @@ verify_whonix_news() {
    true "c whonix_news_verify_general_exit_code: $whonix_news_verify_general_exit_code"
 
    if [ ! "$whonix_news_verify_general_exit_code" = "0" ]; then
+      whonix_news_verified_ok="false"
       local MSG="Whonix News Download Result: General Whonix News OpenPGP Verification Error. Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
       return 0
    fi
 
-   whonix_news_verify_check_exit_code="0"
+   whonix_news_verify_check_gpg_exit_code="0"
 
-   true "d whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
+   true "d whonix_news_verify_check_gpg_exit_code: ${whonix_news_verify_check_gpg_exit_code}"
 
    local filename signature timeout_after kill_after gpg_fd_one gpg_fd_one_file
    filename="whonix_news.tar.xz"
@@ -169,7 +173,7 @@ verify_whonix_news() {
             &
 
    lastpid="$!"
-   wait "$lastpid" || { whonix_news_verify_check_exit_code="$?" ; true; }
+   wait "$lastpid" || { whonix_news_verify_check_gpg_exit_code="$?" ; true; }
 
    ## `timeout` returns:
    ## - 124 if sigterm was sufficient
@@ -189,33 +193,50 @@ verify_whonix_news() {
    ## [GNUPG:] ERRSIG 9C131AD3713AAEEF 1 10 00 1381635738 9
    ## [GNUPG:] NO_PUBKEY 9C131AD3713AAEEF
 
-   true "e whonix_news_verify_check_exit_code: ${whonix_news_verify_check_exit_code}"
+   true "e whonix_news_verify_check_gpg_exit_code: ${whonix_news_verify_check_gpg_exit_code}"
 
-   if [ ! "${whonix_news_verify_check_exit_code}" = "0" ]; then
-         local MSG="Whonix News Download Result: Could not OpenPGP verify authenticity of Whonix News $filename!!! (gpg return code: ${whonix_news_verify_check_exit_code}) This is either a Whonix Bug or an attack on Whonix!!!"
-         $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
-         $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
-         return 0
-   fi
+   ## Quote Werner Koch [1]:
+   ## "there is no clear distinction between the codes and for proper error
+   ## reporting you are advised to use the --status-fd messages."
+   ## [1] http://lists.gnupg.org/pipermail/gnupg-devel/2005-December/022559.html
+   #if [ ! "${whonix_news_verify_check_gpg_exit_code}" = "0" ]; then
+      #true
+   #fi
 
-   local MSG="Whonix News Download: Successfully verified $filename via OpenPGP."
-   if [ "$verbose" = "1" ]; then
-      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
-      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
-   fi
+   local line validsig signed_on_unixtime
+   ## Fallback.
+   validsig="false"
 
-   local line
-   local signed_on_unixtime
+   OIFS="$IFS"
+   IFS="
+"
 
-   for line in "$gpg_fd_one"; do
+   for line in $gpg_fd_one; do
+      IFS="$OIFS"
+      true "line: $line"
       local one two three four five
       read -r one two three four five _ <<< "$line"
-      local signed_on_unixtime
-      signed_on_unixtime="$five"
+      true "one: $one | two: $two | three: $three | four: $four | five: $five"
+      if [ "$two" = "VALIDSIG" ]; then
+         validsig="true"
+         signed_on_unixtime="$five"
+      fi
    done
 
+   ## Fallback, in case $gpg_fd_one is empty.
+   IFS="$OIFS"
+
+   if [ ! "$validsig" = "true" ]; then
+      whonix_news_verified_ok="false"
+      local MSG="Whonix News Download Result: Could not OpenPGP verify authenticity of Whonix News $filename!!! (gpg return code: ${whonix_news_verify_check_gpg_exit_code} | validsig: $validsig) This is either a Whonix Bug or an attack on Whonix!!!"
+      $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
+
    if [ "$signed_on_unixtime" = "" ]; then
-      whonix_news_verify_check_exit_code="1000"
+      whonix_news_verified_ok="false"
+      whonix_news_verify_check_gpg_exit_code="1000"
       local MSG="Whonix News Check: variable signed_on_unixtime is empty. Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -227,7 +248,8 @@ verify_whonix_news() {
    if [[ "$signed_on_unixtime" != *[!0-9]* ]]; then
       true "'$signed_on_unixtime' is strictly numeric."
    else
-      whonix_news_verify_check_exit_code="2000"
+      whonix_news_verified_ok="false"
+      whonix_news_verify_check_gpg_exit_code="2000"
       local MSG="Whonix News Check: Variable signed_on_unixtime includes a non-digit: $signed_on_unixtime Please report this bug!"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG"
       $output ${output_opts[@]} --messagecli --typecli "error" --titlecli "$TITLE" --message "$MSG"
@@ -256,7 +278,8 @@ verify_whonix_news() {
    maximum_age_in_seconds="$month_has_seconds"
 
    if [ "$current_unixtime" -le "$signed_on_unixtime" ]; then
-      whonix_news_verify_check_exit_code="3000"
+      whonix_news_verified_ok="false"
+      whonix_news_verify_check_gpg_exit_code="3000"
       local MSG="Whonix News Check: Your clock is slow. According to your system, Whonix News File was signed $difference_in_minutes minutes before current time.
 Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
                      or in Terminal: timesync"
@@ -271,7 +294,8 @@ Please run Timesync: Start menu -> Applications -> System -> Whonix Timesync
    in_future_in_minutes="$(( $in_future_in_seconds / 60 ))"
 
    if [ "$difference_in_seconds" -ge "$maximum_age_in_seconds" ]; then
-      whonix_news_verify_check_exit_code="4000"
+      whonix_news_verified_ok="false"
+      whonix_news_verify_check_gpg_exit_code="4000"
       local MSG="Whonix News Check: Whonix News File is no longer valid (outdated).
 Either,
 - your clock is fast (at least $in_future_in_minutes minutes fast)
@@ -285,6 +309,7 @@ Either,
       return 0
    fi
 
+   whonix_news_verified_ok="true"
    local MSG="Whonix News Check: news file valid."
    if [ "$verbose" = "1" ]; then
       $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
