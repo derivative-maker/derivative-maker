@@ -110,14 +110,12 @@ verify_whonix_news() {
 
    local key
 
+   shopt -s nullglob dotglob
+
    for key in "/usr/share/whonix/keys/whonix-news-keys.d/"*; do
       local key_filename
       key_filename="$(basename "$key")"
       if [ "$key_filename" = "placeholder" ]; then
-         continue
-      fi
-      if [ "$key_filename" = "*" ]; then
-         ## Folder is empty.
          continue
       fi
       gpg \
@@ -130,6 +128,8 @@ verify_whonix_news() {
          break
       fi
    done
+
+   shopt -u nullglob dotglob
 
    true "c whonix_news_verify_general_exit_code: $whonix_news_verify_general_exit_code"
 
