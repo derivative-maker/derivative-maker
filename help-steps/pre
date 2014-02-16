@@ -9,45 +9,103 @@ set +x
 
 set -o pipefail
 
-error_handler_general() {
-   local exit_code="$?"
-
+error_handler_shared() {
+   last_exit_code="$?"
+   last_bash_command="$BASH_COMMAND"
+   if [ test -o xtrace = "0" ]; then
+      set +x
+      benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+      read -p "\
+${red}${bold}ERROR in $0 detected!
+Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
+Please press enter to cleanup and exit. ${reset}" answer
+      if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
+         ignore_error="true"
+      else
+         ignore_error="false"
+      fi
+      set -x
+   else
+      benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+      read -p "\
+${red}${bold}ERROR in $0 detected!
+Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
+Please press enter to cleanup and exit. ${reset}" answer
+   fi
+   last_caller="$(caller)"
+   last_script="$0"
+   ## test -o xtrace
+   ## exits:
+   ## - 0, if -x is set
+   ## - 1, if -x is not set
+   if [ test -o xtrace = "0" ]; then
+      ## -x is set
+      output_command="true"
+   else
+      output_command="echo"
+   fi
    ## Removing temporary debian testing (jessie) repository.
    rm --force "/etc/apt/sources.list.d/whonix_temp.list"
-
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   echo "
-(benchmark: $benchmark_took_time)
-${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}exit_code${reset}: $exit_code
-${red}${bold}ERROR $0: | caller: $(caller)${reset}
-"
-
-   exit 1
-}
-
-trap "error_handler_general" ERR INT TERM
-
-error_handler_unchroot_unprevent_unmount() {
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting... (benchmark: $benchmark_took_time)${reset}"
    ## Remove lockfile for whonixcheck.
    rm --force "/var/run/whonix/package_manager_lock"
+}
+
+error_handler_exit() {
+   if [ "$ignore_error" = "true" ]; then
+      abort_or_continue="Continue"
+   else
+      abort_or_continue="Aborted"
+   fi
+   $output_command "
+############################################################
+${red}${bold}ERROR in $last_script detected! $abort_or_continue!${reset}
+(benchmark: $benchmark_took_time)
+${red}${bold}BASH_COMMAND${reset}: $last_bash_command
+${red}${bold}last_exit_code${reset}: $last_exit_code
+${red}${bold}caller: $last_caller${reset}
+${red}${bold}ERROR in $last_script! $abort_or_continue!${reset}
+############################################################
+"
+   if [ "$ignore_error" = "true" ]; then
+      if [ test -o xtrace = "0" ]; then
+         set +x
+         read -p "
+${red}${bold}You have chosen to ignore this error. Your build may be unstable!
+This is recommended against unless you know what you are doing. Do not report
+bugs, that are a result of this! Please press enter to continue. ${reset}" answer
+         set -x
+      else
+         read -p "
+${red}${bold}You have chosen to ignore this error. Your build may be unstable!
+This is recommended against unless you know what you are doing. Do not report
+bugs, that are a result of this! Please press enter to continue. ${reset}" answer
+      fi
+   else
+      exit 1
+   fi
+}
+
+error_handler_general() {
+   error_handler_shared
+   error_handler_exit
+}
+
+error_handler_unchroot_unprevent_unmount() {
+   error_handler_shared
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-img
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME! Aborted.${reset}"
-   exit 1
+   error_handler_exit
 }
 
 error_handler_unmount() {
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME. Aborting... (benchmark: $benchmark_took_time)${reset}"
+   error_handler_shared
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-img
-   echo "${red}${bold}ERROR in $TEMP_SCRIPTNAME! Aborted.${reset}"
-   exit 1
+   error_handler_exit
 }
+
+trap "error_handler_general" ERR INT TERM
 
 maybe_set_plus_x() {
    if [ "$MINUS_X_SET" = "1" ]; then
