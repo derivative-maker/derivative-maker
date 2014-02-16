@@ -140,15 +140,6 @@ trap "trap_tb" SIGINT
 
 
 
-debug() {
-   trap "tb_error_handler" ERR
-
-   ## debug is just a marker for messages which is are not essential for users.
-   ## either in cli or gui.
-   echo "$*"
-}
-
-
 
 DOWNLOAD_FAIL_HELP="Possible reasons:
 
@@ -361,7 +352,7 @@ tb_preparation() {
    ## provides tbbversion function
    source /usr/lib/whonix/whonixcheck/help_tbbversion
 
-   #debug "INFO: TB_LANG: $TB_LANG"
+   #echo "INFO: TB_LANG: $TB_LANG"
 
    for i in /etc/whonix.d/*; do
       if [ -f "$i" ]; then
@@ -382,10 +373,10 @@ tb_preparation() {
 
    ## Check if TB_LANG exists and is not empty.
    if [[ "$TB_LANG" && "${TB_LANG}" ]]; then
-      #debug "INFO: Tor Browser language variable is set to "$TB_LANG"."
+      #echo "INFO: Tor Browser language variable is set to "$TB_LANG"."
       true
    else
-      #debug "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
+      #echo "INFO: Tor Browser language variable not found. Setting TB_LANG to the default en-US."
       TB_LANG="en-US"
    fi
 
@@ -602,14 +593,14 @@ Checking Tor Browser version... Will take a moment..."
       CURL_PROXY="--socks5-hostname socks5h://$GATEWAY_IP:$SOCKS_PORT_TBB_DOWNLOAD/"
    fi
 
-   debug "INFO: Find out latest version..."
+   echo "INFO: Find out latest version..."
    LINK="https://check.torproject.org/RecommendedTBBVersions"
-   debug "INFO: Downloading: "$LINK""
+   echo "INFO: Downloading: "$LINK""
 
    mkdir --parents "$home_folder/.tb"
 
-   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
-   #debug "$0 CURL: $CURL"
+   #echo "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #echo "$0 CURL: $CURL"
 
    curl_exit_code="0"
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
@@ -768,14 +759,14 @@ Upgrade now?\
       ## no 1
       ## yes 0
 
-      #debug "answer: $answer"
+      #echo "answer: $answer"
 
       if [ "$TB_FORCE_INSTALL" = "1" ]; then
-         debug "INFO: TB_FORCE_INSTALL = 1"
+         echo "INFO: TB_FORCE_INSTALL = 1"
          true
       else
          if [ "$answer" = "1" ]; then
-            debug "INFO: Canceled. Exit."
+            echo "INFO: Canceled. Exit."
             exit 0
          fi
       fi
@@ -843,7 +834,7 @@ Downloading Tor Browser signature... Will take a moment..."
 
    ## }}
 
-   debug "INFO: Downloading GPG signature... Will take a moment..."
+   echo "INFO: Downloading GPG signature... Will take a moment..."
 
    ## Example signature link:
    ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz.asc
@@ -852,12 +843,12 @@ Downloading Tor Browser signature... Will take a moment..."
 
    TBB_SIG_LINK="${TBB_REMOTE_FOLDER}/${TBB_EXTRA_FOLDER}${TBB_SIG_FILENAME}"
 
-   debug "\
+   echo "\
 INFO: Downloading:
       $TBB_SIG_LINK ... Will take a moment..."
 
-   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
-   #debug "$0 CURL: $CURL"
+   #echo "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #echo "$0 CURL: $CURL"
 
    mkdir --parents "$home_folder/.tb"
 
@@ -919,7 +910,7 @@ Downloading Tor Browser... Will take a while..."
    sleep 1 &
    wait "$!"
 
-   debug "INFO: Downloading Tor Browser Bundle: $tbb_version"
+   echo "INFO: Downloading Tor Browser Bundle: $tbb_version"
 
    ## Example package filename:
    ## https://archive.torproject.org/tor-package-archive/torbrowser/3.0rc1/tor-browser-linux32-3.0-rc-1_en-US.tar.xz
@@ -928,14 +919,14 @@ Downloading Tor Browser... Will take a while..."
 
    TBB_PACKAGE_LINK="$TBB_REMOTE_FOLDER/${TBB_EXTRA_FOLDER}$TBB_PACKAGE_FILENAME"
 
-   debug "\
+   echo "\
 INFO: Downloading:
       $TBB_PACKAGE_LINK ... Will take a while..."
 
    curl_exit_code="0"
 
-   #debug "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
-   #debug "$0 CURL: $CURL"
+   #echo "$0 CURL_PRGRS_EXEC: $CURL_PRGRS_EXEC"
+   #echo "$0 CURL: $CURL"
 
    ## $CURL_PRGRS honors the $CURL and the $CURL_PRGRS_EXEC environment
    ## variables. (See above.)
@@ -973,7 +964,7 @@ $DOWNLOAD_FAIL_HELP"
 tb_verify() {
    trap "tb_error_handler" ERR
 
-   debug "INFO:
+   echo "INFO:
 ## Verifying GPG signature.
 ## Not using the user's GPG keyring also ensures, that the key can be only
 ## signed by the GPG keys we added. Signatures from random people from the
@@ -1028,15 +1019,15 @@ tb_extract() {
    ## https://sourceforge.net/p/whonix/discussion/general/thread/6122990d/
    ## To play it safe and having a chance of finding out the installed version,
    ## we create a file ourselves to remember it.
-   debug "INFO: Creating version file tor-browser_$TB_LANG/Docs/version."
+   echo "INFO: Creating version file tor-browser_$TB_LANG/Docs/version."
    echo "$tbb_version" > "$home_folder/.tb/tor-browser_$TB_LANG/Docs/version"
 
    if [ -d "$home_folder/tor-browser_$TB_LANG" ]; then
-      debug "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
+      echo "INFO: Moving old folder $home_folder/tor-browser_$TB_LANG..."
       mv "$home_folder/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG.old.$(date '+%F-%H:%M:%S')"
    fi
 
-   debug "INFO: Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
+   echo "INFO: Moving temporary folder $home_folder/.tb/tor-browser_$TB_LANG to $home_folder/tor-browser_$TB_LANG."
    mv "$home_folder/.tb/tor-browser_$TB_LANG" "$home_folder/tor-browser_$TB_LANG"
 
    local TEMP
@@ -1062,7 +1053,7 @@ Start Tor Browser?"
    ## yes 0
 
    if [ "$answer" = "1" ]; then
-      debug "INFO: Canceled starting Tor Browser, ok."
+      echo "INFO: Canceled starting Tor Browser, ok."
    else
       $0
    fi
@@ -1084,12 +1075,12 @@ Please run: Start Menu -> Applications -> System -> Tor Browser Updater
       exit 1
    fi
 
-   debug "INFO: Starting Tor Browser..."
+   echo "INFO: Starting Tor Browser..."
 
    if [ "$LINK" = "" ]; then
       LINK="about:blank"
    else
-      debug "INFO: Opening link..."
+      echo "INFO: Opening link..."
    fi
 
    cd "$home_folder/tor-browser_$TB_LANG/"
@@ -1133,11 +1124,11 @@ tb_start_recommend() {
    else
       LINK="$IMPORTANTBLOG_OFFLINE_LINK"
    fi
-   debug "INFO: Link set to $LINK"
+   echo "INFO: Link set to $LINK"
    tb_start_new_tab
 
    if [ "$PID" = "" ]; then
-      debug "INFO: Waiting 30 seconds for Tor Browser to start..."
+      echo "INFO: Waiting 30 seconds for Tor Browser to start..."
       ## Unfortunately, we must hard code the time to wait before
       ## we try open extra tabs. Just waiting for the pid to exists
       ## does not do the trick. We are not aware of a way to ask Firefox,
@@ -1153,7 +1144,7 @@ tb_start_recommend() {
    else
       LINK="$FEATUREBLOG_OFFLINE_LINK"
    fi
-   debug "INFO: Link set to $LINK"
+   echo "INFO: Link set to $LINK"
    tb_start_new_tab
 
    exit 0
