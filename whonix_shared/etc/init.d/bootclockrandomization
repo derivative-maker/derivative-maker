@@ -5,6 +5,7 @@
 # Required-Stop:     $local_fs $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
+# X-Start-Before:    tor sdwdate
 # Short-Description: Boot Clock Randomization
 # Description:       Change clock randomly between 5 and 180 seconds to past or future.
 ### END INIT INFO
@@ -55,11 +56,6 @@ log() {
 #set -x
 
 do_start () {
-   if [ -e "/usr/share/whonix/whonix_gateway" ]; then
-      log "Not running bootclockrandomization on Whonix-Gateway. Reasons for that are explained in TimeSync design."
-      return 0
-   fi
-
    if [ -e "$FAIL_FILE" ]; then
       rm -f "$FAIL_FILE"
    fi
@@ -116,13 +112,6 @@ do_stop() {
 }
 
 do_status () {
-   ## Always return success on Whonix-Gateway.
-   if [ -e "/usr/share/whonix/whonix_gateway" ]; then
-      ## Not running bootclockrandomization on Whonxi-Gateway. Reasons
-      ## for that are explained in TimeSync design.
-      return 0
-   fi
-
    if [ -e "$SUCCESS_FILE" ]; then
       return 0
    else
