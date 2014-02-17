@@ -4,24 +4,27 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
-#set -x
+if [ -f /etc/default/whonixcheckd ]; then
+   source /etc/default/whonixcheckd
+fi
 
-## Debugging.
-#sudo -u user bash -x /usr/bin/whonixcheck --autostart >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
-
-## Normal.
-sudo -u user /usr/bin/whonixcheck --autostart >/dev/null 2>/dev/null || true
+if [ "$debugging" = "true" ]; then
+   set -x
+   sudo -u user bash -x /usr/bin/whonixcheck --autostart >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
+else
+   sudo -u user /usr/bin/whonixcheck --autostart >/dev/null 2>/dev/null || true
+fi
 
 sleep 3600 &
 wait "$!"
 
 while true; do
 
-   ## Debugging.
-   #sudo -u user bash -x /usr/bin/whonixcheck --daemon >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
-
-   ## Normal.
-   sudo -u user /usr/bin/whonixcheck --daemon >/dev/null 2>/dev/null || true
+   if [ "$debugging" = "true" ]; then
+      sudo -u user bash -x /usr/bin/whonixcheck --daemon >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
+   else
+      sudo -u user /usr/bin/whonixcheck --daemon >/dev/null 2>/dev/null || true
+   fi
 
    sleep 3600 &
    wait "$!"
