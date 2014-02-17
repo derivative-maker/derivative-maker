@@ -14,7 +14,29 @@
 ##     perl: warning: Falling back to the standard locale ("C").' = '' ']'
 ## Which is a confusing warning and considered an error in 20_sanity_checks.
 
-source /usr/share/whonix/postinst.d/pre.bsh
+set -x
+set -o pipefail
+
+error_handler() {
+   echo "
+###########################################################
+## chroot script: ERROR detected. Please report this bug! #
+###########################################################
+"
+
+   exit 1
+}
+
+trap "error_handler" ERR
+
+own_filename="$(basename $0)"
+for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
+   if [ "$skip_script" = "$own_filename" ]; then
+      true "INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it."
+      exit 0
+   fi
+done
+unset skip_script
 
 mkdir --parents "/usr/lib/whonix/"
 
@@ -22,20 +44,12 @@ if [ -f "/usr/lib/whonix/updated_locale" ]; then
    exit 0
 fi
 
-force_echo "INFO $0: Changing your locale to en_US.UTF-8... Will only do this once."
-
 ## Just doing this once, so users who changed from en_US.UTF-8 to something
 ## else won't always find them having their locale reset to en_US.UTF-8 each
 ## time there are updated Whonix debian packages.
 
-force_echo "INFO $0: Will run: locale-gen"
-
 locale-gen
-
-force_echo "INFO $0: Will run: update-locale LANG=en_US.UTF-8"
 
 update-locale LANG=en_US.UTF-8
 
 touch "/usr/lib/whonix/updated_locale"
-
-force_echo "INFO $0: Done, changed locale to en_US.UTF-8."
