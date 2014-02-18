@@ -12,8 +12,15 @@ set -o pipefail
 error_handler_shared() {
    last_exit_code="$?"
    last_bash_command="$BASH_COMMAND"
+   ## test -o xtrace
+   ## exits:
+   ## - 0, if -x is set
+   ## - 1, if -x is not set
    if [ test -o xtrace = "0" ]; then
+      ## -x was set
+      ## Temporarily set +x, to prevent duplicate output of following read -p.
       set +x
+      output_command="true"
       benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
       read -p "\
 ${red}${bold}ERROR in $0 detected!
@@ -25,27 +32,25 @@ Please have a look above \"error_handler_general\", note the command that failed
       else
          ignore_error="false"
       fi
+      ## Re-enable set -x.
       set -x
    else
+      ## -x was not set
+      output_command="echo"
       benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
       read -p "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press enter to cleanup and exit. ${reset}" answer
+      if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
+         ignore_error="true"
+      else
+         ignore_error="false"
+      fi
    fi
    last_caller="$(caller)"
    last_script="$0"
-   ## test -o xtrace
-   ## exits:
-   ## - 0, if -x is set
-   ## - 1, if -x is not set
-   if [ test -o xtrace = "0" ]; then
-      ## -x is set
-      output_command="true"
-   else
-      output_command="echo"
-   fi
    ## Removing temporary debian testing (jessie) repository.
    rm --force "/etc/apt/sources.list.d/whonix_temp.list"
    ## Remove lockfile for whonixcheck.
@@ -113,6 +118,12 @@ error_handler_unmount() {
 
 trap "error_handler_general" ERR INT TERM
 
+export -f error_handler_shared
+export -f error_handler_exit
+export -f error_handler_general
+export -f error_handler_unchroot_unprevent_unmount
+export -f error_handler_unmount
+
 maybe_set_plus_x() {
    if [ "$MINUS_X_SET" = "1" ]; then
       set +x
@@ -129,17 +140,21 @@ convertsecs() {
    true
 }
 
+export -f convertsecs
+
 benchmark_time_start() {
-   benchmark_time_start="$(date +%s)"
+   export benchmark_time_start="$(date +%s)"
    true
 }
 
 benchmark_time_end() {
    benchmark_time_end="$(date +%s)"
-   benchmark_took_seconds="$((  $benchmark_time_end - $benchmark_time_start ))"
+   benchmark_took_seconds="$(( $benchmark_time_end - $benchmark_time_start ))"
    benchmark_took_time="$(convertsecs "$benchmark_took_seconds")"
    true
 }
+
+export -f benchmark_time_end
 
 ## start benchmark_time_end
 benchmark_time_start
