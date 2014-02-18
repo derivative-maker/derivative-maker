@@ -16,7 +16,19 @@ error_handler() {
    exit 1
 }
 
-trap "error_handler" ERR
+## {{ Set up error handler.
+if [ "$(type -t error_handler_unchroot_unprevent_unmount)" = "function" ]; then
+   ## Function error_handler_unchroot_unprevent_unmount exists (declared in
+   ## help-steps/pre). Prefer to use the more feature rich version of the error
+   ## handler.
+   trap "error_handler_unchroot_unprevent_unmount" ERR
+else
+   ## Function error_handler_unchroot_unprevent_unmount does not exist. Script
+   ## runs standalone outside the build script. Fall back to a simpler error
+   ## handler.
+   trap "error_handler" ERR
+fi
+## }}
 
 own_filename="$(basename $0)"
 for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
@@ -56,7 +68,19 @@ fi
 declare -A -g downloaded
 
 download_package() {
+   ## {{ Set up error handler.
+if [ "$(type -t error_handler_unchroot_unprevent_unmount)" = "function" ]; then
+   ## Function error_handler_unchroot_unprevent_unmount exists (declared in
+   ## help-steps/pre). Prefer to use the more feature rich version of the error
+   ## handler.
+   trap "error_handler_unchroot_unprevent_unmount" ERR
+else
+   ## Function error_handler_unchroot_unprevent_unmount does not exist. Script
+   ## runs standalone outside the build script. Fall back to a simpler error
+   ## handler.
    trap "error_handler" ERR
+fi
+## }}
    local package="$1"
    if [ "${downloaded[$package]}" = "1" ]; then
       true "INFO: Already downloaded $package."
@@ -68,7 +92,19 @@ download_package() {
 }
 
 maybe_rm() {
+   ## {{ Set up error handler.
+if [ "$(type -t error_handler_unchroot_unprevent_unmount)" = "function" ]; then
+   ## Function error_handler_unchroot_unprevent_unmount exists (declared in
+   ## help-steps/pre). Prefer to use the more feature rich version of the error
+   ## handler.
+   trap "error_handler_unchroot_unprevent_unmount" ERR
+else
+   ## Function error_handler_unchroot_unprevent_unmount does not exist. Script
+   ## runs standalone outside the build script. Fall back to a simpler error
+   ## handler.
    trap "error_handler" ERR
+fi
+## }}
 
    if [ "$whonix_build_script_skip_verifiable" = "1" ]; then
       true "INFO: whonix_build_script_skip_verifiable is set to 1, skipping rm $1, ok."
@@ -78,7 +114,19 @@ maybe_rm() {
 }
 
 maybe_run() {
+   ## {{ Set up error handler.
+if [ "$(type -t error_handler_unchroot_unprevent_unmount)" = "function" ]; then
+   ## Function error_handler_unchroot_unprevent_unmount exists (declared in
+   ## help-steps/pre). Prefer to use the more feature rich version of the error
+   ## handler.
+   trap "error_handler_unchroot_unprevent_unmount" ERR
+else
+   ## Function error_handler_unchroot_unprevent_unmount does not exist. Script
+   ## runs standalone outside the build script. Fall back to a simpler error
+   ## handler.
    trap "error_handler" ERR
+fi
+## }}
 
    if [ "$whonix_build_script_skip_verifiable" = "1" ]; then
       true "INFO: whonix_build_script_skip_verifiable is set to 1, skipping maybe_run $1, ok."
