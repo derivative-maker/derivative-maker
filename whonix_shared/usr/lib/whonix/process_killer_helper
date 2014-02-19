@@ -1,7 +1,15 @@
 #!/bin/bash
 
 process_killer_helper() {
-   trap "error_handler" ERR
+   if [ "$(type -t error_handler)" = "function" ]; then
+      ## Error handler already implemented. Using it.
+      trap "error_handler" ERR
+   else
+      ## No error available yet. Implementing one.
+      error_handler() {
+         echo "Error detected! BASH_COMMAND: $BASH_COMMAND | exit_code: $exit_code"
+      }
+   fi
 
    if [ "$lastpid" = "" ]; then
       return 0

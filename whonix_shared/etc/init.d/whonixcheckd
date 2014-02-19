@@ -74,6 +74,21 @@ do_start()
 do_stop()
 {
    killall whonixcheckdaemon 2>/dev/null
+
+   if [ -f /var/run/whonix/whonixcheck/whonixcheck_pid ]; then
+      whonixcheck_pid="$(cat /var/run/whonix/whonixcheck/whonixcheck_pid)"
+   fi
+
+   source /usr/lib/whonix/process_killer_helper
+
+   if [ "$whonixcheck_pid" = "" ]; then
+      true
+   else
+      ## used by process_killer_helper
+      lastpid="$whonixcheck_pid"
+      process_killer_helper
+   fi
+
    killall whonixcheck 2>/dev/null
 
    rm -f /var/run/whonix/whonixcheck/whonixcheck_waiting
