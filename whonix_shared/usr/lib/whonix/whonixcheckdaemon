@@ -10,9 +10,14 @@ fi
 
 if [ "$debugging" = "true" ]; then
    set -x
-   sudo -u user bash -x /usr/bin/whonixcheck --autostart >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
+   log_file="/home/user/whonixcheck.log"
+   exec >  >(tee --append "$log_file")
+   exec 2> >(tee --append "$log_file" >&2)
+   sudo -u user bash -x /usr/bin/whonixcheck --autostart >>"$log_file" 2>&1 &
+   wait "$!" || true
 else
-   sudo -u user /usr/bin/whonixcheck --autostart >/dev/null 2>/dev/null || true
+   sudo -u user /usr/bin/whonixcheck --autostart >/dev/null 2>&1 &
+   wait "$!" || true
 fi
 
 sleep 3600 &
@@ -21,9 +26,11 @@ wait "$!"
 while true; do
 
    if [ "$debugging" = "true" ]; then
-      sudo -u user bash -x /usr/bin/whonixcheck --daemon >/home/user/whonixchecklog 2>/home/user/whonixchecklog || true
+      sudo -u user bash -x /usr/bin/whonixcheck --daemon >>"$log_file" 2>&1 &
+      wait "$!" || true
    else
-      sudo -u user /usr/bin/whonixcheck --daemon >/dev/null 2>/dev/null || true
+      sudo -u user /usr/bin/whonixcheck --daemon >/dev/null 2>/dev/null &
+      wait "$!" || true
    fi
 
    sleep 3600 &
