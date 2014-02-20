@@ -61,9 +61,14 @@ preparation() {
 
    if [ -e "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid" ]; then
       local oldpid
-      oldpid="$(cat "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid")"
-      kill -15 "$oldpid" > /dev/null 2>&1 || true
-      kill -9 "$oldpid" > /dev/null 2>&1 || true
+      ## || true to prevent a race condition with whonixcheckd's init script
+      oldpid="$(cat "/var/run/whonix/whonixcheck/${IDENTIFIER}_pid")" || true
+      if [ ! "$oldpid" = "" ]; then
+         ## $lastpid is used by by process_killer_helper.
+         lastpid="$oldpid"
+         process_killer_helper
+         unset lastpid
+      fi
    fi
 
    rm --force "/var/run/whonix/whonixcheck/${IDENTIFIER}_done"
