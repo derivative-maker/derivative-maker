@@ -317,12 +317,17 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ###########################################
       local bare_metal_basic_package_list
       bare_metal_basic_package_list="$(grep -vE "^\s*#" "$WHONIX_SOURCE_FOLDER/grml_packages" | tr "\n" " ")"
-      apt-get \
-         $apt_timeout_opts \
-         $apt_unattended_opts \
-         --yes \
-         install \
-         $bare_metal_basic_package_list
+      if [ "$CI" = "true" ]; then
+         ## Would fail on drone.io. ("E: Unable to locate package acpi-support-base")
+         true "INFO: CI detected, skip installation of bare_metal_basic_package_list."
+      else
+         apt-get \
+            $apt_timeout_opts \
+            $apt_unattended_opts \
+            --yes \
+            install \
+            $bare_metal_basic_package_list
+      fi
    else
       ##################################################################
       ## Build Dependencies for creating Virtual Machine Images (.img) #
