@@ -9,6 +9,23 @@ set +x
 
 set -o pipefail
 
+error_handler_shell() {
+   $output_command "${cyan}${bold}INFO: Opening interactive shell...${reset}"
+   $output_command "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
+continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
+   interactive_chroot_shell_bash_exit_code="0"
+   $CHROOT /bin/bash || { interactive_chroot_shell_bash_exit_code="${PIPESTATUS[0]}" ; true; };
+   if [ "$interactive_chroot_shell_bash_exit_code" = "0" ]; then
+      $output_command "${cyan}${bold}INFO: Interactive shell termited with \
+exit code $interactive_chroot_shell_bash_exit_code, will ignore this error and continue...${reset}"
+      ignore_error="true"
+   else
+      $output_command "${cyan}${bold}INFO: Interactive shell termited with \
+exit code $interactive_chroot_shell_bash_exit_code, cleanup and exist requested...${reset}"
+      ignore_error="false"
+   fi
+}
+
 error_handler_shared() {
    last_exit_code="$?"
    last_bash_command="$BASH_COMMAND"
@@ -26,11 +43,16 @@ error_handler_shared() {
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
+- Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
       if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
          ignore_error="true"
+         interactive_chroot_shell="false"
+      elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
+         interactive_chroot_shell="true"
       else
          ignore_error="false"
+         interactive_chroot_shell="false"
       fi
       ## Re-enable set -x.
       set -x
@@ -42,19 +64,23 @@ Please have a look above \"error_handler_general\", note the command that failed
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
+- Please press s and enter to open an interactive chroot shell.
 - Please press enter to cleanup and exit. ${reset}" answer
       if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
          ignore_error="true"
+         interactive_chroot_shell="false"
+      elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
+         interactive_chroot_shell="true"
       else
          ignore_error="false"
+         interactive_chroot_shell="false"
       fi
+   fi
+   if [ "$interactive_chroot_shell" = "true" ]; then
+      error_handler_shell
    fi
    last_caller="$(caller)"
    last_script="$0"
-   ## Removing temporary debian testing (jessie) repository.
-   rm --force "/etc/apt/sources.list.d/whonix_temp.list"
-   ## Remove lockfile for whonixcheck.
-   rm --force "/var/run/whonix/package_manager_lock"
 }
 
 error_handler_exit() {
@@ -62,6 +88,10 @@ error_handler_exit() {
       abort_or_continue="Continue"
    else
       abort_or_continue="Aborted"
+      ## Removing temporary debian testing (jessie) repository.
+      rm --force "/etc/apt/sources.list.d/whonix_temp.list"
+      ## Remove lockfile for whonixcheck.
+      rm --force "/var/run/whonix/package_manager_lock"
    fi
    $output_command "
 ############################################################
@@ -118,6 +148,7 @@ error_handler_unmount() {
 
 trap "error_handler_general" ERR INT TERM
 
+export -f error_handler_shell
 export -f error_handler_shared
 export -f error_handler_exit
 export -f error_handler_general
