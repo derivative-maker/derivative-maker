@@ -45,15 +45,15 @@ install-files-packages() {
    sync
 
    ## Sanity tests.
-   maybe_run_in_chroot $update_grub_bin -v
-   maybe_run_in_chroot sync
+   $CHROOT $update_grub_bin -v
+   $CHROOT sync
 
    sync
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
    ## Debugging.
-   maybe_run_in_chroot apt-key finger
+   $CHROOT apt-key finger
 
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
@@ -61,16 +61,16 @@ install-files-packages() {
    sync
 
    ## Reading apt repository containing snapshot.debian.org and local repository containing Whonix's packages.
-   #maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts -o APT::Get::List-Cleanup="0" update
+   #$CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts -o APT::Get::List-Cleanup="0" update
 
    sync
 
-   maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes --no-install-recommends install whonix-shared-files
+   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes --no-install-recommends install whonix-shared-files
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes install --no-install-recommends whonix-gateway-files
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes install --no-install-recommends whonix-gateway-files
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes install --no-install-recommends whonix-workstation-files
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts --yes install --no-install-recommends whonix-workstation-files
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
@@ -78,9 +78,9 @@ install-files-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
 
    ## Forget about local repository containing Whonix's packages.
-   #maybe_run_in_chroot apt-get --no-download --list-cleanup update
+   #$CHROOT apt-get --no-download --list-cleanup update
 
-   maybe_run_in_chroot sync
+   $CHROOT sync
    sync
 
    ## Implemented in help-steps/pre.
