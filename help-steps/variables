@@ -113,9 +113,15 @@ if [ "$VMNAME" = "" ]; then
 fi
 
 if [ "$BARE_METAL" = "1" ]; then
-   CHROOT=""
+   maybe_run_in_chroot() {
+      export whonix_build_script_currently_inside_chroot="false"
+      ${1+"$@"}
+   }
 else
-   CHROOT="chroot $CHROOT_FOLDER"
+   maybe_run_in_chroot() {
+      export whonix_build_script_currently_inside_chroot="true"
+      chroot $CHROOT_FOLDER ${1+"$@"}
+   }
 fi
 
 ## {{{ whonix_build_ci_detected - CI detection code

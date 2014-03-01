@@ -87,7 +87,7 @@ install-pkg() {
 This may take a while...${reset}"
 
    local apt_get_exit_code="0"
-   $CHROOT \
+   maybe_run_in_chroot \
       apt-get \
          $apt_sourcelist_empty \
          $apt_sourceparts \
@@ -99,7 +99,7 @@ This may take a while...${reset}"
          "$pkg" \
          || { apt_get_exit_code="$?" ; true; };
 
-   $CHROOT sync
+   maybe_run_in_chroot sync
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
@@ -116,7 +116,7 @@ variable for debugging. This may take a while...${reset}"
    local apt_get_exit_code="0"
    apt_get_output=" \
          $( \
-            $CHROOT \
+            maybe_run_in_chroot \
                apt-get \
                   $apt_sourcelist_empty \
                   $apt_sourceparts \
@@ -131,7 +131,7 @@ variable for debugging. This may take a while...${reset}"
       " \
       || { apt_get_exit_code="$?" ; true; };
 
-   $CHROOT sync
+   maybe_run_in_chroot sync
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
@@ -166,8 +166,8 @@ install-meta-packages() {
    sync
 
    ## Sanity tests.
-   $CHROOT $update_grub_bin -v
-   $CHROOT sync
+   maybe_run_in_chroot $update_grub_bin -v
+   maybe_run_in_chroot sync
 
    sync
 
@@ -203,8 +203,8 @@ install-meta-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
    ## Debugging.
-   $CHROOT ls -la /etc/apt/trusted.gpg.d
-   $CHROOT apt-key finger
+   maybe_run_in_chroot ls -la /etc/apt/trusted.gpg.d
+   maybe_run_in_chroot apt-key finger
 
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
@@ -216,26 +216,26 @@ install-meta-packages() {
    cat "$CHROOT_FOLDER/etc/apt/preferences.d/"* || true
 
    ## Debugging.
-   $CHROOT apt-cache policy || true
+   maybe_run_in_chroot apt-cache policy || true
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
-      $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
-      $CHROOT apt-cache policy zenity || true
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity || true
+      maybe_run_in_chroot grep "Package: zenity" "/var/lib/apt/lists/"* || true
+      maybe_run_in_chroot apt-cache policy zenity || true
+      maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity || true
    fi
 
    ## Debugging.
-   $CHROOT apt-get clean
-   $CHROOT apt-get autoclean
-   $CHROOT apt-get --fix-broken --yes install
-   $CHROOT apt-get --fix-missing --yes install
-   $CHROOT apt-get --fix-broken --fix-missing --yes install
-   $CHROOT dpkg --configure -a
-   $CHROOT dpkg --audit
+   maybe_run_in_chroot apt-get clean
+   maybe_run_in_chroot apt-get autoclean
+   maybe_run_in_chroot apt-get --fix-broken --yes install
+   maybe_run_in_chroot apt-get --fix-missing --yes install
+   maybe_run_in_chroot apt-get --fix-broken --fix-missing --yes install
+   maybe_run_in_chroot dpkg --configure -a
+   maybe_run_in_chroot dpkg --audit
 
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
-   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts update
+   maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts update
 
    ## Workaround for Travis CI.
    ## Not sure if that should be applied in any case. Should the build process
@@ -257,27 +257,27 @@ install-meta-packages() {
    if [ "$CI" = "true" ]; then
       true "INFO $0: skipping dist-upgrade, because CI detected."
       true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
-      #$CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+      #maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    else
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+      maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    fi
 
    ## Debugging.
-   $CHROOT apt-cache policy
-   $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
-   $CHROOT apt-cache policy zenity || true
+   maybe_run_in_chroot apt-cache policy
+   maybe_run_in_chroot grep "Package: zenity" "/var/lib/apt/lists/"* || true
+   maybe_run_in_chroot apt-cache policy zenity || true
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity
+      maybe_run_in_chroot apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts install zenity
    fi
 
    ## Debugging.
-   $CHROOT apt-cache policy kde-workspace || true
-   $CHROOT apt-cache policy kdm || true
-   $CHROOT apt-cache policy okular || true
-   $CHROOT apt-cache policy zenity || true
-   $CHROOT apt-cache policy debsums || true
+   maybe_run_in_chroot apt-cache policy kde-workspace || true
+   maybe_run_in_chroot apt-cache policy kdm || true
+   maybe_run_in_chroot apt-cache policy okular || true
+   maybe_run_in_chroot apt-cache policy zenity || true
+   maybe_run_in_chroot apt-cache policy debsums || true
 
    if [ "$whonix_build_script_whonix_package" = "" ]; then
       true "${bold}${cyan}INFO $0: Variable whonix_build_script_whonix_package is empty. \
@@ -313,9 +313,9 @@ $whonix_build_script_whonix_package${reset}"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
 
    ## Forget about local repository containing Whonix's packages.
-   #$CHROOT apt-get --no-download --list-cleanup update
+   #maybe_run_in_chroot apt-get --no-download --list-cleanup update
 
-   $CHROOT sync
+   maybe_run_in_chroot sync
    sync
 
    ## Implemented in help-steps/pre.
