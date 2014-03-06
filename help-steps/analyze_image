@@ -570,19 +570,19 @@ parse_mbr() {
    true "${bold}${cyan}INFO: Parsing MBR... ${reset}"
 
    ## Read ~1 MB at once.
-   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.0-1000000" bs=1000000 count=1
+   dd if="$raw_file" of="$auto_hash_folder/$raw_file_basename.dd.0-1000000" bs=1000000 count=1
 
    ## Read byte by byte from 0 to 440.
    ## There should be no differences here.
-   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.0-440" bs=1 count=440
+   dd if="$raw_file" of="$auto_hash_folder/$raw_file_basename.dd.0-440" bs=1 count=440
 
    ## Read byte by byte from 441 to 444.
-   ## Disk signature may differ.
-   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.441-444" bs=1 skip=440 count=3
+   ## Disk signature may differ. (Fixed in Whonix 8.5.0.1 and above.)
+   dd if="$raw_file" of="$auto_hash_folder/$raw_file_basename.dd.441-444" bs=1 skip=440 count=3
 
    ## Read byte by byte from 445 to 1000000.
    ## There should be no differences here.
-   dd if="$raw_file" of="$manual_analysis_folder/$raw_file_basename.dd.445-1000000" bs=1 skip=444 count=1000000
+   dd if="$raw_file" of="$auto_hash_folder/$raw_file_basename.dd.445-1000000" bs=1 skip=444 count=1000000
 
    true "${bold}${cyan}INFO: Parsed MBR. ${reset}"
 }
@@ -650,8 +650,6 @@ parse_special_files() {
    cp_to_user "$mount_folder/etc/init.d/.depend.start" "$manual_analysis_folder/etc_init.d_.depend.start" || true
    cp_to_user "$mount_folder/etc/init.d/.depend.stop" "$manual_analysis_folder/etc_init.d_.depend.stop" || true
 
-   cp_to_user "$mount_folder/etc/fstab" "$manual_analysis_folder/etc_fstab"
-
    ## {{{ /var/lib/initramfs-tools/
 
    sudo -u "$user_name" mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
@@ -671,6 +669,8 @@ parse_special_files() {
    #################
    ## debug_folder #
    #################
+
+   cp_to_user "$mount_folder/etc/fstab" "$debug_folder/etc_fstab"
 
    ## Allow running this script in non-Whonix environments as well.
    if [ -e "$mount_folder/usr/share/whonix/build_version" ]; then
