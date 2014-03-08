@@ -37,8 +37,22 @@ trap "error_handler" ERR
 
 sanity_tests_general() {
    if [ ! -e "$uwtwrapper_parent.whonix-orig" ]; then
-      echo "$SCRIPTNAME uwt wrapper ERROR: $uwtwrapper_parent.whonix-orig does not exist."
-      exit 1
+      local command_v_exit_code="0"
+      command -v command-not-found >/dev/null 2>/dev/null || { command_v_exit_code="$?" ; true; };
+      if [ ! "$command_v_exit_code" = "0" ]; then
+         echo "$SCRIPTNAME uwt wrapper ERROR: $uwtwrapper_parent.whonix-orig does not exist."
+         exit 1
+      fi
+      ## Example basename_uwtwrapper_parent:
+      ## /usr/bin/ssh
+      basename_uwtwrapper_parent="${uwtwrapper_parent##*/}"
+      ## Example basename_uwtwrapper_parent:
+      ## ssh
+      ## --ignore-installed is used, because the uwt wrapper (for example
+      ## /usr/bin/ssh) will already be installed.
+      local command_not_found_exit_code="0"
+      exec command-not-found --ignore-installed "$basename_uwtwrapper_parent" || { command_not_found_exit_code="$?" ; true; };
+      exit "$command_not_found_exit_code"
    fi
    if [ ! -x "$uwtwrapper_parent.whonix-orig" ]; then
       echo "$SCRIPTNAME uwt wrapper ERROR: $uwtwrapper_parent.whonix-orig is not executable."
@@ -130,12 +144,12 @@ fi
 
 if [ "$uwtwrapper_global" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
-      sanity_tests_general
+      sanity_tests_general ${1+"$@"}
       sanity_tests_timeprivacy
       exit_code="0"
       exec "$fake_time" "$privacy_time" "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
    else
-      sanity_tests_general
+      sanity_tests_general ${1+"$@"}
       exit_code="0"
       exec "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
    fi
@@ -144,12 +158,12 @@ fi
 
 if [ "${uwtwrapper["$uwtwrapper_parent"]}" = "0" ]; then
    if [ "$fake_time" = "faketime" ]; then
-      sanity_tests_general
+      sanity_tests_general ${1+"$@"}
       sanity_tests_timeprivacy
       exit_code="0"
       exec "$fake_time" "$privacy_time" "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
    else
-      sanity_tests_general
+      sanity_tests_general ${1+"$@"}
       exit_code="0"
       exec "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
    fi
@@ -157,13 +171,13 @@ if [ "${uwtwrapper["$uwtwrapper_parent"]}" = "0" ]; then
 fi
 
 if [ "$fake_time" = "faketime" ]; then
-   sanity_tests_general
+   sanity_tests_general ${1+"$@"}
    sanity_tests_uwt
    sanity_tests_timeprivacy
    exit_code="0"
    exec "$fake_time" "$privacy_time" "/usr/bin/uwt" -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
 else
-   sanity_tests_general
+   sanity_tests_general ${1+"$@"}
    sanity_tests_uwt
    exit_code="0"
    exec "/usr/bin/uwt" -t 5 -i "$uwtwrapper_gateway_ip" -p "$port" "$uwtwrapper_parent.whonix-orig" ${1+"$@"} || { exit_code="$?" ; true; };
