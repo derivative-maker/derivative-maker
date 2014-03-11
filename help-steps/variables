@@ -50,7 +50,9 @@ export WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
 
 cd "$WHONIX_SOURCE_FOLDER"
 
-export DEBIAN_FRONTEND="noninteractive"
+if [ "$DEBIAN_FRONTEND" = "" ]; then
+   export DEBIAN_FRONTEND="noninteractive"
+fi
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
 ## https://wiki.ubuntu.com/DebootstrapChroot and
@@ -62,7 +64,9 @@ export LANG="C"
 echo 'INFO: Setting... export UWT_DEV_PASSTHROUGH="1"'
 export UWT_DEV_PASSTHROUGH="1"
 
-export WHONIX_DEB_DEBUG="1"
+if [ "$WHONIX_DEB_DEBUG" = "" ]; then
+   export WHONIX_DEB_DEBUG="1"
+fi
 
 if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
    MINUS_X_SET="0"
@@ -82,35 +86,63 @@ if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
 fi
 
 if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-   export VMNAME="Whonix-Gateway"
-   export vmname_lowercase_long_option="--tor-gateway"
-   export VMRAM="768"
+   if [ "$VMNAME" = "" ]; then
+      export VMNAME="Whonix-Gateway"
+   fi
+   if [ "$vmname_lowercase_long_option" = "" ]; then
+      export vmname_lowercase_long_option="--tor-gateway"
+   fi
+   if [ "$VMRAM" = "" ]; then
+      export VMRAM="768"
+   fi
    ## 8 MB is VirtualBox's default. Used up to Whonix 8.
-   export VRAM="8"
-   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   if [ "$VRAM" = "" ]; then
+      export VRAM="8"
+   fi
+   if [ "$CHROOT_FOLDER" = "" ]; then
+      export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   fi
 fi
 
 if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-   export VMNAME="Whonix-Workstation"
-   export vmname_lowercase_long_option="--tor-workstation"
-   export VMRAM="768"
-   export VRAM="128"
-   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   if [ "$VMNAME" = "" ]; then
+      export VMNAME="Whonix-Workstation"
+   fi
+   if [ "$vmname_lowercase_long_option" = "" ]; then
+      export vmname_lowercase_long_option="--tor-workstation"
+   fi
+   if [ "$VMRAM" = "" ]; then
+      export VMRAM="768"
+   fi
+   if [ "$VRAM" = "" ]; then
+      export VRAM="128"
+   fi
+   if [ "$CHROOT_FOLDER" = "" ]; then
+      export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   fi
 fi
 
 ## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
 ## i.e. only space, which gets actually filled up, will take disk space.
-export VMSIZE="100G"
+if [ "$VMSIZE" = "" ]; then
+   export VMSIZE="100G"
+fi
 
 if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
    export VMNAME="internal"
 fi
 
 if [ "$BARE_METAL" = "1" ]; then
-   export CHROOT_FOLDER=""
+   if [ "$CHROOT_FOLDER" = "" ]; then
+      export CHROOT_FOLDER=""
+   fi
 else
-   export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
-   export BARE_METAL="0"
+   if [ "$CHROOT_FOLDER" = "" ]; then
+      export CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   fi
+   if [ "$BARE_METAL" = "" ]; then
+      export BARE_METAL="0"
+   fi
 fi
 
 if [ "$VMNAME" = "unknown" ]; then
@@ -121,7 +153,6 @@ fi
 if [ "$VMNAME" = "internal" ]; then
    echo "variables INFO: Internal run."
 else
-   true
    true "variables INFO: VMNAME is $VMNAME"
 fi
 
@@ -132,9 +163,13 @@ if [ "$VMNAME" = "" ]; then
 fi
 
 if [ "$BARE_METAL" = "1" ]; then
-   CHROOT=""
+   if [ "$CHROOT" = "" ]; then
+      CHROOT=""
+   fi
 else
-   CHROOT="chroot $CHROOT_FOLDER"
+   if [ "$CHROOT" = "" ]; then
+      CHROOT="chroot $CHROOT_FOLDER"
+   fi
 fi
 
 ## {{{ whonix_build_ci_detected - CI detection code
@@ -173,11 +208,17 @@ fi
 ## Sanity Test.
 command -v "$git_bin" >/dev/null
 
-export DEB_INSTALL_FOLDER="/mnt/initialdeb"
+if [ "$DEB_INSTALL_FOLDER" = "" ]; then
+   export DEB_INSTALL_FOLDER="/mnt/initialdeb"
+fi
 
-export EMPTY_DIR="/tmp/empty"
+if [ "$EMPTY_DIR" = "" ]; then
+   export EMPTY_DIR="/tmp/empty"
+fi
 
-WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
+if [ "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER" = "" ]; then
+   WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
+fi
 
 ## {{{ whonix_build_on_operating_system
 
@@ -433,14 +474,18 @@ else
    temp="aptrepo_remote"
 fi
 
-export WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$temp"
+if [ "$WHONIX_APT_REPOSITORY_FOLDER" = "" ]; then
+   export WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$temp"
+fi
 
-export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
-         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-         --basedir "$WHONIX_SOURCE_FOLDER/$temp" \
-         --outdir "$WHONIX_BINARY/$temp" \
-         --dbdir "$WHONIX_BINARY/$temp/db" \
-         --logdir "$WHONIX_BINARY/$temp/log" "
+if [ "$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS" = "" ]; then
+   export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
+            --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+            --basedir "$WHONIX_SOURCE_FOLDER/$temp" \
+            --outdir "$WHONIX_BINARY/$temp" \
+            --dbdir "$WHONIX_BINARY/$temp/db" \
+            --logdir "$WHONIX_BINARY/$temp/log" "
+fi
 
 ## }}}
 
