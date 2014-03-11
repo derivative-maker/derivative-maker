@@ -65,7 +65,19 @@ export UWT_DEV_PASSTHROUGH="1"
 export WHONIX_DEB_DEBUG="1"
 
 if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
-   source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
+   MINUS_X_SET="0"
+   test -o xtrace || { MINUS_X_SET="$?" ; true; };
+   if [ "$MINUS_X_SET" = "0" ]; then
+      ## -x was set
+      source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
+      whonix_build_cmdoptions ${1+"$@"}
+   else
+      ## -x was not set
+      set -x
+      source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
+      whonix_build_cmdoptions ${1+"$@"}
+      set +x
+   fi
    export WHONIX_BUILD_PARSED="1"
 fi
 

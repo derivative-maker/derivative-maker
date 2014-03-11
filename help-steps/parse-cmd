@@ -5,28 +5,84 @@
 ## See the file COPYING for copying conditions.
 
 script_help() {
-echo "
+   true "
 ## creates separate build folder
 ## "$HOMEVAR"/whonix_binary
+##
+## For verbose documentation on build configuration parameters please have a
+## look at the full build documentation.
 ##
 ## FLAGS:
 ## --build
 ## Build Whonix.
 ##
 ## --clean
-## Deletes .img, .ova and VBox VMs.
+## Deletes .img, .ova and VirtualBox VM's.
+##
+## --virtualbox
+## Use this to build VirtualBox .ovas.
+##
+## --qcow2
+## Use this to build qcow2 images.
+##
+## --no-compress-qcow
+## Do not compress qcow2 images to tar.gz.
 ##
 ## --bare-metal
 ## Use this for Whonix with physical isolation.
 ##
-## --torgateway
-## Builds Whonix-Gateway machine.
+## --tor-gateway
+## Builds Whonix-Gateway.
 ##
-## --torworkstation
-## Builds Whonix-Workstation machine.
+## --tor-workstation
+## Builds Whonix-Workstation.
 ##
 ## --all (not yet implemented)
 ## Build both machines.
+##
+## vmram, vram, vmsize examples.
+## --vmram 128
+## --vram 12
+## --vmsize 200G
+##
+## --terminal-only
+## Terminal Only.
+## Skip installation of KDE specific packages.
+##
+## --no-default-applications
+## Install fewer packages.
+## (Don't complain about missing packages then.)
+##
+## --current-sources
+##
+## --64bit-linux
+## 64 bit builds
+##
+## --64bit-kfreebsd
+## Entirely untested.
+##
+## --32bit-kfreebsd
+## Entirely untested.
+##
+## --enable-whonix-apt-repository
+## Whonix APT Repository.
+## Disabled by default.
+##
+## --whonix-apt-repository-distribution stable
+## --whonix-apt-repository-distribution testers
+## --whonix-apt-repository-distribution developers
+## Whonix APT Repository Distribution.
+## Only useful in conjunction with --enable-whonix-apt-repository.
+##
+## --minimal-report
+## Skip most of the create-report build step. (Related to Verifiable Builds.)
+##
+## --skip-verifiable
+## Skip deletion of non-determinstic files in the cleanup chroot script.
+## (These files are later automatically re-created by First Run Initializer.)
+##
+## --skip-sanity-tests
+## Skip chroot script sanity tests.
 "
 }
 
@@ -37,7 +93,7 @@ whonix_build_cmdoptions() {
    ## http://mywiki.wooledge.org/BashFAQ/035
 
    if [ "$*" = "" ]; then
-      error "no option chosen. Use --help."
+      error "${red}${bold}no option chosen. Use --help.${reset}"
    fi
 
    while :
@@ -46,10 +102,6 @@ whonix_build_cmdoptions() {
            -h | --help | -\?)
                script_help
                exit 0
-               ;;
-           -a  | --all)
-               export WHONIX_BUILD_ALL="1"
-               shift
                ;;
            -tg | --tor-gateway | --torgateway)
                export WHONIX_BUILD_GATEWAY="1"
@@ -61,6 +113,19 @@ whonix_build_cmdoptions() {
                ;;
            -bm | --baremetal | --bare-metal)
                export BARE_METAL="1"
+               shift
+               ;;
+           --vbox | --virtualbox | --virtual-box)
+               export WHONIX_BUILD_VIRTUALBOX="true"
+               shift
+               ;;
+           --qcow2)
+               export WHONIX_BUILD_QCOW2="true"
+               export whonix_build_script_create_qcow2="1"
+               shift
+               ;;
+           --nocompressqcow | --no-compress-qcow)
+               export WHONIX_BUILD_NO_COMPRESS_QCOW="true"
                shift
                ;;
            -f1 | --fast1)
@@ -84,12 +149,103 @@ whonix_build_cmdoptions() {
                export WHONIX_BUILD_INTERNALRUN="1"
                shift
                ;;
+           --vmram)
+               export VMRAM="$2"
+               shift 2
+               if [ "$VMRAM" = "" ]; then
+                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vmram."
+                  exit 1
+               fi
+               ;;
+           --vram)
+               export VRAM="$2"
+               shift 2
+               if [ "$VRAM" = "" ]; then
+                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vram."
+                  exit 1
+               fi
+               ;;
+           --vmsize)
+               export VMSIZE="$2"
+               shift 2
+               if [ "$VMSIZE" = "" ]; then
+                  echo "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize."
+                  exit 1
+               fi
+               ;;
+           --terminal-only | --no-gui | --terminalonly | --nogui)
+               whonix_build_script_whonix_package+=" whonix-shared-desktop "
+               whonix_build_script_whonix_package+=" whonix-shared-desktop-kde "
+               whonix_build_script_whonix_package+=" whonix-shared-kde-accessibility "
+               shift
+               ;;
+           --no-default-applications | --nodefaultapplications)
+               whonix_build_script_whonix_package+=" whonix-shared-packages-recommended "
+               whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
+               whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
+               whonix_build_script_whonix_package+=" whonix-workstation-default-applications "
+               shift
+               ;;
+           --current-sources | --currentsources)
+               ## For more technical comments, see:
+               ## buildconfig.d/30_apt
+               whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian_current.list"
+               whonix_build_grml_sources_list="http://ftp.us.debian.org/debian"
+               ## Reset to default verification options.
+               ## (Remove ignoring valid-until field.)
+               export apt_verify_opts=""
+               shift
+               ;;
+           --64bit-linux)
+               export WHONIX_TARGET_ARCH="amd64"
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 70_install_486_kernel "
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 71_install_686_pae_kernel "
+               ## Enable installation of 64 bit kernel by removing
+               ## 71_install_amd64_kernel from WHONIX_BUILD_SKIP_SCRIPTS.
+               WHONIX_BUILD_SKIP_SCRIPTS="$(echo "$WHONIX_BUILD_SKIP_SCRIPTS" | sed s/" 71_install_amd64_kernel "//g)"
+               export WHONIX_BUILD_SKIP_SCRIPTS
+               shift
+               ;;
+           --64bit-kfreebsd)
+               echo "${red}${bold}INFO: The parameter --64bit-kfreebsd is entirely untested and probably needs work.${reset}"
+               export WHONIX_TARGET_ARCH="kfreebsd-amd64"
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 70_install_486_kernel "
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 71_install_686_pae_kernel "
+               shift
+               ;;
+           --32bit-kfreebsd)
+               echo "${red}${bold}INFO: The parameter --32bit-kfreebsd is entirely untested and probably needs work.${reset}"
+               export WHONIX_TARGET_ARCH="kfreebsd-i386"
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 70_install_486_kernel "
+               export WHONIX_BUILD_SKIP_SCRIPTS+=" 71_install_686_pae_kernel "
+               shift
+               ;;
+           --enable-whonix-apt-repository | --enablewhonixaptrepository)
+               export WHONIX_APT_REPOSITORY_DISTRUST_ENV="0"
+               shift
+               ;;
+           --whonix-apt-repository-distribution | --whonixaptrepositorydistribution)
+               export WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG="$2"
+               shift 2
+               ;;
+           --minimal-report | --minimalreport)
+              whonix_build_script_minimal_report="1"
+              shift
+              ;;
+           --skip-verifiable | --skipverifiable)
+              export whonix_build_script_skip_verifiable="1"
+              shift
+              ;;
+           --skip-sanity-tests | --skipsanitytests)
+              export WHONIX_BUILD_SKIP_SCRIPTS+=" 20_sanity_checks "
+              shift
+              ;;
            --)
                shift
                break
                ;;
            -*)
-               error "unknown option: $1"
+               error "${red}${bold}unknown option: $1${reset}"
                ;;
            *)
                break
@@ -101,34 +257,42 @@ whonix_build_cmdoptions() {
    ## will remain in the "$@" positional parameters.
 
    if [ "$WHONIX_BUILD_ALL" = "1" ]; then
-      error "--all not yet implemented. (Help welcome!)"
+      error="${red}${bold}--all not yet implemented. (Help welcome!)${reset}"
    fi
 
    if [ ! "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
       if [ ! "$WHONIX_BUILD_MAIN_SCRIPT_STARTED" = "1" ]; then
-         if [ "$WHONIX_BUILD_BUILD" = "1" ] && [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
-            error "You must either use --build or --clean."
+         if [ ! "$WHONIX_BUILD_BUILD" = "1" ] && [ ! "$WHONIX_BUILD_CLEAN" = "1" ]; then
+            error "${red}${bold}You must either use --build or --clean.${reset}"
          fi
       fi
    fi
 
    if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      error "You can not combine --all with --torgateway. You must either use --all or --torgateway."
+      error "${red}${bold}You can not combine --all with --torgateway. You must either use --all or --torgateway.${reset}"
    fi
 
    if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      error "You can not combine --all with --torworkstation. You must either use --all or --torworkstation."
+      error "${red}${bold}You can not combine --all with --torworkstation. You must either use --all or --torworkstation.${reset}"
    fi
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      error "You can not combine --torgateway with --torworkstation. Use --all if that is what you want."
+      error "${red}${bold}You can not combine --torgateway with --torworkstation. Use --all if that is what you want.${reset}"
    fi
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ] || [ "$WHONIX_BUILD_WORKSTATION" = "1" ] || [ "$WHONIX_BUILD_ALL" = "1" ]; then
       true
    else
-      error "You must add --torgateway or --torworkstation or --all."
+      error "${red}${bold}You must add --torgateway or --torworkstation or --all.${reset}"
+   fi
+
+   if [ "$BARE_METAL" = "1" ]; then
+      true
+   elif [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      true
+   elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+      true
+   else
+      error "${red}${bold}You must choose --bare-metal, --virtualbox or --qcow2.${reset}"
    fi
 }
-
-whonix_build_cmdoptions ${1+"$@"}
