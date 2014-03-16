@@ -49,7 +49,15 @@ whonix_build_machine() {
 whonix_build_clean() {
    trap "error_handler_general" ERR INT TERM
 
-   ./help-steps/delete-vbox-vm
+   if [ "$BARE_METAL" = "1" ]; then
+      error "${red}${bold}For --bare-metal builds, --clean is not implemented.${reset}"
+   elif [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      ./help-steps/delete-vbox-vm
+   elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+      error "${red}${bold}For --qcow2 builds, --clean is not implemented yet.${reset}"
+   else
+      error "${red}${bold}You must choose --bare-metal, --virtualbox or --qcow2.${reset}"
+   fi
 }
 
 whonix_build_preparation ${1+"$@"}
