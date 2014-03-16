@@ -25,6 +25,11 @@ scriptname="$(basename $0)"
 error_handler() {
    local exit_code="$?"
 
+   local my_pstree
+   my_pstree="$(pstree -p $$)" || true
+   local ps_p_parentpid
+   ps_p_parentpid="$(ps -p "$parentpid")" || true
+
    local msg="\
 ###############################################################################
 ## $scriptname script bug.
@@ -33,17 +38,32 @@ error_handler() {
 ## Please see Whonix News, Whonix Blog and Whonix User Help Forum.
 ## Please report this bug!
 ##
+## scriptname: $scriptname
+## my_command_line_parameters: $my_command_line_parameters
+## parentpid: $parentpid
+## ps_p_parentpid: $ps_p_parentpid
+## my_pstree: $my_pstree
 ## BASH_COMMAND: $BASH_COMMAND
 ## exit_code: $exit_code
 ###############################################################################\
 "
    echo "$msg"
    mkdir --parents ~/".whonix"
-   echo "$scriptname: BASH_COMMAND: $BASH_COMMAND | exit_code: $exit_code" > ~/".whonix/msgdispatcher-error.log"
+   echo "\
+scriptname: $scriptname
+my_command_line_parameters: $my_command_line_parameters
+parentpid: $parentpid
+ps_p_parentpid: $ps_p_parentpid
+my_pstree: $my_pstree
+BASH_COMMAND: $BASH_COMMAND
+exit_code: $exit_code
+" > ~/".whonix/msgdispatcher-error.log"
    exit 1
 }
 
 trap "error_handler" ERR
+
+my_command_line_parameters="${1+"$@"}"
 
 parse_cmd_options() {
    trap "error_handler" ERR
