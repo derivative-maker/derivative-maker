@@ -96,6 +96,9 @@ whonix_build_cmdoptions() {
       error "${red}${bold}no option chosen. Use --help.${reset}"
    fi
 
+   ## Using export, so scripts run by run-parts (run by whonix_build) can read
+   ## these variables.
+
    while :
    do
        case $1 in
@@ -177,6 +180,7 @@ whonix_build_cmdoptions() {
                whonix_build_script_whonix_package+=" whonix-shared-desktop "
                whonix_build_script_whonix_package+=" whonix-shared-desktop-kde "
                whonix_build_script_whonix_package+=" whonix-shared-kde-accessibility "
+               export whonix_build_script_whonix_package
                shift
                ;;
            --no-default-applications | --nodefaultapplications)
@@ -184,13 +188,14 @@ whonix_build_cmdoptions() {
                whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
                whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
                whonix_build_script_whonix_package+=" whonix-workstation-default-applications "
+               export whonix_build_script_whonix_package
                shift
                ;;
            --current-sources | --currentsources)
                ## For more technical comments, see:
                ## buildconfig.d/30_apt
-               whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian_current.list"
-               whonix_build_grml_sources_list="http://ftp.us.debian.org/debian"
+               export whonix_build_sources_list="whonix_shared/usr/share/whonix/build_sources_debian_current.list"
+               export whonix_build_grml_sources_list="http://ftp.us.debian.org/debian"
                ## Reset to default verification options.
                ## (Remove ignoring valid-until field.)
                export apt_verify_opts=""
@@ -229,7 +234,7 @@ whonix_build_cmdoptions() {
                shift 2
                ;;
            --minimal-report | --minimalreport)
-              whonix_build_script_minimal_report="1"
+              export whonix_build_script_minimal_report="1"
               shift
               ;;
            --skip-verifiable | --skipverifiable)
