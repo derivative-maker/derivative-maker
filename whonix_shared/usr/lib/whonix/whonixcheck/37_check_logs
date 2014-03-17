@@ -1,0 +1,51 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+check_logs() {
+   trap "error_handler" ERR
+
+   if [ ! "$verbose" = "1" ]; then
+      true "Skipping $FUNCNAME, because variable verbose is not set to 1."
+      return 0
+   fi
+
+   local temp_file_name
+   temp_file_name=~/".whonix/msgdispatcher-error.log"
+
+   if [ -f "$temp_file_name" ]; then
+      local MSG="\
+Check Logs Result: $temp_file_name exists. Please consider \
+reporting this bug. Please check with search engines and in Whonix's website known bugs section, if \
+this has been reported already. If you are going to report this bug, check that this file does not \
+include anything you do not wish to share. Then report a bug and attach the file's contents. \
+After reporting the bug, this file should be deleted."
+      $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
+   else
+      local MSG="\
+Check Logs Result: $temp_file_name does not exist, ok."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   fi
+
+   temp_file_name=~/".whonix/whonix_torbrowser_updater_error.log"
+
+   if [ -f "$temp_file_name" ]; then
+      local MSG="\
+Check Logs Result: $temp_file_name exists. Please consider \
+reporting this bug. Please check with search engines and in Whonix's website known bugs section, if \
+this has been reported already. If you are going to report this bug, check that this file does not \
+include anything you do not wish to share. Then report a bug and attach the file's contents. \
+After reporting the bug, this file should be deleted."
+      $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
+   else
+      local MSG="\
+Check Logs Result: $temp_file_name does not exist, ok."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   fi
+}
