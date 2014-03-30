@@ -1,0 +1,57 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+check_operating_system() {
+   trap "error_handler" ERR
+
+   ## Running apt-get update as user (non-root).
+   ## Depends on exception set in /etc/sudoers.d/.
+   ## Minimal custom script.
+   local MSG="Debian Package Update Check: Checking for software updates via apt-get..."
+   $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+   local apt_get_exit_code
+   apt_get_exit_code="0"
+   sudo "/usr/lib/whonixcheck/apt-get-update" >/dev/null &
+   apt_get_update_pid="$!"
+   wait "$apt_get_update_pid" || { apt_get_exit_code="$?" ; true; };
+   unset apt_get_update_pid
+
+   if [ ! "$apt_get_exit_code" = "0" ]; then
+      local MSG="Debian Package Update Check Result: Could not check for software updates! (apt-get code: $apt_get_exit_code) Please manually check:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+    sudo apt-get update && sudo apt-get dist-upgrade"
+      $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local check_os_output
+   check_os_output="$(apt-get --simulate dist-upgrade 2>&1)"
+
+   local number_upgraded
+   number_upgraded="$(echo "$check_os_output" | grep -Po "^\d+ (?=upgraded)")"
+
+   ## Example number_upgraded:
+   ## "55 "
+
+   number_upgraded="$(echo "$number_upgraded" | sed 's/ //g')"
+
+   ## Example number_upgraded:
+   ## 55
+
+   if [ "$number_upgraded" = "0" ]; then
+      local MSG="Debian Package Update Check Result: No updates found via apt-get."
+      $output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG"
+      $output ${output_opts[@]} --messagecli --typecli "info" --titlecli "$TITLE" --message "$MSG"
+      return 0
+   fi
+
+   local MSG="Debian Package Update Check Result: Apt-get reports that ${number_upgraded} packages can be updated. Please update Whonix-Gateway and Whonix-Workstation:
+(Open a terminal, Start menu -> Applications -> System -> Terminal.)
+    sudo apt-get update && sudo apt-get dist-upgrade"
+   $output ${output_opts[@]} --messagex --typex "warning" --titlex "$TITLE" --message "$MSG"
+   $output ${output_opts[@]} --messagecli --typecli "warning" --titlecli "$TITLE" --message "$MSG"
+}
