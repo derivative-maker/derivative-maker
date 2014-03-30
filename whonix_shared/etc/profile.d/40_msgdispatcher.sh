@@ -9,7 +9,7 @@
 if [ ! "$(tty)" = "/dev/tty1" ]; then
    return 0
 else
-   /usr/lib/whonix/msgdispatcher_profile_d
+   /usr/lib/msgcollector/msgdispatcher_profile_d
 fi
 
 ## End of Whonix /etc/profile.d/30_msgdispatcher.sh
