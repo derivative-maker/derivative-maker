@@ -9,7 +9,7 @@
 if [ ! "$(tty)" = "/dev/tty1" ]; then
    return 0
 else
-   /usr/lib/whonix/first_run_initializer_gui
+   /usr/lib/whonix_initializer/first_run_initializer_gui
 fi
 
 ## End of Whonix /etc/profile.d/25_first_run_initializer_gui.sh
