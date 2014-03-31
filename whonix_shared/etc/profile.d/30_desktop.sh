@@ -14,7 +14,7 @@ if [ ! "$(tty)" = "/dev/tty1" ]; then
 else
    ## Not launching into background using &, because we need to listen for
    ## STRG + C.
-   /usr/lib/whonix/ram_adjusted_desktop_starter
+   /usr/lib/whonix/ram_adjusted_desktop_starter/ram_adjusted_desktop_starter
 fi
 
 ## End of Whonix /etc/profile.d/30_desktop.sh
