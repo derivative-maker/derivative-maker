@@ -6,7 +6,7 @@
 
 ## Whonix /etc/profile.d/20_default_browser.sh
 
-## /usr/bin/x-www-browser in Whonix will use  /usr/lib/whonix/confirm_open
+## /usr/bin/x-www-browser in Whonix will use  /usr/lib/open_link_confirmation
 ## (Whonix Confirm Open by default)
 ##
 ## See also:
