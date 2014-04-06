@@ -75,6 +75,7 @@ trap "tb_error_handler" ERR
 DOWNLOAD_FAIL_HELP="Possible reasons:
 
 - The download server is down.
+- File size exceeded (endless data attack triggered).
 - Whonix's Tor Browser Updater has been broken due to upstream changes.
 
 Recommendations:
@@ -426,12 +427,18 @@ Checking connectivity... Will take a moment..."
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
+   ## 1 MB = 1048576 bytes
+   ## 2 MB = 2097152 bytes
+   ## Export CURL_PRGRS_MAX_FILE_SIZE_BYTES, so $CURL_PRGRS can read it.
+   export CURL_PRGRS_MAX_FILE_SIZE_BYTES="2097152"
+   ## Export CURL_OUT_FILE, so $CURL_PRGRS can read it.
+   export CURL_OUT_FILE="$home_folder/.tb/tbb_remote_folder"
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
       --max-time 180 \
-      --output "$home_folder/.tb/tbb_remote_folder" \
+      --output "$CURL_OUT_FILE" \
       "$TBB_REMOTE_FOLDER" \
       &
 
@@ -441,6 +448,11 @@ Checking connectivity... Will take a moment..."
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
+      if [ -x "/usr/lib/curl-scripts/curl_exit_codes" ]; then
+         local curl_status_message
+         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "$curl_exit_code")" || true
+      fi
+
       MSG="$TBB_REMOTE_FOLDER could not be reached.
 
 Possible reasons:
@@ -451,7 +463,9 @@ Please check: Start menu -> System -> Whonix Check
               or in Terminal: whonixcheck
               or in Terminal with debugging: whonixcheck -v
 
-If whonixcheck reports no problems with internet activity and this keeps failing, please report a bug!"
+If whonixcheck reports no problems with internet activity and this keeps failing, please report a bug!
+
+(Debugging information: curl_status_message: $curl_status_message)"
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
@@ -512,13 +526,19 @@ Checking Tor Browser version... Will take a moment..."
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
+   ## 1 MB = 1048576 bytes
+   ## 2 MB = 2097152 bytes
+   ## Export CURL_PRGRS_MAX_FILE_SIZE_BYTES, so $CURL_PRGRS can read it.
+   export CURL_PRGRS_MAX_FILE_SIZE_BYTES="2097152"
+   ## Export CURL_OUT_FILE, so $CURL_PRGRS can read it.
+   export CURL_OUT_FILE="$home_folder/.tb/RecommendedTBBVersions"
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       --tlsv1 \
       --proto =https \
       --max-time 180 \
-      --output "$home_folder/.tb/RecommendedTBBVersions" \
+      --output "$CURL_OUT_FILE" \
       "$LINK" \
       &
 
@@ -528,9 +548,16 @@ Checking Tor Browser version... Will take a moment..."
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
+      if [ -x "/usr/lib/curl-scripts/curl_exit_codes" ]; then
+         local curl_status_message
+         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "$curl_exit_code")" || true
+      fi
+
       MSG="Failed to download: $LINK
 
-$DOWNLOAD_FAIL_HELP"
+$DOWNLOAD_FAIL_HELP
+
+(Debugging information: curl_status_message: $curl_status_message)"
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
       $output ${output_opts[@]} --messagex --typex "error" --titlex "$TITLE" --message "$MSG" --done
@@ -760,12 +787,18 @@ INFO: Downloading:
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
+   ## 1 MB = 1048576 bytes
+   ## 2 MB = 2097152 bytes
+   ## Export CURL_PRGRS_MAX_FILE_SIZE_BYTES, so $CURL_PRGRS can read it.
+   export CURL_PRGRS_MAX_FILE_SIZE_BYTES="2097152"
+   ## Export CURL_OUT_FILE, so $CURL_PRGRS can read it.
+   export CURL_OUT_FILE="$home_folder/.tb/$TBB_SIG_FILENAME"
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
       --max-time 180 \
-      --output "$home_folder/.tb/$TBB_SIG_FILENAME" \
+      --output "$CURL_OUT_FILE" \
       "$TBB_SIG_LINK" \
       &
 
@@ -779,9 +812,16 @@ INFO: Downloading:
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
+      if [ -x "/usr/lib/curl-scripts/curl_exit_codes" ]; then
+         local curl_status_message
+         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "$curl_exit_code")" || true
+      fi
+
       if [ "$last_try" = "0" ]; then
          MSG="Failed to download: $TBB_SIG_LINK
-There are other recommended versions. Will try to download the next recommended version..."
+There are other recommended versions. Will try to download the next recommended version...
+
+(Debugging information: curl_status_message: $curl_status_message)"
 
          ## No popup message in X. Would be too confusing.
          #$output ${output_opts[@]} --messagex --typex "info" --titlex "$TITLE" --message "$MSG" --done
@@ -835,11 +875,19 @@ INFO: Downloading:
    ## Define what CURL_PRGRS is supposed to eval.
    ## ($percent is a local variable provided by $CURL_PRGRS.)
    export CURL_PRGRS_EXEC="$output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx \"\$percent\""
+   ## 1 MB = 1048576 bytes
+   ## 100 MB = 104857600 bytes
+   ## Export CURL_PRGRS_MAX_FILE_SIZE_BYTES, so $CURL_PRGRS can read it.
+   export CURL_PRGRS_MAX_FILE_SIZE_BYTES="104857600"
+   ## Simulating endless data attack.
+   #export CURL_PRGRS_MAX_FILE_SIZE_BYTES="1048576"
+   ## Export CURL_OUT_FILE, so $CURL_PRGRS can read it.
+   export CURL_OUT_FILE="$home_folder/.tb/$TBB_PACKAGE_FILENAME"
    $CURL_PRGRS \
       --fail \
       $CURL_PROXY \
       $CURL_FORCE_SSL \
-      --output "$home_folder/.tb/$TBB_PACKAGE_FILENAME" \
+      --output "$CURL_OUT_FILE" \
       "$TBB_PACKAGE_LINK" \
       &
 
@@ -849,9 +897,16 @@ INFO: Downloading:
 
    ## Check if curl failed.
    if [ ! "$curl_exit_code" = "0" ]; then
+      if [ -x "/usr/lib/curl-scripts/curl_exit_codes" ]; then
+         local curl_status_message
+         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "$curl_exit_code")" || true
+      fi
+
       MSG="Failed to download: $TBB_PACKAGE_LINK
 
-$DOWNLOAD_FAIL_HELP"
+$DOWNLOAD_FAIL_HELP
+
+(Debugging information: curl_status_message: $curl_status_message)"
 
       $output ${output_opts[@]} --progressbaridx "$progressbaridx" --progressx "100"
 

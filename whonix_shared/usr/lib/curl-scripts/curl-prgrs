@@ -89,7 +89,11 @@ shutdown() {
 
   # Unregister our trap and exit with the given status code.
   trap - SIGINT SIGTERM ERR EXIT
-  exit "$status"
+  if [ ! "$error_exit_code" = "" ]; then
+     exit "$error_exit_code"
+  else
+     exit "$status"
+  fi
 }
 
 # Register our `shutdown` function to be invoked when the process dies.
@@ -238,6 +242,25 @@ unbuffered_sed \
     elif [ "$tag" = "<= recv" ]; then
       size="${line[3]}"
       bytes=$(( $bytes + $size ))
+
+      if [ "$CURL_PRGRS_MAX_FILE_SIZE_BYTES" = "" ]; then
+        true
+      else
+        if [ "$CURL_OUT_FILE" = "" ]; then
+          echo "$0 ERROR: Variable CURL_OUT_FILE is empty." >&2
+          error_exit_code="57"
+          echo "$error_exit_code" > "$statusfile"
+          shutdown
+          exit "$error_exit_code"
+        fi
+        if [ "$bytes" -gt "$CURL_PRGRS_MAX_FILE_SIZE_BYTES" ]; then
+          error_exit_code="81"
+          echo "$error_exit_code" > "$statusfile"
+          shutdown
+          exit "$error_exit_code"
+        fi
+      fi
+
       print_progress "$bytes" "$length"
     fi
   done
