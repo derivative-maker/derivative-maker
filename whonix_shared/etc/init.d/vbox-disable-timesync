@@ -1,0 +1,169 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          vboxdisabletimesync
+# Required-Start:    $local_fs $remote_fs $syslog vboxguest
+# Required-Stop:     $local_fs $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# X-Start-Before:    tor sdwdate bootclockrandomization
+# Short-Description: Disables VirtualBox's Timesync
+# Description:       Disables VirtualBox's own time synchronization mechanism
+### END INIT INFO
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+DESC="Disables VirtualBox's Timesync"
+NAME=vboxdisabletimesync
+SCRIPTNAME=/etc/init.d/$NAME
+DIR=/var/run/$NAME
+PIDFILE=$DIR/pid
+FAIL_FILE=$DIR/fail
+SUCCESS_FILE=$DIR/success
+LOG=/var/log/$NAME.log
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+log() {
+   echo "$@" >> "${LOG}"
+}
+
+error_handler() {
+   local exit_code="$?"
+   touch "$FAIL_FILE"
+   log "ERROR: exit_code: $exit_code | BASH_COMMAND: $BASH_COMMAND"
+   log_failure_msg "ERROR: exit_code: $exit_code | BASH_COMMAND: $BASH_COMMAND"
+   exit 1
+}
+
+trap error_handler ERR
+
+# Create status directory
+if [ ! -d ${DIR} ]; then
+   mkdir ${DIR}
+   chmod --recursive 0755 ${DIR}
+   chown --recursive root:root ${DIR}
+fi
+
+# Create log file
+if [ ! -e $LOG ]; then
+   touch $LOG
+   chmod --recursive 0655 $LOG
+   chown --recursive root:root $LOG
+fi
+
+# Source configuration
+#. /etc/default/$NAME
+
+do_start () {
+   trap error_handler ERR
+
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
+   fi
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+
+   ## Let's find out on which host operating system the build script is running.
+   whonix_build_on_operating_system="$(lsb_release --short --i)"
+   ## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
+   whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
+   ## Example whonix_build_on_operating_system: debian
+   ## Example whonix_build_on_operating_system: ubuntu
+
+   ## Does not work:
+   ##     /usr/sbin/VBoxService --disable-timesync || true
+   ## because VBoxService is already running and can not be re-configured.
+
+   local msg="\
+$0
+       Running: service virtualbox-guest-utils stop 2>/dev/null || true
+       Only in case guest additions are installed.
+       Should only deactivate VirtualBox's time synchronization mechanism.
+       Bug report:
+           https://www.virtualbox.org/ticket/10828
+       Details:
+           https://www.whonix.org/wiki/Dev/TimeSync"
+
+   if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+      log_action_msg "$msg"
+      service vboxadd-service stop 2>/dev/null || true
+   elif [ "$whonix_build_on_operating_system" = "debian" ]; then
+      log_action_msg "$msg"
+      service virtualbox-guest-utils stop 2>/dev/null || true
+   else
+      touch "$FAIL_FILE"
+      log "ERROR: Neither Debian nor Ubuntu detected. Other distributions currently unsupported."
+      log_failure_msg "ERROR: Neither Debian nor Ubuntu detected. Other distributions currently unsupported."
+      exit 1
+   fi
+
+   touch "$SUCCESS_FILE"
+   return 0
+}
+
+do_stop() {
+   trap error_handler ERR
+
+   if [ -e "$FAIL_FILE" ]; then
+      rm -f "$FAIL_FILE"
+   fi
+   if [ -e "$SUCCESS_FILE" ]; then
+      rm -f "$SUCCESS_FILE"
+   fi
+   return 0
+}
+
+do_status () {
+   trap error_handler ERR
+
+   if [ -e "$SUCCESS_FILE" ]; then
+      log_success_msg "$NAME"
+      return 0
+   else
+      log_failure_msg "$NAME $SUCCESS_FILE does not exist"
+      return 1
+   fi
+}
+
+
+case "$1" in
+  start)
+	[ "$VERBOSE" != no ] && log_daemon_msg "$DESC" "$NAME"
+	do_start
+	case "$?" in
+		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+	esac
+	;;
+  stop)
+	do_stop
+	;;
+  restart)
+	do_stop
+	do_start
+	;;
+  force-reload)
+	do_stop
+	do_start
+	;;
+  status)
+        do_status_return_code="0"
+	do_status || { do_status_return_code="$?" ; true; };
+	exit "$do_status_return_code"
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME (start|stop|restart|force-reload|status)" >&2
+	exit 3
+	;;
+esac
+
+:
