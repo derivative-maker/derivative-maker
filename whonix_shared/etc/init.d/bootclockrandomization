@@ -74,7 +74,7 @@ do_start () {
 
    OLD_UNIXTIME="$(date +%s)"
    OLD_TIME="$(date)"
-   OLD_TIME_MILLISECONDS="$(date +%s.%N)"
+   OLD_TIME_NANOSECONDS="$(date +%s.%N)"
 
    ## Get a random 0 or 1.
    ## Will use this to decide to use plus or minus.
@@ -90,14 +90,14 @@ do_start () {
    ##
    ## Thanks to
    ## https://stackoverflow.com/questions/22887891/how-can-i-get-a-random-dev-random-number-between-0-and-999999999-in-bash
-   MILLISECONDS="$(shuf -i0-999999999 -n1 --random-source=/dev/random)"
+   NANOSECONDS="$(shuf -i0-999999999 -n1 --random-source=/dev/random)"
 
-   ## Examples MILLISECONDS:
+   ## Examples NANOSECONDS:
    ## 117752805
    ## 38653957
 
    ## Add leading zeros, because `date` expects 9 digits.
-   MILLISECONDS="$(printf '%0*d\n' 9 "$MILLISECONDS")"
+   NANOSECONDS="$(printf '%0*d\n' 9 "$NANOSECONDS")"
 
    ## Using
    ## printf '%0*d\n' 9 "38653957"
@@ -105,7 +105,7 @@ do_start () {
    ## becomes
    ## 038653957
 
-   ## Examples MILLISECONDS:
+   ## Examples NANOSECONDS:
    ## 117752805
    ## 038653957
 
@@ -120,12 +120,12 @@ do_start () {
       return 2
    fi
 
-   log "$PLUS_OR_MINUS $DELAY $MILLISECONDS"
+   log "$PLUS_OR_MINUS $DELAY $NANOSECONDS"
 
    NEW_TIME="$(( $OLD_UNIXTIME $PLUS_OR_MINUS $DELAY ))"
 
    ## Set new time. Syntax: date --set @1396733199.112834496
-   date --set "@$NEW_TIME.$MILLISECONDS" > /dev/null
+   date --set "@$NEW_TIME.$NANOSECONDS" > /dev/null
 
    ## Testing the `date` syntax:
    ## sudo date --set @1396733199.112834496 ; date +%s.%N
@@ -135,7 +135,7 @@ do_start () {
    ## Sat Apr  5 21:26:39 UTC 2014
    ## 1396733199.114122807
 
-   log "Changed time from $OLD_TIME ($OLD_TIME_MILLISECONDS)"
+   log "Changed time from $OLD_TIME ($OLD_TIME_NANOSECONDS)"
    log "               to $(date) ($(date +%s.%N))."
 
    touch "$SUCCESS_FILE"
