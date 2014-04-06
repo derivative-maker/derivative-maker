@@ -31,6 +31,20 @@ LOG=/var/log/$NAME.log
 # and status_of_proc is working.
 . /lib/lsb/init-functions
 
+log() {
+   echo "$@" >> "${LOG}"
+}
+
+error_handler() {
+   local exit_code="$?"
+   touch "$FAIL_FILE"
+   log "ERROR: exit_code: $exit_code | BASH_COMMAND: $BASH_COMMAND"
+   log_failure_msg "ERROR: exit_code: $exit_code | BASH_COMMAND: $BASH_COMMAND"
+   exit 1
+}
+
+trap error_handler ERR
+
 # Create status directory
 if [ ! -d ${DIR} ]; then
    mkdir ${DIR}
@@ -48,14 +62,9 @@ fi
 # Source configuration
 #. /etc/default/$NAME
 
-log() {
-	echo "$@" >> "${LOG}"
-}
-
-## Debugging
-#set -x
-
 do_start () {
+   trap error_handler ERR
+
    if [ -e "$FAIL_FILE" ]; then
       rm -f "$FAIL_FILE"
    fi
@@ -65,16 +74,40 @@ do_start () {
 
    OLD_UNIXTIME="$(date +%s)"
    OLD_TIME="$(date)"
-
-   ## Create a random number between 5 and 180.
-   ##
-   ## Thanks to
-   ## http://linux.byexamples.com/archives/128/generating-random-numbers/
-   DELAY="$(( 5+($(od -An -N2 -i /dev/random) )%(175-0+1) ))"
+   OLD_TIME_MILLISECONDS="$(date +%s.%N)"
 
    ## Get a random 0 or 1.
    ## Will use this to decide to use plus or minus.
+   ##
+   ## Thanks to
+   ## http://linux.byexamples.com/archives/128/generating-random-numbers/
    ZERO_OR_ONE="$(( 0+($(od -An -N2 -i /dev/random) )%(0+2) ))"
+
+   ## Create a random number between 5 and 180.
+   DELAY="$(( 5+($(od -An -N2 -i /dev/random) )%(175-0+1) ))"
+
+   ## Create a random number between 0 and 999999999.
+   ##
+   ## Thanks to
+   ## https://stackoverflow.com/questions/22887891/how-can-i-get-a-random-dev-random-number-between-0-and-999999999-in-bash
+   MILLISECONDS="$(shuf -i0-999999999 -n1 --random-source=/dev/random)"
+
+   ## Examples MILLISECONDS:
+   ## 117752805
+   ## 38653957
+
+   ## Add leading zeros, because `date` expects 9 digits.
+   MILLISECONDS="$(printf '%0*d\n' 9 "$MILLISECONDS")"
+
+   ## Using
+   ## printf '%0*d\n' 9 "38653957"
+   ##  38653957
+   ## becomes
+   ## 038653957
+
+   ## Examples MILLISECONDS:
+   ## 117752805
+   ## 038653957
 
    if [ "$ZERO_OR_ONE" = "0" ]; then
       PLUS_OR_MINUS="-"
@@ -87,21 +120,31 @@ do_start () {
       return 2
    fi
 
-   log "$PLUS_OR_MINUS $DELAY"
+   log "$PLUS_OR_MINUS $DELAY $MILLISECONDS"
 
    NEW_TIME="$(( $OLD_UNIXTIME $PLUS_OR_MINUS $DELAY ))"
 
-   ## Set new time. Syntax: date --set @1098181096
-   date --set "@$NEW_TIME" > /dev/null
+   ## Set new time. Syntax: date --set @1396733199.112834496
+   date --set "@$NEW_TIME.$MILLISECONDS" > /dev/null
 
-   log "Changed time from $OLD_TIME"
-   log "               to $(date)."
+   ## Testing the `date` syntax:
+   ## sudo date --set @1396733199.112834496 ; date +%s.%N
+   ## Sat Apr  5 21:26:39 UTC 2014
+   ## 1396733199.114119019
+   ## sudo date --set @1396733199.112834496 ; date +%s.%N
+   ## Sat Apr  5 21:26:39 UTC 2014
+   ## 1396733199.114122807
+
+   log "Changed time from $OLD_TIME ($OLD_TIME_MILLISECONDS)"
+   log "               to $(date) ($(date +%s.%N))."
 
    touch "$SUCCESS_FILE"
    return 0
 }
 
 do_stop() {
+   trap error_handler ERR
+
    if [ -e "$FAIL_FILE" ]; then
       rm -f "$FAIL_FILE"
    fi
@@ -112,6 +155,8 @@ do_stop() {
 }
 
 do_status () {
+   trap error_handler ERR
+
    if [ -e "$SUCCESS_FILE" ]; then
       return 0
    else
