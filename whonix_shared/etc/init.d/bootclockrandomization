@@ -158,8 +158,10 @@ do_status () {
    trap error_handler ERR
 
    if [ -e "$SUCCESS_FILE" ]; then
+      log_success_msg "$NAME"
       return 0
    else
+      log_failure_msg "$NAME $SUCCESS_FILE does not exist"
       return 1
    fi
 }
@@ -186,8 +188,9 @@ case "$1" in
 	do_start
 	;;
   status)
-	do_status
-	exit $?
+	do_status_return_code="0"
+	do_status || { do_status_return_code="$?" ; true; };
+	exit "$do_status_return_code"
 	;;
   *)
 	echo "Usage: $SCRIPTNAME (start|stop|restart|force-reload|status)" >&2
