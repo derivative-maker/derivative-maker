@@ -548,6 +548,7 @@ sdwdate_error_handler() {
 ##
 ## 0: $0
 ## SDW_EXIT_ON_ERROR: $SDW_EXIT_ON_ERROR
+## SDW_MODE: $SDW_MODE
 ##
 ## exit_code: $exit_code
 ## BASH_COMMAND: $BASH_COMMAND
@@ -684,14 +685,6 @@ sdwdate_download() {
    local TIME_END
    TIME_END="$(date +%s)"
 
-   sdwdate_safe_log "dispatching SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}"
-
-   if [ "${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}" = "" ]; then
-      true
-   else
-      eval ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}
-   fi
-
    SDWDATE_DOWNLOAD_TOOK_TIME[$SDWDATE_CURRENT_POOL]="$(( $TIME_END - $TIME_START ))"
 
    if [ ! "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}" = "0" ]; then
@@ -700,13 +693,24 @@ sdwdate_download() {
       if [ "$command_v_exit_code" = "0" ]; then
          ## Whonix specific. /usr/lib/curl-scripts/curl_exit_codes available.
          local curl_status_message
-         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}")"
-         sdwdate_log "No file could be downloaded from $LINK. (curl_status_message: $curl_status_message)"
+         curl_status_message="$(/usr/lib/curl-scripts/curl_exit_codes "${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]}")" || true
+         sdwdate_log "No file could be downloaded from $LINK. (curl_exit_code: ${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]} | curl_status_message: $curl_status_message)"
       else
          ## Fallback if /usr/lib/curl-scripts/curl_exit_codes is not available.
          sdwdate_log "No file could be downloaded from $LINK. (curl_exit_code: ${sdwdate_curl_exit_code[$SDWDATE_CURRENT_POOL]})"
       fi
+      return 0
    fi
+
+   sdwdate_safe_log "dispatching SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]: ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}"
+
+   if [ "${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}" = "" ]; then
+      true
+   else
+      eval ${SDWDATE_CURL_DISPATCH_POST[$SDWDATE_CURRENT_POOL]}
+   fi
+
+   return 0
 }
 
 sdwdate_parse_date() {
@@ -795,7 +799,7 @@ sdwdate_loop() {
       allowed_member_failures="$(printf "%.f" "$temp")"
 
       if [ "$array_length_remember" -ge "$allowed_member_failures" ]; then
-         sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached."
+         sdwdate_log "ERROR: $allowed_member_failures members of the $SDWDATE_CURRENT_POOL could not be reached. (debugging information: array_length_remember: $array_length_remember | allowed_member_failures: $allowed_member_failures)"
 
          ## Check, if we are running in daemon mode.
          if [ "$INTERVAL" = "" ] || [ "$INTERVAL" = "0" ]; then
@@ -860,8 +864,15 @@ sdwdate_pick() {
    declare -A -g SDWDATE_TIME_DIFF
 
    for SDWDATE_CURRENT_POOL in SDWDATE_POOL_PAL SDWDATE_POOL_NEUTRAL SDWDATE_POOL_FOE; do
-      sdwdate_loop_return="0"
-      sdwdate_loop "$SDWDATE_CURRENT_POOL" || { sdwdate_loop_return="$?" ; true; };
+      ## Temporarily disabling error handler.
+      ## Not using
+      ## || { sdwdate_loop_return="?"; true; };
+      ## here, because then errors any errors caught in sdwdate_loop would be
+      ## ignored here.
+      trap "" ERR
+      sdwdate_loop "$SDWDATE_CURRENT_POOL"
+      sdwdate_loop_return="$?"
+      trap "sdwdate_error_handler" ERR
 
       ## Do not continue, if an error was caught.
       if [ ! "$sdwdate_loop_return" = "0" ]; then
