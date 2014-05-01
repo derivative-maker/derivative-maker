@@ -35,8 +35,14 @@ maybe_kill_apt_get_update() {
    fi
    ## apt-get-update still running.
 
+   if [ ! -x "/usr/lib/whonixcheck/apt-get-update-kill-helper" ]; then
+      error "/usr/lib/whonixcheck/apt-get-update-kill-helper is not executable."
+   fi
+
    ## There is an exception in /etc/sudoers.d/.
-   sudo "/usr/lib/whonixcheck/apt-get-update-kill-helper" "$apt_get_update_pid"
+   ## "|| true", to avoid an error when whonixcheck receives a sigterm signal
+   ## while running this command (such as when whonixcheckd gets stopped).
+   sudo "/usr/lib/whonixcheck/apt-get-update-kill-helper" "$apt_get_update_pid" || true
 }
 ## }}
 
