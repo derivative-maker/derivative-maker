@@ -6,6 +6,7 @@
 
 import sys
 import os.path
+import re
 import stem
 
 from stem.control import Controller
@@ -22,7 +23,7 @@ try:
   with Controller.from_port(port = p) as controller:
 
     if os.path.exists("/usr/share/whonix/whonix_gateway"):
-      controller.authenticate("password")
+      controller.authenticate()
 
     bootstrap_status = controller.get_info("status/bootstrap-phase")
 
@@ -39,20 +40,9 @@ try:
 
     print "%s" % (bootstrap_status)
 
-    b = bootstrap_status.split( )
+    progress_percent = re.match('.* PROGRESS=([0-9]+).*', bootstrap_status)
 
-    #c = ''.join(b[3])
-    #d = c.split('=')
-    #e = d[1]
-    #print "%s" % (e)
-
-    progress = b[2]
-
-    progress_percent = ( progress.split( "=" ) )[1]
-
-    #print "progress_percent: %s" % (progress_percent)
-
-    exit_code=int(progress_percent)
+    exit_code = int(progress_percent.group(1))
 
 except:
   exit_code=255
