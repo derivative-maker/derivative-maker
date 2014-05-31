@@ -64,8 +64,8 @@ export LANG="C"
 echo 'INFO: Setting... export UWT_DEV_PASSTHROUGH="1"'
 export UWT_DEV_PASSTHROUGH="1"
 
-if [ "$WHONIX_DEB_DEBUG" = "" ]; then
-   export WHONIX_DEB_DEBUG="1"
+if [ "$DEBDEBUG" = "" ]; then
+   export DEBDEBUG="1"
 fi
 
 if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
@@ -306,7 +306,7 @@ fi
 
 ## }}}
 
-## {{{ whonix_build_whonix_version_new
+## {{{ anon_dist_build_version
 
 ## --always because travis-ci does not fetch tags.
 temp="$($git_bin describe --always --abbrev=1000000000)"
@@ -314,14 +314,14 @@ temp="$($git_bin describe --always --abbrev=1000000000)"
 ## Example temp:
 ## 7-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
-whonix_build_whonix_version_new="$(echo "$temp" | sed 's/-/./g')"
+anon_dist_build_version="$(echo "$temp" | sed 's/-/./g')"
 ## Using `export`, so whonix_shared/usr/share/whonix/chroot-scripts-post.d/70_log_build_version can read it.
-export whonix_build_whonix_version_new
+export anon_dist_build_version
 
-## Example whonix_build_whonix_version_new:
+## Example anon_dist_build_version:
 ## 7.13.g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
-echo "whonix_build_whonix_version_new: $whonix_build_whonix_version_new"
+echo "anon_dist_build_version: $anon_dist_build_version"
 
 ## }}}
 
@@ -504,15 +504,15 @@ fi
 
 ## }}}
 
-## {{{ WHONIX_BUILD_SKIP_SCRIPTS
+## {{{ SKIP_SCRIPTS
 
 ## Would be more pretty to have this in the pre script, but the variables script
 ## runs before pre to get pretty colors.
 own_filename="$(basename $0)"
-for skip_script in $WHONIX_BUILD_SKIP_SCRIPTS; do
+for skip_script in $SKIP_SCRIPTS; do
    if [ "$own_filename" = "$skip_script" ]; then
       unset skip_script
-      echo "${bold}${green}INFO: Skipping $own_filename, because WHONIX_BUILD_SKIP_SCRIPTS includes it. ${reset}"
+      echo "${bold}${green}INFO: Skipping $own_filename, because SKIP_SCRIPTS includes it. ${reset}"
       exit 0
    fi
 done
