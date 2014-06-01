@@ -42,13 +42,18 @@ run-chroot-scripts-post-d() {
 
    sync
 
-   ## Check which chroot scripts we got.
-   $CHROOT run-parts --verbose --test "/usr/share/whonix/chroot-scripts-post.d"
+   if [ -d "/usr/lib/anon-dist/chroot-scripts-post.d" ]; then
+      ## Check which chroot scripts we got.
+      $CHROOT run-parts --verbose --test "/usr/lib/anon-dist/chroot-scripts-post.d/"
 
-   ## Run the chroot scripts.
-   $CHROOT run-parts --verbose --exit-on-error "/usr/share/whonix/chroot-scripts-post.d"
+      ## Run the chroot scripts.
+      $CHROOT run-parts --verbose --exit-on-error "/usr/lib/anon-dist/chroot-scripts-post.d/"
 
-   sync
+      sync
+   else
+      true "${green}INFO: Folder /usr/lib/anon-dist/chroot-scripts-post.d does not exist in chroot.}
+Not running any chroot scripts.${reset}"
+   fi
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
 
