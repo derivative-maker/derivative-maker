@@ -6,7 +6,7 @@
 
 set -x
 
-error_handler_unmount-img() {
+error_handler_unmount-raw() {
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}ERROR $0: | caller: $(caller)${reset}"
    exit 1
@@ -17,8 +17,8 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$MYDIR"/pre
 source "$MYDIR"/variables
 
-unmount_img() {
-   trap "error_handler_unmount-img" ERR INT TERM
+unmount_raw() {
+   trap "error_handler_unmount-raw" ERR INT TERM
 
    if [ "$mount_folder" = "" ]; then
       true
@@ -36,10 +36,10 @@ unmount_img() {
    umount "$CHROOT_FOLDER"
    sync
 
-   if [ "$WHONIX_BUILD_MOUNT_IMG_FILE" = "" ]; then
-      local img="$WHONIX_BINARY/$VMNAME.img"
+   if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
+      local img="$WHONIX_BINARY/$VMNAME.raw"
    else
-      local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
+      local img="$WHONIX_BUILD_MOUNT_RAW_FILE"
    fi
 
    ## Sleep to work around some obscure bug.
@@ -69,7 +69,7 @@ if [ "$BARE_METAL" = "1" ]; then
    exit 0
 else
    true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
-   unmount_img
+   unmount_raw
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi

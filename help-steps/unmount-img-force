@@ -6,7 +6,7 @@
 
 set -x
 
-error_handler_unmount-img-force() {
+error_handler_unmount-raw-force() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}ERROR $0: | caller: $(caller)${reset}
@@ -19,8 +19,8 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$MYDIR"/pre
 source "$MYDIR"/variables
 
-unmount_img_force() {
-   trap "error_handler_unmount-img-force" ERR INT TERM
+unmount_raw_force() {
+   trap "error_handler_unmount-raw-force" ERR INT TERM
 
    if [ "$mount_folder" = "" ]; then
       true
@@ -32,7 +32,7 @@ unmount_img_force() {
    sync || true
 
    "$MYDIR"/unprevent-daemons-from-starting || true
-   "$MYDIR"/unchroot-img || true
+   "$MYDIR"/unchroot-raw || true
 
    ## Will be called if there is an error.
    ## || true to avoid more errors and to ensure
@@ -77,7 +77,7 @@ if [ "$BARE_METAL" = "1" ]; then
    exit 0
 else
    true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
-   unmount_img_force
+   unmount_raw_force
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi

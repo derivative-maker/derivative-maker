@@ -17,7 +17,7 @@ cd help-steps
 source pre
 source variables
 
-convert_img-to_vdi() {
+convert_raw-to_vdi() {
    trap "error_handler_general" ERR INT TERM
 
    sudo -u "$user_name" \
@@ -27,10 +27,10 @@ convert_img-to_vdi() {
    sudo -u "$user_name" \
       qemu-img \
          info \
-            "$WHONIX_BINARY/$VMNAME.img"
+            "$WHONIX_BINARY/$VMNAME.raw"
 
    sudo -u "$user_name" \
-      VBoxManage convertfromraw "$WHONIX_BINARY/$VMNAME.img" "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+      VBoxManage convertfromraw "$WHONIX_BINARY/$VMNAME.raw" "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Debugging.
    sudo -u "$user_name" \
@@ -43,7 +43,7 @@ if [ "$BARE_METAL" = "1" ]; then
    true "${green}INFO: Skipping $0, because BARE_METAL is set to 1.${reset}"
 else
    true "${bold}${under}INFO: Currently running script: $0 ${1+"$@"}${reset}"
-   convert_img-to_vdi
+   convert_raw-to_vdi
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}${under}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi

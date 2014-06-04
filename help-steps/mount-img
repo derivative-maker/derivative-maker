@@ -6,7 +6,7 @@
 
 set -x
 
-error_handler_mount-img() {
+error_handler_mount-raw() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}ERROR $0: | caller: $(caller)${reset}
@@ -19,8 +19,8 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$MYDIR"/pre
 source "$MYDIR"/variables
 
-mount_img() {
-   trap "error_handler_mount-img" ERR INT TERM
+mount_raw() {
+   trap "error_handler_mount-raw" ERR INT TERM
 
    if [ "$mount_folder" = "" ]; then
       true
@@ -31,10 +31,10 @@ mount_img() {
 
    sync
 
-   if [ "$WHONIX_BUILD_MOUNT_IMG_FILE" = "" ]; then
-      local img="$WHONIX_BINARY/$VMNAME.img"
+   if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
+      local img="$WHONIX_BINARY/$VMNAME.raw"
    else
-      local img="$WHONIX_BUILD_MOUNT_IMG_FILE"
+      local img="$WHONIX_BUILD_MOUNT_RAW_FILE"
    fi
 
    ## Debugging.
@@ -79,7 +79,7 @@ if [ "$BARE_METAL" = "1" ]; then
    exit 0
 else
    true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
-   mount_img
+   mount_raw
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi
