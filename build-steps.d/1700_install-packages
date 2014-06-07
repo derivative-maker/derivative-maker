@@ -294,14 +294,23 @@ $whonix_build_script_whonix_package${reset}"
    install-pkg anon-shared-build-apt-sources-tpo
    install-pkg anon-shared-build-upgrade-torsocks
 
-   true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: $BUILD_KERNEL_PKGS${reset}"
+   if [ "$BARE_METAL" = "1" ]; then
+      true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: $BUILD_KERNEL_PKGS${reset}"
 
-   local build_kernel
-   for build_kernel in $BUILD_KERNEL_PKGS; do
-      install-pkg "$build_kernel"
-   done
+      local build_kernel
+      for build_kernel in $BUILD_KERNEL_PKGS; do
+         install-pkg "$build_kernel"
+      done
+   else
+      true "${bold}${cyan}INFO: BARE_METAL is set to 1. Skipping kernel installation (one should already be installed), ok.${reset}"
+   fi
 
-   install-pkg anon-shared-build-fix-grub
+   if [ "$BARE_METAL" = "1" ]; then
+      install-pkg anon-shared-build-fix-grub
+   else
+      true "${cyan}INFO: BARE_METAL is set to 1, skipping installation of anon-shared-build-fix-grub, ok.${reset}"
+   fi
+
    install-pkg anon-shared-build-log-build-version
    install-pkg anon-shared-build-remember-sources
    install-pkg anon-shared-build-ban-nonfree
