@@ -33,47 +33,43 @@ if [ "$user_name" = "" ]; then
 fi
 ## }}
 
-HOMEVAR="/home/$user_name"
+[ -n "$HOMEVAR" ] || HOMEVAR="/home/$user_name"
 export HOMEVAR
-WHONIX_BINARY="$HOMEVAR/whonix_binary"
+[ -n "$WHONIX_BINARY" ] || WHONIX_BINARY="$HOMEVAR/whonix_binary"
 export WHONIX_BINARY
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
+[ -n "$WHONIX_SOURCE_FOLDER" ] || WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
 export WHONIX_SOURCE_FOLDER
 
-whonix_parent_folder="$(dirname "$WHONIX_SOURCE_FOLDER")"
-whonix_dev_meta_files_folder="$whonix_parent_folder/whonix-developer-meta-files"
+[ -n "$whonix_parent_folder" ] || whonix_parent_folder="$(dirname "$WHONIX_SOURCE_FOLDER")"
+[ -n "$whonix_dev_meta_files_folder" ] || whonix_dev_meta_files_folder="$whonix_parent_folder/whonix-developer-meta-files"
 
-WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
+[ -n "$WHONIX_SOURCE_PARENTDIR" ] || WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
 export WHONIX_SOURCE_PARENTDIR
 
-WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
+[ -n "$WHONIX_SOURCE_HELP_STEPS_FOLDER" ] || WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
 export WHONIX_SOURCE_HELP_STEPS_FOLDER
 
 cd "$WHONIX_SOURCE_FOLDER"
 
-if [ "$DEBIAN_FRONTEND" = "" ]; then
-   DEBIAN_FRONTEND="noninteractive"
-   export DEBIAN_FRONTEND
-fi
+[ -n "$DEBIAN_FRONTEND" ] || DEBIAN_FRONTEND="noninteractive"
+export DEBIAN_FRONTEND
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
 ## https://wiki.ubuntu.com/DebootstrapChroot and
 ## https://lists.debian.org/debian-amd64/2005/08/msg00249.html.
-LANG="C"
+[ -n "$LANG" ] || LANG="C"
 export LANG
 
 ## Disable uwt while building Whonix,
 ## because it is not functional while building Whonix from source code.
 echo 'INFO: Setting... export UWT_DEV_PASSTHROUGH="1"'
-UWT_DEV_PASSTHROUGH="1"
+[ -n "$UWT_DEV_PASSTHROUGH" ] || UWT_DEV_PASSTHROUGH="1"
 export UWT_DEV_PASSTHROUGH
 
-if [ "$DEBDEBUG" = "" ]; then
-   DEBDEBUG="1"
-   export DEBDEBUG
-fi
+[ -n "$DEBDEBUG" ] || DEBDEBUG="1"
+export DEBDEBUG
 
 if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
    MINUS_X_SET="0"
@@ -94,58 +90,42 @@ if [ ! "$WHONIX_BUILD_PARSED" = "1" ]; then
 fi
 
 if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-   if [ "$VMNAME" = "" ]; then
-      VMNAME="Whonix-Gateway"
-      export VMNAME
-   fi
-   if [ "$vmname_lowercase_long_option" = "" ]; then
-      vmname_lowercase_long_option="--tor-gateway"
-      export vmname_lowercase_long_option
-   fi
-   if [ "$VMRAM" = "" ]; then
-      VMRAM="768"
-      export VMRAM
-   fi
+   [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway"
+   export VMNAME
+   [ -n "$vmname_lowercase_long_option" ] || vmname_lowercase_long_option="--tor-gateway"
+   export vmname_lowercase_long_option
+   [ -n "$VMRAM" ] || VMRAM="768"
+   export VMRAM
+
    ## 8 MB is VirtualBox's default. Used up to Whonix 8.
-   if [ "$VRAM" = "" ]; then
-      VRAM="8"
-      export VRAM
-   fi
-   if [ "$CHROOT_FOLDER" = "" ]; then
-      CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
-      export CHROOT_FOLDER
-   fi
+   [ -n "$VRAM" ] || VRAM="8"
+   export VRAM
+
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   export CHROOT_FOLDER
 fi
 
 if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-   if [ "$VMNAME" = "" ]; then
-      VMNAME="Whonix-Workstation"
-      export VMNAME
-   fi
-   if [ "$vmname_lowercase_long_option" = "" ]; then
-      vmname_lowercase_long_option="--tor-workstation"
-      export vmname_lowercase_long_option
-   fi
-   if [ "$VMRAM" = "" ]; then
-      VMRAM="768"
-      export VMRAM
-   fi
-   if [ "$VRAM" = "" ]; then
-      VRAM="128"
-      export VRAM
-   fi
-   if [ "$CHROOT_FOLDER" = "" ]; then
-      CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
-      export CHROOT_FOLDER
-   fi
+   [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation"
+   export VMNAME
+
+   [ -n "$vmname_lowercase_long_option" ] || vmname_lowercase_long_option="--tor-workstation"
+   export vmname_lowercase_long_option
+
+   [ -n "$VMRAM" ] || VMRAM="768"
+   export VMRAM
+
+   [ -n "$VRAM" ] || VRAM="128"
+   export VRAM
+
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   export CHROOT_FOLDER
 fi
 
 ## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
 ## i.e. only space, which gets actually filled up, will take disk space.
-if [ "$VMSIZE" = "" ]; then
-   VMSIZE="100G"
-   export VMSIZE
-fi
+[ -n "$VMSIZE" ] || VMSIZE="100G"
+export VMSIZE
 
 if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
    VMNAME="internal"
@@ -158,14 +138,10 @@ if [ "$BARE_METAL" = "1" ]; then
       export CHROOT_FOLDER
    fi
 else
-   if [ "$CHROOT_FOLDER" = "" ]; then
-      CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
-      export CHROOT_FOLDER
-   fi
-   if [ "$BARE_METAL" = "" ]; then
-      BARE_METAL="0"
-      export BARE_METAL
-   fi
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
+   export CHROOT_FOLDER
+   BARE_METAL="0"
+   export BARE_METAL
 fi
 
 if [ "$VMNAME" = "unknown" ]; then
@@ -190,9 +166,7 @@ if [ "$BARE_METAL" = "1" ]; then
       CHROOT=""
    fi
 else
-   if [ "$CHROOT" = "" ]; then
-      CHROOT="chroot $CHROOT_FOLDER"
-   fi
+   [ -n "$CHROOT" ] || CHROOT="chroot $CHROOT_FOLDER"
 fi
 
 ## {{{ whonix_build_ci_detected - CI detection code
@@ -212,12 +186,12 @@ fi
 ## }}}
 
 if [ "$no_git" = "1" ]; then
-   git_bin="true"
+   [ -n "$git_bin" ] || git_bin="true"
 else
-   git_bin="git"
+   [ -n "$git_bin" ] || git_bin="git"
 fi
 
-rsync_opts="\
+[ -n "$rsync_opts" ] || rsync_opts="\
    --perms \
    --times \
    --partial \
@@ -228,19 +202,13 @@ rsync_opts="\
 ## Sanity Test.
 command -v "$git_bin" >/dev/null
 
-if [ "$DEB_INSTALL_FOLDER" = "" ]; then
-   DEB_INSTALL_FOLDER="/mnt/initialdeb"
-   export DEB_INSTALL_FOLDER
-fi
+[ -n "$DEB_INSTALL_FOLDER" ] || DEB_INSTALL_FOLDER="/mnt/initialdeb"
+export DEB_INSTALL_FOLDER
 
-if [ "$EMPTY_DIR" = "" ]; then
-   EMPTY_DIR="/tmp/empty"
-   export EMPTY_DIR
-fi
+[ -n "$EMPTY_DIR" ] || EMPTY_DIR="/tmp/empty"
+export EMPTY_DIR
 
-if [ "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER" = "" ]; then
-   WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
-fi
+[ -n "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER" ] || WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
 
 ## {{{ whonix_build_on_operating_system
 
@@ -250,7 +218,7 @@ if [ "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
    whonix_build_on_operating_system="skipped"
 else
    ## Let's find out on which host operating system the build script is running.
-   whonix_build_on_operating_system="$(lsb_release --short --i)"
+   [ -n "$whonix_build_on_operating_system" ] || whonix_build_on_operating_system="$(lsb_release --short --i)"
    ## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
    whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
    ## Example whonix_build_on_operating_system: debian
@@ -267,11 +235,9 @@ fi
 ##    Try --always, or create some tags.
 if [ "$whonix_build_ci_detected" = "1" ] ; then
    ## Temporary workaround.
-   if [ "$whonix_build_closest_git_tag" = "" ]; then
-      whonix_build_closest_git_tag="100"
-   fi
+   [ -n "$whonix_build_closest_git_tag" ] || whonix_build_closest_git_tag="100"
 else
-   whonix_build_closest_git_tag="$($git_bin describe --abbrev=0)"
+   [ -n "$whonix_build_closest_git_tag" ] || whonix_build_closest_git_tag="$($git_bin describe --abbrev=0)"
 fi
 
 ## example whonix_build_closest_git_tag:
@@ -283,7 +249,7 @@ fi
 
 ## {{{ whonix_build_current_git_head
 
-whonix_build_current_git_head="$(git rev-parse HEAD)"
+[ -n "$whonix_build_current_git_head" ] || whonix_build_current_git_head="$(git rev-parse HEAD)"
 
 #echo "whonix_build_current_git_head: $whonix_build_current_git_head"
 
@@ -297,7 +263,7 @@ temp="$($git_bin describe --always --abbrev=1000000000)"
 ## Example temp:
 ## 7-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 
-anon_dist_build_version="$(echo "$temp" | sed 's/-/./g')"
+[ -n "$anon_dist_build_version" ] || anon_dist_build_version="$(echo "$temp" | sed 's/-/./g')"
 ## Using `export`, so 70_log_build_version can read it.
 export anon_dist_build_version
 
@@ -308,9 +274,9 @@ echo "anon_dist_build_version: $anon_dist_build_version"
 
 ## }}}
 
-binary_image_raw="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.raw"
-binary_image_qcow2="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.qcow2"
-binary_image_ova="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.ova"
+[ -n "$binary_image_raw" ] || binary_image_raw="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.raw"
+[ -n "$binary_image_qcow2" ] || binary_image_qcow2="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.qcow2"
+[ -n "$binary_image_ova" ] || binary_image_ova="$WHONIX_BINARY/$VMNAME-$whonix_build_closest_git_tag.ova"
 
 ## {{{ buildconfig.d
 
@@ -375,20 +341,14 @@ fi
 
 ## {{{ fallback variables for debchange (dch), dpkg-buildpackage and debuild
 
-if [ "$DEBFULLNAME" = "" ]; then
-   DEBFULLNAME="Whonix auto generated local APT signing key"
-   export DEBFULLNAME
-fi
+[ -n "$DEBFULLNAME" ] || DEBFULLNAME="Whonix auto generated local APT signing key"
+export DEBFULLNAME
 
-if [ "$DEBEMAIL" = "" ]; then
-   DEBEMAIL="whonix@local-signing.key"
-   export DEBEMAIL
-fi
+[ -n "$DEBEMAIL" ] || DEBEMAIL="whonix@local-signing.key"
+export DEBEMAIL
 
-if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
-   DEBUILD_LINTIAN_OPTS="-i -I --show-overrides"
-   export DEBUILD_LINTIAN_OPTS
-fi
+[ -n "$DEBUILD_LINTIAN_OPTS" ] || DEBUILD_LINTIAN_OPTS="-i -I --show-overrides"
+export DEBUILD_LINTIAN_OPTS
 
 if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
    if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "" ]; then
@@ -408,10 +368,8 @@ fi
 
 ## {{{ apt repository variables
 
-if [ "$WHONIX_BUILD_APT_CODENAME" = "" ]; then
-   WHONIX_BUILD_APT_CODENAME="local"
-   export WHONIX_BUILD_APT_CODENAME
-fi
+[ -n "$WHONIX_BUILD_APT_CODENAME" ] || WHONIX_BUILD_APT_CODENAME="local"
+export WHONIX_BUILD_APT_CODENAME
 
 ## }}}
 
@@ -423,37 +381,31 @@ else
    temp="aptrepo_remote"
 fi
 
-if [ "$WHONIX_APT_REPOSITORY_FOLDER" = "" ]; then
-   WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$temp"
-   export WHONIX_APT_REPOSITORY_FOLDER
-fi
+[ -n "$WHONIX_APT_REPOSITORY_FOLDER" ] || WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$temp"
+export WHONIX_APT_REPOSITORY_FOLDER
 
-if [ "$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS" = "" ]; then
+[ -n "$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS" ] || \
    WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
-            --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-            --basedir "$WHONIX_SOURCE_FOLDER/$temp" \
-            --outdir "$WHONIX_BINARY/$temp" \
-            --dbdir "$WHONIX_BINARY/$temp/db" \
-            --logdir "$WHONIX_BINARY/$temp/log" "
-   export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS
-fi
+      --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+      --basedir "$WHONIX_SOURCE_FOLDER/$temp" \
+      --outdir "$WHONIX_BINARY/$temp" \
+      --dbdir "$WHONIX_BINARY/$temp/db" \
+      --logdir "$WHONIX_BINARY/$temp/log" "
+export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS
 
 ## }}}
 
 ## {{{ BUILD_TARGET_ARCH
 
-if [ -z "$BUILD_TARGET_ARCH" ]; then
-   ## Default architecture.
-   ## Using export, so it can be read by chroot-post.d scripts.
-   BUILD_TARGET_ARCH="i386"
-   export BUILD_TARGET_ARCH
-fi
-if [ "$BUILD_TARGET_ARCH" = "" ]; then
-   ## Default architecture.
-   ## Using export, so it can be read by chroot-post.d scripts.
-   BUILD_TARGET_ARCH="i386"
-   export BUILD_TARGET_ARCH
-fi
+## Default architecture.
+## Using export, so it can be read by chroot-post.d scripts.
+[ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="i386"
+export BUILD_TARGET_ARCH
+
+## Default architecture.
+## Using export, so it can be read by chroot-post.d scripts.
+[ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="i386"
+export BUILD_TARGET_ARCH
 
 ## }}}
 
