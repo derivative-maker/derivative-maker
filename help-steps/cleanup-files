@@ -24,41 +24,25 @@ source variables
 cleanup_files() {
    trap "error_handler_general" ERR INT TERM
 
-   set +x
+   shopt -s nullglob
+   shopt -s dotglob
 
-   local result
-   result="$(gawk '/^Package\:[[:space:]]*.*$$/ { match($$0, /^Package:[[:space:]]*(.*)$$/, m); print m[1]"*.deb" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".dsc"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".changes"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".tar.gz"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".build"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".deb"
 
-   for dp in $result; do
-      local cmd
-      cmd="rm --force $WHONIX_SOURCE_FOLDER/../$dp"
-      echo "$cmd"
-      $cmd
+   local list
+   list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"* | sort)"
+   for item in $list; do
+      if [ ! -d "$item" ]; then
+         true "INFO: Not a folder: $item"
+      fi
+      cd "$item"
+      ./clean
    done
 
-   local cmd
-
-   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.dsc" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
-   echo "$cmd"
-   $cmd
-
-   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.changes" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
-   echo "$cmd"
-   $cmd
-
-   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.tar.*" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
-   echo "$cmd"
-   $cmd
-
-   cmd="rm --force $WHONIX_SOURCE_FOLDER/../$(gawk '/^Source\:[[:space:]]+.*$$/ { match($$0, /^Source:[[:space:]]+(.*)$$/, m); print m[1]"*.build" }' "$WHONIX_SOURCE_FOLDER/debian/control")"
-   echo "$cmd"
-   $cmd
-
-   set -x
-
-   fakeroot "$WHONIX_SOURCE_FOLDER/debian/rules" clean
-
-   rm --force "$WHONIX_SOURCE_FOLDER/debian/changelog"
 }
 
 true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"

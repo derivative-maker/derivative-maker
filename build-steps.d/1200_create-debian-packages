@@ -112,16 +112,6 @@ signing_key() {
                              --list-secret-keys
 }
 
-check_changelog_version() {
-   trap "error_handler_general" ERR INT TERM
-
-   #if [ "$whonix_build_new_changelog_version" = "$whonix_build_old_changelog_version" ]; then
-      #true "${bold}${cyan}$0 INFO: whonix_build_new_changelog_version equals whonix_build_old_changelog_version, not creating new Debian packages. ${reset}"
-      #exit 0
-   #fi
-   true
-}
-
 check_for_uncommited_changes() {
    trap "error_handler_general" ERR INT TERM
 
@@ -146,12 +136,6 @@ ${cyan}or if you know what you are doing:${reset}
 cleanup_old_packages() {
    trap "error_handler_general" ERR INT TERM
 
-   true "${cyan}$0 INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
-   sleep 3
-
-   cd "$MYDIR"
-   cd ..
-
    true "${cyan}$0 INFO: Cleaning old packages... ${reset}"
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files"
@@ -172,12 +156,9 @@ get_extra_packages() {
       local codename="testing"
    fi
 
-   local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
-   cp "$whonix_build_sources_list_newer" "$TEMP"
-
-   rm --recursive --force "$WHONIX_BINARY/temp_packages"
-   sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_packages"
-   cd "$WHONIX_BINARY/temp_packages"
+   rm --recursive --force "$WHONIX_BINARY/temp_extra_packages"
+   sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_extra_packages"
+   cd "$WHONIX_BINARY/temp_extra_packages"
 
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
@@ -188,7 +169,7 @@ get_extra_packages() {
    apt-get update \
       $apt_timeout_opts \
       $apt_verify_opts \
-      -o Dir::Etc::sourcelist="$TEMP" \
+      -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/$whonix_build_sources_list_newer" \
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0"
 
@@ -198,11 +179,12 @@ get_extra_packages() {
          $apt_timeout_opts \
          $apt_verify_opts \
          $apt_unattended_opts \
+         -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/$whonix_build_sources_list_newer" \
+         -o Dir::Etc::sourceparts="-" \
          --target-release "$codename" \
          python-stem
 
-   ## Removing $whonix_build_sources_list_newer package list.
-   rm --force "$TEMP"
+   true "INFO: apt-get download exit code: $?"
 
    ## Get rid of $whonix_build_sources_list_newer package list, while keeping
    ## regular package lists. In other words, prevent needlessly forgetting
@@ -214,70 +196,7 @@ get_extra_packages() {
    ## Implemented in help-steps/pre.
    disable_apt_cache
 
-   true "${cyan}$0 INFO: Got extra packages... ${reset}"
-}
-
-bump_debian_changelog_version() {
-   trap "error_handler_general" ERR INT TERM
-
-   true "${cyan}$0 INFO: Automatically bumping version number in debian/changelog... ${reset}"
-
-   cd "$MYDIR"
-   cd ..
-
-   ## debchange in Ubuntu somehow does not support --vendor, only --distributor.
-   ## Small workaround for travis-ci (using Ubuntu).
-   if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-      ## Using --distributor when Ubuntu is detected.
-      debchange_vendor_cmd="--distributor"
-   else
-      ## Otherwise fall back to --vendor.
-      debchange_vendor_cmd="--vendor"
-   fi
-
-   ## Debugging.
-   faketime --version
-   ls -la ./debian/changelog || true
-
-   ## bump changelog version numbers
-   ## whonix is written in lower case,
-   ## because that is the name of the file in /etc/dpkg/origins/
-   local package
-   package="whonix"
-   echo "\
-$package ($whonix_build_new_changelog_version) $WHONIX_BUILD_APT_CODENAME; urgency=low
-
-  * This is an auto-generated file. Local auto bump version. Build from:
-  * whonix_build_current_git_head: $whonix_build_current_git_head
-  * whonix_build_new_changelog_version: $whonix_build_new_changelog_version
-  * whonix_build_closest_git_tag: $whonix_build_closest_git_tag
-
- -- $DEBFULLNAME <$DEBEMAIL>  Thu, 15 Aug 2013 11:02:35 +0000
-" > ./debian/changelog
-
-   ## Explicitly set access time, so we end up with a deterministic debian.tar.gz file
-   shopt -s globstar
-   touch -t "201308151102.35" ./debian
-   touch -t "201308151102.35" ./debian/**
-   shopt -u globstar
-
-   ## Debugging.
-   ls -la ./debian/changelog || true
-   cat ./debian/changelog
-
-   true "${cyan}$0 INFO: Bumped version number in debian/changelog. ${reset}"
-}
-
-create_whonix_upstream_tarball() {
-   trap "error_handler_general" ERR INT TERM
-
-   ## Creating upstream tarball, because we are creating a non-native Debian package.
-   true "${cyan}$0 INFO: Creating upstream tarball... ${reset}"
-
-   sudo -E -u "$user_name" \
-       "$WHONIX_SOURCE_HELP_STEPS_FOLDER/make-debian-package-upstream-tarball"
-
-   true "${cyan}$0 INFO: Created upstream tarball. ${reset}"
+   true "${cyan}$0 INFO: Got extra packages. ${reset}"
 }
 
 create_whonix_debian_packages() {
@@ -303,16 +222,26 @@ create_whonix_debian_packages() {
       fi
    fi
 
-   sudo -E -u "$user_name" \
-         debuild \
-            --rootcmd="$WHONIX_SOURCE_HELP_STEPS_FOLDER/gain-root-command" \
-            -p"$WHONIX_SOURCE_HELP_STEPS_FOLDER/package-sign-cmd \
-               --homedir $WHONIX_LOCAL_SIGNING_KEY_FOLDER \
-               --default-key $DEBEMAIL" \
-            -sa
+   shopt -s nullglob
+   shopt -s dotglob
 
-   ## Debugging.
-   ls -la ./debian/changelog || true
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".dsc"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".changes"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".tar"
+   rm --force "$WHONIX_SOURCE_FOLDER/packages/"*".build"
+
+   local list
+   list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"* | sort)"
+   for item in $list; do
+      if [ ! -d "$item" ]; then
+         true "INFO: Not a folder: $item"
+      fi
+      cd "$item"
+      sudo -E -u "$user_name" \
+         ./build \
+            -us \
+            -uc
+   done
 
    true "${cyan}$0 INFO: Created Whonix Debian Packages. ${reset}"
 }
@@ -336,38 +265,56 @@ create_whonix_repository() {
    fi
 
    true "${cyan}$0 INFO: Creating ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
-   true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
 
-   sudo -E -u "$user_name" \
-      reprepro \
-         -V \
-         -V \
-         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-         includedsc "$WHONIX_BUILD_APT_CODENAME" ../*.dsc
+   shopt -s dotglob
+   shopt -s nullglob
+   local list file_name
 
-   true "${cyan}$0 INFO: Done, imported .dsc file. ${reset}"
+   #true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
+
+   #list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"*".dsc" | sort)"
+
+   #for file_name in $list; do
+      #sudo -E -u "$user_name" \
+         #reprepro \
+            #-V \
+            #-V \
+            #$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+            #includedsc "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+   #done
+
+   #true "${cyan}$0 INFO: Done, imported .dsc file. ${reset}"
 
    true "${cyan}$0 INFO: Importing .changes file... ${reset}"
 
-   sudo -E -u "$user_name" \
-      reprepro \
-         -V \
-         -V \
-         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-         include "$WHONIX_BUILD_APT_CODENAME" ../*.changes
+   list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"*".changes" | sort)"
+
+   for file_name in $list; do
+      sudo -E -u "$user_name" \
+         reprepro \
+            -V \
+            -V \
+            $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+            --ignore=wrongdistribution \
+            include "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+   done
 
    true "${cyan}$0 INFO: Done, imported .changes file. ${reset}"
 
-   true "${cyan}$0 INFO: Importing temp .deb files... ${reset}"
+   true "${cyan}$0 INFO: Importing temp_extra_packages .deb files... ${reset}"
 
-   sudo -E -u "$user_name" \
-      reprepro \
-         --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-         --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
-         $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-         includedeb "$WHONIX_BUILD_APT_CODENAME" "$WHONIX_BINARY/temp_packages/"*".deb"
+   list="$(echo "$WHONIX_BINARY/temp_extra_packages/"*".deb" | sort)"
 
-   true "${cyan}$0 INFO: Imported temp .deb files. ${reset}"
+   for file_name in $list; do
+      sudo -E -u "$user_name" \
+         reprepro \
+            --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
+            --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+            $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+            includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+   done
+
+   true "${cyan}$0 INFO: Imported temp_extra_packages .deb files. ${reset}"
 
    ## Debugging.
    true "${cyan}$0 INFO: Displaying sha512sum of $WHONIX_APT_REPOSITORY_FOLDER/pool/**... ${reset}"
@@ -383,13 +330,14 @@ create_whonix_repository() {
 create-debian-packages() {
    trap "error_handler_general" ERR INT TERM
 
-   signing_key
-   check_changelog_version
-   cleanup_old_packages
    check_for_uncommited_changes
+
+   true "${cyan}$0 INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
+   sleep 3
+
+   signing_key
    get_extra_packages
-   bump_debian_changelog_version
-   create_whonix_upstream_tarball
+   cleanup_old_packages
    create_whonix_debian_packages
    create_whonix_repository
 }
