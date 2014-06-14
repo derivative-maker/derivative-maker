@@ -175,19 +175,23 @@ install-packages() {
    if [ "$BARE_METAL" = "1" ]; then
       ## Backup exiting /etc/apt/sources.list, might be useful for bare metal users.
       cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
+
+      ## Backup exiting /etc/resolv.conf, so we can later use it in help-steps/chroot-img.
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf.backup
+
+      ## Backup exiting /etc/hosts so we can later use it in help-steps/chroot-img.
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/hosts "$CHROOT_FOLDER"/etc/hosts.backup
+
+      ## Backup exiting /etc/hostname so we can later use it in help-steps/chroot-img.
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/hostname "$CHROOT_FOLDER"/etc/hostname.backup
+
+      ## Backup exiting /etc/network/interfaces so we can later use it in help-steps/chroot-img.
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
    fi
 
-   ## We have to manually fix /etc/apt/sources.list, because the list which comes with
+   ## We have to fix /etc/apt/sources.list, because the list which comes with
    ## grml-debootstrap is incomplete (does not complain debian security repository) and points to 127.0.0.1.
-   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/sources.list.whonix" "$CHROOT_FOLDER/etc/apt/sources.list"
-
-   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/preferences.d/"* "$CHROOT_FOLDER/etc/apt/preferences.d/"
-
-   cp "$WHONIX_SOURCE_FOLDER/whonix_shared/etc/apt/apt.conf.d/90whonix-timeout" "$CHROOT_FOLDER/etc/apt/apt.conf.d/"
-
-   sync
-
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
+   mv "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup || true
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
 
@@ -198,11 +202,27 @@ install-packages() {
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
 
-   sync
+   ## {{ controversy of: /etc/resolv.conf /etc/hosts /etc/hostname /etc/network/interfaces,
+   ##    see help-steps/chroot-raw for more information.
 
-   ## Debugging.
-   ## || true, in case we ever remove that folder (implement it another way) or for custom builds.
-   cat "$CHROOT_FOLDER/etc/apt/preferences.d/"* || true
+   export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
+
+   ## TODO: apt-get update
+
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+      install-pkg whonix-gateway-packages-dependencies-pre
+   elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+      install-pkg whonix-workstation-packages-dependencies-pre
+   else
+      bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
+   fi
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
+
+   ## }}
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
 
    ## Debugging.
    $CHROOT apt-cache policy || true
