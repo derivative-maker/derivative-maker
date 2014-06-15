@@ -39,6 +39,8 @@ parse_apt_get_unmet_dependency() {
 
    set +x
 
+   declare -A -g remember_pkg
+
    for line in ${apt_get_output} ; do
       IFS="${OIFS}"
       local unmet_dependency=""
@@ -49,14 +51,18 @@ parse_apt_get_unmet_dependency() {
          continue
       else
          ## match
+         if [ "${remember_pkg[$unmet_dependency]}" = "true" ]; then
+            continue
+         fi
          IFS="${OIFS}"
          echo "${bold}${cyan}INFO: Found unmet dependency: $unmet_dependency. \
 Will try to manually install it for debugging...${reset}"
+         remember_pkg[$unmet_dependency]="true"
          set -x
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
          dpkg -l | grep "$unmet_dependency"
          apt-cache policy "$unmet_dependency"
-         install-pkg "$unmet_dependency"
+         install-pkg "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
          IFS="${NIFS}"
@@ -146,9 +152,6 @@ Trying to diagnose the problem using function parse_apt_get_unmet_dependency...$
 
    parse_apt_get_unmet_dependency
    error "See above!"
-   ## Should not be required, because the error handler will cause to exit,
-   ## but let's make sure forever, using "exit 1" to prevent an endless loop.
-   exit 1
 }
 
 install-packages() {
@@ -193,22 +196,29 @@ install-packages() {
    ## grml-debootstrap is incomplete (does not complain debian security repository) and points to 127.0.0.1.
    mv "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup || true
 
+   ## Implemented in help-steps/pre.
+   maybe_enable_apt_cache
+
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
 
    ## Debugging.
    $CHROOT ls -la /etc/apt/trusted.gpg.d
    $CHROOT apt-key finger
 
-   ## Implemented in help-steps/pre.
-   maybe_enable_apt_cache
+   $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
+   $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-i386/ || true
+   ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
+   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-missing update
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
 
    ## {{ controversy of: /etc/resolv.conf /etc/hosts /etc/hostname /etc/network/interfaces,
    ##    see help-steps/chroot-raw for more information.
 
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
    export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
-
-   ## TODO: apt-get update
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       install-pkg whonix-gateway-packages-dependencies-pre
@@ -218,14 +228,21 @@ install-packages() {
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
 
+   unset WHONIX_CHROOT_MOUNT_RESOLV_CONF
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
 
    ## }}
 
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
 
+   $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
+   $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-i386/ || true
+   ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
+   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-missing update
+
    ## Debugging.
-   $CHROOT apt-cache policy || true
+   #$CHROOT apt-cache policy || true
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
@@ -235,16 +252,13 @@ install-packages() {
    fi
 
    ## Debugging.
-   $CHROOT apt-get clean
-   $CHROOT apt-get autoclean
-   $CHROOT apt-get --fix-broken --yes install
-   $CHROOT apt-get --fix-missing --yes install
-   $CHROOT apt-get --fix-broken --fix-missing --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts clean
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts autoclean
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-broken --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-missing --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-broken --fix-missing --yes install
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
-
-   ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
-   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts update
 
    ## Workaround for Travis CI.
    ## Not sure if that should be applied in any case. Should the build process
@@ -266,7 +280,6 @@ install-packages() {
    if [ "$CI" = "true" ]; then
       true "INFO $0: skipping dist-upgrade, because CI detected."
       true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
-      #$CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    else
       $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    fi
