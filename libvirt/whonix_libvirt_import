@@ -85,15 +85,18 @@ parse_files() {
          continue
       fi
       file_extension="${base_name##*.}"
-      ## Ignore xml files.
-      if [ "$file_extension" = "xml" ]; then
-         change_domain_type_in_xml "$item"
+      if [ "$base_name" = "whonix_network.xml" ]; then
          continue
       fi
+      if [ "$file_extension" = "xml" ]; then
+         xml_orig="$item"
+         domain_name="$(grep -oP '(?<=<name>).*(?=</name)' "$xml_orig")"
+         continue
+      fi
+      true "item: $item"
       basename_without_extension="${base_name%.*}"
       version_number="$(echo "$base_name" | grep -Eo '[0-9]+\.[0-9]+')"
-      true "version_number: $version_number"
-      true "xxxx: $item"
+      vm_image="$item"
    done
 }
 
@@ -102,10 +105,11 @@ get_domain_type() {
 
    while true; do
       if [ ! "$domain_type" = "" ]; then
+         echo "${green}INFO${reset}: domain type is $domain_type."
          break
       fi
       echo "\
-QUESTION: Which domain type do you want to use?
+${cyan}QUESTION${reset}: Which domain type do you want to use?
 Type either:
 ${under}kvm${eunder}
 or
@@ -113,9 +117,10 @@ ${under}qemu${eunder}
 then press enter."
       read domain_type
       if [ ! "$domain_type" = "" ]; then
+         echo "${green}INFO${reset}: domain type is $domain_type."
          break
       fi
-      echo "ERROR: No domain type entered. Try again."
+      echo "${red}ERROR${reset}: No domain type entered. Try again."
    done
 }
 
@@ -125,33 +130,43 @@ validate_domain_type() {
    if [ "$domain_type" = "kvm" ] || [ "$domain_type" = "qemu" ]; then
       return 0
    fi
-   echo "ERROR: Invalid domain type. Must be either ${under}kvm${eunder} or ${under}qemu${eunder}." >&2
+   echo "${red}ERROR${reset}: Invalid domain type. Must be either ${under}kvm${eunder} or ${under}qemu${eunder}." >&2
    exit 1
 }
 
 change_domain_type_in_xml() {
    trap "error_handler" ERR
 
+   if [ "$xml_orig" = "" ]; then
+      echo "${red}ERROR${reset}: xml file could not be detected! Aborted." >&2
+      exit 1
+   fi
+   if [ ! -f "$xml_orig" ]; then
+      echo "${red}ERROR${reset}: xml file $xml_orig does not exist! Aborted." >&2
+      exit 1
+   fi
+
+   cp "$xml_orig" "$tempfolder/temp.xml"
+
    temp="<domain type='kvm'>"
    new="<domain type='$domain_type'>"
 
-   cp "$1" "$tempfolder/xxx"
-   sed -i "s/$temp/$new/g" "$tempfolder/xxx"
+   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
 }
 
 check_for_existing_domain() {
    trap "error_handler" ERR
 
-   ## TODO
-
-   ## TODO: set domain_name
+   if [ "$domain_name" = "" ]; then
+      echo "${red}ERROR${reset}: domain_name could not be detected. Aborted." >&2
+      exit 1
+   fi
 
    virsh_dominfo_exit_code="0"
    virsh dominfo "$domain_name" >/dev/null 2>&1 || { virsh_dominfo_exit_code="$?" ; true; };
 
    if [ "$virsh_dominfo_exit_code" = "0" ]; then
-      ## TODO:
-      echo "ERROR or WARNING? $domain_name already exists. What do do?"
+      echo "${red}ERROR${reset}: Domain name $domain_name already exists. Aborted." >&2
       exit 1
    fi
 }
@@ -159,31 +174,54 @@ check_for_existing_domain() {
 import_domain() {
    trap "error_handler" ERR
 
-   ## TODO
+   ## Check, if there is a network configuration file in this scripts's folder.
+   if [ -f "./whonix_network.xml" ]; then
+      ## Import virtual isolated network and to set it to autostart.
+      virsh net-define ./whonix_network.xml
+      virsh net-autostart ./whonix_network.xml
+   fi
 
-   ## To import virtual isolated network and to set it to autostart
-   virsh net-define /tmp/whonix.xml
-   virsh net-autostart /tmp/whonix.xml
+   ## Import VM.
+   virsh define "$tempfolder/temp.xml"
+}
 
-   ## To import vms
-   virsh define /tmp/whonix_gateway.xml
-   virsh define /tmp/whonix_workstation.xml
+check_for_existing_image() {
+   trap "error_handler" ERR
+
+   if [ -f "$vm_image" ]; then
+      echo "${red}ERROR${reset}: Image $vm_image already exists. Aborted." >&2
+      exit 1
+   fi
 }
 
 copy_image() {
    trap "error_handler" ERR
 
    mkdir --parents "/var/lib/libvirt/images"
-   cp "$1" "/var/lib/libvirt/images/"
+   ## TODO: Maybe use pv as progress bar, if available.
+   cp "$vm_image" "/var/lib/libvirt/images/"
+}
+
+success() {
+   trap "error_handler" ERR
+
+   ## TODO: Better advice for user what to do next.
+   echo "${green}INFO${reset}: Done." >&2
 }
 
 main_function() {
    trap "error_handler" ERR
 
    colors
+   parse_files
+   check_for_existing_domain
+   check_for_existing_image
    get_domain_type
    validate_domain_type
-   parse_files
+   change_domain_type_in_xml
+   import_domain
+   copy_image
+   success
 }
 
 main_function
@@ -191,9 +229,3 @@ main_function
 #2a. It would change the generic value name such as whonix_gateway thats initially used in the config file
 #and apply the new filedisk name to the path, the vm 'domain' name and  finally rename the actual image on disk to use that name :
 #formatted like: whonix_gateway_$version_$containment+[alternative arch if selected for qemu].
-
-#3. Detect output from virsh if there is already an existing vm 'domain' with the same name (and hence disk file with same name too) and alert the user and exit.
-
-#import xml
-
-#4. If import successful, copy disk image only to the /var/lib/libvirt/images directory. Done!
