@@ -1,0 +1,199 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -o pipefail
+
+error_handler() {
+   local exit_code="$?"
+   local MSG="\
+###############################################################################
+## Please report this bug!
+##
+## BASH_COMMAND: $BASH_COMMAND
+## exit_code: $exit_code
+###############################################################################\
+"
+}
+
+trap "error_handler" ERR
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+scriptname="$(basename "$0")"
+[ -n "$tempfolder" ] || tempfolder="$(mktemp --directory)"
+
+colors() {
+   trap "error_handler" ERR
+
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/037
+   ## Variables for terminal requests.
+   [[ -t 2 ]] && {
+      alt=$(      tput smcup  || tput ti      ) # Start alt display
+      ealt=$(     tput rmcup  || tput te      ) # End   alt display
+      hide=$(     tput civis  || tput vi      ) # Hide cursor
+      show=$(     tput cnorm  || tput ve      ) # Show cursor
+      save=$(     tput sc                     ) # Save cursor
+      load=$(     tput rc                     ) # Load cursor
+      bold=$(     tput bold   || tput md      ) # Start bold
+      stout=$(    tput smso   || tput so      ) # Start stand-out
+      estout=$(   tput rmso   || tput se      ) # End stand-out
+      under=$(    tput smul   || tput us      ) # Start underline
+      eunder=$(   tput rmul   || tput ue      ) # End   underline
+      reset=$(    tput sgr0   || tput me      ) # Reset cursor
+      blink=$(    tput blink  || tput mb      ) # Start blinking
+      italic=$(   tput sitm   || tput ZH      ) # Start italic
+      eitalic=$(  tput ritm   || tput ZR      ) # End   italic
+      [[ $TERM != *-m ]] && {
+      red=$(      tput setaf 1|| tput AF 1    )
+      green=$(    tput setaf 2|| tput AF 2    )
+      yellow=$(   tput setaf 3|| tput AF 3    )
+      blue=$(     tput setaf 4|| tput AF 4    )
+      magenta=$(  tput setaf 5|| tput AF 5    )
+      cyan=$(     tput setaf 6|| tput AF 6    )
+      }
+      white=$(    tput setaf 7|| tput AF 7    )
+      default=$(  tput op                     )
+      eed=$(      tput ed     || tput cd      )   # Erase to end of display
+      eel=$(      tput el     || tput ce      )   # Erase to end of line
+      ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
+      ewl=$eel$ebl                                # Erase whole line
+      draw=$(     tput -S <<< '   enacs
+                                      smacs
+                                      acsc
+                                      rmacs' || { \
+                      tput eA; tput as;
+                      tput ac; tput ae;         } )   # Drawing characters
+      back=$'\b'
+   } 2>/dev/null ||:
+}
+
+parse_files() {
+   trap "error_handler" ERR
+
+   for item in "$MYDIR/"*; do
+      ## Ignore folders.
+      if [ -d "$item" ]; then
+         continue
+      fi
+      base_name="$(basename "$item")"
+      ## Ignore this script itself.
+      if [ "$base_name" = "$scriptname" ]; then
+         continue
+      fi
+      file_extension="${base_name##*.}"
+      ## Ignore xml files.
+      if [ "$file_extension" = "xml" ]; then
+         change_domain_type_in_xml "$item"
+         continue
+      fi
+      basename_without_extension="${base_name%.*}"
+      version_number="$(echo "$base_name" | grep -Eo '[0-9]+\.[0-9]+')"
+      true "version_number: $version_number"
+      true "xxxx: $item"
+   done
+}
+
+get_domain_type() {
+   trap "error_handler" ERR
+
+   while true; do
+      if [ ! "$domain_type" = "" ]; then
+         break
+      fi
+      echo "\
+QUESTION: Which domain type do you want to use?
+Type either:
+${under}kvm${eunder}
+or
+${under}qemu${eunder}
+then press enter."
+      read domain_type
+      if [ ! "$domain_type" = "" ]; then
+         break
+      fi
+      echo "ERROR: No domain type entered. Try again."
+   done
+}
+
+validate_domain_type() {
+   trap "error_handler" ERR
+
+   if [ "$domain_type" = "kvm" ] || [ "$domain_type" = "qemu" ]; then
+      return 0
+   fi
+   echo "ERROR: Invalid domain type. Must be either ${under}kvm${eunder} or ${under}qemu${eunder}." >&2
+   exit 1
+}
+
+change_domain_type_in_xml() {
+   trap "error_handler" ERR
+
+   temp="<domain type='kvm'>"
+   new="<domain type='$domain_type'>"
+
+   cp "$1" "$tempfolder/xxx"
+   sed -i "s/$temp/$new/g" "$tempfolder/xxx"
+}
+
+check_for_existing_domain() {
+   trap "error_handler" ERR
+
+   ## TODO
+
+   ## TODO: set domain_name
+
+   virsh_dominfo_exit_code="0"
+   virsh dominfo "$domain_name" >/dev/null 2>&1 || { virsh_dominfo_exit_code="$?" ; true; };
+
+   if [ "$virsh_dominfo_exit_code" = "0" ]; then
+      ## TODO:
+      echo "ERROR or WARNING? $domain_name already exists. What do do?"
+      exit 1
+   fi
+}
+
+import_domain() {
+   trap "error_handler" ERR
+
+   ## TODO
+
+   ## To import virtual isolated network and to set it to autostart
+   virsh net-define /tmp/whonix.xml
+   virsh net-autostart /tmp/whonix.xml
+
+   ## To import vms
+   virsh define /tmp/whonix_gateway.xml
+   virsh define /tmp/whonix_workstation.xml
+}
+
+copy_image() {
+   trap "error_handler" ERR
+
+   mkdir --parents "/var/lib/libvirt/images"
+   cp "$1" "/var/lib/libvirt/images/"
+}
+
+main_function() {
+   trap "error_handler" ERR
+
+   colors
+   get_domain_type
+   validate_domain_type
+   parse_files
+}
+
+main_function
+
+#2a. It would change the generic value name such as whonix_gateway thats initially used in the config file
+#and apply the new filedisk name to the path, the vm 'domain' name and  finally rename the actual image on disk to use that name :
+#formatted like: whonix_gateway_$version_$containment+[alternative arch if selected for qemu].
+
+#3. Detect output from virsh if there is already an existing vm 'domain' with the same name (and hence disk file with same name too) and alert the user and exit.
+
+#import xml
+
+#4. If import successful, copy disk image only to the /var/lib/libvirt/images directory. Done!
