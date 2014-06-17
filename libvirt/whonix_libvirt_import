@@ -71,6 +71,24 @@ colors() {
    } 2>/dev/null ||:
 }
 
+check_tools_installed() {
+   trap "error_handler" ERR
+
+   [ -n "$tools_list" ] || tools_list="cp grep sed mktemp virsh"
+
+   for tool in $tools_list; do
+      command_v_tool_exit_code="0"
+      command -v virsh >/dev/null 2>&1 || { command_v_tool_exit_code="$?" ; true; };
+      if [ ! "$command_v_tool_exit_code" = "0" ]; then
+         echo "${green}INFO${reset}: Tool $tool not installed."
+         echo "${cyan}QUESTION${reset}: Try to install $tool?"
+         ## TODO
+         echo "${red}TODO${reset}"
+         exit 1
+      fi
+   fi
+}
+
 parse_files() {
    trap "error_handler" ERR
 
@@ -84,28 +102,42 @@ parse_files() {
       if [ "$base_name" = "$scriptname" ]; then
          continue
       fi
+      local file_extension
       file_extension="${base_name##*.}"
       if [ "$base_name" = "whonix_network.xml" ]; then
          continue
       fi
       if [ "$file_extension" = "xml" ]; then
          xml_orig="$item"
-         domain_name="$(grep -oP '(?<=<name>).*(?=</name)' "$xml_orig")"
+
+         ## Searching for:
+         ## <name>Whonix_Gateway</name>
+         source_domain_name="$(grep -oP '(?<=<name>).*(?=</name)' "$xml_orig")"
+         ## Example source_domain_name:
+         ## Whonix_Gateway
+
+         ## Searching for:
+         ## <source file='/var/lib/libvirt/images/Whonix_Gateway.qcow2'/>
+         vm_source_image="$(grep -oP "(?<=<source file=').*(?='/>)" "$xml_orig")"
+         ## Example vm_source_image:
+         ## /var/lib/libvirt/images/Whonix_Gateway.qcow2
+
          continue
       fi
       true "item: $item"
       basename_without_extension="${base_name%.*}"
       version_number="$(echo "$base_name" | grep -Eo '[0-9]+\.[0-9]+')"
-      vm_image="$item"
+      vm_source_image="$item"
+      vm_source_image_extension="${vm_source_image##*.}"
    done
 }
 
-get_domain_type() {
+get_target_domain_type() {
    trap "error_handler" ERR
 
    while true; do
-      if [ ! "$domain_type" = "" ]; then
-         echo "${green}INFO${reset}: domain type is $domain_type."
+      if [ ! "$target_domain_type" = "" ]; then
+         echo "${green}INFO${reset}: domain type is $target_domain_type."
          break
       fi
       echo "\
@@ -115,26 +147,69 @@ ${under}kvm${eunder}
 or
 ${under}qemu${eunder}
 then press enter."
-      read domain_type
-      if [ ! "$domain_type" = "" ]; then
-         echo "${green}INFO${reset}: domain type is $domain_type."
+      read target_domain_type
+      if [ ! "$target_domain_type" = "" ]; then
+         echo "${green}INFO${reset}: target domain type is $target_domain_type."
          break
       fi
       echo "${red}ERROR${reset}: No domain type entered. Try again."
    done
 }
 
-validate_domain_type() {
+validate_target_domain_type() {
    trap "error_handler" ERR
 
-   if [ "$domain_type" = "kvm" ] || [ "$domain_type" = "qemu" ]; then
+   if [ "$target_domain_type" = "kvm" ] || [ "$target_domain_type" = "qemu" ]; then
       return 0
    fi
    echo "${red}ERROR${reset}: Invalid domain type. Must be either ${under}kvm${eunder} or ${under}qemu${eunder}." >&2
    exit 1
 }
 
-change_domain_type_in_xml() {
+get_target_image_file_name() {
+   trap "error_handler" ERR
+
+   if [ "$target_domain_name" = "" ]; then
+      echo "${red}ERROR${reset}: $target_domain_name could not be detected. Aborted." >&2
+      exit 1
+   fi
+   if [ "$version_number" = "" ]; then
+      echo "${red}ERROR${reset}: version_number could not be detected. Aborted." >&2
+      exit 1
+   fi
+   if [ "$target_domain_type" = "" ]; then
+      echo "${red}ERROR${reset}: target_domain_type could not be detected. Aborted." >&2
+      exit 1
+   fi
+   if [ "$vm_source_image_extension" = "" ]; then
+      echo "${red}ERROR${reset}: vm_source_image_extension could not be detected. Aborted." >&2
+      exit 1
+   fi
+
+   [ -n "$vm_image_target_dir" ] vm_image_target_dir="/var/lib/libvirt/images"
+   [ -n "$vm_target_file_name" ] || vm_target_file_name="${target_domain_name}_${version_number}_${target_domain_type}.${vm_source_image_extension}"
+   [ -n "$vm_target_image" ] || vm_target_image="$vm_image_target_dir/$vm_target_file_name"
+}
+
+get_target_domain_name() {
+   trap "error_handler" ERR
+
+   [ -n "$target_domain_name" ] || target_domain_name="${source_domain_name}_${version_number}_${target_domain_type}"
+}
+
+check_for_existing_domain() {
+   trap "error_handler" ERR
+
+   virsh_dominfo_exit_code="0"
+   virsh dominfo "$target_domain_name" >/dev/null 2>&1 || { virsh_dominfo_exit_code="$?" ; true; };
+
+   if [ "$virsh_dominfo_exit_code" = "0" ]; then
+      echo "${red}ERROR${reset}: Domain name $target_domain_name already exists. Aborted." >&2
+      exit 1
+   fi
+}
+
+copy_xml_file_to_temp_folder() {
    trap "error_handler" ERR
 
    if [ "$xml_orig" = "" ]; then
@@ -147,28 +222,36 @@ change_domain_type_in_xml() {
    fi
 
    cp "$xml_orig" "$tempfolder/temp.xml"
+}
 
+change_domain_type_in_target_xml() {
+   trap "error_handler" ERR
+
+   local temp new
    temp="<domain type='kvm'>"
-   new="<domain type='$domain_type'>"
+   new="<domain type='$target_domain_type'>"
 
    sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
 }
 
-check_for_existing_domain() {
+change_domain_name_in_target_xml() {
    trap "error_handler" ERR
 
-   if [ "$domain_name" = "" ]; then
-      echo "${red}ERROR${reset}: domain_name could not be detected. Aborted." >&2
-      exit 1
-   fi
+   local temp new
+   temp="<name>$source_domain_name</name>"
+   new="<name>$target_domain_name</name>"
 
-   virsh_dominfo_exit_code="0"
-   virsh dominfo "$domain_name" >/dev/null 2>&1 || { virsh_dominfo_exit_code="$?" ; true; };
+   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
+}
 
-   if [ "$virsh_dominfo_exit_code" = "0" ]; then
-      echo "${red}ERROR${reset}: Domain name $domain_name already exists. Aborted." >&2
-      exit 1
-   fi
+change_image_file_in_target_xml() {
+   trap "error_handler" ERR
+
+   local temp new
+   temp="<source file='$vm_source_image'/>"
+   new="<source file='$vm_target_image'/>"
+
+   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
 }
 
 import_domain() {
@@ -178,6 +261,7 @@ import_domain() {
    if [ -f "./whonix_network.xml" ]; then
       ## Import virtual isolated network and to set it to autostart.
       virsh net-define ./whonix_network.xml
+      ## TODO: Fix next command.
       virsh net-autostart ./whonix_network.xml
    fi
 
@@ -188,8 +272,8 @@ import_domain() {
 check_for_existing_image() {
    trap "error_handler" ERR
 
-   if [ -f "$vm_image" ]; then
-      echo "${red}ERROR${reset}: Image $vm_image already exists. Aborted." >&2
+   if [ -f "$vm_target_file" ]; then
+      echo "${red}ERROR${reset}: Image $vm_target_file already exists. Aborted." >&2
       exit 1
    fi
 }
@@ -198,8 +282,17 @@ copy_image() {
    trap "error_handler" ERR
 
    mkdir --parents "/var/lib/libvirt/images"
-   ## TODO: Maybe use pv as progress bar, if available.
-   cp "$vm_image" "/var/lib/libvirt/images/"
+
+   command_v_pv_exit_code="0"
+   command -v pv >/dev/null 2>&1 || { command_v_pv_exit_code="$?" ; true; };
+
+   echo "${green}INFO${reset}: Copying $vm_source_image to $vm_target_file..."
+   if [ "$command_v_pv_exit_code" = "0" ]; then
+      pv "$vm_source_image" > "$vm_target_file"
+   else
+      cp "$vm_source_image" "$vm_target_image"
+   fi
+   echo "${green}INFO${reset}: Copying done."
 }
 
 success() {
@@ -213,19 +306,21 @@ main_function() {
    trap "error_handler" ERR
 
    colors
+   check_tools_installed
    parse_files
+   get_target_domain_name
+   get_target_image_file_name
    check_for_existing_domain
    check_for_existing_image
-   get_domain_type
-   validate_domain_type
-   change_domain_type_in_xml
+   get_target_domain_type
+   validate_target_domain_type
+   copy_xml_file_to_temp_folder
+   change_domain_type_in_target_xml
+   change_domain_name_in_target_xml
+   change_image_file_in_target_xml
    import_domain
    copy_image
    success
 }
 
 main_function
-
-#2a. It would change the generic value name such as whonix_gateway thats initially used in the config file
-#and apply the new filedisk name to the path, the vm 'domain' name and  finally rename the actual image on disk to use that name :
-#formatted like: whonix_gateway_$version_$containment+[alternative arch if selected for qemu].
