@@ -108,27 +108,25 @@ parse_files() {
          continue
       fi
       if [ "$file_extension" = "xml" ]; then
-         xml_orig="$item"
+         source_xml="$item"
 
          ## Searching for:
          ## <name>Whonix_Gateway</name>
-         source_domain_name="$(grep -oP '(?<=<name>).*(?=</name)' "$xml_orig")"
+         [ -n "$source_domain_name" ] || source_domain_name="$(grep -oP '(?<=<name>).*(?=</name)' "$source_xml")"
          ## Example source_domain_name:
          ## Whonix_Gateway
 
          ## Searching for:
          ## <source file='/var/lib/libvirt/images/Whonix_Gateway.qcow2'/>
-         vm_source_image="$(grep -oP "(?<=<source file=').*(?='/>)" "$xml_orig")"
+         [ -n "$vm_source_image" ] || vm_source_image="$(grep -oP "(?<=<source file=').*(?='/>)" "$source_xml")"
          ## Example vm_source_image:
          ## /var/lib/libvirt/images/Whonix_Gateway.qcow2
 
          continue
       fi
-      true "item: $item"
-      basename_without_extension="${base_name%.*}"
-      version_number="$(echo "$base_name" | grep -Eo '[0-9]+\.[0-9]+')"
-      vm_source_image="$item"
-      vm_source_image_extension="${vm_source_image##*.}"
+      [ -n "$version_number" ] || version_number="$(echo "$base_name" | grep -Eo '[0-9]+\.[0-9]+')"
+      [ -n "$vm_source_image" ] || vm_source_image="$item"
+      [ -n "$vm_source_image_extension" ] || vm_source_image_extension="${vm_source_image##*.}"
    done
 }
 
@@ -142,17 +140,18 @@ get_target_domain_type() {
       fi
       echo "\
 ${cyan}QUESTION${reset}: Which domain type do you want to use?
-Type either:
+
+Press enter to use the default (kvm).
+
+Other options. Type either:
 ${under}kvm${eunder}
 or
 ${under}qemu${eunder}
 then press enter."
       read target_domain_type
-      if [ ! "$target_domain_type" = "" ]; then
-         echo "${green}INFO${reset}: target domain type is $target_domain_type."
-         break
+      if [ "$target_domain_type" = "" ]; then
+         target_domain_type="kvm"
       fi
-      echo "${red}ERROR${reset}: No domain type entered. Try again."
    done
 }
 
@@ -170,7 +169,7 @@ get_target_image_file_name() {
    trap "error_handler" ERR
 
    if [ "$target_domain_name" = "" ]; then
-      echo "${red}ERROR${reset}: $target_domain_name could not be detected. Aborted." >&2
+      echo "${red}ERROR${reset}: target_domain_name could not be detected. Aborted." >&2
       exit 1
    fi
    if [ "$version_number" = "" ]; then
@@ -187,7 +186,7 @@ get_target_image_file_name() {
    fi
 
    [ -n "$vm_image_target_dir" ] vm_image_target_dir="/var/lib/libvirt/images"
-   [ -n "$vm_target_file_name" ] || vm_target_file_name="${target_domain_name}_${version_number}_${target_domain_type}.${vm_source_image_extension}"
+   [ -n "$vm_target_file_name" ] || vm_target_file_name="${source_domain_name}_${version_number}_${target_domain_type}.${vm_source_image_extension}"
    [ -n "$vm_target_image" ] || vm_target_image="$vm_image_target_dir/$vm_target_file_name"
 }
 
@@ -212,16 +211,16 @@ check_for_existing_domain() {
 copy_xml_file_to_temp_folder() {
    trap "error_handler" ERR
 
-   if [ "$xml_orig" = "" ]; then
+   if [ "$source_xml" = "" ]; then
       echo "${red}ERROR${reset}: xml file could not be detected! Aborted." >&2
       exit 1
    fi
-   if [ ! -f "$xml_orig" ]; then
-      echo "${red}ERROR${reset}: xml file $xml_orig does not exist! Aborted." >&2
+   if [ ! -f "$source_xml" ]; then
+      echo "${red}ERROR${reset}: xml file $source_xml does not exist! Aborted." >&2
       exit 1
    fi
 
-   cp "$xml_orig" "$tempfolder/temp.xml"
+   cp "$source_xml" "$temp_xml"
 }
 
 change_domain_type_in_target_xml() {
@@ -231,7 +230,7 @@ change_domain_type_in_target_xml() {
    temp="<domain type='kvm'>"
    new="<domain type='$target_domain_type'>"
 
-   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
+   sed -i "s/$temp/$new/g" "$temp_xml"
 }
 
 change_domain_name_in_target_xml() {
@@ -241,7 +240,7 @@ change_domain_name_in_target_xml() {
    temp="<name>$source_domain_name</name>"
    new="<name>$target_domain_name</name>"
 
-   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
+   sed -i "s/$temp/$new/g" "$temp_xml"
 }
 
 change_image_file_in_target_xml() {
@@ -251,7 +250,7 @@ change_image_file_in_target_xml() {
    temp="<source file='$vm_source_image'/>"
    new="<source file='$vm_target_image'/>"
 
-   sed -i "s/$temp/$new/g" "$tempfolder/temp.xml"
+   sed -i "s/$temp/$new/g" "$temp_xml"
 }
 
 import_domain() {
@@ -265,8 +264,10 @@ import_domain() {
       virsh net-autostart ./whonix_network.xml
    fi
 
+   [ -n "$temp_xml" ] || temp_xml="$tempfolder/temp.xml"
+
    ## Import VM.
-   virsh define "$tempfolder/temp.xml"
+   virsh define "$temp_xml"
 }
 
 check_for_existing_image() {
