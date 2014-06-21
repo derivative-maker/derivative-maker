@@ -140,3 +140,9 @@ Editing Already Imported Machine's XML:
 su
 
 EDITOR=nano virsh edit Whonix-Gateway
+
+
+Enabling SPICE
+
+SPICE allows accelerated graphics and clipboard sharing. 
+Install vdagent in guest and reboot. 
