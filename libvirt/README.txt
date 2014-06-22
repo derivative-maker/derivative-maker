@@ -2,7 +2,7 @@
 ## INTRODUCTION ##
 ##################
 
-This document is wirtten as a guide for setting up and tailoring Whonix for Linux libvirt. libvirt is a feature rich virtualization API that can enable you to set up the disk image to be used with other containment mechanisms provided on Linux. The ones we currently support are KVM, and qemu-system-x86_64.
+This document is written as a guide for setting up and tailoring Whonix for Linux libvirt. libvirt is a feature rich virtualization API that can enable you to set up the disk image to be used with other containment mechanisms provided on Linux. The ones we currently support are KVM, and qemu-system-x86_64.
 
 Please read instructions carefully, and heed the advice in the Security Warning section.
 
@@ -12,7 +12,7 @@ Please read instructions carefully, and heed the advice in the Security Warning 
 ## SECURITY WARNING ##
 ######################
 
-IMPORTANT: Before peforming an upgrade to your current Whonix setup, you are advised to shutdown any running Whonix instance currently attached to the internal virtual network named 'Whonix'. This is required to prevent cross contamination of the new machines you are importing, in the event that a powerful adversary has taken control over the ones currently in use.
+IMPORTANT: Before performing an upgrade to your current Whonix setup, you are advised to shutdown any running Whonix instance currently attached to the internal virtual network named 'Whonix'. This is required to prevent cross contamination of the new machines you are importing, in the event that a powerful adversary has taken control over the ones currently in use.
 
 Note: This is not required if you intend to create a new virtual network for the machines you are importing now.
 
@@ -70,14 +70,14 @@ virsh define Whonix-Workstation_kvm.xml
 
 The XML files are configured to point to the default storage location of: /var/lib/libvirt/images These steps will show how to move the images there in order for the machines to boot.
 
-Note: It is highly recommended you use this default path for storing the images to avoid any conflicts with Apparmor or SELinux, which will prevent the mahcines from booting.
+Note: It is highly recommended you use this default path for storing the images to avoid any conflicts with AppArmor or SELinux, which will prevent the machines from booting.
 
-sudo mv /$PATH/Whonix-Gateway/Whonix-Gateway_kvm.qcow2 /var/lib/libvirt/images
+sudo mv /$PATH/Whonix-Gateway/Whonix-Gateway.qcow2 /var/lib/libvirt/images
 
 
-Whonix disk images are sparse files, meaning they expand when filled rather than allocating their entire size, 100GB outright. These are known as sparse files and need special commands hen copying them to ensure they don't lose this property, leading them to occupy all the actual space. If copying to a priviledged location in the system run with higher priledges. Copying the image files by running:
+Whonix disk images are sparse files, meaning they expand when filled rather than allocating their entire size, 100GB outright. These are known as sparse files and need special commands hen copying them to ensure they don't lose this property, leading them to occupy all the actual space. If copying to a privileged location in the system run with higher privileges. Copying the image files by running:
 
-cp --sparse=always /$CURRENT-PATH/Whonix_Gateway.qcow2 /$NEW-PATH/Whonix_Gateway.qcow2
+cp --sparse=always /$CURRENT-PATH/Whonix-Gateway.qcow2 /$NEW-PATH/Whonix-Gateway.qcow2
 
 
 
@@ -100,7 +100,7 @@ KVM SHARED FOLDERS:
 
 The file sharing mode 'mapped' is just an example, using squash or passthrough is possible by selecting them from the drop down menu.
 
-Driver:Default
+Driver: Default
 Mode: Mapped
 
 Source Path: [This is the path of the folder on the Host you are sharing with the Guest]
@@ -119,16 +119,16 @@ Note: you replace the parentheses in the command, they are just a placeholder in
 
 3. To automatically mount this every time at boot, add the following to your guest's /etc/fstab:
 
-sudo nano /etc/fstab [mount tag] [mount point] 9p trans=virtio,version=9p2000.L,rw 0 0 
+sudo nano /etc/fstab [mount tag] [mount point] 9p trans=virtio,version=9p2000.L,rw 0 0
 
-Note: If your system is configured to use a Mandatory Access Control framework like Apparmor, you may need to configure an exception rule to allow the confined guests to communicate with the designated shared folder on the guest. Do NOT be tempted to disable Apparmor to get this working, as it removes a critical protection layer that protects your host. Be patient and read the documentation.
+Note: If your system is configured to use a Mandatory Access Control framework like AppArmor, you may need to configure an exception rule to allow the confined guests to communicate with the designated shared folder on the guest. Do NOT be tempted to disable AppArmor to get this working, as it removes a critical protection layer that protects your host. Be patient and read the documentation.
 By default Whonix can automount a shared folder on the host as long as you use set up virt-manager to use hostshare tag: shared
 If you are using commandline add this xml code to your configuration, this is an example and should be adapted for your usage:
 
-<filesystem type='mount' accessmode='mapped'> 
-    <source dir='/$PATH/shared'/> 
-    <target dir='tag'/> 
-</filesystem> 
+<filesystem type='mount' accessmode='mapped'>
+    <source dir='/$PATH/shared'/>
+    <target dir='tag'/>
+</filesystem>
 
 
 
@@ -142,7 +142,7 @@ EDITOR=nano virsh edit Whonix-Gateway
 
 ENABLING SPICE:
 
-SPICE allows accelerated graphics and clipboard sharing. 
+SPICE allows accelerated graphics and clipboard sharing.
 Install vdagent in Whonix Workstation and reboot:
 
 sudo apt-get install spice-vdagent
