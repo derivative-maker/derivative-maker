@@ -26,7 +26,7 @@ Modifying a machine's XML file gives more fine grained control over its settings
 
 cd /$PATH/Whonix-Gateway
 
-sudo nano Whonix-Gateway_kvm.xml
+nano Whonix-Gateway_kvm.xml
 
 You could always edit the XML files later too, if needed as shown in the EXTRA section.
 
