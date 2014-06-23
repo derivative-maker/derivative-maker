@@ -42,8 +42,6 @@ The supplied XML files serve as a description for libvirt, that tell it what pro
 
 cd /$PATH/Whonix-Gateway
 
-su
-
 virsh define Whonix-Gateway_kvm.xml
 
 
