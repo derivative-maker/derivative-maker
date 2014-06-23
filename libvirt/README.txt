@@ -140,9 +140,7 @@ EDITOR=nano virsh edit Whonix-Gateway
 
 
 
-ENABLING SPICE:
+ENABLING CLIPBOARD SHARING:
 
 SPICE allows accelerated graphics and clipboard sharing.
-Install vdagent in Whonix Workstation and reboot:
-
-sudo apt-get install spice-vdagent
+The clipboard is disabled by default but could be enabled in the xml for a machine by finding the option for it under the <graphics> section and changing it to'yes'.
