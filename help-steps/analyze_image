@@ -723,6 +723,22 @@ parse_special_files() {
 
    ## }}}
 
+   ## {{{ /var/cache/debconf
+
+   sudo -u "$user_name" mkdir --parents "$debug_folder/var_cache_debconf"
+
+   local file_name
+   shopt -s nullglob dotglob
+
+   for file_name in "$mount_folder/var/cache/debconf/"*; do
+      cp_to_user "$file_name" "$debug_folder/var_cache_debconf/"
+   done
+
+   unset file_name
+   shopt -u nullglob dotglob
+
+   ## }}}
+
    ## "|| true", because these files are expected to be deleted.
    ## Copying them out of the image for easier analysis just in case.
    cp_to_user "$mount_folder/var/cache/apt/pkgcache.bin" "$debug_folder/var_cache_apt_pkgcache.bin" || true
