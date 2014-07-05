@@ -39,12 +39,14 @@ error_handler_shared() {
       set +x
       output_command="true"
       benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-      read -p "\
+      if [ ! "$whonix_build_non_interactive" = "1" ]; then
+         read -p "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
+      fi
       if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
          ignore_error="true"
          interactive_chroot_shell="false"
@@ -60,12 +62,14 @@ Please have a look above \"error_handler_general\", note the command that failed
       ## -x was not set
       output_command="echo"
       benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-      read -p "\
+      if [ ! "$whonix_build_non_interactive" = "1" ]; then
+         read -p "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press s and enter to open an interactive chroot shell.
 - Please press enter to cleanup and exit. ${reset}" answer
+      fi
       if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
          ignore_error="true"
          interactive_chroot_shell="false"
@@ -106,16 +110,20 @@ ${red}${bold}ERROR in $last_script! $abort_or_continue!${reset}
    if [ "$ignore_error" = "true" ]; then
       if [ test -o xtrace = "0" ]; then
          set +x
-         read -p "
+         if [ ! "$whonix_build_non_interactive" = "1" ]; then
+            read -p "
 ${red}${bold}You have chosen to ignore this error. Your build may be unstable!
 This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}" answer
+         fi
          set -x
       else
-         read -p "
+         if [ ! "$whonix_build_non_interactive" = "1" ]; then
+            read -p "
 ${red}${bold}You have chosen to ignore this error. Your build may be unstable!
 This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}" answer
+         fi
       fi
    else
       exit 1
