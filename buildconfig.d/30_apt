@@ -19,6 +19,13 @@ if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
    if [ "$whonix_build_sources_list_newer" = "" ]; then
       whonix_build_sources_list_newer="build_sources/ubuntu_current.list"
    fi
+
+   if [ "$whonix_build_apt_stable_release" = "" ]; then
+      whonix_build_apt_stable_release="precise"
+   fi
+   if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
+      whonix_build_apt_newer_release_codename="utopic"
+   fi
 else
    ## Required for python-stem download.
    if [ "$whonix_build_sources_list_newer" = "" ]; then
@@ -39,39 +46,36 @@ else
       ## Frozen Debian stable repository.
       whonix_build_sources_list="build_sources/debian_stable_frozen.list"
    fi
+
+   if [ "$whonix_build_apt_stable_release" = "" ]; then
+      whonix_build_apt_stable_release="stable"
+   fi
+   if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
+      whonix_build_apt_newer_release_codename="testing"
+   fi
 fi
 
 ## Set which repository and release codename grml-debootstrap should use.
 ## (Build step: build-steps.d/1300_create-debian-raw)
 ## Only interested for VM builds. Not in use for physically isolated builds.
 if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-   if [ "$whonix_build_grml_sources_list" = "" ]; then
-      whonix_build_grml_sources_list="http://us.archive.ubuntu.com/ubuntu"
-   fi
-
-   ## Release Codename.
-   if [ "$whonix_build_grml_release" = "" ]; then
-      whonix_build_grml_release="utopic"
+   if [ "$whonix_build_apt_sources_mirror" = "" ]; then
+      whonix_build_apt_sources_mirror="http://us.archive.ubuntu.com/ubuntu"
    fi
 else
-   #if [ "$whonix_build_grml_sources_list" = "" ]; then
+   #if [ "$whonix_build_apt_sources_mirror" = "" ]; then
       ## Current repository.
-      #whonix_build_grml_sources_list="http://ftp.us.debian.org/debian"
+      #whonix_build_apt_sources_mirror="http://ftp.us.debian.org/debian"
    #fi
 
-   if [ "$whonix_build_grml_sources_list" = "" ]; then
+   if [ "$whonix_build_apt_sources_mirror" = "" ]; then
       ## Frozen repository.
-      #whonix_build_grml_sources_list="http://snapshot.debian.org/archive/debian/20140412T223206Z/"
-      whonix_build_grml_sources_list="$(grep -oP '(?<=deb ).*(?= stable )' "$whonix_build_sources_list")"
-      ## Example whonix_build_grml_sources_list:
+      #whonix_build_apt_sources_mirror="http://snapshot.debian.org/archive/debian/20140412T223206Z/"
+      whonix_build_apt_sources_mirror="$(grep -oP '(?<=deb ).*(?= stable )' "$whonix_build_sources_list")"
+      ## Example whonix_build_apt_sources_mirror:
       ## http://snapshot.debian.org/archive/debian/20140412T223206Z/
       ## Debugging:
-      #echo "whonix_build_grml_sources_list: XXX${whonix_build_grml_sources_list}XXX"
-   fi
-
-   if [ "$whonix_build_grml_release" = "" ]; then
-      ## Release Codename.
-      whonix_build_grml_release="stable"
+      #echo "whonix_build_apt_sources_mirror: XXX${whonix_build_apt_sources_mirror}XXX"
    fi
 fi
 
