@@ -22,7 +22,7 @@ Note: This is not required if you intend to create a new virtual network for the
 ## OPTIONAL STEPS ##
 #######################
 
-Modifying a machine's XML file gives more fine grained control over its settings than what is exposed through the virt-manager GUI. Unless you know what you are doing, editing configuration defaults are not recommended nor necessary.
+Modifying a machine's XML file gives more fine grained control over its settings than what is exposed through the virt-manager GUI. Unless you know what you are doing, editing configuration defaults is neither recommended nor necessary.
 
 cd /$PATH/Whonix-Gateway
 
