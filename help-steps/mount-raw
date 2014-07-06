@@ -9,7 +9,7 @@ set -x
 error_handler_mount-raw() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $0: | caller: $(caller)${reset}
+${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
 "
    exit 1
 }
@@ -75,11 +75,11 @@ mount_raw() {
 }
 
 if [ "$BARE_METAL" = "1" ]; then
-   true "${green}INFO: Skipping script, because BARE_METAL=1: $0${reset}"
+   true "${green}INFO: Skipping script, because BARE_METAL=1: $BASH_SOURCE${reset}"
    exit 0
 else
-   true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+   true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
    mount_raw
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
+   true "${bold}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi

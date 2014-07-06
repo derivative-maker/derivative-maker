@@ -9,7 +9,7 @@ set -x
 error_handler_chroot-raw() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $0: | caller: $(caller)${reset}
+${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
 "
    exit 1
 }
@@ -79,16 +79,16 @@ chroot-raw() {
    #mount -o remount,ro,noload "$CHROOT_FOLDER"/etc/resolv.conf
 
    if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
-      true "${cyan}INFO $0: Not mounting /etc/resolv.conf inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
+      true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
    else
       if [ "$BARE_METAL" = "1" ]; then
-         true "${cyan}INFO $0: BARE_METAL is $BARE_METAL, using .backup files as /etc/resolv.conf etc, ok.${reset}"
+         true "${cyan}INFO $BASH_SOURCE: BARE_METAL is $BARE_METAL, using .backup files as /etc/resolv.conf etc, ok.${reset}"
          mount --bind /etc/resolv.conf.backup "$CHROOT_FOLDER"/etc/resolv.conf
          mount --bind /etc/hosts.backup "$CHROOT_FOLDER"/etc/hosts
          mount --bind /etc/hostname.backup "$CHROOT_FOLDER"/etc/hostname
          mount --bind /etc/network/interfaces.backup "$CHROOT_FOLDER"/etc/network/interfaces
       else
-         true "${cyan}INFO $0: BARE_METAL is $BARE_METAL, NOT using .backup files as /etc/resolv.conf etc, ok.${reset}"
+         true "${cyan}INFO $BASH_SOURCE: BARE_METAL is $BARE_METAL, NOT using .backup files as /etc/resolv.conf etc, ok.${reset}"
          mount --bind /etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf
          mount --bind /etc/hosts "$CHROOT_FOLDER"/etc/hosts
          mount --bind /etc/hostname "$CHROOT_FOLDER"/etc/hostname
@@ -99,7 +99,7 @@ chroot-raw() {
    sync
 }
 
-true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
 chroot-raw
 benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
+true "${bold}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"

@@ -6,7 +6,7 @@
 
 set -x
 
-true "INFO: Currently running script: $0${1+"$@"}"
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -157,7 +157,7 @@ install-packages() {
 
    if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
       if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
-         error "${red}${bold}$0 ERROR: "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
+         error "${red}${bold}$BASH_SOURCE ERROR: "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
       fi
    fi
 
@@ -276,8 +276,8 @@ install-packages() {
    ## repositories anyway, but can't hurt. More useful for custom builders who
    ## prefer to build from Debians's current repository.)
    if [ "$CI" = "true" ]; then
-      true "INFO $0: skipping dist-upgrade, because CI detected."
-      true "INFO $0: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
+      true "INFO $BASH_SOURCE: skipping dist-upgrade, because CI detected."
+      true "INFO $BASH_SOURCE: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
    else
       $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
    fi
@@ -300,11 +300,11 @@ install-packages() {
    $CHROOT apt-cache policy debsums || true
 
    if [ "$whonix_build_script_whonix_package" = "" ]; then
-      true "${bold}${cyan}INFO $0: Variable whonix_build_script_whonix_package is empty. \
+      true "${bold}${cyan}INFO $BASH_SOURCE: Variable whonix_build_script_whonix_package is empty. \
 No packages will be excluded from installation. This information is relevant for builders using custom configurations, \
 skipping packages such as Terminal-Only.${reset}"
    else
-      true "${bold}${cyan}INFO $0: List of packages to be excluded from installation. This information is relevant for \
+      true "${bold}${cyan}INFO $BASH_SOURCE: List of packages to be excluded from installation. This information is relevant for \
 builders using custom configurations, skipping packages such as Terminal-Only. whonix_build_script_whonix_package: \
 $whonix_build_script_whonix_package${reset}"
    fi
@@ -382,7 +382,7 @@ $whonix_build_script_whonix_package${reset}"
    sync
 }
 
-true "${bold}${under}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
 install-packages
 benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}${under}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
+true "${bold}${under}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"

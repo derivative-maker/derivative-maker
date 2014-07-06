@@ -6,7 +6,7 @@
 
 set -x
 
-true "INFO: Currently running script: $0${1+"$@"}"
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -40,11 +40,11 @@ signing_key() {
    ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
    ## help-steps/variables.
    if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      true "${cyan}$0 INFO: Using ${under}auto local signing key method${eunder}... ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Using ${under}auto local signing key method${eunder}... ${reset}"
 
       ## Check, if we previously already created a local OpenPGP signing key.
       if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done" ]; then
-         true "${cyan}$0 INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
 
          sudo -E -u "$user_name" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
 
@@ -86,12 +86,12 @@ signing_key() {
 
          sudo -E -u "$user_name" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done"
 
-         true "${cyan}$0 INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
       else
-         true "${cyan}$0 INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
       fi
    else
-      true "${cyan}$0 INFO: Using ${under}custom signing key method${eunder}... ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Using ${under}custom signing key method${eunder}... ${reset}"
    fi
 
    if [ ! -d "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" ]; then
@@ -116,13 +116,13 @@ check_for_uncommited_changes() {
    trap "error_handler_general" ERR INT TERM
 
    if [ -n "$(git status --porcelain)" ]; then
-      true "${bold}${red}$0 ERROR: Git reports uncommitted changes! ${reset}"
-      true "${cyan}$0 INFO: Running \"git status\" for your convenience. ${reset}"
+      true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
       git status
-      true "${cyan}$0 INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
       git clean -d --force --force --dry-run
 
-      true "${cyan}$0 You most likely like to run:${reset}
+      true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
     "$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files"
 ${cyan}or if you know what you are doing:${reset}
     git clean -d --force --force
@@ -135,17 +135,17 @@ ${cyan}or if you know what you are doing:${reset}
 cleanup_old_packages() {
    trap "error_handler_general" ERR INT TERM
 
-   true "${cyan}$0 INFO: Cleaning old packages... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Cleaning old packages... ${reset}"
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files"
 
-   true "${cyan}$0 INFO: Cleaned old packages. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Cleaned old packages. ${reset}"
 }
 
 get_extra_packages() {
    trap "error_handler_general" ERR INT TERM
 
-   true "${cyan}$0 INFO: Getting extra packages... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Getting extra packages... ${reset}"
 
    rm --recursive --force "$WHONIX_BINARY/temp_extra_packages"
    sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_extra_packages"
@@ -187,13 +187,13 @@ get_extra_packages() {
    ## Implemented in help-steps/pre.
    disable_apt_cache
 
-   true "${cyan}$0 INFO: Got extra packages. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Got extra packages. ${reset}"
 }
 
 create_whonix_debian_packages() {
    trap "error_handler_general" ERR INT TERM
 
-   true "${cyan}$0 INFO: Creating Whonix Debian Packages... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
    ## --rootcmd as per https://wiki.debian.org/ReproducibleBuilds#How_to_build_a_deb_using_faketime
    ##
@@ -246,14 +246,14 @@ create_whonix_debian_packages() {
       fi
    done
 
-   true "${cyan}$0 INFO: Created Whonix Debian Packages. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Created Whonix Debian Packages. ${reset}"
 }
 
 create_whonix_repository() {
    trap "error_handler_general" ERR INT TERM
 
    if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
-      true "${cyan}$0 INFO: Purging ${under}local${eunder} APT repository... ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Purging ${under}local${eunder} APT repository... ${reset}"
 
       sudo -E -u "$user_name" \
          reprepro \
@@ -262,18 +262,18 @@ create_whonix_repository() {
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             removematched "$WHONIX_BUILD_APT_CODENAME" "*"
 
-      true "${cyan}$0 INFO: Done, purged ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Done, purged ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
    else
-      true "${cyan}$0 INFO: Not purging APT repository, because distribution is ${under}${WHONIX_BUILD_APT_CODENAME}${eunder}. ${reset}"
+      true "${cyan}$BASH_SOURCE INFO: Not purging APT repository, because distribution is ${under}${WHONIX_BUILD_APT_CODENAME}${eunder}. ${reset}"
    fi
 
-   true "${cyan}$0 INFO: Creating ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Creating ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
 
    shopt -s dotglob
    shopt -s nullglob
    local list file_name
 
-   #true "${cyan}$0 INFO: Importing .dsc file... ${reset}"
+   #true "${cyan}$BASH_SOURCE INFO: Importing .dsc file... ${reset}"
 
    #list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"*".dsc" | sort)"
 
@@ -286,9 +286,9 @@ create_whonix_repository() {
             #includedsc "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    #done
 
-   #true "${cyan}$0 INFO: Done, imported .dsc file. ${reset}"
+   #true "${cyan}$BASH_SOURCE INFO: Done, imported .dsc file. ${reset}"
 
-   true "${cyan}$0 INFO: Importing .changes file... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Importing .changes file... ${reset}"
 
    list="$(echo "$WHONIX_SOURCE_FOLDER/packages/"*".changes" | sort)"
 
@@ -302,9 +302,9 @@ create_whonix_repository() {
             include "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    done
 
-   true "${cyan}$0 INFO: Done, imported .changes file. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Done, imported .changes file. ${reset}"
 
-   true "${cyan}$0 INFO: Importing temp_extra_packages .deb files... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Importing temp_extra_packages .deb files... ${reset}"
 
    list="$(echo "$WHONIX_BINARY/temp_extra_packages/"*".deb" | sort)"
 
@@ -317,17 +317,17 @@ create_whonix_repository() {
             includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    done
 
-   true "${cyan}$0 INFO: Imported temp_extra_packages .deb files. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Imported temp_extra_packages .deb files. ${reset}"
 
    ## Debugging.
-   true "${cyan}$0 INFO: Displaying sha512sum of $WHONIX_APT_REPOSITORY_FOLDER/pool/**... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Displaying sha512sum of $WHONIX_APT_REPOSITORY_FOLDER/pool/**... ${reset}"
    shopt -s globstar
    ## "|| true", because "sha512sum" exits 1, because "sha512sum: [...]: Is a directory".
    sha512sum "$WHONIX_APT_REPOSITORY_FOLDER/pool/"** || true
    shopt -u globstar
-   true "${cyan}$0 INFO: Done, displayed sha512sums. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Done, displayed sha512sums. ${reset}"
 
-   true "${cyan}$0 INFO: Done, created ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Done, created ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
 }
 
 create-debian-packages() {
@@ -336,7 +336,7 @@ create-debian-packages() {
    cleanup_old_packages
    check_for_uncommited_changes
 
-   true "${cyan}$0 INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    sleep 3
 
    signing_key
@@ -345,7 +345,7 @@ create-debian-packages() {
    create_whonix_repository
 }
 
-true "${bold}${under}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
 create-debian-packages
 benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}${under}INFO: End of: $0 No error detected. (benchmark: $benchmark_took_time)${reset}"
+true "${bold}${under}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"
