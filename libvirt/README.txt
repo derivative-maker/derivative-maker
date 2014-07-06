@@ -38,14 +38,14 @@ You could always edit the XML files later too, if needed as shown in the EXTRA s
 
 The supplied XML files serve as a description for libvirt, that tell it what properties a Whonix machine and networking it should have.
 
-1. First we will start with Whonix Gateway:
+1. First we will start with Whonix-Gateway:
 
 cd /$PATH/Whonix-Gateway
 
 virsh define Whonix-Gateway_kvm.xml
 
 
-2. Followed by the Whonix isolated internal network (XML also in the same folder as Whonix Gateway):
+2. Followed by the Whonix isolated internal network (XML also in the same folder as Whonix-Gateway):
 
 virsh net-define Whonix_network.xml
 
@@ -54,7 +54,7 @@ virsh net-autostart Whonix
 virsh net-start Whonix
 
 
-3. Lastly the Whonix Workstation:
+3. Lastly the Whonix-Workstation:
 
 cd /$PATH/Whonix-Workstation
 
