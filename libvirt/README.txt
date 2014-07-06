@@ -132,9 +132,7 @@ If you are using commandline add this xml code to your configuration, this is an
 
 EDITING AN IMPORTED MACHINE'S XML CONFIGURATION:
 
-su
-
-EDITOR=nano virsh edit Whonix-Gateway
+EDITOR=nano sudo virsh edit Whonix-Gateway
 
 
 
