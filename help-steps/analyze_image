@@ -227,7 +227,7 @@ unmount_image() {
    true "${bold}${cyan}INFO: Unmounting raw image... ${reset}"
 
    ## WHONIX_BUILD_MOUNT_RAW_FILE us read by help-steps/mount-raw
-   export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file"
+   export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file_short_link"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
 
    #sync
@@ -246,6 +246,8 @@ unmount_image() {
       #true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
       #fusermount -u "$mount_folder"
    #fi
+
+   unlink "$raw_file_short_link" || true
 
    sync
 
@@ -283,6 +285,8 @@ preparation() {
       find
       sort
       stat
+      unlink
+      ln
    "
    for tool in $tools; do
       command -v "$tool" >/dev/null
@@ -364,6 +368,7 @@ preparation() {
    if [ "$raw_file" = "" ]; then
       raw_file="$raw_folder/$file_type_filename_without_extension.raw"
    fi
+   raw_file_short_link="$WHONIX_BINARY/temp_short_link.raw"
 
    vmdk_file_basename="$(basename "$vmdk_file")"
    vdi_file_basename="$(basename "$vdi_file")"
@@ -519,14 +524,19 @@ mount_image() {
 
    true "${bold}${cyan}INFO: Mounting raw image... ${reset}"
 
+   ## Workaround for a bug in kpartx, which fails to delete the loop device
+   ## when using very long file names.
+   unlink "$raw_file_short_link" || true
+   sudo -u "$user_name" ln -s "$raw_file" "$raw_file_short_link"
+
    ## WHONIX_BUILD_MOUNT_RAW_FILE us read by help-steps/mount-raw
-   export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file"
+   export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file_short_link"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw
 
    #sync
    ## Mounting read-only so the user or script can not accidentally delete
    ## files within the image.
-   #guestmount -o allow_other -a "$raw_file" -m /dev/sda1 --ro "$mount_folder"
+   #guestmount -o allow_other -a "$raw_file_short_link" -m /dev/sda1 --ro "$mount_folder"
    #sync
 
    true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
