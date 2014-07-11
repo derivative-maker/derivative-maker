@@ -22,18 +22,25 @@ bash -n "$BASH_SOURCE"
 ## }}
 
 ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
-## This does not work on drone.io systems.
-[ -n "$user_name" ] || user_name="$(logname)" || true
-export user_name
-
-## {{ drone.io specific workaround.
 if [ "$user_name" = "" ]; then
-   echo "INFO: SUDO_USER: $SUDO_USER"
-   user_name="$(whoami)"
-   export user_name
-   echo "INFO $BASH_SOURCE: Set user_name to $user_name using whoami."
+   if [ ! "$SUDO_USER" = "" ]; then
+      user_name="$SUDO_USER"
+   fi
+   if [ "$user_name" = "" ]; then
+      user_name="$(logname)" || true
+   fi
+   ## {{ drone.io specific workaround.
+   if [ "$user_name" = "" ]; then
+      echo "INFO: SUDO_USER: $SUDO_USER"
+      user_name="$(whoami)"
+      echo "INFO $BASH_SOURCE: Set user_name to $user_name using whoami."
+   fi
+   ## }}
+   if [ "$user_name" = "" ]; then
+      error "Variable user_name is empty."
+   fi
 fi
-## }}
+export user_name
 
 [ -n "$HOMEVAR" ] || HOMEVAR="/home/$user_name"
 export HOMEVAR
