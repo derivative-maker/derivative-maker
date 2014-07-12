@@ -345,7 +345,29 @@ create-debian-packages() {
    create_whonix_repository
 }
 
+parse_cmd() {
+   trap "error_handler_general" ERR INT TERM
+
+   while :
+   do
+       case $1 in
+           -tcw | --tor-custom-workstation | --torcustomworkstation)
+               WHONIX_BUILD_CUSTOM_WORKSTATION="1"
+               shift
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+}
+
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-create-debian-packages
+parse_cmd ${1+"$@"}
+if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+   true "${cyan}INFO: Skipping creation of packages for $VMNAME.${reset}"
+else
+   true "create-debian-packages"
+fi
 benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
 true "${bold}${under}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"

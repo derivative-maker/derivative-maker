@@ -17,7 +17,7 @@ cd help-steps
 source pre
 source variables
 
-create-debian-raw() {
+create-debian-raw-image() {
    trap "error_handler_general" ERR INT TERM
 
    mkdir --parents "$WHONIX_BINARY/"
@@ -112,11 +112,25 @@ create-debian-raw() {
    chown --recursive "$user_name:$user_name" "$WHONIX_BINARY/"
 }
 
+create-empty-raw-image() {
+   trap "error_handler_general" ERR INT TERM
+
+   qemu-img create -f raw "$binary_image_raw" "$VMSIZE"
+}
+
 if [ "$BARE_METAL" = "1" ]; then
    true "${green}INFO: Skipping $BASH_SOURCE, because BARE_METAL is set to 1.${reset}"
 else
    true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   create-debian-raw
+   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+      create-debian-raw-image
+   elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+      create-debian-raw-image
+   elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+      create-empty-raw-image
+   else
+      bug "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+   fi
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}${under}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"
 fi

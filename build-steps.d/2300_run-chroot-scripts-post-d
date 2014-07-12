@@ -64,6 +64,14 @@ Not running any chroot scripts.${reset}"
 }
 
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-run-chroot-scripts-post-d
+if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+   run-chroot-scripts-post-d
+elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+   run-chroot-scripts-post-d
+elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+   true "${cyan}INFO: Skipping running chroot-post.d scripts for $VMNAME.${reset}"
+else
+   bug "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+fi
 benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
 true "${bold}${under}INFO: End of: $BASH_SOURCE No error detected. (benchmark: $benchmark_took_time)${reset}"

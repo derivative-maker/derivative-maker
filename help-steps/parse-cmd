@@ -98,6 +98,8 @@ whonix_build_cmdoptions() {
       fi
    fi
 
+   build_machines="0"
+
    ## Using export, so scripts run by run-parts (run by whonix_build) can read
    ## these variables.
 
@@ -110,10 +112,17 @@ whonix_build_cmdoptions() {
                ;;
            -tg | --tor-gateway | --torgateway)
                export WHONIX_BUILD_GATEWAY="1"
+               build_machines="$(( $build_machines + 1 ))"
                shift
                ;;
            -tw | --tor-workstation | --torworkstation)
                export WHONIX_BUILD_WORKSTATION="1"
+               build_machines="$(( $build_machines + 1 ))"
+               shift
+               ;;
+           -tcw | --tor-custom-workstation | --torcustomworkstation)
+               export WHONIX_BUILD_CUSTOM_WORKSTATION="1"
+               build_machines="$(( $build_machines + 1 ))"
                shift
                ;;
            -bm | --baremetal | --bare-metal)
@@ -152,6 +161,7 @@ whonix_build_cmdoptions() {
                ;;
            -i  | --internalrun)
                export WHONIX_BUILD_INTERNALRUN="1"
+               build_machines="$(( $build_machines + 1 ))"
                shift
                ;;
            --vmram)
@@ -304,14 +314,16 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
       error "${red}${bold}You can not combine --all with --torworkstation. You must either use --all or --torworkstation.${reset}"
    fi
 
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ] && [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      error "${red}${bold}You can not combine --torgateway with --torworkstation. Use --all if that is what you want.${reset}"
+   if [ "$WHONIX_BUILD_ALL" = "1" ] && [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+      error "${red}${bold}You can not combine --all with --torcustomworkstation. You must either use --all or --torcustomworkstation.${reset}"
    fi
 
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ] || [ "$WHONIX_BUILD_WORKSTATION" = "1" ] || [ "$WHONIX_BUILD_ALL" = "1" ] || [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
-      true
-   else
-      error "${red}${bold}You must add --torgateway or --torworkstation or --all.${reset}"
+   if [ "$build_machines" -gt "1" ]; then
+      error "${red}${bold}You can not combine --torgateway, --torworkstation or --torcustomworkstation. Use --all if that is what you want.${reset}"
+   fi
+
+   if [ "$build_machines" -le "0" ]; then
+      error "${red}${bold}You must add --torgateway, --torworkstation, --torcustomworkstation or --all.${reset}"
    fi
 
    if [ "$BARE_METAL" = "1" ]; then
