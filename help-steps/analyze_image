@@ -258,7 +258,7 @@ preparation() {
    trap "error_handler" ERR INT TERM
 
    true "${cyan}INFO: user_name is set to $user_name ${reset}"
-   true '${cyan}INFO: Benchmarking "sudo -u "$user_name" echo "This is a test echo."" using "time"... ${reset}'
+   true "${cyan}INFO: Benchmarking \"sudo -u \"$user_name\" echo \"This is a test echo.\"\" using \"time\"... ${reset}"
    time sudo -u "$user_name" echo "This is a test echo."
 
    ## {{ Sanity Tests.
@@ -532,7 +532,9 @@ mount_image() {
 
    ## WHONIX_BUILD_MOUNT_RAW_FILE us read by help-steps/mount-raw
    export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file_short_link"
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw
+
+   mount_raw_exit_code="0"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw || { mount_raw_exit_code="$?" ; true; };
 
    #sync
    ## Mounting read-only so the user or script can not accidentally delete
@@ -540,7 +542,13 @@ mount_image() {
    #guestmount -o allow_other -a "$raw_file_short_link" -m /dev/sda1 --ro "$mount_folder"
    #sync
 
-   true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
+   else
+      msg="WARNING: Mounting of raw image failed. This is expected for Whonix-Custom-Workstation."
+      true "${bold}${red}${msg}${reset}"
+      echo "${msg}" >> "$report_file"
+   fi
 }
 
 parse_file_system() {
@@ -554,15 +562,15 @@ parse_file_system() {
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
    if [ "$vdi" = "1" ]; then
-      virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a"
+      virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a" 2>&1
    fi
    if [ "$qcow" = "1" ]; then
-      virt-filesystems -a "$qcow_file" > "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a"
+      virt-filesystems -a "$qcow_file" > "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a" 2>&1
    fi
    if [ "$qcow2" = "1" ]; then
-      virt-filesystems -a "$qcow2_file" > "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a"
+      virt-filesystems -a "$qcow2_file" > "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a" 2>&1
    fi
-   virt-filesystems -a "$raw_file" > "$auto_hash_folder/$raw_file_basename.virt-filesystems-a"
+   virt-filesystems -a "$raw_file" > "$auto_hash_folder/$raw_file_basename.virt-filesystems-a" 2>&1
 
    true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
 }
@@ -838,20 +846,22 @@ parse_folder() {
    local file_name
 
    true "${bold}${cyan}INFO: Parsing $sub_folder... ${reset}"
-   true "${cyan}This is a security feature. To learn more, read:
+   true "${cyan}${under}This will take a while.${eunder} This is a security feature. To learn more, read:
 https://www.whonix.org/wiki/Verifiable_Builds${reset}"
-   true "\
+
+   if [ "$disable_xtrace" = "1" ]; then
+      true "\
 ${cyan}INFO: \"set +x\", because output would be too verbose. Feel \
 free to comment this out.${reset}"
-   true "\
+      true "\
 ${cyan}INFO: To view the progress of this or to check if it hangs, \
 you could run:${reset}
 ps aux | grep sha512sum
 ${cyan}(several times in a row) in another terminal window or watch the log using:${reset}
 tail -f $report_file
 "
-
-   set +x
+      set +x
+   fi
 
    ## read: using "-d ''" for NUL-delimited output.
    while read -r -d '' file_name; do
@@ -943,7 +953,7 @@ Type_in_hex: %t" "$file_name" 2>&1)" \
          temp7="" IO_block_size="" \
          temp8="" Total_size_in_bytes="" \
          temp9="" Major_device_type_in_hex="" \
-         temp19="" Minor_device_type_in_hex="" \
+         temp10="" Minor_device_type_in_hex="" \
          temp11="" User_ID_of_owner="" \
          temp12="" Type_in_hex="" \
 
@@ -1179,8 +1189,6 @@ $endcomment"
 end() {
    trap "error_handler" ERR INT TERM
 
-   unmount_image
-
    true "${bold}${cyan}INFO: End. No error detected. ${reset}"
 }
 
@@ -1196,54 +1204,93 @@ parse_file_system
 parse_vbr
 parse_mbr
 
+## sets: mount_raw_exit_code
 mount_image
 
-parse_special_files
-parse_initrd
+if [ "$mount_image_return_code" = "0" ]; then
+   parse_special_files
+   parse_initrd
+fi
 
+## skip, because we expect these files to be non-deterministic.
+## Manual analysis required.
 skip="1"
 folder="$manual_analysis_folder"
 parse_folder
+skip="0"
 
-skip="1"
+if [ "$mount_image_return_code" = "0" ]; then
+   ## skip, because we expect the image to be non-deterministic.
+   skip="1"
+fi
 folder="$extracted_ova_folder"
 parse_folder
+skip="0"
 
-skip="1"
+if [ "$mount_image_return_code" = "0" ]; then
+   ## skip, because we expect the image to be non-deterministic.
+   skip="1"
+fi
 folder="$vdi_folder"
 parse_folder
+skip="0"
 
-skip="1"
+if [ "$mount_image_return_code" = "0" ]; then
+   ## skip, because we expect the image to be non-deterministic.
+   skip="1"
+fi
 folder="$qcow_folder"
 parse_folder
+skip="0"
 
-skip="1"
+if [ "$mount_image_return_code" = "0" ]; then
+   ## skip, because we expect the image to be non-deterministic.
+   skip="1"
+fi
 folder="$qcow2_folder"
 parse_folder
+skip="0"
 
-skip="1"
+if [ "$mount_image_return_code" = "0" ]; then
+   ## skip, because we expect the image to be non-deterministic.
+   skip="1"
+fi
 folder="$raw_folder"
 parse_folder
+skip="0"
 
 skip="0"
 folder="$auto_hash_folder"
 parse_folder
+skip="0"
 
-skip="1"
+skip="0"
 folder="$debug_folder"
 parse_folder
+skip="0"
 
-skip="1"
+skip="0"
 folder="$initrd_folder"
 parse_folder
+skip="0"
 
 skip="0"
 folder="$extracted_initrd_folder"
 parse_folder
-
 skip="0"
-folder="$mount_folder"
-parse_folder
+
+if [ "$mount_image_return_code" = "0" ]; then
+   disable_xtrace="1"
+   skip="0"
+   folder="$mount_folder"
+   parse_folder
+   skip="0"
+   disable_xtrace="0"
+fi
+
+if [ "$mount_image_return_code" = "0" ]; then
+   unmount_image
+fi
 
 parse_file_list_file
 
