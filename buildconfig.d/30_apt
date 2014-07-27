@@ -10,49 +10,23 @@
 ## The whonix_build_on_operating_system variable is provided by the help-steps/variables script,
 ## created using lsb_release.
 if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-   ## For Travis CI systems.
    if [ "$whonix_build_sources_list" = "" ]; then
+      ## For Travis CI systems.
       whonix_build_sources_list="build_sources/ubuntu_current.list"
    fi
-
-   ## Required for python-stem download.
    if [ "$whonix_build_sources_list_newer" = "" ]; then
+      ## Required for python-stem download.
       whonix_build_sources_list_newer="build_sources/ubuntu_newer.list"
    fi
-
-   if [ "$whonix_build_apt_stable_release" = "" ]; then
-      whonix_build_apt_stable_release="precise"
-   fi
-   if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
-      whonix_build_apt_newer_release_codename="utopic"
-   fi
 elif [ "$whonix_build_on_operating_system" = "debian" ]; then
-   ## Required for python-stem download.
    if [ "$whonix_build_sources_list_newer" = "" ]; then
+      ## Required for python-stem download.
       whonix_build_sources_list_newer="build_sources/debian_testing_frozen.list"
    fi
-
-   #if [ "$whonix_build_sources_list" = "" ]; then
-      ## Current Debian testing repository.
-      #whonix_build_sources_list="build_sources/debian_testing_current.list"
-   #fi
-
-   #if [ "$whonix_build_sources_list" = "" ]; then
-      ## Frozen Debian testing repository.
-      #whonix_build_sources_list="build_sources/debian_testing_frozen.list"
-   #fi
-
    if [ "$whonix_build_sources_list" = "" ]; then
       ## Frozen Debian stable repository.
       whonix_build_sources_list="build_sources/debian_stable_frozen.list"
    fi
-
-   if [ "$whonix_build_apt_stable_release" = "" ]; then
-      whonix_build_apt_stable_release="stable"
-   fi
-   if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
-      whonix_build_apt_newer_release_codename="testing"
-   fi
 else
    if [ ! "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
       ## TODO
@@ -60,34 +34,45 @@ else
    fi
 fi
 
-## Set which repository and release codename grml-debootstrap should use.
-## (Build step: build-steps.d/1300_create-debian-raw)
-## Only interested for VM builds. Not in use for physically isolated builds.
-if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-   if [ "$whonix_build_apt_sources_mirror" = "" ]; then
-      whonix_build_apt_sources_mirror="http://us.archive.ubuntu.com/ubuntu"
-   fi
-elif [ "$whonix_build_on_operating_system" = "debian" ]; then
-   #if [ "$whonix_build_apt_sources_mirror" = "" ]; then
-      ## Current repository.
-      #whonix_build_apt_sources_mirror="http://ftp.us.debian.org/debian"
-   #fi
-
-   if [ "$whonix_build_apt_sources_mirror" = "" ]; then
-      ## Frozen repository.
-      #whonix_build_apt_sources_mirror="http://snapshot.debian.org/archive/debian/20140412T223206Z/"
-      whonix_build_apt_sources_mirror="$(grep -oP '(?<=deb ).*(?= stable )' "$whonix_build_sources_list")"
-      ## Example whonix_build_apt_sources_mirror:
-      ## http://snapshot.debian.org/archive/debian/20140412T223206Z/
-      ## Debugging:
-      #echo "whonix_build_apt_sources_mirror: XXX${whonix_build_apt_sources_mirror}XXX"
-   fi
-else
-   if [ ! "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
-      ## TODO
-      error "Neither Debian nor Ubuntu detected."
-   fi
+if [ "$whonix_build_apt_stable_release" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   whonix_build_apt_stable_release="$distri_"
 fi
+
+if [ "$whonix_build_apt_sources_mirror" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   ## Set which repository and release codename grml-debootstrap should use.
+   ## (Build step: build-steps.d/1300_create-debian-raw)
+   ## Only interested for VM builds. Not in use for physically isolated builds.
+   whonix_build_apt_sources_mirror="$uri_"
+fi
+
+if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list_newer" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   whonix_build_apt_newer_release_codename="$distri_"
+fi
+
+## Example temp_:
+## deb http://snapshot.debian.org/archive/debian/20140727T221338Z/ stable main
+## Example deb_:
+## deb
+## Example uri_:
+## http://snapshot.debian.org/archive/debian/20140727T221338Z/
+## Example distri_:
+## stable
+## Example component_:
+## main
+
+## Debugging.
+echo "\
+whonix_build_sources_list              : $whonix_build_sources_list
+whonix_build_sources_list_newer        : $whonix_build_sources_list_newer
+whonix_build_apt_stable_release        : $whonix_build_apt_stable_release
+whonix_build_apt_sources_mirror        : $whonix_build_apt_sources_mirror
+whonix_build_apt_newer_release_codename: $whonix_build_apt_newer_release_codename"
 
 ## }}
 
