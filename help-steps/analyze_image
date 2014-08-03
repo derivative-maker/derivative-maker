@@ -86,8 +86,8 @@ parse_cmd() {
    qcow="0"
    qcow2="0"
    raw="0"
-   if [ "$BARE_METAL" = "" ]; then
-      BARE_METAL="0"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "" ]; then
+      ANON_BUILD_INSTALL_TO_ROOT="0"
    fi
 
    while :
@@ -137,7 +137,7 @@ parse_cmd() {
                shift 2
                ;;
            -bm | --bare-metal)
-               BARE_METAL="1"
+               ANON_BUILD_INSTALL_TO_ROOT="1"
                shift
                ;;
            -r | --report)
@@ -219,8 +219,8 @@ exit_code: $exit_code"
 trap "error_handler" ERR INT TERM
 
 unmount_image() {
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -297,7 +297,7 @@ preparation() {
    if [ "$CI" = "true" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
-   elif [ "$BARE_METAL" = "1" ]; then
+   elif [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
    else
@@ -333,7 +333,7 @@ preparation() {
 
    ## Using export, because mount_folder gets read by help-steps/mount-raw and
    ## help-steps/unmount-raw.
-   if [ "$BARE_METAL" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       export mount_folder=""
    else
       export mount_folder="$tempfolder/mount_folder"
@@ -415,8 +415,8 @@ extract_ova() {
       return 0
    fi
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -443,8 +443,8 @@ convert_vmdk_to_vdi() {
       return 0
    fi
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -478,8 +478,8 @@ convert_vmdk_to_vdi() {
 convert_x_to_raw() {
    trap "error_handler" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -517,8 +517,8 @@ convert_x_to_raw() {
 mount_image() {
    trap "error_handler" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -554,8 +554,8 @@ mount_image() {
 parse_file_system() {
    trap "error_handler" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -578,8 +578,8 @@ parse_file_system() {
 parse_mbr() {
    trap "error_handler" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -609,8 +609,8 @@ parse_mbr() {
 parse_vbr() {
    trap "error_handler" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because BARE_METAL is 1. ${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
 
@@ -909,7 +909,7 @@ tail -f $report_file
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
             echo "$msg" >> "$report_file"
-            if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
+            if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
                continue
@@ -1106,7 +1106,7 @@ $temp12 $Type_in_hex\
       fi
 
       local maybe_timeout
-      if [ "$CI" = "true" ] || [ "$BARE_METAL" = "1" ]; then
+      if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
             ## For example "sudo sha512sum /dev/tty1" would run forever.
             maybe_timeout="timeout --kill-after=1 1"

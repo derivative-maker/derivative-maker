@@ -26,8 +26,8 @@ unset whonix_build_on_operating_system_detect_skip
 check-virtualbox-vm-exists() {
    trap "error_handler_general" ERR INT TERM
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "${cyan}INFO: BARE_METAL is set to $BARE_METAL, skipping check if a \
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, skipping check if a \
 VirtualBox VM named $VMNAME already exists, ok.${reset}"
       return 0
    fi
@@ -94,7 +94,7 @@ prepare-build-machine() {
    do
        case $1 in
            -bm | --baremetal | --bare-metal)
-               export BARE_METAL="1"
+               export ANON_BUILD_INSTALL_TO_ROOT="1"
                shift
                ;;
            -f1 | --fast1)
@@ -321,7 +321,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## }}}
 
-   if [ "$BARE_METAL" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ###########################################
       ## Build Dependency for Bare Metal Builds #
       ###########################################
@@ -426,7 +426,7 @@ a linux kernel.)"
    ## Installing newer grml-debootstrap, because it contains the locales fix.
    ## This snippet can be removed in Debain jessie.
 
-   if [ "$BARE_METAL" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true
    else
       grml_debootstrap_version="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"
@@ -506,8 +506,8 @@ a linux kernel.)"
 
    ## }}}
 
-   if [ "$BARE_METAL" = "1" ]; then
-      true "INFO: Skip running update-guestfs-appliance, because BARE_METAL is set to 1, ok."
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "INFO: Skip running update-guestfs-appliance, because ANON_BUILD_INSTALL_TO_ROOT is set to 1, ok."
    else
       ## See if status file, which tells us whether we have already done this or
       ## not already exists.
