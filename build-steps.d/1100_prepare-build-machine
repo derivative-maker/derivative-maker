@@ -428,14 +428,15 @@ a linux kernel.)"
    ## This snippet can be removed in Debain jessie.
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true
+      true "INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, install of grml-debootstrap not required, ok."
    else
       grml_debootstrap_version="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"
       local dpkg_exit_code="0"
       dpkg --compare-versions "$grml_debootstrap_version" ge "0.61" || { dpkg_exit_code="$?" ; true; };
       if [ "$dpkg_exit_code" = "0" ]; then
-         true
+         true "INFO: grml-debootstrap version equal or higher 0.61 already installed, ok."
       else
+         true "INFO: grml-debootstrap version equal or higher 0.61 install required, ok."
          local install_from_testing_required="1"
       fi
    fi
@@ -448,8 +449,9 @@ a linux kernel.)"
    local dpkg_exit_code="0"
    dpkg --compare-versions "$sleuthkit_version" ge "4.1.3" || { dpkg_exit_code="$?" ; true; };
    if [ "$dpkg_exit_code" = "0" ]; then
-      true
+      true "INFO: sleuthkit version equal or higher 4.1.3 already installed, ok."
    else
+      true "INFO: sleuthkit version equal or higher 4.1.3 install required, ok."
       local install_from_testing_required="1"
    fi
 
@@ -459,9 +461,9 @@ a linux kernel.)"
    ## (Build Dependency for Whonix Build Script for creating .deb packages.)
    if [ ! -d "/usr/share/doc/config-package-dev/examples/debhelper/" ]; then
       local install_from_testing_required="1"
-      true "INFO: config_package_dev install required, ok."
+      true "INFO: config_package_dev with debhelper support install required, ok."
    else
-      true "INFO: config-package-dev already installed, ok."
+      true "INFO: config-package-dev with debhelper support already installed, ok."
    fi
 
    if [ "$install_from_testing_required" = "1" ]; then
