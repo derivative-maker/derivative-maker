@@ -112,27 +112,14 @@ ${red}${bold}ERROR in $last_script! $abort_or_continue!${reset}
 ############################################################
 "
    if [ "$ignore_error" = "true" ]; then
-      if [ test -o xtrace = "0" ]; then
-         ## -x was set.
-         set +x
-         if [ ! "$whonix_build_non_interactive" = "1" ]; then
-            read -p "
-${red}${bold}You have chosen to ignore this error. Your build may be unstable!
+      if [ ! "$whonix_build_non_interactive" = "1" ]; then
+         true "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
 This is recommended against unless you know what you are doing. Do not report
-bugs, that are a result of this! Please press enter to continue. ${reset}" answer
-         else
-            echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
-         fi
-         set -x
+bugs, that are a result of this! Please press enter to continue. ${reset}"
+         sleep "2" &
+         wait "$!"
       else
-         if [ ! "$whonix_build_non_interactive" = "1" ]; then
-            read -p "
-${red}${bold}You have chosen to ignore this error. Your build may be unstable!
-This is recommended against unless you know what you are doing. Do not report
-bugs, that are a result of this! Please press enter to continue. ${reset}" answer
-         else
-            echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
-         fi
+         true "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
       fi
    else
       exit 1
