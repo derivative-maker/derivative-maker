@@ -47,6 +47,8 @@ create-debian-raw-image() {
 
    ## Using export, so grml-debootstrap can read it.
 
+   export DEBUG="true"
+
    export DPKG_OPTIONS="$apt_timeout_opts $apt_verify_opts"
 
    ## Not using grml-debootstrap to install a kernel. A chroot-post.d script
@@ -101,21 +103,22 @@ create-debian-raw-image() {
    ## Implemented in help-steps/pre.
    maybe_enable_apt_cache
 
-   grml-debootstrap \
-      --debopt "--verbose" \
-      --arch "$BUILD_TARGET_ARCH" \
-      --filesystem ext4 \
-      --force \
-      --hostname host \
-      --password changeme \
-      --release "$whonix_build_apt_stable_release" \
-      --keep_src_list \
-      --verbose \
-      --vmfile \
-      --vmsize "$VMSIZE" \
-      --packages "$WHONIX_SOURCE_FOLDER/grml_packages" \
-      --target "$binary_image_raw" \
-      --mirror "$whonix_build_apt_sources_mirror"
+   bash -x \
+      grml-debootstrap \
+         --debopt "--verbose" \
+         --arch "$BUILD_TARGET_ARCH" \
+         --filesystem ext4 \
+         --force \
+         --hostname host \
+         --password changeme \
+         --release "$whonix_build_apt_stable_release" \
+         --keep_src_list \
+         --verbose \
+         --vmfile \
+         --vmsize "$VMSIZE" \
+         --packages "$WHONIX_SOURCE_FOLDER/grml_packages" \
+         --target "$binary_image_raw" \
+         --mirror "$whonix_build_apt_sources_mirror"
 
    ## Implemented in help-steps/pre.
    disable_apt_cache
