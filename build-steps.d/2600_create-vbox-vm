@@ -26,16 +26,22 @@ general_setup() {
    ## Debian
    sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ostype Debian
 
-   ## Add SATA Controller.
-   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME"
+   ## Add SAS Controller for hdd.
+   ## Not using SATA for hdd:
+   ## - https://github.com/Whonix/Whonix/issues/274
+   ## - https://www.virtualbox.org/ticket/10031
+   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sas --name "$VMNAME-sas"
 
    ## HDD gets added in specific_setup.
 
-   ## Only 4 sata ports instead of 30. Speeds up booting.
-   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --name "$VMNAME" --sataportcount 4
+   ## Add SATA Controller for DVD.
+   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
 
-   ## Add CD-ROM
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type dvddrive --port 1 --medium emptydrive
+   ## Only 4 sata ports instead of 30. Speeds up booting.
+   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --sataportcount 4
+
+   ## Add DVD.
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
 
    ## RAM
    sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
@@ -105,7 +111,7 @@ whonix-gateway_specific() {
    trap "error_handler_general" ERR INT TERM
 
    ## Attach the HDD.
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## 8 MB Video RAM.
    ## Settings->Display->Video Memory->8 MB.
@@ -140,7 +146,7 @@ whonix-workstation_specific() {
    trap "error_handler_general" ERR INT TERM
 
    ## Attach the HDD.
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## 128 MB Video RAM.
    ## Settings->Display->Video Memory->128 MB.
