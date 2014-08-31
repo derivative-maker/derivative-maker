@@ -47,32 +47,32 @@ create-debian-raw-image() {
 
    ## Using export, so grml-debootstrap can read it.
 
-   export DEBUG="true"
+   [ -n "$DEBUG" ] || export DEBUG="true"
 
    ## https://github.com/grml/grml-debootstrap/issues/22
    ## https://github.com/grml/grml-debootstrap/pull/31
-   export REPORT_TRAP_ERR="yes"
-   export FAIL_TRAP_ERR="yes"
+   [ -n "$REPORT_TRAP_ERR" ] || export REPORT_TRAP_ERR="yes"
+   [ -n "$FAIL_TRAP_ERR" ] || export FAIL_TRAP_ERR="yes"
 
-   export DPKG_OPTIONS="$apt_timeout_opts $apt_verify_opts"
+   [ -n "$DPKG_OPTIONS" ] || export DPKG_OPTIONS="$apt_timeout_opts $apt_verify_opts"
 
    ## Not using grml-debootstrap to install a kernel. A chroot-post.d script
    ## will take care of that.
-   export KERNEL="none"
+   [ -n "$KERNEL" ] || export KERNEL="none"
 
    ## Do not install non-Free software.
-   export COMPONENTS='main'
+   [ -n "$COMPONENTS" ] || export COMPONENTS='main'
 
    ## Integrity test.
-   export FSCK='yes'
+   [ -n "$FSCK" ] || export FSCK='yes'
 
    ## Set time zone to UTC. Not that important, we will install our own
    ## /etc/timezone file later anyway. Just in case.
-   export TIMEZONE='UTC'
+   [ -n "$TIMEZONE" ] || export TIMEZONE='UTC'
 
    ## Do not clean APT cache after installation is finished to safe time. We do
    ## this later in a chroot-post.d script.
-   export RM_APTCACHE='no'
+   [ -n "$RM_APTCACHE" ] || export RM_APTCACHE='no'
 
    ## We do not need to upgrade the image, because when we create an image,
    ## we end up with the most current versions from the repository we are using
@@ -85,21 +85,21 @@ create-debian-raw-image() {
    ## buildconfig-d/30_apt.) https://github.com/grml/grml-debootstrap/issues/8
    ## Even if we wanted to upgrade the system, we'd be better off using our own
    ## build-step for that.
-   export UPGRADE_SYSTEM='no'
+   [ -n "$UPGRADE_SYSTEM" ] || export UPGRADE_SYSTEM='no'
 
    ## Use fixed disk identifier. For verifiable builds.
    ## grml-debootstrap sets it to:
    ## 26ada0c0-1165-4098-884d-aafd2220c2c6
-   export FIXED_DISK_IDENTIFIERS='yes'
+   [ -n "$FIXED_DISK_IDENTIFIERS" ] || export FIXED_DISK_IDENTIFIERS='yes'
 
    ## We later install a kernel ourselves.
-   export NOKERNEL="true"
+   [ -n "$NOKERNEL" ] || export NOKERNEL="true"
 
    ## We later install /etc/network/interfaces ourselves.
-   export NOINTERFACES="true"
+   [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
    ## Verbose output.
-   #export DEBUG="true"
+   #[ -n "$DEBUG" ] || export DEBUG="true"
 
    ## See also /etc/debootstrap/config or
    ## https://github.com/grml/grml-debootstrap/blob/master/config to learn
