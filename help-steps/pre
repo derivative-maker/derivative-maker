@@ -29,60 +29,26 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 error_handler_shared() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
-   ## test -o xtrace
-   ## exits:
-   ## - 0, if -x is set
-   ## - 1, if -x is not set
-   if [ test -o xtrace = "0" ]; then
-      ## -x was set
-      ## Temporarily set +x, to prevent duplicate output of following read -p.
-      set +x
-      output_command="true"
-      benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-      if [ ! "$whonix_build_non_interactive" = "1" ]; then
-         read -p "\
+   output_command="true"
+   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+   if [ ! "$whonix_build_non_interactive" = "1" ]; then
+      read -p "\
 ${red}${bold}ERROR in $BASH_SOURCE detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_failed_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
-      else
-         echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
-      fi
-      if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
-         ignore_error="true"
-         interactive_chroot_shell="false"
-      elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
-         interactive_chroot_shell="true"
-      else
-         ignore_error="false"
-         interactive_chroot_shell="false"
-      fi
-      ## Re-enable set -x.
-      set -x
    else
-      ## -x was not set
-      output_command="echo"
-      benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-      if [ ! "$whonix_build_non_interactive" = "1" ]; then
-         read -p "\
-${red}${bold}ERROR in $BASH_SOURCE detected!
-Please have a look above \"error_handler_general\", note the command that failed, its output and last_failed_exit_code.
-- Please enter c and press enter to ignore the error and continue building. (Recommended against!)
-- Please press s and enter to open an interactive chroot shell.
-- Please press enter to cleanup and exit. ${reset}" answer
-      else
-         echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
-      fi
-      if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
-         ignore_error="true"
-         interactive_chroot_shell="false"
-      elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
-         interactive_chroot_shell="true"
-      else
-         ignore_error="false"
-         interactive_chroot_shell="false"
-      fi
+      echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
+   fi
+   if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
+      ignore_error="true"
+      interactive_chroot_shell="false"
+   elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
+      interactive_chroot_shell="true"
+   else
+      ignore_error="false"
+      interactive_chroot_shell="false"
    fi
    if [ "$interactive_chroot_shell" = "true" ]; then
       error_handler_shell
