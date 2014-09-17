@@ -27,6 +27,19 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 }
 
 error_handler_retry() {
+   if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
+      true "${cyan}${bold}INFO: dispatch before retry (--dispatch-before-retry)...: $whonix_build_dispatch_before_retry ${reset}"
+      eval $whonix_build_dispatch_before_retry
+      whonix_build_dispatch_before_retry_exit_code="$?"
+      if [ "$whonix_build_dispatch_before_retry_exit_code" = "0" ]; then
+         true "${cyan}${bold}INFO: dispatch before retry (--dispatch-after-retry) exit code was 0, ok. ${reset}"
+      else
+         true "${red}${bold}INFO: dispatch before retry (--dispatch-before-retry) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
+      fi
+   else
+      true "INFO: Skipping whonix_build_dispatch_before_retry (--dispatch-before-retry), because empty, ok."
+   fi
+
    true "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
    eval $last_failed_bash_command
    retry_last_failed_bash_command_exit_code="$?"
@@ -37,6 +50,24 @@ error_handler_retry() {
       true "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
       last_failed_bash_command="$last_failed_bash_command"
+   fi
+
+   if [ ! "$whonix_build_dispatch_after_retry" = "" ]; then
+      true "${cyan}${bold}INFO: dispatch after retry (--dispatch-after-retry)...: $whonix_build_dispatch_after_retry ${reset}"
+      eval $whonix_build_dispatch_after_retry
+      whonix_build_dispatch_after_retry_exit_code="$?"
+      if [ "$whonix_build_dispatch_after_retry_exit_code" = "0" ]; then
+         true "${cyan}${bold}INFO: dispatch after retry (--dispatch-after-retry) exit code was 0, ok. ${reset}"
+      else
+         true "${red}${bold}INFO: dispatch after retry (--dispatch-after-retry) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
+      fi
+   else
+      true "INFO: Skipping whonix_build_dispatch_after_retry (--dispatch-after-retry), because empty, ok."
+   fi
+
+   if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
+      return 0
+   else
       error_handler_shared_process
    fi
 }
