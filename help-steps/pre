@@ -32,6 +32,7 @@ error_handler_retry() {
    retry_last_failed_bash_command_exit_code="$?"
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       true "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
+      unset whonix_build_auto_retry_counter
    else
       true "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
@@ -60,6 +61,30 @@ ${red}${bold}caller: $last_caller${reset}
 ${red}${bold}ERROR in $last_script!${reset}
 ############################################################
 "
+   if [ ! "$whonix_build_auto_retry" = "0" ]; then
+      if [ "$whonix_build_auto_retry_counter" = "" ]; then
+         whonix_build_auto_retry_counter="1"
+      fi
+      [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
+      [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
+      if [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
+         true "${cyan}${bold}INFO: Auto retried (--auto-retry) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
+      else
+         true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--auto-retry). Auto retry... ${reset}"
+         whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
+         if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
+            true "${cyan}${bold}INFO: Waiting (--wait-auto-retry) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
+            sleep "$whonix_build_wait_auto_retry" &
+         fi
+         wait "$!"
+         ignore_error="true"
+         error_handler_do_retry="true"
+         error_handler_retry
+         return 0
+      fi
+   fi
+   unset whonix_build_auto_retry_counter
+
    if [ ! "$whonix_build_non_interactive" = "1" ]; then
       read -p "\
 ${red}${bold}ERROR in $BASH_SOURCE detected!
