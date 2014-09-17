@@ -10,56 +10,90 @@ set +x
 set -o pipefail
 
 error_handler_shell() {
-   $output_command "${cyan}${bold}INFO: Opening interactive shell...${reset}"
-   $output_command "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
+   true "${cyan}${bold}INFO: Opening interactive shell...${reset}"
+   true "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
 continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
    interactive_chroot_shell_bash_exit_code="0"
    $CHROOT /bin/bash || { interactive_chroot_shell_bash_exit_code="${PIPESTATUS[0]}" ; true; };
    if [ "$interactive_chroot_shell_bash_exit_code" = "0" ]; then
-      $output_command "${cyan}${bold}INFO: Interactive shell termited with \
+      true "${cyan}${bold}INFO: Interactive shell termited with \
 exit code $interactive_chroot_shell_bash_exit_code, will ignore this error and continue...${reset}"
       ignore_error="true"
    else
-      $output_command "${cyan}${bold}INFO: Interactive shell termited with \
+      true "${cyan}${bold}INFO: Interactive shell termited with \
 exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requested...${reset}"
       ignore_error="false"
+   fi
+}
+
+error_handler_retry() {
+   true "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
+   eval $last_failed_bash_command
+   retry_last_failed_bash_command_exit_code="$?"
+   if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
+      true "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
+   else
+      true "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
+      last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
+      last_failed_bash_command="$last_failed_bash_command"
+      error_handler_shared_process
    fi
 }
 
 error_handler_shared() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
-   output_command="true"
+   error_handler_shared_process
+}
+
+error_handler_shared_process() {
+   last_caller="$(caller)"
+   last_script="$BASH_SOURCE"
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+   true "
+############################################################
+${red}${bold}ERROR in $last_script detected!${reset}
+(benchmark: $benchmark_took_time)
+${red}${bold}last_failed_bash_command${reset}: $last_failed_bash_command
+${red}${bold}last_failed_exit_code${reset}: $last_failed_exit_code
+${red}${bold}caller: $last_caller${reset}
+${red}${bold}ERROR in $last_script!${reset}
+############################################################
+"
    if [ ! "$whonix_build_non_interactive" = "1" ]; then
       read -p "\
 ${red}${bold}ERROR in $BASH_SOURCE detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_failed_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
+- Please press r and enter to retry.
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
    else
       echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
    fi
+   ignore_error=""
+   error_handler_do_retry=""
    if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
       ignore_error="true"
       interactive_chroot_shell="false"
    elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
       interactive_chroot_shell="true"
+      error_handler_shell
+   elif [ "$answer" = "r" ] || [ "$answer" = "retry" ]; then
+      ignore_error="true"
+      error_handler_do_retry="true"
+      error_handler_retry
    else
       ignore_error="false"
       interactive_chroot_shell="false"
    fi
-   if [ "$interactive_chroot_shell" = "true" ]; then
-      error_handler_shell
-   fi
-   last_caller="$(caller)"
-   last_script="$BASH_SOURCE"
 }
 
 error_handler_exit() {
    if [ "$ignore_error" = "true" ]; then
       abort_or_continue="Continue"
+   elif [ "$error_handler_do_retry" = "true" ]; then
+      return 0
    else
       abort_or_continue="Aborted"
       ## Removing temporary debian testing (jessie) repository.
@@ -67,16 +101,6 @@ error_handler_exit() {
       ## Remove lockfile for whonixcheck.
       rm --force "/var/run/package_manager_lock"
    fi
-   $output_command "
-############################################################
-${red}${bold}ERROR in $last_script detected! $abort_or_continue!${reset}
-(benchmark: $benchmark_took_time)
-${red}${bold}last_failed_bash_command${reset}: $last_failed_bash_command
-${red}${bold}last_failed_exit_code${reset}: $last_failed_exit_code
-${red}${bold}caller: $last_caller${reset}
-${red}${bold}ERROR in $last_script! $abort_or_continue!${reset}
-############################################################
-"
    if [ "$ignore_error" = "true" ]; then
       if [ ! "$whonix_build_non_interactive" = "1" ]; then
          true "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
