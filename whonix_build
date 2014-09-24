@@ -5,10 +5,9 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 set -o pipefail
 
-error_handler_build-machine() {
+build_all_error_handler() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
@@ -16,114 +15,75 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-MY_PARENTDIR="$(dirname "$MYDIR")"
+trap "build_all_error_handler" ERR
 
-cd "$MYDIR"
-
-source ./help-steps/pre
-
-export WHONIX_BUILD_MAIN_SCRIPT_STARTED="1"
-
-whonix_build_preparation() {
-   trap "error_handler_general" ERR
-
-   cd help-steps
-
-   source parse-cmd
-   whonix_build_cmdoptions ${1+"$@"}
-   export WHONIX_BUILD_PARSED="1"
-
-   source pre
-
-   cd ..
+defaults() {
+   trap "build_all_error_handler" ERR
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: Setting defaults (only for prettier output below)."
+   WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="false"
+   WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="false"
+   WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="false"
 }
 
-whonix_build_machine() {
-   trap "error_handler_build-machine" ERR
-
-   run-parts --verbose --test ./build-steps.d
-   run-parts --verbose --exit-on-error ./build-steps.d
+parse_cmd() {
+   trap "build_all_error_handler" ERR
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments..."
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: \${1+\"\$@\"}: ${1+"$@"}"
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+   while :
+   do
+       case $1 in
+           -tg | --tor-gateway | --torgateway)
+               WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
+               shift
+               ;;
+           -tw | --tor-workstation | --torworkstation)
+               WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
+               shift
+               ;;
+           -tcw | --tor-custom-workstation | --torcustomworkstation)
+               WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
+               shift
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               error "${red}${bold}unknown option: $1${reset}"
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+   true "INFO $BASH_SOURCE $FUNCNAME: \$@: $@"
+   build_args="$@"
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments done."
 }
 
-whonix_build_clean() {
-   trap "error_handler_general" ERR
-
-   ## Fallback
-   cleaned_up="false"
-
-   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-      cleaned_up="true"
-      ./help-steps/delete-vbox-vm
+build() {
+   trap "build_all_error_handler" ERR
+   true "INFO $BASH_SOURCE $FUNCNAME: build_args: $build_args"
+   true "INFO $BASH_SOURCE $FUNCNAME: Build overview.
+WHONIX_MAIN_SCRIPT_BUILD_GATEWAY: $WHONIX_MAIN_SCRIPT_BUILD_GATEWAY
+WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION
+WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION"
+   if [ "$WHONIX_MAIN_SCRIPT_BUILD_GATEWAY" = "true" ]; then
+      ./help-steps/whonix_build_one --tor-gateway $build_args
    fi
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      error "${red}${bold}For --install-to-root builds, --clean is not implemented.${reset}"
+   if [ "$WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION" = "true" ]; then
+      ./help-steps/whonix_build_one --tor-workstation $build_args
    fi
-   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
-      error "${red}${bold}For --qcow2 builds, --clean is not implemented yet.${reset}"
+   if [ "$WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION" = "true" ]; then
+      ./help-steps/whonix_build_one --tor-custom-workstation $build_args
    fi
-
-   if [ "$cleaned_up" = "false" ]; then
-      error "${red}${bold}You must choose --install-to-root, --virtualbox or --qcow2.${reset}"
-   fi
+   true "INFO $BASH_SOURCE $FUNCNAME: Done."
 }
 
-whonix_build_preparation ${1+"$@"}
-
-if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
-   if [ "$WHONIX_BUILD_ALL" = "1" ]; then
-
-      WHONIX_BUILD_GATEWAY="1"
-      WHONIX_BUILD_WORKSTATION="0"
-      whonix_build_clean
-
-      WHONIX_BUILD_GATEWAY="0"
-      WHONIX_BUILD_WORKSTATION="1"
-      whonix_build_clean
-
-      exit 0
-   fi
-
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      whonix_build_clean
-      exit 0
-   fi
-
-   if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      whonix_build_clean
-      exit 0
-   fi
-
-   if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-      whonix_build_clean
-      exit 0
-   fi
-elif [ "$WHONIX_BUILD_BUILD" = "1" ]; then
-   if [ "$WHONIX_BUILD_ALL" = "1" ]; then
-
-      WHONIX_BUILD_GATEWAY="1"
-      WHONIX_BUILD_WORKSTATION="0"
-      whonix_build_machine
-
-      WHONIX_BUILD_GATEWAY="0"
-      WHONIX_BUILD_WORKSTATION="1"
-      whonix_build_machine
-   fi
-
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      whonix_build_machine
-   fi
-
-   if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      whonix_build_machine
-   fi
-
-   if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-      whonix_build_machine
-   fi
-
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${green}INFO: End of: $BASH_SOURCE ${1+"$@"} No error detected. (benchmark: $benchmark_took_time)${reset}"
-else
-   true "${bold}${red}ERROR $BASH_SOURCE: You must either use --build or --clean. ${reset}"
-fi
+defaults
+parse_cmd ${1+"$@"}
+build
