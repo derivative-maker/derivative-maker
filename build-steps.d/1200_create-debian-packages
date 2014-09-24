@@ -116,20 +116,29 @@ check_for_uncommited_changes() {
    trap "error_handler_general" ERR
 
    if [ -n "$(git status --porcelain)" ]; then
-      true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
-      true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
-      git status
-      true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
-      git clean -d --force --force --dry-run
-
-      true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
+      if [ "$whonix_build_ignore_uncommitted" = "true" ]; then
+         true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
+         git status
+         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for debugging. ${reset}"
+         git clean -d --force --force --dry-run
+         true
+      else
+         true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: (And you are not using --ignore-uncommitted, which you also should not do for security reasons, unless you know git and what you are doing.) ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
+         git status
+         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
+         git clean -d --force --force --dry-run
+         true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
     $WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files
 ${cyan}or if you know what you are doing:${reset}
     git clean -d --force --force
     git reset --hard"
 
-      error "Uncommitted changes! See above!"
-      true
+         error "Uncommitted changes! See above!"
+         true
+      fi
    fi
 }
 
@@ -344,6 +353,10 @@ parse_cmd() {
        case $1 in
            -tcw | --tor-custom-workstation | --torcustomworkstation)
                WHONIX_BUILD_CUSTOM_WORKSTATION="1"
+               shift
+               ;;
+           --ignore-uncommitted)
+               export whonix_build_ignore_uncommitted="true"
                shift
                ;;
            *)
