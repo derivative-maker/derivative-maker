@@ -7,7 +7,7 @@
 set -x
 set -o pipefail
 
-build_all_error_handler() {
+build_main_error_handler() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
 ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
@@ -15,18 +15,18 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
-trap "build_all_error_handler" ERR
+trap "build_main_error_handler" ERR
 
-defaults() {
-   trap "build_all_error_handler" ERR
+build_main_defaults() {
+   trap "build_main_error_handler" ERR
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: Setting defaults (only for prettier output below)."
    WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="false"
    WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="false"
    WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="false"
 }
 
-parse_cmd() {
-   trap "build_all_error_handler" ERR
+build_main_parse_cmd() {
+   trap "build_main_error_handler" ERR
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments..."
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: \${1+\"\$@\"}: ${1+"$@"}"
    ## Thanks to:
@@ -71,8 +71,8 @@ parse_cmd() {
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments done."
 }
 
-build() {
-   trap "build_all_error_handler" ERR
+build_main_build() {
+   trap "build_main_error_handler" ERR
    true "INFO $BASH_SOURCE $FUNCNAME: build_args: $build_args"
    true "INFO $BASH_SOURCE $FUNCNAME: Build overview.
 WHONIX_MAIN_SCRIPT_BUILD_GATEWAY: $WHONIX_MAIN_SCRIPT_BUILD_GATEWAY
@@ -90,6 +90,6 @@ WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WO
    true "INFO $BASH_SOURCE $FUNCNAME: Done."
 }
 
-defaults
-parse_cmd ${1+"$@"}
-build
+build_main_defaults
+build_main_parse_cmd ${1+"$@"}
+build_main_build
