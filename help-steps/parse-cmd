@@ -4,6 +4,60 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
+build_main_defaults() {
+   trap "build_main_error_handler" ERR
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: Setting defaults (only for prettier output below)."
+   WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="false"
+   WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="false"
+   WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="false"
+}
+
+build_main_parse_cmd() {
+   trap "build_main_error_handler" ERR
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments..."
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: \${1+\"\$@\"}: ${1+"$@"}"
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+   while :
+   do
+       case $1 in
+           --all)
+               WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
+               WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
+               WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
+               shift
+               ;;
+           -tg | --tor-gateway | --torgateway)
+               WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
+               shift
+               ;;
+           -tw | --tor-workstation | --torworkstation)
+               WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
+               shift
+               ;;
+           -tcw | --tor-custom-workstation | --torcustomworkstation)
+               WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
+               shift
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               error "${red}${bold}unknown option: $1${reset}"
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+   true "INFO $BASH_SOURCE $FUNCNAME: \$@: $@"
+   build_args="$@"
+   true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments done."
+}
+
 script_help() {
    true "
 ## creates separate build folder
