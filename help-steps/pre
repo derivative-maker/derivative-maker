@@ -196,7 +196,7 @@ error_handler_unmount() {
    error_handler_exit
 }
 
-trap "error_handler_general" ERR
+trap "error_handler_general" ERR INT TERM
 
 bash -n "$BASH_SOURCE"
 
@@ -244,7 +244,7 @@ export -f benchmark_time_end
 benchmark_time_start
 
 colors() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/037
@@ -305,7 +305,7 @@ if [ ! "$ROOT_CHECK" = "0" ]; then
 fi
 
 lower_priorities() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    ## Lower IO priority.
    ionice -c3 -p$$
@@ -327,7 +327,7 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
 fi
 
 maybe_enable_apt_cache() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
       ## Someone updating Whonix-Gateway from source code.
@@ -350,7 +350,7 @@ maybe_enable_apt_cache() {
 export -f maybe_enable_apt_cache
 
 disable_apt_cache() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    unset http_proxy
 }
@@ -360,7 +360,7 @@ export -f disable_apt_cache
 ## {{ apt_get_gpgv
 
 create_tmp_apt_get_gpgv() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    ## workaround for
    ##     apt: Provide meaningful exit codes for gpg failures
@@ -389,7 +389,7 @@ gpgv ${1+"$@"} 3> >(tee --append "$WHONIX_BUILD_APT_GET_GPGV_LOG" >&3)' > "$WHON
 export -f create_tmp_apt_get_gpgv
 
 parse_tmp_apt_get_gpgv() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
 
    local gpg_log
    gpg_log="$(cat "$WHONIX_BUILD_APT_GET_GPGV_LOG")"
@@ -450,7 +450,7 @@ See above!${reset}"
 export -f parse_tmp_apt_get_gpgv
 
 delete_tmp_apt_get_gpgv() {
-   trap "error_handler_general" ERR
+   trap "error_handler_general" ERR INT TERM
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
 }
