@@ -68,51 +68,61 @@ error_handler_retry() {
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       return 0
    else
-      error_handler_shared_process
+      error_handler_shared_process "NONE (called by $FUNCNAME)"
    fi
 }
 
 error_handler_shared() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
-   error_handler_shared_process
+   ## $1 contains trap signal type.
+   error_handler_shared_process "$1"
 }
 
 error_handler_shared_process() {
    last_caller="$(caller)"
    last_script="$BASH_SOURCE"
+   ## $1 contains trap signal type.
+   trap_signal_type_last="$1"
    benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
    true "
 ############################################################
 ${red}${bold}ERROR in $last_script detected!${reset}
 (benchmark: $benchmark_took_time)
+${red}${bold}trap_signal_type_last${reset}: $trap_signal_type_last
 ${red}${bold}last_failed_bash_command${reset}: $last_failed_bash_command
 ${red}${bold}last_failed_exit_code${reset}: $last_failed_exit_code
 ${red}${bold}caller: $last_caller${reset}
 ${red}${bold}ERROR in $last_script!${reset}
 ############################################################
 "
-   if [ ! "$whonix_build_auto_retry" = "0" ]; then
-      if [ "$whonix_build_auto_retry_counter" = "" ]; then
-         whonix_build_auto_retry_counter="1"
-      fi
-      [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
-      [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
-      if [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
-         true "${cyan}${bold}INFO: Auto retried (--auto-retry) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
-      else
-         true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--auto-retry). Auto retry... ${reset}"
-         whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
-         if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
-            true "${cyan}${bold}INFO: Waiting (--wait-auto-retry) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
-            sleep "$whonix_build_wait_auto_retry" &
+
+   if [ "$trap_signal_type_last" = "ERR" ]; then
+      true "INFO: Signal trap ERR, considering auto retry..."
+      if [ ! "$whonix_build_auto_retry" = "0" ]; then
+         if [ "$whonix_build_auto_retry_counter" = "" ]; then
+            whonix_build_auto_retry_counter="1"
          fi
-         wait "$!"
-         ignore_error="true"
-         error_handler_do_retry="true"
-         error_handler_retry
-         return 0
+         [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
+         [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
+         if [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
+            true "${cyan}${bold}INFO: Auto retried (--auto-retry) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
+         else
+            true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--auto-retry). Auto retry... ${reset}"
+            whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
+            if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
+               true "${cyan}${bold}INFO: Waiting (--wait-auto-retry) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
+               sleep "$whonix_build_wait_auto_retry" &
+            fi
+            wait "$!"
+            ignore_error="true"
+            error_handler_do_retry="true"
+            error_handler_retry
+            return 0
+         fi
       fi
+   else
+      true "INFO: No auto retry for non ERR signal type: $trap_signal_type_last"
    fi
    unset whonix_build_auto_retry_counter
 
@@ -173,32 +183,47 @@ bugs, that are a result of this! Please press enter to continue. ${reset}"
 }
 
 error_handler_general() {
-   error_handler_shared
-   error_handler_exit
+   true "INFO: Begin of function $FUNCNAME."
+   ## $1 contains trap signal type.
+   error_handler_shared "$1"
+   error_handler_exit "$1"
+   true "INFO: End of function $FUNCNAME."
 }
 
 error_handler_unchroot_unprevent_unmount() {
-   error_handler_shared
+   ## $1 contains trap signal type.
+   error_handler_shared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
    fi
-   error_handler_exit
+   error_handler_exit "$1"
 }
 
 error_handler_unmount() {
-   error_handler_shared
+   ## $1 contains trap signal type.
+   error_handler_shared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
    fi
-   error_handler_exit
+   error_handler_exit "$1"
 }
 
-trap "error_handler_general" ERR INT TERM
+## Thanks to:
+## camh
+## http://stackoverflow.com/a/2183063/2605155
+error_handler_setup() {
+   local handler signal
+   ## $1 contains the name of the error handler function.
+   handler="$1" ; shift
+   for signal ; do
+       trap "$handler $signal" "$signal"
+   done
+}
 
-bash -n "$BASH_SOURCE"
+error_handler_setup "error_handler_general" ERR INT TERM
 
 export -f error_handler_shell
 export -f error_handler_retry
@@ -208,6 +233,11 @@ export -f error_handler_exit
 export -f error_handler_general
 export -f error_handler_unchroot_unprevent_unmount
 export -f error_handler_unmount
+export -f error_handler_setup
+
+error_handler_setup "error_handler_general" ERR INT TERM
+
+bash -n "$BASH_SOURCE"
 
 maybe_set_plus_x() {
    if [ "$MINUS_X_SET" = "1" ]; then
@@ -246,7 +276,7 @@ export -f benchmark_time_end
 benchmark_time_start
 
 colors() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/037
@@ -307,7 +337,7 @@ if [ ! "$ROOT_CHECK" = "0" ]; then
 fi
 
 lower_priorities() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    ## Lower IO priority.
    ionice -c3 -p$$
@@ -329,7 +359,7 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
 fi
 
 apt_cache_maybe_enable() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
       ## Someone updating Whonix-Gateway from source code.
@@ -352,7 +382,7 @@ apt_cache_maybe_enable() {
 export -f apt_cache_maybe_enable
 
 apt_cache_disable() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    unset http_proxy
 }
@@ -362,7 +392,7 @@ export -f apt_cache_disable
 ## {{ apt_get_gpgv
 
 apt_get_gpgv_create_tmp() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    ## workaround for
    ##     apt: Provide meaningful exit codes for gpg failures
@@ -391,7 +421,7 @@ gpgv ${1+"$@"} 3> >(tee --append "$WHONIX_BUILD_APT_GET_GPGV_LOG" >&3)' > "$WHON
 export -f apt_get_gpgv_create_tmp
 
 apt_get_gpgv_parse_tmp() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
 
    local gpg_log
    gpg_log="$(cat "$WHONIX_BUILD_APT_GET_GPGV_LOG")"
@@ -452,7 +482,7 @@ See above!${reset}"
 export -f apt_get_gpgv_parse_tmp
 
 apt_get_gpgv_delete_tmp() {
-   trap "error_handler_general" ERR INT TERM
+   error_handler_setup "error_handler_general" ERR INT TERM
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
 }
