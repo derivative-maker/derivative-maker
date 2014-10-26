@@ -156,10 +156,12 @@ Please have a look above \"error_handler_general\", note the command that failed
 }
 
 error_handler_maybe_exit() {
+   if [ "$error_handler_do_retry" = "true" ]; then
+      true "INFO ($FUNCNAME): auto retry succeeded. Will not exit. Continue."
+      return 0
+   fi
    if [ "$ignore_error" = "true" ]; then
       abort_or_continue="Continue"
-   elif [ "$error_handler_do_retry" = "true" ]; then
-      return 0
    else
       abort_or_continue="Aborted"
       ## Removing temporary debian testing (jessie) repository.
