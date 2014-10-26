@@ -328,7 +328,7 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
    lower_priorities
 fi
 
-maybe_enable_apt_cache() {
+apt_cache_maybe_enable() {
    trap "error_handler_general" ERR INT TERM
 
    if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
@@ -349,19 +349,19 @@ maybe_enable_apt_cache() {
    fi
 }
 
-export -f maybe_enable_apt_cache
+export -f apt_cache_maybe_enable
 
-disable_apt_cache() {
+apt_cache_disable() {
    trap "error_handler_general" ERR INT TERM
 
    unset http_proxy
 }
 
-export -f disable_apt_cache
+export -f apt_cache_disable
 
 ## {{ apt_get_gpgv
 
-create_tmp_apt_get_gpgv() {
+apt_get_gpgv_create_tmp() {
    trap "error_handler_general" ERR INT TERM
 
    ## workaround for
@@ -388,9 +388,9 @@ gpgv ${1+"$@"} 3> >(tee --append "$WHONIX_BUILD_APT_GET_GPGV_LOG" >&3)' > "$WHON
    chmod +x "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
 }
 
-export -f create_tmp_apt_get_gpgv
+export -f apt_get_gpgv_create_tmp
 
-parse_tmp_apt_get_gpgv() {
+apt_get_gpgv_parse_tmp() {
    trap "error_handler_general" ERR INT TERM
 
    local gpg_log
@@ -449,15 +449,15 @@ See above!${reset}"
    IFS="$OIFS"
 }
 
-export -f parse_tmp_apt_get_gpgv
+export -f apt_get_gpgv_parse_tmp
 
-delete_tmp_apt_get_gpgv() {
+apt_get_gpgv_delete_tmp() {
    trap "error_handler_general" ERR INT TERM
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
 }
 
-export -f delete_tmp_apt_get_gpgv
+export -f apt_get_gpgv_delete_tmp
 
 ## Prevent the log from needlessly filling up.
 rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
