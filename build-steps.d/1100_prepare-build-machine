@@ -403,13 +403,15 @@ a linux kernel.)"
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, install of grml-debootstrap not required, ok."
    else
-      grml_debootstrap_version="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"
-      local dpkg_exit_code="0"
-      dpkg --compare-versions "$grml_debootstrap_version" ge "0.61" || { dpkg_exit_code="$?" ; true; };
+      local grml_debootstrap_version_installed grml_debootstrap_version_minimum_required dpkg_exit_code
+      grml_debootstrap_version_installed="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"
+      grml_debootstrap_version_minimum_required="0.61"
+      dpkg_exit_code="0"
+      dpkg --compare-versions "$grml_debootstrap_version_installed" ge "$grml_debootstrap_version_minimum_required" || { dpkg_exit_code="$?" ; true; };
       if [ "$dpkg_exit_code" = "0" ]; then
-         true "INFO: grml-debootstrap version equal or higher 0.61 already installed, ok."
+         true "INFO: grml-debootstrap installed version $grml_debootstrap_version_installed equal or higher $grml_debootstrap_version_minimum_required already installed, ok."
       else
-         true "INFO: grml-debootstrap version equal or higher 0.61 install required, ok."
+         true "INFO: grml-debootstrap installed version $grml_debootstrap_version_installed equal or higher $grml_debootstrap_version_minimum_required install required, ok."
          local install_from_testing_required="1"
       fi
    fi
