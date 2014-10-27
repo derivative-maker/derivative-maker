@@ -126,7 +126,10 @@ ${red}${bold}ERROR in $last_script!${reset}
    fi
    unset whonix_build_auto_retry_counter
 
-   if [ ! "$whonix_build_non_interactive" = "1" ]; then
+   true "INFO: whonix_build_non_interactive: $whonix_build_non_interactive | CI: $CI"
+   if [ "$whonix_build_non_interactive" = "true" ] || [ "$CI" = "true" ]; then
+      true "INFO: using non-interactive error handler."
+   else
       read -p "\
 ${red}${bold}ERROR in $BASH_SOURCE detected!
 Please have a look above \"error_handler_general\", note the command that failed, its output and last_failed_exit_code.
@@ -134,8 +137,6 @@ Please have a look above \"error_handler_general\", note the command that failed
 - Please press r and enter to retry.
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
-   else
-      echo "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
    fi
    ignore_error=""
    error_handler_do_retry=""
@@ -172,12 +173,13 @@ error_handler_maybe_exit() {
       rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
    fi
    if [ "$ignore_error" = "true" ]; then
-      if [ ! "$whonix_build_non_interactive" = "1" ]; then
+      true "INFO: whonix_build_non_interactive: $whonix_build_non_interactive | CI: $CI"
+      if [ "$whonix_build_non_interactive" = "true" ] || [ "$CI" = "true" ]; then
+         true "INFO: using non-interactive error handler."
+      else
          true "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
 This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}"
-      else
-         true "INFO: whonix_build_non_interactive set to 1, using non-interactive error handler."
       fi
    else
       exit 1
