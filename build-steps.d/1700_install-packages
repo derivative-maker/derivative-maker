@@ -183,15 +183,15 @@ install-packages() {
    error_handler_setup "error_handler_unchroot_unprevent_unmount" ERR INT TERM
 
    if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"/done ]; then
+      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done" ]; then
          error "${red}${bold}$BASH_SOURCE ERROR: $WHONIX_LOCAL_SIGNING_KEY_FOLDER/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
       fi
    fi
 
    sync
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/prevent-daemons-from-starting
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/prevent-daemons-from-starting"
 
    sync
 
@@ -202,30 +202,30 @@ install-packages() {
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ## Backup exiting /etc/apt/sources.list, might be useful for bare metal users.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/apt/sources.list" "$CHROOT_FOLDER/etc/apt/sources.list.backup"
 
       ## Backup exiting /etc/resolv.conf, so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/resolv.conf "$CHROOT_FOLDER"/etc/resolv.conf.backup
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf.backup"
 
       ## Backup exiting /etc/hosts so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/hosts "$CHROOT_FOLDER"/etc/hosts.backup
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/hosts" "$CHROOT_FOLDER/etc/hosts.backup"
 
       ## Backup exiting /etc/hostname so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/hostname "$CHROOT_FOLDER"/etc/hostname.backup
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/hostname" "$CHROOT_FOLDER/etc/hostname.backup"
 
       ## Backup exiting /etc/network/interfaces so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER"/etc/network/interfaces "$CHROOT_FOLDER"/etc/network/interfaces.backup
+      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/network/interfaces" "$CHROOT_FOLDER/etc/network/interfaces.backup"
    fi
 
    ## We have to fix /etc/apt/sources.list, because the list which comes with
    ## grml-debootstrap is incomplete (does not complain debian security repository) and points to 127.0.0.1.
-   mv "$CHROOT_FOLDER"/etc/apt/sources.list "$CHROOT_FOLDER"/etc/apt/sources.list.backup || true
+   mv "$CHROOT_FOLDER/etc/apt/sources.list" "$CHROOT_FOLDER/etc/apt/sources.list.backup" || true
 
    ## Implemented in help-steps/pre.
    apt_cache_maybe_enable
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    ## Debugging.
    $CHROOT ls -la /etc/apt/trusted.gpg.d
@@ -236,14 +236,14 @@ install-packages() {
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-missing update
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unchroot-raw"
 
    ## {{ controversy of: /etc/resolv.conf /etc/hosts /etc/hostname /etc/network/interfaces,
    ##    see help-steps/chroot-raw for more information.
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo"
    export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       install-pkg whonix-gateway-packages-dependencies-pre
@@ -254,12 +254,12 @@ install-packages() {
    fi
 
    unset WHONIX_CHROOT_MOUNT_RESOLV_CONF
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unchroot-raw"
 
    ## }}
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/create-local-temp-apt-repo
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/chroot-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
    $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-i386/ || true
@@ -393,8 +393,8 @@ $whonix_build_script_whonix_package${reset}"
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/remove-local-temp-apt-repo"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unprevent-daemons-from-starting"
 
    ## Forget about local repository containing Whonix's packages.
    #$CHROOT apt-get --no-download --list-cleanup update
@@ -405,8 +405,8 @@ $whonix_build_script_whonix_package${reset}"
    $CHROOT sync
    sync
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unchroot-raw"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unmount-raw"
 
    sync
 }
