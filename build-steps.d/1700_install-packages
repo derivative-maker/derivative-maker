@@ -60,7 +60,7 @@ Will try to manually install it for debugging...${reset}"
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
          dpkg -l | grep "$unmet_dependency"
          apt-cache policy "$unmet_dependency"
-         install-pkg "$unmet_dependency" || true
+         pkg-install-maybe "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
          IFS="${NIFS}"
@@ -73,7 +73,7 @@ Will try to manually install it for debugging...${reset}"
    IFS="${OIFS}"
 }
 
-install-pkg() {
+pkg-install-maybe() {
    error_handler_setup "error_handler_unchroot_unprevent_unmount" ERR INT TERM
 
    pkg="$1"
@@ -257,9 +257,9 @@ install-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      install-pkg whonix-gateway-packages-dependencies-pre
+      pkg-install-maybe whonix-gateway-packages-dependencies-pre
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      install-pkg whonix-workstation-packages-dependencies-pre
+      pkg-install-maybe whonix-workstation-packages-dependencies-pre
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
@@ -347,8 +347,8 @@ builders using custom configurations, skipping packages such as Terminal-Only. w
 $whonix_build_script_whonix_package${reset}"
    fi
 
-   install-pkg anon-shared-build-apt-sources-tpo
-   install-pkg anon-shared-build-upgrade-torsocks
+   pkg-install-maybe anon-shared-build-apt-sources-tpo
+   pkg-install-maybe anon-shared-build-upgrade-torsocks
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1. Skipping kernel installation (one should already be installed), ok.${reset}"
@@ -357,7 +357,7 @@ $whonix_build_script_whonix_package${reset}"
       true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
       local build_kernel
       for build_kernel in $BUILD_KERNEL_PKGS; do
-         install-pkg "$build_kernel"
+         pkg-install-maybe "$build_kernel"
       done
       true "${bold}${cyan}INFO: kernel installation done.${reset}"
    fi
@@ -365,41 +365,41 @@ $whonix_build_script_whonix_package${reset}"
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1, skipping installation of anon-shared-build-fix-grub, ok.${reset}"
    else
-      install-pkg anon-shared-build-fix-grub
+      pkg-install-maybe anon-shared-build-fix-grub
    fi
 
-   install-pkg anon-shared-build-log-build-version
-   install-pkg anon-shared-build-remember-sources
-   install-pkg anon-shared-build-ban-nonfree
-   install-pkg anon-shared-build-sanity-checks
+   pkg-install-maybe anon-shared-build-log-build-version
+   pkg-install-maybe anon-shared-build-remember-sources
+   pkg-install-maybe anon-shared-build-ban-nonfree
+   pkg-install-maybe anon-shared-build-sanity-checks
 
-   install-pkg anon-shared-packages-dependencies
-   install-pkg anon-shared-packages-recommended
+   pkg-install-maybe anon-shared-packages-dependencies
+   pkg-install-maybe anon-shared-packages-recommended
 
-   install-pkg anon-shared-desktop
+   pkg-install-maybe anon-shared-desktop
 
-   install-pkg anon-shared-desktop-kde
+   pkg-install-maybe anon-shared-desktop-kde
 
-   install-pkg anon-shared-kde-accessibility
+   pkg-install-maybe anon-shared-kde-accessibility
 
-   install-pkg whonix-shared-packages-dependencies
-   install-pkg whonix-shared-packages-recommended
+   pkg-install-maybe whonix-shared-packages-dependencies
+   pkg-install-maybe whonix-shared-packages-recommended
 
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      install-pkg anon-gw-build-upgrade-tor
-      install-pkg anon-gateway-packages-dependencies
-      install-pkg anon-gateway-packages-recommended
-      install-pkg whonix-gateway-packages-dependencies
-      install-pkg whonix-gateway-packages-recommended
-      install-pkg whonix-gateway
+      pkg-install-maybe anon-gw-build-upgrade-tor
+      pkg-install-maybe anon-gateway-packages-dependencies
+      pkg-install-maybe anon-gateway-packages-recommended
+      pkg-install-maybe whonix-gateway-packages-dependencies
+      pkg-install-maybe whonix-gateway-packages-recommended
+      pkg-install-maybe whonix-gateway
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      install-pkg anon-shared-build-inst-tb
-      install-pkg anon-workstation-packages-dependencies
-      install-pkg anon-workstation-packages-recommended
-      install-pkg anon-workstation-default-applications
-      install-pkg whonix-workstation-packages-dependencies
-      install-pkg whonix-workstation-packages-recommended
-      install-pkg whonix-workstation
+      pkg-install-maybe anon-shared-build-inst-tb
+      pkg-install-maybe anon-workstation-packages-dependencies
+      pkg-install-maybe anon-workstation-packages-recommended
+      pkg-install-maybe anon-workstation-default-applications
+      pkg-install-maybe whonix-workstation-packages-dependencies
+      pkg-install-maybe whonix-workstation-packages-recommended
+      pkg-install-maybe whonix-workstation
    else
       bug "${red}${bold}ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!${reset}"
    fi
