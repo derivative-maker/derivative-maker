@@ -179,6 +179,17 @@ Trying to diagnose the problem using function apt_get_parse_unmet_dependency...$
    return 0
 }
 
+backup-file-if-exists() {
+   error_handler_setup "error_handler_unchroot_unprevent_unmount" ERR INT TERM
+
+   if [ -f "$1" ]; then
+      cp --no-clobber --recursive --preserve "$1" "$1.backup"
+   else
+      true "INFO: file $1 does not exist, skipping backup, ok."
+   fi
+   true
+}
+
 install-packages() {
    error_handler_setup "error_handler_unchroot_unprevent_unmount" ERR INT TERM
 
@@ -202,19 +213,19 @@ install-packages() {
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ## Backup exiting /etc/apt/sources.list, might be useful for bare metal users.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/apt/sources.list" "$CHROOT_FOLDER/etc/apt/sources.list.backup"
+      backup-file-if-exists "$CHROOT_FOLDER/etc/apt/sources.list"
 
       ## Backup exiting /etc/resolv.conf, so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf.backup"
+      backup-file-if-exists "$CHROOT_FOLDER/etc/resolv.conf"
 
       ## Backup exiting /etc/hosts so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/hosts" "$CHROOT_FOLDER/etc/hosts.backup"
+      backup-file-if-exists "$CHROOT_FOLDER/etc/hosts"
 
       ## Backup exiting /etc/hostname so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/hostname" "$CHROOT_FOLDER/etc/hostname.backup"
+      backup-file-if-exists "$CHROOT_FOLDER/etc/hostname"
 
       ## Backup exiting /etc/network/interfaces so we can later use it in help-steps/chroot-img.
-      cp --no-clobber --recursive --preserve "$CHROOT_FOLDER/etc/network/interfaces" "$CHROOT_FOLDER/etc/network/interfaces.backup"
+      backup-file-if-exists "$CHROOT_FOLDER/etc/network/interfaces"
    fi
 
    ## We have to fix /etc/apt/sources.list, because the list which comes with
