@@ -330,65 +330,34 @@ whonix_build_files_list="$whonix_build_files_list $libvirt_target_network_file"
 
 ## {{{ buildconfig.d
 
-if [ -d "$WHONIX_SOURCE_FOLDER/buildconfig.d" ]; then
-   for i in "$WHONIX_SOURCE_FOLDER/buildconfig.d/"*; do
-      if [ -f "$i" ]; then
-         ## If the last character is a ~, ignore that file,
-         ## because it was created by some editor,
-         ## which creates backup files.
-         if [ "${i: -1}" = "~" ]; then
-            continue
-         fi
-         ## Skipping files such as .dpkg-old and .dpkg-dist.
-         if ( echo "$i" | grep -q ".dpkg-" ); then
-            true "skip $i"
-            continue
-         fi
-         bash -n "$i"
-         source "$i"
-      fi
-   done
-fi
+[ -n "$whonix_build_config_dirs" ] || whonix_build_config_dirs="$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d"
 
-if [ -d /etc/whonix_buildconfig.d ]; then
-   for i in /etc/whonix_buildconfig.d/*; do
-      if [ -f "$i" ]; then
-         ## If the last character is a ~, ignore that file,
-         ## because it was created by some editor,
-         ## which creates backup files.
-         if [ "${i: -1}" = "~" ]; then
-            continue
+for whonix_build_config_dir in $whonix_build_config_dirs; do
+   true "${cyan}INFO: Checking if whonix_build_config_dir $whonix_build_config_dir exists...${reset}"
+   if [ -d "$whonix_build_config_dir" ]; then
+      true "${cyan}INFO: Parsing whonix_build_config_dir $whonix_build_config_dir...${reset}"
+      for i in "$whonix_build_config_dir/"*; do
+         if [ -f "$i" ]; then
+            ## If the last character is a ~, ignore that file,
+            ## because it was created by some editor,
+            ## which creates backup files.
+            if [ "${i: -1}" = "~" ]; then
+               true "${cyan}INFO: Skipping file_name $i because it ends with ~.${reset}"
+               continue
+            fi
+            ## Skipping files such as .dpkg-old and .dpkg-dist.
+            if ( echo "$i" | grep -q ".dpkg-" ); then
+               true "${cyan}INFO: Skipping file_name $i because it ends with .dpkg-.${reset}"
+               continue
+            fi
+            bash -n "$i"
+            source "$i"
          fi
-         ## Skipping files such as .dpkg-old and .dpkg-dist.
-         if ( echo "$i" | grep -q ".dpkg-" ); then
-            true "skip $i"
-            continue
-         fi
-         bash -n "$i"
-         source "$i"
-      fi
-   done
-fi
-
-if [ -d .."/buildconfig.d" ]; then
-   for i in .."/buildconfig.d/"*; do
-      if [ -f "$i" ]; then
-         ## If the last character is a ~, ignore that file,
-         ## because it was created by some editor,
-         ## which creates backup files.
-         if [ "${i: -1}" = "~" ]; then
-            continue
-         fi
-         ## Skipping files such as .dpkg-old and .dpkg-dist.
-         if ( echo "$i" | grep -q ".dpkg-" ); then
-            true "skip $i"
-            continue
-         fi
-         bash -n "$i"
-         source "$i"
-      fi
-   done
-fi
+      done
+   else
+      true "${cyan}INFO: Skipping whonix_build_config_dir $whonix_build_config_dir because it does not exist.${reset}"
+   fi
+done
 
 ## }}}
 
