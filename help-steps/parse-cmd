@@ -4,6 +4,18 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
+parse_cmd_target_error() {
+   trap "build_main_error_handler" ERR
+   echo "${red}${bold}ERROR: --target must be either virtualbox, root or qcow2 and can be used multiple times.${reset}"
+   exit 1
+}
+
+parse_cmd_flavor_error() {
+   trap "build_main_error_handler" ERR
+   echo "${red}${bold}You must add --flavor whonix-gateway, --flavor whonix-workstation, --flavor whonix-custom-workstation or --flavor all.${reset}"
+   exit 1
+}
+
 build_main_defaults() {
    trap "build_main_error_handler" ERR
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: Setting defaults (only for prettier output below)."
@@ -21,23 +33,35 @@ build_main_parse_cmd() {
    while :
    do
        case $1 in
+           -h | --help | -\?)
+               whonix_build_main_script_help
+               exit 0
+               ;;
            --all)
                WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
                WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
                WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
                shift
                ;;
-           -tg | -wg | --tor-gateway | --torgateway | --whonix-gateway | --whonixgateway)
+           --gnw)
                WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
-               shift
-               ;;
-           -tw | -ww | --tor-workstation | --torworkstation | --whonix-workstation | --whonixworkstation)
                WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
                shift
                ;;
-           -tcw | -wcw | --tor-custom-workstation | --torcustomworkstation | --whonix-custom-workstation | --whonixcustomworkstation)
-               WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
-               shift
+           --flavor)
+               if [ "$2" = "whonix-gateway" ]; then
+                  WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
+               elif "$2" = "whonix-workstation" ]; then
+                  WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
+               elif "$2" = "whonix-custom-workstation" ]; then
+                  WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
+               elif "$2" = "none" ]; then
+                  echo "TODO: implement"
+                  exit 1
+               else
+                  parse_cmd_flavor_error
+               fi
+               shift 2
                ;;
            --)
                shift
@@ -58,8 +82,37 @@ build_main_parse_cmd() {
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments done."
 }
 
-script_help() {
+whonix_build_main_script_help() {
    true "
+## whonix_build main script
+##
+## Syntax:
+## whonix_build <parameters for whonix_build> -- <parameters for help-steps/whonix_build_one>
+##
+## --all
+## Builds Whonix-Gateway, Whonix-Workstation and Whonix-Custom-Workstation.
+##
+## --gnw
+## Builds Whonix-Gateway and Whonix-Workstation.
+##
+## --flavor
+## whonix-gateway
+## whonix-workstation
+## whonix-custom-workstation
+##
+## Run
+## ./whonix_build --flavor whonix-gateway -- --help
+## to find out whonix_build_one parameters.
+"
+}
+
+whonix_build_one_script_help() {
+   true "
+## help-steps/whonix_build_one script
+##
+## Syntax:
+## help-steps/whonix_build_one --flavor flavor --target target
+##
 ## creates separate build folder
 ## $HOMEVAR/whonix_binary
 ##
@@ -73,43 +126,33 @@ script_help() {
 ## --clean
 ## Deletes build products (.raw, .ova and VirtualBox VM's).
 ##
-## --virtualbox
-## Use this to build VirtualBox .ovas.
+## --flavor whonix-gateway|whonix-workstation|whonix-custom-workstation|none
+## whonix-gateway: Builds Whonix-Gateway.
+## whonix-workstation: Builds Whonix-Workstation.
+## whonix-custom-workstation: Builds Whonix-Custom-Workstation.
+## none: not yet implemented
 ##
-## --qcow2
-## Use this to build qcow2 images.
-##
-## --install-to-root
-## Use this for Whonix with physical isolation.
-##
-## --whonix-gateway
-## Builds Whonix-Gateway.
-##
-## --whonix-workstation
-## Builds Whonix-Workstation.
-##
-## --whonix-custom-workstation
-## Builds Whonix-Custom-Workstation.
-##
-## --all
-## Build all machines.
+## --target virtualbox|qcow2|root
+## virtualbox: Use this to build VirtualBox .ovas.
+## qcow2: Use this to build qcow2 images.
+## root: Use this for Whonix with physical or install to root installations.
 ##
 ## vmram, vram, vmsize examples.
 ## --vmram 128
 ## --vram 12
 ## --vmsize 200G
 ##
-## --terminal-only
-## Terminal Only.
-## Skip installation of KDE specific packages.
+## --gui kde|none
+## kde: Install KDE specific packages.
+## none: Skip installation of gui specific packages.
 ##
-## --no-default-applications
-## Install fewer packages.
-## (Don't complain about missing packages then.)
+## --apps
+## true: Install recommended packages.
+## false: Install fewer packages. (Don't complain about missing packages then.)
 ##
-## --current-sources
-##
-## --testing-frozen-sources
+## --freshness
+## frozen
+## current
 ##
 ## --64bit-linux
 ## 64 bit builds
@@ -120,25 +163,39 @@ script_help() {
 ## --32bit-kfreebsd
 ## Entirely untested.
 ##
-## --enable-whonix-apt-repository
+## --whonix-repo
 ## Whonix APT Repository.
-## Disabled by default.
+## off: Disabled by default.
+## wheezy
+## testers
+## developers
 ##
-## --whonix-apt-repository-distribution wheezy
-## --whonix-apt-repository-distribution testers
-## --whonix-apt-repository-distribution developers
-## Whonix APT Repository Distribution.
-## Only useful in conjunction with --enable-whonix-apt-repository.
+## --report
+## full
+## minimal: Skip most of the create-report build step. (Related to Verifiable Builds.)
 ##
-## --minimal-report
-## Skip most of the create-report build step. (Related to Verifiable Builds.)
+## --verifiable
+## true
+## false: Skip deletion of non-determinstic files in the cleanup chroot script.
+##        (These files are later automatically re-created by First Run Initializer.)
 ##
-## --skip-verifiable
-## Skip deletion of non-determinstic files in the cleanup chroot script.
-## (These files are later automatically re-created by First Run Initializer.)
+## --sanity-tests
+## true
+## false: Skip chroot script sanity tests.
 ##
-## --skip-sanity-tests
-## Skip chroot script sanity tests.
+## --retry-max 1|0|2|[...]
+## attempts
+##
+## --retry-wait 5|1|2|[...]
+## Seconds between attempts.
+##
+## --retry-before script
+## --retry-after script
+## Dispatch command or script.
+##
+## --allow-uncommitted
+## false: Break when uncommitted changes are found. Default.
+## true: Do not use unless you know what you are doing.
 "
 }
 
@@ -163,49 +220,61 @@ whonix_build_cmdoptions() {
    do
        case $1 in
            -h | --help | -\?)
-               script_help
+               whonix_build_one_script_help
                exit 0
                ;;
-           -tg | -wg | --tor-gateway | --torgateway | --whonix-gateway | --whonixgateway)
-               export WHONIX_BUILD_GATEWAY="1"
-               build_machines="$(( $build_machines + 1 ))"
-               shift
+           --flavor)
+               true "${cyan}INFO: --flavor $2 chosen.${reset}"
+               if [ "$2" = "whonix-gateway" ]; then
+                  WHONIX_BUILD_FLAVOR="whonix-gateway"
+                  export WHONIX_BUILD_GATEWAY="1"
+                  build_machines="$(( $build_machines + 1 ))"
+               elif "$2" = "whonix-workstation" ]; then
+                  WHONIX_BUILD_FLAVOR="whonix-workstation"
+                  export WHONIX_BUILD_WORKSTATION="1"
+                  build_machines="$(( $build_machines + 1 ))"
+               elif "$2" = "whonix-custom-workstation" ]; then
+                  WHONIX_BUILD_FLAVOR="whonix-custom-workstation"
+                  export WHONIX_BUILD_CUSTOM_WORKSTATION="1"
+                  build_machines="$(( $build_machines + 1 ))"
+               elif "$2" = "none" ]; then
+                  ## TODO: implement
+                  WHONIX_BUILD_FLAVOR="none"
+                  export WHONIX_BUILD_NOFLAVOR="1"
+                  build_machines="$(( $build_machines + 1 ))"
+                  echo "TODO: Implement"
+                  exit 1
+               else
+                  parse_cmd_flavor_error
+               fi
+               shift 2
                ;;
-           -tw | -ww | --tor-workstation | --torworkstation | --whonix-workstation | --whonixworkstation)
-               export WHONIX_BUILD_WORKSTATION="1"
-               build_machines="$(( $build_machines + 1 ))"
-               shift
+           --target)
+               true "${cyan}INFO: --target $2 chosen.${reset}"
+               if [ "$2" = "virtualbox" ]; then
+                  export WHONIX_BUILD_VIRTUALBOX="true"
+               elif [ "$2" = "root" ]; then
+                  export ANON_BUILD_INSTALL_TO_ROOT="1"
+               elif [ "$2" = "qcow2" ]; then
+                  export WHONIX_BUILD_QCOW2="true"
+                  export whonix_build_script_create_qcow2="1"
+               else
+                  parse_cmd_target_error
+               fi
+               shift 2
                ;;
-           -tcw | -wcw | --tor-custom-workstation | --torcustomworkstation | --whonix-custom-workstation | --whonixcustomworkstation)
-               export WHONIX_BUILD_CUSTOM_WORKSTATION="1"
-               build_machines="$(( $build_machines + 1 ))"
-               shift
-               ;;
-           -bm | --baremetal | --bare-metal | --install-to-root | -itr)
-               export ANON_BUILD_INSTALL_TO_ROOT="1"
-               shift
-               ;;
-           --vbox | --virtualbox | --virtual-box)
-               export WHONIX_BUILD_VIRTUALBOX="true"
-               shift
-               ;;
-           --qcow2)
-               export WHONIX_BUILD_QCOW2="true"
-               export whonix_build_script_create_qcow2="1"
-               shift
-               ;;
-           --no-validate-libvirt-xml)
-               export whonix_build_script_no_validate_libvirt_xml="1"
-               shift
-               ;;
-           -f1 | --fast1)
-               export WHONIX_BUILD_FAST1="1"
-               shift
-               ;;
-           -f2 | --fast2)
-               export WHONIX_BUILD_FAST1="1"
-               export WHONIX_BUILD_FAST2="1"
-               shift
+           --fast)
+               true "${cyan}INFO: --fast $2 chosen.${reset}"
+               if [ "$2" = "1" ]; then
+                  export WHONIX_BUILD_FAST1="1"
+               elif [ "$2" = "2" ]; then
+                  export WHONIX_BUILD_FAST1="1"
+                  export WHONIX_BUILD_FAST2="1"
+               else
+                  echo "${red}${bold}ERROR: supported options for --fast are '1' and '2'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
            -c  | --clean)
                export WHONIX_BUILD_CLEAN="1"
@@ -224,7 +293,7 @@ whonix_build_cmdoptions() {
                export VMRAM="$2"
                shift 2
                if [ "$VMRAM" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vmram."
+                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vmram.${reset}"
                   exit 1
                fi
                ;;
@@ -232,7 +301,7 @@ whonix_build_cmdoptions() {
                export VRAM="$2"
                shift 2
                if [ "$VRAM" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vram."
+                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vram.${reset}"
                   exit 1
                fi
                ;;
@@ -240,41 +309,68 @@ whonix_build_cmdoptions() {
                export VMSIZE="$2"
                shift 2
                if [ "$VMSIZE" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize."
+                  echo "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize.${reset}"
                   exit 1
                fi
                ;;
-           --terminal-only | --no-gui | --terminalonly | --nogui)
-               whonix_build_script_whonix_package+=" anon-shared-desktop "
-               whonix_build_script_whonix_package+=" anon-shared-desktop-kde "
-               whonix_build_script_whonix_package+=" anon-shared-kde-accessibility "
-               whonix_build_script_whonix_package+=" whonix-gateway "
-               whonix_build_script_whonix_package+=" whonix-workstation "
-               export whonix_build_script_whonix_package
-               shift
+           --gui)
+               if [ "$2" = "kde" ]; then
+                  true "${cyan}INFO: Would install kde specific packages.${reset}"
+               elif [ "$2" = "none" ]; then
+                  true "${cyan}INFO: Skip install kde specific packages.${reset}"
+                  ## TODO: make (gui) packages opt-in rather than opt-out.
+                  whonix_build_script_whonix_package+=" anon-shared-desktop "
+                  whonix_build_script_whonix_package+=" anon-shared-desktop-kde "
+                  whonix_build_script_whonix_package+=" anon-shared-kde-accessibility "
+                  whonix_build_script_whonix_package+=" whonix-gateway "
+                  whonix_build_script_whonix_package+=" whonix-workstation "
+                  export whonix_build_script_whonix_package
+               else
+                  echo "${red}${bold}ERROR: supported options for --gui are 'kde' and 'none'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
-           --no-default-applications | --nodefaultapplications)
-               whonix_build_script_whonix_package+=" anon-shared-packages-recommended "
-               whonix_build_script_whonix_package+=" anon-gateway-packages-recommended "
-               whonix_build_script_whonix_package+=" anon-workstation-packages-recommended "
-               whonix_build_script_whonix_package+=" anon-workstation-default-applications "
-               whonix_build_script_whonix_package+=" whonix-shared-packages-recommended "
-               whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
-               whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
-               whonix_build_script_whonix_package+=" whonix-gateway "
-               whonix_build_script_whonix_package+=" whonix-workstation "
-               export whonix_build_script_whonix_package
-               shift
+           --apps)
+               if [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Would install recommended packages.${reset}"
+               elif [ "$2" = "false" ]; then
+                  true "${cyan}INFO: Skip install recommended packages.${reset}"
+                  ## TODO: make packages opt-in rather than opt-out.
+                  whonix_build_script_whonix_package+=" anon-shared-packages-recommended "
+                  whonix_build_script_whonix_package+=" anon-gateway-packages-recommended "
+                  whonix_build_script_whonix_package+=" anon-workstation-packages-recommended "
+                  whonix_build_script_whonix_package+=" anon-workstation-default-applications "
+                  whonix_build_script_whonix_package+=" whonix-shared-packages-recommended "
+                  whonix_build_script_whonix_package+=" whonix-gateway-packages-recommended "
+                  whonix_build_script_whonix_package+=" whonix-workstation-packages-recommended "
+                  whonix_build_script_whonix_package+=" whonix-gateway "
+                  whonix_build_script_whonix_package+=" whonix-workstation "
+                  export whonix_build_script_whonix_package
+               else
+                  echo "${red}${bold}ERROR: supported options for --apps are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
-           --current-sources | --currentsources)
-               ## For more technical comments, see:
-               ## buildconfig.d/30_apt
-               export whonix_build_sources_list="build_sources/debian_stable_current.list"
-               ## Reset to default verification options.
-               ## (Remove ignoring valid-until field.)
-               export apt_verify_opts=""
-               shift
+           --freshness)
+               if [ "$2" = "frozen" ]; then
+                  true "${cyan}INFO: Using frozen sources.${reset}"
+               elif [ "$2" = "current" ]; then
+                  true "${cyan}INFO: Using current sources.${reset}"
+                  ## For more technical comments, see:
+                  ## buildconfig.d/30_apt
+                  export whonix_build_sources_list="build_sources/debian_stable_current.list"
+                  ## Reset to default verification options.
+                  ## (Remove ignoring valid-until field.)
+                  export apt_verify_opts=""
+               else
+                  echo "${red}${bold}ERROR: supported options for --freshness are 'frozen' or 'current'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
+           ## TODO
            --testing-frozen-sources)
                export whonix_build_sources_list="build_sources/debian_testing_frozen.list"
                shift
@@ -304,26 +400,54 @@ whonix_build_cmdoptions() {
                export BUILD_TARGET_ARCH="kfreebsd-i386"
                shift
                ;;
-           --enable-whonix-apt-repository | --enablewhonixaptrepository)
-               export WHONIX_APT_REPOSITORY_DISTRUST_ENV="0"
-               shift
-               ;;
-           --whonix-apt-repository-distribution | --whonixaptrepositorydistribution)
-               export WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG="$2"
+           --whonix-repo)
+               if [ "$2" = "off" ]; then
+                  true "${cyan}INFO: Will NOT add Whonix repository.${reset}"
+               else
+                  true "${cyan}INFO: Will add $WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG Whonix repository.${reset}"
+                  export WHONIX_APT_REPOSITORY_DISTRUST_ENV="0"
+                  export WHONIX_APT_REPOSITORY_DISTRIBUTION_CONFIG="$2"
+               fi
                shift 2
                ;;
-           --minimal-report | --minimalreport)
-              export whonix_build_script_minimal_report="1"
-              shift
-              ;;
-           --skip-verifiable | --skipverifiable)
-              export whonix_build_script_skip_verifiable="1"
-              shift
-              ;;
-           --skip-sanity-tests | --skipsanitytests)
-              export SKIP_SCRIPTS+=" 20_sanity_checks "
-              shift
-              ;;
+           --report)
+               if [ "$2" = "full" ]; then
+                  true "${cyan}INFO: Full report.${reset}"
+               elif [ "$2" = "minimal" ]; then
+                  true "${cyan}INFO: Minimal report.${reset}"
+                  export whonix_build_script_minimal_report="1"
+               else
+                  echo "${red}${bold}ERROR: supported options for --report are 'full' or 'minimal'.${reset}"
+                  exit 1
+               fi
+               shift 2
+               ;;
+           --verifiable)
+               if [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Building verifiable.${reset}"
+               elif [ "$2" = "minimal" ]; then
+                  ## TODO: opt in rather than opt out.
+                  true "${cyan}INFO: Not building verifiable.${reset}"
+                  export whonix_build_script_skip_verifiable="1"
+               else
+                  echo "${red}${bold}ERROR: supported options for --verifiable are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               shift 2
+               ;;
+           --sanity-tests)
+               if [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Sanity tests true.${reset}"
+               elif [ "$2" = "false" ]; then
+                  ## TODO: opt in rather than opt out.
+                  true "${cyan}INFO: Sanity tests false.${reset}"
+                  export SKIP_SCRIPTS+=" 20_sanity_checks "
+               else
+                  echo "${red}${bold}ERROR: supported options for --sanity-tests are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               shift 2
+               ;;
            --file-system)
                export whonix_build_file_system="$2"
                shift 2
@@ -340,34 +464,47 @@ whonix_build_cmdoptions() {
                export whonix_build_debopt="$2"
                shift 2
                ;;
-           --auto-retry)
+           --retry-max)
                export whonix_build_auto_retry="$2"
                shift 2
                ;;
-           --wait-auto-retry)
+           --retry-wait)
                export whonix_build_wait_auto_retry="$2"
                shift 2
                ;;
-           --dispatch-before-retry)
+           --retry-before)
                export whonix_build_dispatch_before_retry="$2"
                shift 2
                ;;
-           --dispatch-after-retry)
+           --retry-after)
                export whonix_build_dispatch_after_retry="$2"
                shift 2
                ;;
-           --ignore-uncommitted)
-               export whonix_build_ignore_uncommitted="true"
-               shift
+           --allow-uncommitted)
+               if [ "$2" = "false" ]; then
+                  true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
+               elif [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
+                  export whonix_build_ignore_uncommitted="true"
+               else
+                  echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
            --)
                shift
                break
                ;;
            -*)
-               error "${red}${bold}unknown option: $1${reset}"
+               error "${red}${bold}unknown option (1): $1${reset}"
                ;;
            *)
+               if [ "$1" = "" ]; then
+                  true
+               else
+                  error "${red}${bold}unknown option (2): $1${reset}"
+               fi
                break
                ;;
        esac
@@ -405,7 +542,7 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
    fi
 
    if [ "$build_machines" -gt "1" ]; then
-      error "${red}${bold}You can not combine --whonix-gateway, --whonix-workstation or --whonix-custom-workstation. Use --all if that is what you want.${reset}"
+      error "${red}${bold}You can not combine --flavor whonix-gateway, --flavor whonix-workstation or --flavor whonix-custom-workstation. Use --flavor all if that is what you want.${reset}"
    fi
 
    if [ "$build_machines" -le "0" ]; then
@@ -414,7 +551,7 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
       elif [ "$WHONIX_BUILD_INTERNALRUN" = "1" ] ; then
          true
       else
-         error "${red}${bold}You must add --whonix-gateway, --whonix-workstation, --whonix-custom-workstation or --all.${reset}"
+         parse_cmd_flavor_error
       fi
    fi
 
@@ -425,6 +562,6 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
    elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
       true
    else
-      error "${red}${bold}You must choose --install-to-root, --virtualbox or --qcow2.${reset}"
+      parse_cmd_target_error
    fi
 }

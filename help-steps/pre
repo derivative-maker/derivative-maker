@@ -30,16 +30,16 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 
 error_handler_retry() {
    if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
-      true "${cyan}${bold}INFO: dispatch before retry (--dispatch-before-retry)...: $whonix_build_dispatch_before_retry ${reset}"
+      true "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
       eval $whonix_build_dispatch_before_retry
       whonix_build_dispatch_before_retry_exit_code="$?"
       if [ "$whonix_build_dispatch_before_retry_exit_code" = "0" ]; then
-         true "${cyan}${bold}INFO: dispatch before retry (--dispatch-after-retry) exit code was 0, ok. ${reset}"
+         true "${cyan}${bold}INFO: dispatch before retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         true "${red}${bold}INFO: dispatch before retry (--dispatch-before-retry) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
+         true "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
       fi
    else
-      true "INFO: Skipping whonix_build_dispatch_before_retry (--dispatch-before-retry), because empty, ok."
+      true "INFO: Skipping whonix_build_dispatch_before_retry (--retry-before), because empty, ok."
    fi
 
    true "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
@@ -55,16 +55,16 @@ error_handler_retry() {
    fi
 
    if [ ! "$whonix_build_dispatch_after_retry" = "" ]; then
-      true "${cyan}${bold}INFO: dispatch after retry (--dispatch-after-retry)...: $whonix_build_dispatch_after_retry ${reset}"
+      true "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $whonix_build_dispatch_after_retry ${reset}"
       eval $whonix_build_dispatch_after_retry
       whonix_build_dispatch_after_retry_exit_code="$?"
       if [ "$whonix_build_dispatch_after_retry_exit_code" = "0" ]; then
-         true "${cyan}${bold}INFO: dispatch after retry (--dispatch-after-retry) exit code was 0, ok. ${reset}"
+         true "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         true "${red}${bold}INFO: dispatch after retry (--dispatch-after-retry) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
+         true "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
       fi
    else
-      true "INFO: Skipping whonix_build_dispatch_after_retry (--dispatch-after-retry), because empty, ok."
+      true "INFO: Skipping whonix_build_dispatch_after_retry (--retry-after), because empty, ok."
    fi
 
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
@@ -110,12 +110,12 @@ ${red}${bold}ERROR in $last_script!${reset}
          [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
          [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
          if [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
-            true "${cyan}${bold}INFO: Auto retried (--auto-retry) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
+            true "${cyan}${bold}INFO: Auto retried (--retry-max) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
          else
             true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--auto-retry). Auto retry... ${reset}"
             whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
             if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
-               true "${cyan}${bold}INFO: Waiting (--wait-auto-retry) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
+               true "${cyan}${bold}INFO: Waiting (--retry-wait) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
                sleep "$whonix_build_wait_auto_retry" &
             fi
             wait "$!"
