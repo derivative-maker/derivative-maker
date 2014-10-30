@@ -349,13 +349,23 @@ parse_cmd() {
    while :
    do
        case $1 in
-           -tcw | --tor-custom-workstation | --torcustomworkstation)
-               WHONIX_BUILD_CUSTOM_WORKSTATION="1"
-               shift
+           --flavor)
+               if [ "$2" = "whonix-custom-workstation" ]; then
+                  WHONIX_BUILD_CUSTOM_WORKSTATION="1"
+               fi
+               shift 2
                ;;
-           --ignore-uncommitted)
-               export whonix_build_ignore_uncommitted="true"
-               shift
+           --allow-uncommitted)
+               if [ "$2" = "false" ]; then
+                  true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
+               elif [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
+                  export whonix_build_ignore_uncommitted="true"
+               else
+                  echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               shift 2
                ;;
            *)
                break
@@ -367,7 +377,7 @@ parse_cmd() {
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
 parse_cmd ${1+"$@"}
 if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-   true "${cyan}INFO: Skipping creation of packages for $VMNAME.${reset}"
+   true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
 else
    create-debian-packages
 fi
