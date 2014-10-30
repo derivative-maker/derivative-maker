@@ -221,7 +221,7 @@ whonix_build_one_parse_cmd() {
       fi
    fi
 
-   build_machines="0"
+   build_machines_counter="0"
 
    ## Using export, so scripts run by run-parts (run by whonix_build) can read
    ## these variables.
@@ -238,20 +238,20 @@ whonix_build_one_parse_cmd() {
                if [ "$2" = "whonix-gateway" ]; then
                   WHONIX_BUILD_FLAVOR="whonix-gateway"
                   export WHONIX_BUILD_GATEWAY="1"
-                  build_machines="$(( $build_machines + 1 ))"
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif "$2" = "whonix-workstation" ]; then
                   WHONIX_BUILD_FLAVOR="whonix-workstation"
                   export WHONIX_BUILD_WORKSTATION="1"
-                  build_machines="$(( $build_machines + 1 ))"
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif "$2" = "whonix-custom-workstation" ]; then
                   WHONIX_BUILD_FLAVOR="whonix-custom-workstation"
                   export WHONIX_BUILD_CUSTOM_WORKSTATION="1"
-                  build_machines="$(( $build_machines + 1 ))"
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif "$2" = "none" ]; then
                   ## TODO: implement
                   WHONIX_BUILD_FLAVOR="none"
                   export WHONIX_BUILD_NOFLAVOR="1"
-                  build_machines="$(( $build_machines + 1 ))"
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
                   echo "TODO: Implement"
                   exit 1
                else
@@ -296,7 +296,7 @@ whonix_build_one_parse_cmd() {
                ;;
            -i  | --internalrun)
                export WHONIX_BUILD_INTERNALRUN="1"
-               build_machines="$(( $build_machines + 1 ))"
+               build_machines_counter="$(( $build_machines_counter + 1 ))"
                shift
                ;;
            --vmram)
@@ -551,11 +551,11 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
       fi
    fi
 
-   if [ "$build_machines" -gt "1" ]; then
+   if [ "$build_machines_counter" -gt "1" ]; then
       error "${red}${bold}You can not combine --flavor whonix-gateway, --flavor whonix-workstation or --flavor whonix-custom-workstation. Use --flavor all if that is what you want.${reset}"
    fi
 
-   if [ "$build_machines" -le "0" ]; then
+   if [ "$build_machines_counter" -le "0" ]; then
       if [ "$whonix_build_one_parsed" = "1" ]; then
          true
       elif [ "$WHONIX_BUILD_INTERNALRUN" = "1" ] ; then
