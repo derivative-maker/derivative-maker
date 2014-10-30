@@ -28,6 +28,8 @@ build_main_parse_cmd() {
    trap "build_main_error_handler" ERR
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments..."
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: \${1+\"\$@\"}: ${1+"$@"}"
+   ## Fallback.
+   local got_flavor="false"
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
    while :
@@ -50,10 +52,13 @@ build_main_parse_cmd() {
                ;;
            --flavor)
                if [ "$2" = "whonix-gateway" ]; then
+                  got_flavor="true"
                   WHONIX_MAIN_SCRIPT_BUILD_GATEWAY="true"
                elif [ "$2" = "whonix-workstation" ]; then
+                  got_flavor="true"
                   WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION="true"
                elif [ "$2" = "whonix-custom-workstation" ]; then
+                  got_flavor="true"
                   WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION="true"
                elif [ "$2" = "none" ]; then
                   echo "TODO: implement"
@@ -77,6 +82,9 @@ build_main_parse_cmd() {
    done
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
+   if [ ! "$got_flavor" = "true" ]; then
+      parse_cmd_flavor_error
+   fi
    true "INFO $BASH_SOURCE $FUNCNAME: \$@: $@"
    build_args="$@"
    true "${cyan}${bold}$BASH_SOURCE $FUNCNAME${reset}: parsing command line arguments done."
