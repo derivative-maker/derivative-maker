@@ -222,6 +222,7 @@ whonix_build_one_parse_cmd() {
    fi
 
    build_machines_counter="0"
+   build_target_counter="0"
 
    ## Using export, so scripts run by run-parts (run by whonix_build) can read
    ## these variables.
@@ -262,10 +263,13 @@ whonix_build_one_parse_cmd() {
            --target)
                true "${cyan}INFO: --target $2 chosen.${reset}"
                if [ "$2" = "virtualbox" ]; then
+                  build_target_counter="$(( $build_target_counter + 1 ))"
                   export WHONIX_BUILD_VIRTUALBOX="true"
                elif [ "$2" = "root" ]; then
+                  build_target_counter="$(( $build_target_counter + 1 ))"
                   export ANON_BUILD_INSTALL_TO_ROOT="1"
                elif [ "$2" = "qcow2" ]; then
+                  build_target_counter="$(( $build_target_counter + 1 ))"
                   export WHONIX_BUILD_QCOW2="true"
                   export whonix_build_script_create_qcow2="1"
                else
@@ -575,8 +579,10 @@ Defaulting BUILD_TARGET_ARCH to ${under}i386${eunder}.
       parse_cmd_target_error
    fi
 
-   ## TODO: do not combine --flavor root with virtualbox and qcow2
-   #if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-
-   #fi
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      if [ "$build_target_counter" -gt "1" ]; then
+         echo "${red}${bold}You can not combine --target root with other targets.${reset}"
+         exit 1
+      fi
+   fi
 }
