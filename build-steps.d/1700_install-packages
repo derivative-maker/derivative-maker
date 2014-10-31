@@ -353,13 +353,28 @@ $whonix_build_script_whonix_package${reset}"
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1. Skipping kernel installation (one should already be installed), ok.${reset}"
    else
-      true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel installation...${reset}"
-      true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
-      local build_kernel
-      for build_kernel in $BUILD_KERNEL_PKGS; do
-         pkg-install-maybe "$build_kernel"
-      done
-      true "${bold}${cyan}INFO: kernel installation done.${reset}"
+      if [ "$BUILD_KERNEL_PKGS" = "none" ]; then
+         true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS} - Skipping kernel installation.${reset}"
+      else
+         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel installation...${reset}"
+         true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
+         local build_kernel
+         for build_kernel in $BUILD_KERNEL_PKGS; do
+            pkg-install-maybe "$build_kernel"
+         done
+      fi
+      if [ "$BUILD_HEADER_PKGS" = "none" ]; then
+         true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS} - Skipping kernel header installation.${reset}"
+      else
+         true "${bold}${cyan}INFO: kernel installation done.${reset}"
+         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel header installation...${reset}"
+         true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS}${reset}"
+         local build_header
+         for build_header in $BUILD_HEADER_PKGS; do
+            pkg-install-maybe "$build_header"
+         done
+         true "${bold}${cyan}INFO: kernel header installation done.${reset}"
+      fi
    fi
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
