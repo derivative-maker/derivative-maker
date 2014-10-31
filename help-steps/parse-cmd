@@ -231,6 +231,9 @@ whonix_build_one_script_help() {
 ## linux-headers-686-pae
 ## linux-headers-amd64
 ## Possibly others. (Unmaintained!)
+##
+## --conffile /path/to/config/file
+## Will get sourced after all other files.
 "
 }
 
@@ -532,6 +535,22 @@ whonix_build_one_parse_cmd() {
                else
                   echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
                   exit 1
+               fi
+               shift 2
+               ;;
+           --conffile)
+               if [ "$2" = "" ]; then
+                  echo "${red}${bold}ERROR: --conffile may not be empty.${reset}"
+                  exit 1
+               else
+                  export whonix_build_conf_file="$2"
+                  true "${cyan}INFO: --conffile set to: $whonix_build_conf_file${reset}"
+                  if [ -f "$whonix_build_conf_file" ]; then
+                     true "${cyan}INFO: --conffile $whonix_build_conf_file exists.${reset}"
+                  else
+                     echo "${red}${bold}ERROR: --conffile $whonix_build_conf_file does not exist!${reset}"
+                     exit 1
+                  fi
                fi
                shift 2
                ;;
