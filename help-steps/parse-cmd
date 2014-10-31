@@ -230,6 +230,9 @@ whonix_build_one_script_help() {
 ##
 ## --conffile /path/to/config/file
 ## Will get sourced after all other files.
+##
+## --grmlbin /path/to/grml-debootstrap
+## Defaults to grml-debootstrap.
 "
 }
 
@@ -561,6 +564,22 @@ whonix_build_one_parse_cmd() {
                      true "${cyan}INFO: --conffile $whonix_build_conf_file exists.${reset}"
                   else
                      echo "${red}${bold}ERROR: --conffile $whonix_build_conf_file does not exist!${reset}"
+                     exit 1
+                  fi
+               fi
+               shift 2
+               ;;
+           --grmlbin)
+               if [ "$2" = "" ]; then
+                  echo "${red}${bold}ERROR: --grmlbin may not be empty.${reset}"
+                  exit 1
+               else
+                  export whonix_build_grml_bin="$2"
+                  true "${cyan}INFO: --grmlbin set to: $whonix_build_grml_bin${reset}"
+                  if [ -x "$whonix_build_grml_bin" ]; then
+                     true "${cyan}INFO: --grmlbin $whonix_build_grml_bin exists.${reset}"
+                  else
+                     echo "${red}${bold}ERROR: --grmlbin $whonix_build_grml_bin is not executable!${reset}"
                      exit 1
                   fi
                fi
