@@ -232,6 +232,11 @@ whonix_build_one_script_help() {
 ## linux-headers-amd64
 ## Possibly others. (Unmaintained!)
 ##
+## --confdir /path/to/config/dir
+## Will get sourced after
+## \$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d
+## and before --conffile.
+##
 ## --conffile /path/to/config/file
 ## Will get sourced after all other files.
 "
@@ -535,6 +540,22 @@ whonix_build_one_parse_cmd() {
                else
                   echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
                   exit 1
+               fi
+               shift 2
+               ;;
+           --confdir)
+               if [ "$2" = "" ]; then
+                  echo "${red}${bold}ERROR: --confdir may not be empty.${reset}"
+                  exit 1
+               else
+                  export whonix_build_custom_config_dir="$2"
+                  true "${cyan}INFO: --confdir set to: $whonix_build_custom_config_dir${reset}"
+                  if [ -d "$whonix_build_custom_config_dir" ]; then
+                     true "${cyan}INFO: --confdir $whonix_build_custom_config_dir exists.${reset}"
+                  else
+                     echo "${red}${bold}ERROR: --confdir $whonix_build_custom_config_dir does not exist!${reset}"
+                     exit 1
+                  fi
                fi
                shift 2
                ;;

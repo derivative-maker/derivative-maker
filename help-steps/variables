@@ -318,11 +318,13 @@ whonix_build_files_list="$whonix_build_files_list $libvirt_target_network_file"
 
 [ -n "$whonix_build_config_dirs" ] || whonix_build_config_dirs="$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d"
 
-for whonix_build_config_dir in $whonix_build_config_dirs; do
+whonix_build_source_config_dir() {
+   error_handler_setup "error_handler_general" ERR INT TERM
+
    true "${cyan}INFO: Checking if whonix_build_config_dir $whonix_build_config_dir exists...${reset}"
-   if [ -d "$whonix_build_config_dir" ]; then
-      true "${cyan}INFO: Parsing whonix_build_config_dir $whonix_build_config_dir...${reset}"
-      for i in "$whonix_build_config_dir/"*; do
+   if [ -d "$1" ]; then
+      true "${cyan}INFO: Parsing $1...${reset}"
+      for i in "$1/"*; do
          if [ -f "$i" ]; then
             ## If the last character is a ~, ignore that file,
             ## because it was created by some editor,
@@ -341,9 +343,17 @@ for whonix_build_config_dir in $whonix_build_config_dirs; do
          fi
       done
    else
-      true "${cyan}INFO: Skipping whonix_build_config_dir $whonix_build_config_dir because it does not exist.${reset}"
+      true "${cyan}INFO: Skipping $1 because it does not exist.${reset}"
    fi
+}
+
+for whonix_build_config_dir in $whonix_build_config_dirs; do
+   whonix_build_source_config_dir "$whonix_build_config_dir"
 done
+
+if [ ! "$whonix_build_custom_config_dir" = "" ]; then
+   whonix_build_source_config_dir "$whonix_build_custom_config_dir"
+fi
 
 if [ ! "$whonix_build_conf_file" = "" ]; then
    if [ -f "$whonix_build_conf_file" ]; then
