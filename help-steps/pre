@@ -11,7 +11,7 @@ fi
 
 set -o pipefail
 
-error_handler_shell() {
+errorhandlershell() {
    true "${cyan}${bold}INFO: Opening interactive shell...${reset}"
    true "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
 continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
@@ -28,7 +28,7 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
    fi
 }
 
-error_handler_retry() {
+errorhandlerretry() {
    if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
       true "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
       eval $whonix_build_dispatch_before_retry
@@ -70,24 +70,24 @@ error_handler_retry() {
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       return 0
    else
-      error_handler_shared_process "NONE (called by $FUNCNAME)"
+      errorhandlerprocessshared "NONE (called by $FUNCNAME)"
    fi
 }
 
-error_handler_shared() {
+errorhandlershared() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
    ## $1 contains trap signal type.
-   error_handler_shared_process "$1"
+   errorhandlerprocessshared "$1"
 }
 
-error_handler_shared_process() {
+errorhandlerprocessshared() {
    last_caller="$(caller)"
    last_script="$BASH_SOURCE"
    ## $1 contains trap signal type.
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
-   benchmark_time_end ## sets benchmark_took_time (implemented in help-steps/pre)
+   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
    true "
 ############################################################
 ${red}${bold}ERROR in $last_script detected!${reset}
@@ -121,7 +121,7 @@ ${red}${bold}ERROR in $last_script!${reset}
             wait "$!"
             ignore_error="true"
             error_handler_do_retry="true"
-            error_handler_retry
+            errorhandlerretry
             return 0
          fi
       fi
@@ -136,7 +136,7 @@ ${red}${bold}ERROR in $last_script!${reset}
    else
       read -p "\
 ${red}${bold}ERROR in $BASH_SOURCE detected!
-Please have a look above \"error_handler_general\", note the command that failed, its output and last_failed_exit_code.
+Please have a look above \"errorhandlergeneral\", note the command that failed, its output and last_failed_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press r and enter to retry.
 - Please press s and enter to open an chroot interactive shell.
@@ -149,11 +149,11 @@ Please have a look above \"error_handler_general\", note the command that failed
       interactive_chroot_shell="false"
    elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
       interactive_chroot_shell="true"
-      error_handler_shell
+      errorhandlershell
    elif [ "$answer" = "r" ] || [ "$answer" = "retry" ]; then
       ignore_error="true"
       error_handler_do_retry="true"
-      error_handler_retry
+      errorhandlerretry
    else
       ignore_error="false"
       interactive_chroot_shell="false"
@@ -164,7 +164,7 @@ if [ "$whonix_build_error_counter" = "" ]; then
    whonix_build_error_counter="0"
 fi
 
-error_handler_maybe_exit() {
+errorhandlermaybeexit() {
    if [ "$error_handler_do_retry" = "true" ]; then
       true "INFO ($FUNCNAME): auto retry succeeded. Will not exit. Continue."
       return 0
@@ -194,39 +194,39 @@ bugs, that are a result of this! Please press enter to continue. ${reset}"
    fi
 }
 
-error_handler_general() {
+errorhandlergeneral() {
    true "INFO: Begin of function $FUNCNAME."
    ## $1 contains trap signal type.
-   error_handler_shared "$1"
-   error_handler_maybe_exit "$1"
+   errorhandlershared "$1"
+   errorhandlermaybeexit "$1"
    true "INFO: End of function $FUNCNAME."
 }
 
-error_handler_unchroot_unprevent_unmount() {
+errorhandlerunchrootunpreventunmount() {
    ## $1 contains trap signal type.
-   error_handler_shared "$1"
+   errorhandlershared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
    fi
-   error_handler_maybe_exit "$1"
+   errorhandlermaybeexit "$1"
 }
 
-error_handler_unmount() {
+errorhandlerunmount() {
    ## $1 contains trap signal type.
-   error_handler_shared "$1"
+   errorhandlershared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
    fi
-   error_handler_maybe_exit "$1"
+   errorhandlermaybeexit "$1"
 }
 
 ## Thanks to:
 ## camh
 ## http://stackoverflow.com/a/2183063/2605155
-error_handler_setup() {
+errorhandlersetup() {
    local handler signal
    ## $1 contains the name of the error handler function.
    handler="$1" ; shift
@@ -235,19 +235,19 @@ error_handler_setup() {
    done
 }
 
-error_handler_setup "error_handler_general" ERR INT TERM
+errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
-export -f error_handler_shell
-export -f error_handler_retry
-export -f error_handler_shared
-export -f error_handler_shared_process
-export -f error_handler_maybe_exit
-export -f error_handler_general
-export -f error_handler_unchroot_unprevent_unmount
-export -f error_handler_unmount
-export -f error_handler_setup
+export -f errorhandlershell
+export -f errorhandlerretry
+export -f errorhandlershared
+export -f errorhandlerprocessshared
+export -f errorhandlermaybeexit
+export -f errorhandlergeneral
+export -f errorhandlerunchrootunpreventunmount
+export -f errorhandlerunmount
+export -f errorhandlersetup
 
-error_handler_setup "error_handler_general" ERR INT TERM
+errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
 bash -n "$BASH_SOURCE"
 
@@ -275,20 +275,20 @@ benchmark_time_start() {
    true
 }
 
-benchmark_time_end() {
-   benchmark_time_end="$(date +%s)"
-   benchmark_took_seconds="$(( $benchmark_time_end - $benchmark_time_start ))"
+benchmarktimeend() {
+   benchmarktimeend="$(date +%s)"
+   benchmark_took_seconds="$(( $benchmarktimeend - $benchmark_time_start ))"
    benchmark_took_time="$(convertsecs "$benchmark_took_seconds")"
    true
 }
 
-export -f benchmark_time_end
+export -f benchmarktimeend
 
-## start benchmark_time_end
+## start benchmarktimeend
 benchmark_time_start
 
 colors() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/037
@@ -349,7 +349,7 @@ if [ ! "$ROOT_CHECK" = "0" ]; then
 fi
 
 lower_priorities() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    ## Lower IO priority.
    ionice -c3 -p$$
@@ -370,8 +370,8 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
    lower_priorities
 fi
 
-apt_cache_maybe_enable() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+aptcachemaybeenable() {
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
       ## Someone updating Whonix-Gateway from source code.
@@ -391,10 +391,10 @@ apt_cache_maybe_enable() {
    fi
 }
 
-export -f apt_cache_maybe_enable
+export -f aptcachemaybeenable
 
 apt_cache_disable() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    unset http_proxy
 }
@@ -403,8 +403,8 @@ export -f apt_cache_disable
 
 ## {{ apt_get_gpgv
 
-apt_get_gpgv_create_tmp() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+aptgetgpgvcreatetmp() {
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    ## workaround for
    ##     apt: Provide meaningful exit codes for gpg failures
@@ -430,10 +430,10 @@ gpgv ${1+"$@"} 3> >(tee --append "$WHONIX_BUILD_APT_GET_GPGV_LOG" >&3)' > "$WHON
    chmod +x "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
 }
 
-export -f apt_get_gpgv_create_tmp
+export -f aptgetgpgvcreatetmp
 
-apt_get_gpgv_parse_tmp() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+aptgetgpgvparsetmp() {
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
    local gpg_log
    gpg_log="$(cat "$WHONIX_BUILD_APT_GET_GPGV_LOG")"
@@ -491,15 +491,15 @@ See above!${reset}"
    IFS="$OIFS"
 }
 
-export -f apt_get_gpgv_parse_tmp
+export -f aptgetgpgvparsetmp
 
-apt_get_gpgv_delete_tmp() {
-   error_handler_setup "error_handler_general" ERR INT TERM
+aptgetgpgvdeletetmp() {
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
 }
 
-export -f apt_get_gpgv_delete_tmp
+export -f aptgetgpgvdeletetmp
 
 ## Prevent the log from needlessly filling up.
 rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
