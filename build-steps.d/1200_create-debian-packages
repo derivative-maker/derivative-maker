@@ -155,6 +155,11 @@ cleanup_old_packages() {
 get_extra_packages() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
+   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
+      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
+      return 0
+   fi
+
    true "${cyan}$BASH_SOURCE INFO: Getting extra packages... ${reset}"
 
    rm --recursive --force "$WHONIX_BINARY/temp_extra_packages"
@@ -237,6 +242,14 @@ create_whonix_debian_packages_without_building_system() {
       if [ "$base_name" = "whonix-developer-meta-files" ]; then
          true "INFO: Skipping $base_name as expected."
          continue
+      fi
+      if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
+         if [ "$(echo "$base_name" | grep "apparmor-*")" ]; then
+            true "${cyan}INFO: Building apparmor profile: $base_name ${reset}"
+         else
+            true "${cyan}INFO${reset}: Skipping $base_name as expected because using whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only."
+            continue
+         fi
       fi
       if [ "$CI" = "true" ]; then
          ## Hiding,
@@ -366,6 +379,10 @@ parse_cmd() {
                   exit 1
                fi
                shift 2
+               ;;
+           --apparmor)
+               whonix_build_pkg_apparmor_only="true"
+               shift
                ;;
            *)
                break
