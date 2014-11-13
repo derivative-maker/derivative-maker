@@ -114,6 +114,16 @@ signing_key() {
                              --keyid-format "0xlong" \
                              --fingerprint \
                              --list-secret-keys
+
+   true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
+   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
+      true
+   else
+      if [ "$GPG_AGENT_INFO" = "" ]; then
+         true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. \
+         gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
+      fi
+   fi
 }
 
 check_for_uncommited_changes() {
@@ -221,16 +231,6 @@ create_whonix_debian_packages_without_building_system() {
    ##
    ## -sa is understood by dpkg-buildpackage, it forces the inclusion of the original source
    ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
-
-   true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      true
-   else
-      if [ "$GPG_AGENT_INFO" = "" ]; then
-         true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. \
-         gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
-      fi
-   fi
 
    shopt -s nullglob
    shopt -s dotglob
