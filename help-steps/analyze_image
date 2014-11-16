@@ -42,6 +42,7 @@ And either one of the following:
 --qcow qcowfile
 --qcow2 qcow2file
 --raw rawfile
+--root
 
 Optional options:
 --topcomment comment
@@ -56,7 +57,7 @@ sudo ./help-steps/analyze_image --ova ~/Whonix-Gateway-7.4.3.ova --report ~/repo
 
 sudo ./help-steps/analyze_image --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova --report ~/report2 --tempfolder ~/whonix_binary/report_temp2
 
-sudo ./help-steps/analyze_image --install-to-root --report ~/report3 --tempfolder ~/whonix_binary/report_temp3
+sudo ./help-steps/analyze_image --root --report ~/report3 --tempfolder ~/whonix_binary/report_temp3
 
 sudo ./help-steps/analyze_image --raw ~/whonix_binary/Whonix-Gateway.raw --report ~/report4 --tempfolder ~/whonix_binary/report_temp4
 
@@ -136,7 +137,7 @@ parse_cmd() {
                to_analyze_file="$2"
                shift 2
                ;;
-           -bm | --bare-metal | --install-to-root | -itr)
+           -bm | --bare-metal | --install-to-root | -itr | --root)
                ANON_BUILD_INSTALL_TO_ROOT="1"
                shift
                ;;
@@ -162,6 +163,10 @@ parse_cmd() {
                ;;
            -f | --errorcomment)
               errorcomment="$2"
+              shift 2
+              ;;
+           --minimal)
+              minimal_report="true"
               shift 2
               ;;
            --)
@@ -256,6 +261,15 @@ unmount_image() {
 
 preparation() {
    trap "error_handler" ERR INT TERM
+
+   if [ "$minimal_report" = "true" ]; then
+      true "${cyan}INFO: Only creating minimal report file because minimal_report is true.${reset}"
+      rm --force "$report_file"
+      echo "$topcomment" >> "$report_file"
+      echo "Only creating minimal report file because minimal_report is true." >> "$report_file"
+      echo "$endcomment" >> "$report_file"
+      exit 0
+   fi
 
    true "${cyan}INFO: user_name is set to $user_name ${reset}"
    true "${cyan}INFO: Benchmarking \"sudo -u \"$user_name\" echo \"This is a test echo.\"\" using \"time\"... ${reset}"
