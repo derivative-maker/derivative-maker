@@ -20,11 +20,6 @@ source variables
 export-libvirt-xml() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
-   if [ ! "$WHONIX_BUILD_QCOW2" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_QCOW2 is not set to true.${reset}"
-      return 0
-   fi
-
    sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY"
 
    sudo -u "$user_name" cp "$libvirt_source_kvm_file" "$libvirt_target_kvm_file"
@@ -35,11 +30,11 @@ export-libvirt-xml() {
    fi
 }
 
-if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-   true "${green}INFO: Skipping $BASH_SOURCE, because ANON_BUILD_INSTALL_TO_ROOT is set to 1.${reset}"
-else
+if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
    true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
    export-libvirt-xml
    benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
    true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+else
+   true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_QCOW2 is not set to 'true'.${reset}"
 fi
