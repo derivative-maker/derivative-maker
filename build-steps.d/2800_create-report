@@ -17,20 +17,12 @@ cd help-steps
 source pre
 source variables
 
-create-report() {
+analyze_target() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
-   ## If whonix_build is run with --fast2 switch.
-   if [ "$WHONIX_BUILD_FAST2" = "1" ]; then
-      echo "${bold}${cyan}INFO: run with --fast2 switch, skipping $BASH_SOURCE. ${reset}"
-      exit 0
-   fi
-
-   local report_file
-   report_file="$WHONIX_BINARY/$VMNAME-$anon_dist_build_version.report"
-
-   local report_tempfolder
-   report_tempfolder="$WHONIX_BINARY/$VMNAME-${anon_dist_build_version}_report_tempfolder"
+   local target image_to_analyze
+   target="$1"
+   image_to_analyze="$2"
 
    local topcomment
    topcomment="\
@@ -49,31 +41,52 @@ ANON_BUILD_INSTALL_TO_ROOT: $ANON_BUILD_INSTALL_TO_ROOT"
    local errorcomment
    errorcomment="ERROR: Unfinished report! Error detected!"
 
-   if [ "$whonix_build_script_minimal_report" = "1" ]; then
-      true "${cyan}INFO: Only creating minimal report file because whonix_build_script_skip_report is 1.${reset}"
-      rm --force "$report_file"
-      echo "$topcomment" >> "$report_file"
-      echo "Only creating minimal report file because whonix_build_script_skip_report is 1." >> "$report_file"
-      echo "$endcomment" >> "$report_file"
-      return 0
+   true "${cyan}INFO: analyzing $target... ${reset}"
+
+   report_file="$WHONIX_BINARY/$VMNAME-$anon_dist_build_version.$target.report"
+   report_tempfolder="$WHONIX_BINARY/$VMNAME-${anon_dist_build_version}_report_${target}_tempfolder"
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/analyze_image" \
+      "$minimal_report_maybe" \
+      --topcomment "$topcomment" \
+      --endcomment "$endcomment" \
+      --errorcomment "$errorcomment" \
+      --report "$report_file" \
+      --tempfolder "$report_tempfolder" \
+      "--$target" "$image_to_analyze"
+
+   true "${cyan}INFO: Done, analyzed $target. ${reset}"
+}
+
+create-report() {
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+
+   ## If whonix_build is run with --fast2 switch.
+   if [ "$WHONIX_BUILD_FAST2" = "1" ]; then
+      echo "${bold}${cyan}INFO: run with --fast2 switch, skipping $BASH_SOURCE. ${reset}"
+      exit 0
    fi
 
+   if [ "$whonix_build_script_minimal_report" = "1" ]; then
+      minimal_report_maybe="--minimal"
+   fi
+
+   local report_file report_tempfolder
+
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/analyze_image" \
-         --install-to-root \
-         --report "$report_file" \
-         --tempfolder "$report_tempfolder" \
-         --topcomment "$topcomment" \
-         --endcomment "$endcomment" \
-         --errorcomment "$errorcomment"
-   else
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/analyze_image" \
-         --ova "$binary_image_ova" \
-         --report "$report_file" \
-         --tempfolder "$report_tempfolder" \
-         --topcomment "$topcomment" \
-         --endcomment "$endcomment" \
-         --errorcomment "$errorcomment"
+      analyze_target "root" "/"
+   fi
+
+   if [ "$WHONIX_BUILD_RAW" = "true" ]; then
+      analyze_target "raw" "$binary_image_raw"
+   fi
+
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      analyze_target "ova" "$binary_image_ova"
+   fi
+
+   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+      analyze_target "qcow2" "$binary_image_qcow2"
    fi
 }
 
