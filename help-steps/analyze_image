@@ -42,7 +42,7 @@ And either one of the following:
 --qcow qcowfile
 --qcow2 qcow2file
 --raw rawfile
---root
+--root /path/to/folder
 
 Optional options:
 --topcomment comment
@@ -57,7 +57,7 @@ sudo ./help-steps/analyze_image --report ~/report1 --tempfolder ~/whonix_binary/
 
 sudo ./help-steps/analyze_image --report ~/report2 --tempfolder ~/whonix_binary/report_temp2 --ova ~/whonix_binary/Whonix-Gateway-7.4.3.ova
 
-sudo ./help-steps/analyze_image --report ~/report3 --tempfolder ~/whonix_binary/report_temp3 --root
+sudo ./help-steps/analyze_image --report ~/report3 --tempfolder ~/whonix_binary/report_temp3 --root /
 
 sudo ./help-steps/analyze_image --report ~/report4 --tempfolder ~/whonix_binary/report_temp4 --raw ~/whonix_binary/Whonix-Gateway.raw
 
@@ -139,7 +139,12 @@ parse_cmd() {
                ;;
            -bm | --bare-metal | --install-to-root | -itr | --root)
                ANON_BUILD_INSTALL_TO_ROOT="1"
-               shift
+               mount_folder="$2"
+               if [ "$mount_folder" = "" ]; then
+                  echo 'Mount folder must not be empty. Use for example --root "/".'
+                  exit 1
+               fi
+               shift 2
                ;;
            -r | --report)
                report_file="$2"
@@ -348,7 +353,10 @@ preparation() {
    ## Using export, because mount_folder gets read by help-steps/mount-raw and
    ## help-steps/unmount-raw.
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      export mount_folder=""
+      ## mount_folder has been set in parse_cmd
+      ## Remove trailing slash so for example "/" becomes "".
+      mount_folder="${mount_folder%/}"
+      export mount_folder
    else
       export mount_folder="$tempfolder/mount_folder"
    fi
