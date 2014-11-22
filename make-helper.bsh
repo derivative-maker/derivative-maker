@@ -1,0 +1,715 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+## generic deb build script version 0.9x
+
+make_parse_cmd() {
+   ## Thanks to:
+   ## http://mywiki.wooledge.org/BashFAQ/035
+
+   local matched="false"
+   local deb
+
+   while :
+   do
+       case $1 in
+           help)
+               matched="true"
+               make_help
+               exit 0
+               shift
+               ;;
+           dist)
+               matched="true"
+               make_dist
+               exit 0
+               shift
+               ;;
+           undist)
+               matched="true"
+               make_undist
+               exit 0
+               shift
+               ;;
+           debdist)
+               matched="true"
+               make_debdist
+               exit 0
+               shift
+               ;;
+           undebdist)
+               matched="true"
+               make_undebdist
+               exit 0
+               shift
+               ;;
+           manpages)
+               matched="true"
+               make_manpages
+               exit 0
+               shift
+               ;;
+           uch)
+               matched="true"
+               make_uch
+               exit 0
+               shift
+               ;;
+           install)
+               matched="true"
+               make_install
+               exit 0
+               shift
+               ;;
+           deb-pkg)
+               matched="true"
+               deb="true"
+               shift
+               ;;
+           deb-pkg-signed)
+               matched="true"
+               make_deb_signed="true"
+               shift
+               ;;
+           deb-pkg-source)
+               matched="true"
+               make_deb_source="true"
+               shift
+               ;;
+           deb-pkg-install)
+               matched="true"
+               make_deb-pkg-install
+               exit 0
+               shift
+               ;;
+           deb-install)
+               matched="true"
+               make_deb-install
+               exit 0
+               shift
+               ;;
+           deb-icup)
+               matched="true"
+               make_deb-icup
+               exit 0
+               shift
+               ;;
+           deb-remove)
+               matched="true"
+               make_deb-remove
+               exit 0
+               shift
+               ;;
+           deb-purge)
+               matched="true"
+               make_deb-purge
+               exit 0
+               shift
+               ;;
+           deb-pkg)
+               matched="true"
+               deb="true"
+               shift
+               ;;
+           deb-clean)
+               matched="true"
+               make_deb-clean
+               shift
+               ;;
+           deb-cleanup)
+               matched="true"
+               make_deb-cleanup
+               shift
+               ;;
+           dput-ubuntu-ppa)
+               matched="true"
+               make_dput-ubuntu-ppa
+               shift
+               ;;
+           clean)
+               matched="true"
+               make_clean
+               exit 0
+               shift
+               ;;
+           distclean)
+               matched="true"
+               make_clean
+               exit 0
+               shift
+               ;;
+           checkout)
+               matched="true"
+               make_checkout
+               exit 0
+               shift
+               ;;
+           installcheck)
+               matched="true"
+               make_installcheck
+               exit 0
+               shift
+               ;;
+           installsim)
+               matched="true"
+               make_installsim
+               exit 0
+               shift
+               ;;
+           uninstallcheck)
+               matched="true"
+               make_uninstallcheck
+               exit 0
+               shift
+               ;;
+           uninstall)
+               matched="true"
+               make_uninstall
+               exit 0
+               shift
+               ;;
+           uninstallsim)
+               matched="true"
+               make_uninstallsim
+               exit 0
+               shift
+               ;;
+           deb-chl-bumpup)
+               matched="true"
+               make_deb-chl-bumpup
+               exit 0
+               shift
+               ;;
+           --)
+               shift
+               break
+               ;;
+           -*)
+               echo "unknown option: $1" >&2
+               exit 1
+               ;;
+           *)
+               break
+               ;;
+       esac
+   done
+
+   ## If there are input files (for example) that follow the options, they
+   ## will remain in the "$@" positional parameters.
+
+   if [ ! "$matched" = "true" ]; then
+      true "ERROR: no valid option chosen!"
+      exit 1
+   fi
+
+   if [ "$deb" = "true" ]; then
+      make_deb-pkg $@
+      exit 0
+   fi
+   if [ "$make_deb_signed" = "true" ]; then
+      make_deb-pkg-signed $@
+      exit 0
+   fi
+   if [ "$make_deb_source" = "true" ]; then
+      make_deb-pkg-source $@
+      exit 0
+   fi
+}
+
+make_get_variables() {
+   local temp dpkg_line
+   command -v dpkg-parsechangelog >/dev/null
+   while read -r -d $'\n' dpkg_line; do
+      ## Example dpkg_line:
+      ## Version: 0.1-1
+      read -r first second _ <<< "$dpkg_line"
+      ## Example first:
+      ## Version:
+      ## Example second:
+      ## 3:0.1-1
+      first="${first,,}"
+      ## Example first:
+      ## version
+      if [ "$first" = "version:" ]; then
+         make_changelog_version="$second"
+         ## Example make_changelog_version:
+         ## 3:0.1-1
+         make_pkg_revision="${second#*-}"
+         ## Example make_pkg_revision:
+         ## 1
+         temp="${second%-*}"
+         ## Example temp:
+         ## 3:0.1
+         make_pkg_version="${temp#*:}"
+         ## Example make_pkg_version:
+         ## 0.1
+         make_epoch="${second%:*}"
+         ## Example make_epoch:
+         ## 3
+         break
+      fi
+   done < <( dpkg-parsechangelog )
+   if [ "$make_pkg_version" = "" ]; then
+      true "ERROR: variable make_pkg_version is empty."
+      exit 1
+   fi
+   make_main_package_name="$make_mydir"
+   if [ "$make_main_package_name" = "" ]; then
+      true "ERROR: variable make_main_package_name is empty."
+      exit 1
+   fi
+   make_main_deb_file="../${make_main_package_name}_${make_pkg_version}-${make_pkg_revision}_all.deb"
+
+   local grep_line a package
+
+   ## Example: grep_output
+   ## Package: anon-shared-packages-dependencies
+   ## Package: anon-shared-packages-recommended
+
+   make_package_list="$make_main_package_name"
+
+   while read -r -d $'\n' grep_line; do
+      read a package _ <<< "$grep_line"
+      if [ "$package" = "$make_main_package_name" ]; then
+         continue
+      fi
+      make_package_list="$make_package_list $package"
+   done < <( grep "Package:" "debian/control" )
+
+   make_debian_tarball="$DISTDIR/${make_main_package_name}_${make_pkg_version}-${make_pkg_revision}.debian.tar.gz"
+   if [ "$MAKE_DEBDIST_TOLOWER" = "false" ]; then
+      true
+   else
+      make_debian_tarball="${make_debian_tarball,,}"
+   fi
+
+   make_upstream_tarball="$DISTDIR/${make_main_package_name}_${make_pkg_version}.orig.tar.gz"
+   if [ "$MAKE_UPSTREAM_TARBALL_TOLOWER" = "false" ]; then
+      true
+   else
+      make_upstream_tarball="${make_upstream_tarball,,}"
+   fi
+}
+
+make_get_destdir() {
+   if [ "$DESTDIR" = "" ]; then
+      DESTDIR="/"
+   fi
+}
+
+make_get_distdir() {
+   if [ "$DISTDIR" = "" ]; then
+      DISTDIR=".."
+   fi
+}
+
+make_help() {
+   set +x
+   echo "\
+make help
+   Show this help.
+make dist
+   Create package-version.tar.gz from source files in \$DISTDIR (default \"..\").
+make undist
+   Delete package-version.tar.gz from source files in \$DISTDIR (default \"..\").
+make debdist
+   Create debian.tar.gz from source files in \$DISTDIR (default \"..\").
+make undebdist
+   Delete debian.tar.gz from source files in \$DISTDIR (default \"..\").
+make manpages
+   Create man page from man source folder, which will be stored in debian/tmp-man folder.
+make uch
+   Store upstream changelog from git log in debian/changelog.upstream.
+make install
+   Copying the files from the source tree to system-wide directories.
+make installsim
+   Simulate copying the files from the source tree to system-wide directories.
+make deb-pkg
+   Create a deb, which will be stored in parent folder.
+make deb-pkg-install
+   Create a deb, which will be stored in parent folder, and install it.
+make deb-install
+   Install deb from parent folder.
+make deb-icup
+   Combination of make deb-pkg, make deb-pkg-install and make deb-pkg-cleanup.
+make deb-remove
+   apt-get remove make_main_package_name
+make deb-purge
+   apt-get purge make_main_package_name
+make deb-clean
+   Delete temporary debhelper files.
+make deb-cleanup
+   Same as make deb-clean and deletes debuild artifacts from parent folder.
+make dput-ubuntu-ppa
+   Upload to Ubuntu ppa. Requires functional .dput.cf.
+make clean
+   Currently same as make deb-clean.
+make distclean
+   Currently same as make clean.
+make checkout
+   Fetch from git.
+make installcheck
+   Check if source files match installed files.
+make uninstallcheck
+   Check if make uninstall removed all files.
+make uninstall
+   Delete all installed files.
+make uninstallsim
+   Simulate what make uninstall would do.
+make deb-chl-bumpup
+   Bump upstream version number in debian/changelog."
+}
+
+make_dist() {
+   make_undist
+
+   find \
+      "." \
+      -not \
+      -iwholename '*.git*' \
+      -print0 \
+         | tar \
+            --null \
+            --no-recursion \
+            --create \
+            --verbose \
+            --owner="0" --group="0" \
+            --numeric-owner \
+            -T \
+            - \
+               | gzip -9 -n > "$make_upstream_tarball"
+
+   ls -la "$make_upstream_tarball"
+}
+
+make_debdist() {
+   make_undebdist
+
+   ## Deterministic.
+   ## TODO: differs from tarballs created by dpkg-source for some reason.
+   ##       For diagnose, example:
+   ##       diff <(tar -tvf anon-apt-sources-list_0.7-1.debian.tar.gz) <(tar -tvf _anon-apt-sources-list_0.7-1.debian.tar.gz)
+   find "debian" \
+      -print0 \
+         | tar \
+            --null \
+            --no-recursion \
+            --create \
+            --verbose \
+            --owner="0" --group="0" \
+            --numeric-owner \
+            -T \
+            - \
+            | gzip -9 -n > "$make_debian_tarball"
+
+   ls -la "$make_debian_tarball"
+}
+
+make_undist() {
+   make_get_distdir
+   make_get_variables
+
+   rm --force "$make_upstream_tarball"
+}
+
+make_undebdist() {
+   make_get_distdir
+   make_get_variables
+
+   rm --force "$make_debian_tarball"
+}
+
+make_manpages() {
+   shopt -s globstar dotglob nullglob
+   local i source_folder filename_without_ronn_file_extension base_name
+   for i in "$PWD/man"/**; do
+      if [ -d "$i" ]; then
+         continue
+      fi
+
+      base_name="${i##*/}"
+      filename_without_ronn_file_extension="${base_name%.*}"
+
+      mkdir --parents "$PWD/debian/tmp-man/$source_folder"
+
+      true "${bold}${cyan}INFO: Creating man page $PWD/debian/tmp-man/$filename_without_ronn_file_extension ${reset}"
+
+      ronn \
+         --manual="Whonix Documentation" \
+         --organization="Whonix" \
+         < "$i" \
+         > "$PWD/debian/tmp-man/$filename_without_ronn_file_extension"
+
+   done
+   shopt -u globstar dotglob nullglob
+}
+
+make_uch() {
+   git log > "$PWD/debian/changelog.upstream"
+   test -f "$PWD/debian/changelog.upstream"
+}
+
+make_clean() {
+   make_deb-clean
+}
+
+make_deb-pkg_shared() {
+   make_dist
+
+   if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
+      export DEBUILD_LINTIAN_OPTS="--info --display-info --fail-on-warnings"
+   fi
+
+   ## Using --no-lintian, because debuild does not exist with a non-zero exit
+   ## code, should lintian find an error. Therefore running lintian afterwards.
+
+   ## TODO
+   ## --rootcmd="$PWD/debian/gain-root-command" \
+
+   debuild \
+      --no-lintian \
+      -sa \
+      $make_debuild_maybe_unsigned_opts \
+      $make_debuild_maybe_unsigned_opts \
+      ${1+"$@"}
+
+   ## TODO: no lintian
+
+   lintian $DEBUILD_LINTIAN_OPTS
+
+   true "INFO: You can find your deb file here: $make_main_deb_file"
+}
+
+make_deb-pkg() {
+   make_debuild_maybe_unsigned_opts="-us -uc"
+   make_deb-pkg_shared $@
+}
+
+make_deb-pkg-signed() {
+   make_deb-pkg_shared $@
+}
+
+make_deb-pkg-source() {
+   make_debuild_maybe_unsigned_opts="-S"
+   make_deb-pkg_shared $@
+}
+
+make_deb-install() {
+   make_get_variables
+   if [ ! -f "$make_main_deb_file" ]; then
+      true "ERROR: File $make_main_deb_file does not exist. Have you run \"make deb-pkg\" already?"
+      exit 1
+   fi
+   sudo dpkg -i "$make_main_deb_file"
+}
+
+make_deb-remove() {
+   make_get_variables
+   sudo apt-get remove "$make_main_package_name"
+}
+
+make_deb-purge() {
+   make_get_variables
+   sudo apt-get purge "$make_main_package_name"
+}
+
+make_deb-pkg-install() {
+   make_deb-pkg
+   make_deb-install
+}
+
+make_deb-icup() {
+   make_deb-pkg-install
+   make_deb-cleanup
+}
+
+make_deb-clean() {
+   make_get_variables
+   if [ -d "debian/tmp-man" ]; then
+      rm --recursive "debian/tmp-man"
+   fi
+   local to_delete package
+   for package in $make_package_list; do
+      for to_delete in \
+         "debian/$package.debhelper.log" \
+         "debian/$package.substvars" \
+         "debian/changelog.upstream" \
+         "debian/files" \
+         "debian/$package.prerm.debhelper" \
+         "debian/$package.postinst.debhelper" \
+         "debian/$package.postrm.debhelper"
+      do
+         if [ -e "$to_delete" ]; then
+            rm "$to_delete"
+         fi
+         if [ -d "debian/$package" ]; then
+            rm --recursive "debian/$package"
+         fi
+      done
+   done
+}
+
+make_deb-cleanup() {
+   make_undist
+   make_deb-clean
+   local to_delete package
+   for package in $make_package_list; do
+      for to_delete in \
+         "../${package}_"*-*"_all.deb" \
+         "../${package}_"*-*".debian.tar.gz" \
+         "../${package}_"*-*".dsc" \
+         "../${package}_"*-*_*".build" \
+         "../${package}_"*-*_*".changes" \
+         "../${package}_"*-*"_source.build" \
+         "../${package}_"*-*"_source.changes" \
+         "../${package}_"*-*"_source.${package}.upload"
+      do
+         if [ -e "$to_delete" ]; then
+            rm "$to_delete"
+         fi
+      done
+   done
+}
+
+make_dput-ubuntu-ppa() {
+   make_get_variables
+   dput "$make_main_package_name" "../${make_main_package_name}_${make_pkg_version}-${make_pkg_revision}_source.changes"
+}
+
+make_checkout() {
+   git fetch
+}
+
+make_helper() {
+   make_get_destdir
+   shopt -s globstar dotglob nullglob
+   local d source_file file_without_pwd file_with_destdir
+   for d in bin boot dev etc home lib opt sbin srv sys usr var; do
+      if [ -d "$d" ]; then
+         for source_file in "$PWD/$d"/**; do
+            if [ "$make_install_" = "true" ]; then
+               cp -R "$d" "$DESTDIR"
+               continue
+            elif [ "$make_installsim_" = "true" ]; then
+               true "INFO: would do: cp -R $d $DESTDIR"
+               continue
+            fi
+            if [ ! -f "$source_file" ]; then
+               continue
+            fi
+            file_without_pwd="${source_file#$PWD}"
+            file_with_destdir="${DESTDIR}${file_without_pwd}"
+            if [ "$make_uninstallcheck_" = "true" ]; then
+               if [ -f "$file_with_destdir" ]; then
+                  true "ERROR: file $file_with_destdir still installed."
+                  local still_installed="true"
+               fi
+            elif [ "$make_installcheck_" = "true" ]; then
+               diff "$source_file" "$file_with_destdir"
+            elif [ "$make_uninstallsim_" = "true" ]; then
+               if [ -f "$file_with_destdir" ]; then
+                  true "INFO: would do: rm \"$file_with_destdir\""
+               fi
+            elif [ "$make_uninstall_" = "true" ]; then
+               if [ -f "$file_with_destdir" ]; then
+                  rm "$file_with_destdir"
+               fi
+            else
+               true "ERROR 2: in $FUNCNAME!"
+               exit 1
+            fi
+         done
+      fi
+   done
+   shopt -u globstar dotglob nullglob
+   if [ "$still_installed" = "true" ]; then
+      exit 1
+   fi
+}
+
+make_install() {
+   make_install_="true"
+   make_helper
+}
+
+make_installcheck() {
+   make_installcheck_="true"
+   make_helper
+}
+
+make_installsim() {
+   make_installsim_="true"
+   make_helper
+}
+
+make_uninstallcheck() {
+   make_uninstallcheck_="true"
+   make_helper
+}
+
+make_uninstall() {
+   make_uninstall_="true"
+   make_helper
+}
+
+make_uninstallsim() {
+   make_uninstallsim_="true"
+   make_helper
+}
+
+make_deb-chl-bumpup() {
+   command -v debchange >/dev/null
+
+   make_get_variables
+
+   local new_upstream_version_without_leading_zero new_upstream_version new_changelog_version new_revision
+
+   new_upstream_version_without_leading_zero="$(bc -l <<< "scale=9 ; $make_pkg_version + 0.1")"
+   new_upstream_version="$(printf '%3.1f\n' "$new_upstream_version_without_leading_zero")"
+
+   new_revision="1"
+
+   new_changelog_version="$make_epoch:$new_upstream_version-$new_revision"
+
+   true "\
+Bumping version from / to...
+$make_changelog_version
+$new_changelog_version"
+
+   if [ "$DEBEMAIL" = "" ]; then
+      export DEBEMAIL="adrelanos@riseup.net"
+   fi
+
+   debchange \
+      --newversion "$new_changelog_version" \
+      "New upstream version."
+
+   debchange \
+      --release \
+      ""
+}
+
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+   make_script_was_sourced="true"
+else
+   make_script_was_sourced="false"
+fi
+
+if [ "$make_script_was_sourced" = "false" ]; then
+   set -x
+
+   if [ -f /usr/lib/pre.bsh ]; then
+      source /usr/lib/pre.bsh
+   fi
+
+   set -e
+   set -o pipefail
+
+   cd "${BASH_SOURCE[0]%/*}"
+   make_mydir="${PWD##*/}"
+
+   make_parse_cmd ${1+"$@"}
+fi
