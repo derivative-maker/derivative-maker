@@ -466,11 +466,15 @@ make_deb-pkg_shared() {
    ## Using --no-lintian, because debuild does not exist with a non-zero exit
    ## code, should lintian find an error. Therefore running lintian afterwards.
 
-   ## TODO
-   ## --rootcmd="$PWD/debian/gain-root-command" \
+   if [ "$make_use_gain_root_command" = "true" ]; then
+      local make_use_gain_root_command_maybe_switch make_use_gain_root_command_maybe_path
+      make_use_gain_root_command_maybe_switch="--rootcmd="
+      make_use_gain_root_command_maybe_path="$PWD/debian/gain-root-command"
+   fi
 
    debuild \
       --no-lintian \
+      ${make_use_gain_root_command_maybe_switch}${make_use_gain_root_command_maybe_path} \
       -sa \
       $make_debuild_maybe_unsigned_opts \
       ${1+"$@"}
