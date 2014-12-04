@@ -183,6 +183,36 @@ make_parse_cmd() {
                exit 0
                shift
                ;;
+           git-tag-sign)
+               matched="true"
+               make_git_tag_sign
+               exit 0
+               shift
+               ;;
+           git-tag-verify)
+               matched="true"
+               make_git_tag_verify
+               exit 0
+               shift
+               ;;
+           git-tag-check)
+               matched="true"
+               make_git_tag_check
+               exit 0
+               shift
+               ;;
+           git-commit-verify)
+               matched="true"
+               make_git_commit_verify_current
+               exit 0
+               shift
+               ;;
+           git-verify)
+               matched="true"
+               make_git_verify
+               exit 0
+               shift
+               ;;
            --)
                shift
                break
@@ -201,7 +231,7 @@ make_parse_cmd() {
    ## will remain in the "$@" positional parameters.
 
    if [ ! "$matched" = "true" ]; then
-      true "ERROR: no valid option chosen!"
+      echo "ERROR: no valid option chosen!" >&2
       exit 1
    fi
 
@@ -252,13 +282,14 @@ make_get_variables() {
          break
       fi
    done < <( dpkg-parsechangelog )
+   make_pkg_version_with_revision="${make_pkg_version}-${make_pkg_revision}"
    if [ "$make_pkg_version" = "" ]; then
-      true "ERROR: variable make_pkg_version is empty."
+      echo "ERROR: variable make_pkg_version is empty." >&2
       exit 1
    fi
    make_main_package_name="$make_mydir"
    if [ "$make_main_package_name" = "" ]; then
-      true "ERROR: variable make_main_package_name is empty."
+      echo "ERROR: variable make_main_package_name is empty." >&2
       exit 1
    fi
    make_main_deb_file="../${make_main_package_name}_${make_pkg_version}-${make_pkg_revision}_all.deb"
@@ -360,7 +391,17 @@ make uninstall
 make uninstallsim
    Simulate what make uninstall would do.
 make deb-chl-bumpup
-   Bump upstream version number in debian/changelog."
+   Bump upstream version number in debian/changelog.
+make git-tag-sign
+   git tag (-s) sign latest pkg_version_with_revision from debian/changelog. Only a repository sanity check. Not for security purposes!
+make git-tag-verify
+   git tag (-v) verify latest pkg_version_with_revision from debian/changelog. Only a repository sanity check. Not for security purposes!
+make git-tag-check
+   Check if current git head is a signed git tag. Only a repository sanity check. Not for security purposes!
+make git-commit-verify
+   Check if current git head is a signed git commit. Only a repository sanity check. Not for security purposes!
+make git-verify
+   Combination of tag-check and commit-verify. Only a repository sanity check. Not for security purposes!"
 }
 
 make_dist() {
@@ -503,7 +544,7 @@ make_deb-pkg-source() {
 make_deb-install() {
    make_get_variables
    if [ ! -f "$make_main_deb_file" ]; then
-      true "ERROR: File $make_main_deb_file does not exist. Have you run \"make deb-pkg\" already?"
+      echo "ERROR: File $make_main_deb_file does not exist. Have you run \"make deb-pkg\" already?" >&2
       exit 1
    fi
    sudo dpkg -i "$make_main_deb_file"
@@ -610,7 +651,7 @@ make_helper() {
             file_with_destdir="${DESTDIR}${file_without_pwd}"
             if [ "$make_uninstallcheck_" = "true" ]; then
                if [ -f "$file_with_destdir" ]; then
-                  true "ERROR: file $file_with_destdir still installed."
+                  echo "ERROR: file $file_with_destdir still installed." >&2
                   local still_installed="true"
                fi
             elif [ "$make_installcheck_" = "true" ]; then
@@ -624,7 +665,7 @@ make_helper() {
                   rm "$file_with_destdir"
                fi
             else
-               true "ERROR 2: in $FUNCNAME!"
+               echo "ERROR 2: in $FUNCNAME!" >&2
                exit 1
             fi
          done
@@ -692,6 +733,89 @@ $new_changelog_version"
    debchange \
       --release \
       ""
+}
+
+make_git_tag_shared() {
+   if [ "$make_git_tag_shared_done" = "true" ]; then
+      return 0
+   fi
+   make_get_variables
+   command -v git >/dev/null
+   make_git_tag_shared_done="true"
+}
+
+make_git_tag_sign() {
+   make_git_tag_shared
+   git tag -s "$make_pkg_version_with_revision" -m "."
+   make_git_tag_verify
+}
+
+make_git_tag_verify() {
+   make_git_tag_shared
+   git tag -v "$make_pkg_version_with_revision"
+}
+
+make_git_tag_check() {
+   make_git_tag_shared
+   local make_git_describe_output
+   make_git_describe_output="$(git describe --always --abbrev=1000000000)"
+   if [ ! "$make_pkg_version_with_revision" = "$make_git_describe_output" ]; then
+      echo "Failed! Current git head a unsigned git tag! \
+make_pkg_version_with_revision $make_pkg_version_with_revision differs from make_git_describe_output $make_git_describe_output" >&2
+      exit 1
+   fi
+   make_git_tag_verify
+   echo "Ok, current git head is a signed git tag."
+}
+
+make_git_commit_verify() {
+   ## Credits for this function: Mike Gerwitz
+   ## Source: mikegerwitz.com/papers/git-horror-story
+   ## Modified by Patrick Schleizer for use within this script.
+
+   # Validate signatures on each and every commit within the given range
+   ##
+
+   # if a ref is provided, append range spec to include all children
+   chkafter="${1+$1..}"
+
+   # note: bash users may instead use $'\t'; the echo statement below is a more
+   # portable option
+   t=$( echo '\t' )
+
+   # Check every commit after chkafter (or all commits if chkafter was not
+   # provided) for a trusted signature, listing invalid commits. %G? will output
+   # "G" if the signature is trusted.
+   local grep_exit_code="0"
+   git log --pretty="format:%H$t%aN$t%s$t%G?" "${chkafter:-HEAD}" \
+     | grep -v "${t}G$" \
+        || { grep_exit_code="$?" ; true; };
+
+   # grep will exit with a non-zero status if no matches are found, which we
+   # consider a success, so invert it
+   # [ $? -gt 0 ]
+   if [ $grep_exit_code -gt 0 ]; then
+      return 0
+   else
+      return 1
+   fi
+}
+
+make_git_commit_verify_current() {
+   make_git_tag_shared
+   local make_git_commit_verify_return_code="0"
+   make_git_commit_verify "HEAD~1" || { make_git_commit_verify_return_code="$?" ; true; };
+   if [ ! "$make_git_commit_verify_return_code" = "0" ]; then
+      echo "Failed! Current git head commit is unsigned" >&2
+      exit 1
+   fi
+   echo "Ok, current git head commit is signed."
+}
+
+make_git_verify() {
+   make_git_commit_verify_current
+   make_git_tag_check
+   echo "Ok, current git head is a signed git commit and a signed git tag."
 }
 
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
