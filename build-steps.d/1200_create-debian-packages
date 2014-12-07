@@ -254,15 +254,22 @@ create_whonix_debian_packages_without_building_system() {
             continue
          fi
       fi
+      local make_file
+      if [ -f "setup.py" ]; then
+         make_file="Makefile"
+      else
+         make_file="makefile_generic"
+      fi
+      test -f "$make_file"
       if [ "$CI" = "true" ]; then
          ## Hiding,
          ## "ERROR: ld.so: object '/usr/$LIB/faketime/libfaketime.so.1' from LD_PRELOAD cannot be preloaded: ignored."
          ## on CI systems because otherwise, "Maximum output exceeded".
          sudo -E -u "$user_name" \
-            make deb-pkg >/dev/null 2>&1
+            make -f "$make_file" deb-pkg >/dev/null 2>&1
       else
          sudo -E -u "$user_name" \
-            make deb-pkg
+            make -f "$make_file" deb-pkg
       fi
    done
 
