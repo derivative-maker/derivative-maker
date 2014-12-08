@@ -223,14 +223,6 @@ create_whonix_debian_packages_without_building_system() {
 
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
-   ## --rootcmd as per https://wiki.debian.org/ReproducibleBuilds#How_to_build_a_deb_using_faketime
-   ##
-   ## -p (**-p**sign-command) is understood by dpkg-buildpackage.
-   ## See also man dpkg-buildpackage.
-   ##
-   ## -sa is understood by dpkg-buildpackage, it forces the inclusion of the original source
-   ## See also http://www.debian.org/doc/manuals/maint-guide/upload.en.html.
-
    shopt -s nullglob
    shopt -s dotglob
 
@@ -298,29 +290,6 @@ create_whonix_repository() {
    shopt -s nullglob
    local file_name
 
-   #true "${cyan}$BASH_SOURCE INFO: Importing .dsc file... ${reset}"
-   #for file_name in "$WHONIX_SOURCE_FOLDER/packages/"*".dsc"; do
-      #sudo -E -u "$user_name" \
-         #reprepro \
-            #-V \
-            #-V \
-            #$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-            #includedsc "$WHONIX_BUILD_APT_CODENAME" "$file_name"
-   #done
-   #true "${cyan}$BASH_SOURCE INFO: Done, imported .dsc file. ${reset}"
-
-   #true "${cyan}$BASH_SOURCE INFO: Importing .changes file... ${reset}"
-   #for file_name in "$WHONIX_SOURCE_FOLDER/packages/"*".changes"; do
-      #sudo -E -u "$user_name" \
-         #reprepro \
-            #-V \
-            #-V \
-            #$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-            #--ignore=wrongdistribution \
-            #include "$WHONIX_BUILD_APT_CODENAME" "$file_name"
-   #done
-   #true "${cyan}$BASH_SOURCE INFO: Done, imported .changes file. ${reset}"
-
    true "${cyan}$BASH_SOURCE INFO: Importing .deb files... ${reset}"
    for file_name in "$WHONIX_SOURCE_FOLDER/packages/"*".deb"; do
       sudo -E -u "$user_name" \
@@ -342,14 +311,6 @@ create_whonix_repository() {
             includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    done
    true "${cyan}$BASH_SOURCE INFO: Imported temp_extra_packages .deb files. ${reset}"
-
-   ## Debugging.
-   #true "${cyan}$BASH_SOURCE INFO: Displaying sha512sum of $WHONIX_APT_REPOSITORY_FOLDER/pool/**... ${reset}"
-   #shopt -s globstar dotglob
-   ## "|| true", because "sha512sum" exits 1, because "sha512sum: [...]: Is a directory".
-   #sha512sum "$WHONIX_APT_REPOSITORY_FOLDER/pool/"** || true
-   #shopt -u globstar dotglob
-   #true "${cyan}$BASH_SOURCE INFO: Done, displayed sha512sums. ${reset}"
 
    true "${cyan}$BASH_SOURCE INFO: Done, created ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
 }
