@@ -287,66 +287,14 @@ export -f benchmarktimeend
 ## start benchmarktimeend
 benchmark_time_start
 
-colors() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
-   ## Thanks to:
-   ## http://mywiki.wooledge.org/BashFAQ/037
-   ## Variables for terminal requests.
-   [[ -t 2 ]] && {
-       export alt=$(      tput smcup  || tput ti      ) # Start alt display
-       export ealt=$(     tput rmcup  || tput te      ) # End   alt display
-       export hide=$(     tput civis  || tput vi      ) # Hide cursor
-       export show=$(     tput cnorm  || tput ve      ) # Show cursor
-       export save=$(     tput sc                     ) # Save cursor
-       export load=$(     tput rc                     ) # Load cursor
-       export bold=$(     tput bold   || tput md      ) # Start bold
-       export stout=$(    tput smso   || tput so      ) # Start stand-out
-       export estout=$(   tput rmso   || tput se      ) # End stand-out
-       export under=$(    tput smul   || tput us      ) # Start underline
-       export eunder=$(   tput rmul   || tput ue      ) # End   underline
-       export reset=$(    tput sgr0   || tput me      ) # Reset cursor
-       export blink=$(    tput blink  || tput mb      ) # Start blinking
-       export italic=$(   tput sitm   || tput ZH      ) # Start italic
-       export eitalic=$(  tput ritm   || tput ZR      ) # End   italic
-   [[ $TERM != *-m ]] && {
-       export red=$(      tput setaf 1|| tput AF 1    )
-       export green=$(    tput setaf 2|| tput AF 2    )
-       export yellow=$(   tput setaf 3|| tput AF 3    )
-       export blue=$(     tput setaf 4|| tput AF 4    )
-       export magenta=$(  tput setaf 5|| tput AF 5    )
-       export cyan=$(     tput setaf 6|| tput AF 6    )
-   }
-       export white=$(    tput setaf 7|| tput AF 7    )
-       export default=$(  tput op                     )
-       export eed=$(      tput ed     || tput cd      )   # Erase to end of display
-       export eel=$(      tput el     || tput ce      )   # Erase to end of line
-       export ebl=$(      tput el1    || tput cb      )   # Erase to beginning of line
-       export ewl=$eel$ebl                                # Erase whole line
-       export draw=$(     tput -S <<< '   enacs
-                                   smacs
-                                   acsc
-                                   rmacs' || { \
-                   tput eA; tput as;
-                   tput ac; tput ae;         } )   # Drawing characters
-       export back=$'\b'
-   } 2>/dev/null ||:
-
-   export whonix_build_already_defined_colors="true"
-}
-
-if [ ! "$whonix_build_already_defined_colors" = "true" ]; then
-   colors
-fi
-
-if [ ! "$ROOT_CHECK" = "0" ]; then
+root_check() {
    if [ "$(id -u)" != "0" ]; then
        echo "${red}${bold}ERROR: This must be run as root (sudo)!${reset}"
        exit 1
    else
        true "INFO: Script running as root."
    fi
-fi
+}
 
 lower_priorities() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
