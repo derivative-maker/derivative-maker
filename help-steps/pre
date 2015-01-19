@@ -10,6 +10,7 @@ fi
 #set -x
 set -e
 set -o pipefail
+set -o errtrace
 
 errorhandlershell() {
    true "${cyan}${bold}INFO: Opening interactive shell...${reset}"
@@ -31,8 +32,8 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 errorhandlerretry() {
    if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
       true "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
-      eval $whonix_build_dispatch_before_retry
-      whonix_build_dispatch_before_retry_exit_code="$?"
+      whonix_build_dispatch_before_retry_exit_code="0"
+      eval $whonix_build_dispatch_before_retry || { whonix_build_dispatch_before_retry_exit_code="$?" ; true; };
       if [ "$whonix_build_dispatch_before_retry_exit_code" = "0" ]; then
          true "${cyan}${bold}INFO: dispatch before retry (--retry-after) exit code was 0, ok. ${reset}"
       else
@@ -43,8 +44,8 @@ errorhandlerretry() {
    fi
 
    true "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
-   eval $last_failed_bash_command
-   retry_last_failed_bash_command_exit_code="$?"
+   retry_last_failed_bash_command_exit_code="0"
+   eval $last_failed_bash_command || { retry_last_failed_bash_command_exit_code="$?" ; true; };
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       true "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       unset whonix_build_auto_retry_counter
@@ -56,8 +57,8 @@ errorhandlerretry() {
 
    if [ ! "$whonix_build_dispatch_after_retry" = "" ]; then
       true "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $whonix_build_dispatch_after_retry ${reset}"
-      eval $whonix_build_dispatch_after_retry
-      whonix_build_dispatch_after_retry_exit_code="$?"
+      whonix_build_dispatch_after_retry_exit_code="0"
+      eval $whonix_build_dispatch_after_retry || { whonix_build_dispatch_after_retry_exit_code="$?" ; true; };
       if [ "$whonix_build_dispatch_after_retry_exit_code" = "0" ]; then
          true "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
       else
