@@ -212,7 +212,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    local id_exit_code
    id_exit_code="0"
    id "$user_name" || { id_exit_code="$?" ; true; };
-   if [ ! "$id_exit_code" = 0 ]; then
+   if [ "$id_exit_code" = "1" ]; then
       true 'INFO: Creating user "$user_name" with password "changeme", because some things have to be run as "$user_name".'
       ## setting password of user "user" to changeme
       ##
@@ -222,8 +222,11 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## changeme
       ## Resulted in: aTayYxVyw5kDo
       useradd --password aTayYxVyw5kDo --user-group --create-home --shell /bin/bash "$user_name"
-   else
+   elif [ "$id_exit_code" = "0" ]; then
       true "${cyan}INFO: Not creating user \"$user_name\" with password \"changeme\", because it already exists.${reset}"
+   else
+      true "${red}${bold}ERROR: id_exit_code was neither 1 or 0, it was: ${id_exit_code}${reset}"
+      error "See above!"
    fi
 
    ## Add user to sudo group.
