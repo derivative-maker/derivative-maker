@@ -120,13 +120,6 @@ This may take a while...${reset}"
       return 0
    fi
 
-   if [ "$CI" = "true" ]; then
-      ## Debugging Travis CI.
-      true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
-Continue anyway, because CI detected.${reset}"
-      return 0
-   fi
-
    true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
 Attempting to gather debug output to diagnose the problem...${reset}"
 
@@ -165,7 +158,16 @@ variable for debugging. This may take a while...${reset}"
 Trying to diagnose the problem using function apt_get_parse_unmet_dependency...${reset}"
 
    apt_get_parse_unmet_dependency
+
    true "INFO: Tried to diagnose the problem using function apt_get_parse_unmet_dependency."
+
+   if [ "$CI" = "true" ]; then
+      ## Debugging Travis CI.
+      true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+Continue anyway, because CI detected.${reset}"
+      return 0
+   fi
+
    error "See above!"
    return 0
 }
