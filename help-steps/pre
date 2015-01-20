@@ -360,11 +360,19 @@ aptgetgpgvcreatetmp() {
    ##     GPG error: http://deb.torproject.org stable Release: The following signatures were invalid: KEYEXPIRED 1409325681 KEYEXPIRED 1409325681 KEYEXPIRED 1409325681 KEYEXPIRED 1409325681
    ## That apt-repository would otherwise be silently ignored without error notification.
 
+   if [ "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN" = "" ]; then
+      error "Variable WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN is empty!"
+   fi
+
    apt_get_gpgv_opts+=" -o Dir::Bin::gpg=$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN "
    export apt_get_gpgv_opts
 
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    touch "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
+
+   if [ "$WHONIX_BUILD_APT_GET_GPGV_LOG" = "" ]; then
+      error "Variable WHONIX_BUILD_APT_GET_GPGV_LOG is empty!"
+   fi
 
    ## apt-get calls gpgv (this gpgv wrapper) with --status-fd 3. We redirect
    ## a copy of file descriptor 3 to the log.
