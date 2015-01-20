@@ -23,11 +23,9 @@ root_check
 
 ## Debugging function.
 apt_get_parse_unmet_dependency() {
-   ## no error handler
-
    true "INFO: Running \"dpkg -l | grep $pkg\"..."
-   dpkg -l | grep "$pkg"
-   apt-cache policy "$pkg"
+   dpkg -l | grep "$pkg" || true
+   apt-cache policy "$pkg" || true
 
    local line
 
@@ -46,7 +44,7 @@ apt_get_parse_unmet_dependency() {
    for line in ${apt_get_output} ; do
       IFS="${OIFS}"
       local unmet_dependency=""
-      unmet_dependency="$(echo "${line}" | grep -o "Depends:.*" | awk '{print $2}')"
+      unmet_dependency="$(echo "${line}" | grep -o "Depends:.*" | awk '{print $2}')" || true
       if [ "$unmet_dependency" = "" ]; then
          ## no match
          IFS="${NIFS}"
@@ -62,8 +60,8 @@ Will try to manually install it for debugging...${reset}"
          remember_pkg[$unmet_dependency]="true"
          set -x
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
-         dpkg -l | grep "$unmet_dependency"
-         apt-cache policy "$unmet_dependency"
+         dpkg -l | grep "$unmet_dependency" || true
+         apt-cache policy "$unmet_dependency" || true
          pkg-install-maybe "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
