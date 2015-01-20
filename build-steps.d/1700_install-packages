@@ -32,29 +32,21 @@ apt_get_parse_unmet_dependency() {
    ## Thanks to:
    ## http://blog.edwards-research.com/2010/01/quick-bash-trick-looping-through-output-lines/
 
-   OIFS="${IFS}"
-   NIFS=$'\n'
-
-   IFS="${NIFS}"
-
    set +x
 
    declare -A -g remember_pkg
 
-   for line in ${apt_get_output} ; do
-      IFS="${OIFS}"
+   while read -r -d $'\n' line; do
       local unmet_dependency=""
       unmet_dependency="$(echo "${line}" | grep -o "Depends:.*" | awk '{print $2}')" || true
       if [ "$unmet_dependency" = "" ]; then
          ## no match
-         IFS="${NIFS}"
          continue
       else
          ## match
          if [ "${remember_pkg[$unmet_dependency]}" = "true" ]; then
             continue
          fi
-         IFS="${OIFS}"
          echo "${bold}${cyan}INFO: Found unmet dependency: $unmet_dependency. \
 Will try to manually install it for debugging...${reset}"
          remember_pkg[$unmet_dependency]="true"
@@ -65,14 +57,11 @@ Will try to manually install it for debugging...${reset}"
          pkg-install-maybe "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
-         IFS="${NIFS}"
          continue
       fi
-   done
+   done < <( echo "$apt_get_output" )
 
    set -x
-
-   IFS="${OIFS}"
 }
 
 pkg-install-maybe() {
