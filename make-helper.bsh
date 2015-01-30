@@ -257,18 +257,6 @@ make_get_variables() {
    local temp dpkg_line
    command -v dpkg-parsechangelog >/dev/null
 
-   ## When using python setup.py packaging method, there is no debian folder,
-   ## because that folder gets only temporarily created. To be able to use
-   ## common code to parse debian/changelog and debian/control, we temporarily
-   ## create that debian folder. We must delete it later, otherwise setup.py
-   ## would complain about an existing debian folder.
-   if [ -f "setup.py" ]; then
-      if [ -d "debian" ]; then
-         rm -r "debian"
-      fi
-      python setup.py --command-packages=stdeb.command debianize
-   fi
-
    while read -r -d $'\n' dpkg_line; do
       ## Example dpkg_line:
       ## Version: 0.1-1
@@ -351,14 +339,6 @@ make_get_variables() {
    else
       make_upstream_tarball_file_name="${make_upstream_tarball_file_name,,}"
       make_upstream_tarball="${make_upstream_tarball,,}"
-   fi
-
-   ## When using python setup.py packaging method, remove temporary debian
-   ## folder, that we created above.
-   if [ -f "setup.py" ]; then
-      if [ -d "debian" ]; then
-         rm -r "debian"
-      fi
    fi
 }
 
@@ -543,32 +523,20 @@ make_deb-pkg_shared() {
       make_use_gain_root_command_maybe_path="$PWD/debian/gain-root-command"
    fi
 
-   if [ -f "setup.py" ]; then
-      "./build_deb.sh"
-      mv "deb_dist/"*".deb" ../
-      mv "deb_dist/"*".dsc" ../
-      mv "deb_dist/"*".tar.gz" ../
-      mv "deb_dist/"*".changes" ../
-   else
-      ## Using --no-lintian, because debuild does not exist with a non-zero exit
-      ## code, should lintian find an error. Therefore running lintian afterwards.
-      debuild \
-         --no-lintian \
-         ${make_use_gain_root_command_maybe_switch}${make_use_gain_root_command_maybe_path} \
-         -sa \
-         $make_debuild_maybe_unsigned_opts \
-         ${1+"$@"}
-   fi
+   ## Using --no-lintian, because debuild does not exist with a non-zero exit
+   ## code, should lintian find an error. Therefore running lintian afterwards.
+   debuild \
+      --no-lintian \
+      ${make_use_gain_root_command_maybe_switch}${make_use_gain_root_command_maybe_path} \
+      -sa \
+      $make_debuild_maybe_unsigned_opts \
+      ${1+"$@"}
 
    if [ "$make_use_lintian" = "true" ]; then
       if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
          export DEBUILD_LINTIAN_OPTS="--info --display-info --fail-on-warnings"
       fi
-      if [ -f "setup.py" ]; then
-         lintian $DEBUILD_LINTIAN_OPTS "../$make_main_dsc_file_name"
-      else
-         lintian $DEBUILD_LINTIAN_OPTS
-      fi
+      lintian $DEBUILD_LINTIAN_OPTS
    fi
 
    test -f "$make_main_deb_file"
