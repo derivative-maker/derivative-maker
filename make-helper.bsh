@@ -862,6 +862,29 @@ make_source_overrides_file() {
    fi
 }
 
+make_source_overrides_folder() {
+   if [ -d "./make-helper-overrides.d" ]; then
+      local i
+      for i in "./make-helper-overrides.d/"*; do
+         if [ -x "$i" ]; then
+            ## If the last character is a ~, ignore that file,
+            ## because it was created by some editor,
+            ## which creates backup files.
+            if [ "${i: -1}" = "~" ]; then
+               continue
+            fi
+            ## Skipping files such as .dpkg-old and .dpkg-dist.
+            if ( echo "$i" | grep -q ".dpkg-" ); then
+               true "skip $i"
+               continue
+            fi
+            bash -n "$i"
+            source "$i"
+         fi
+      done
+   fi
+}
+
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
    make_script_was_sourced="true"
 else
@@ -882,6 +905,7 @@ if [ "$make_script_was_sourced" = "false" ]; then
    make_mydir="${PWD##*/}"
 
    make_source_overrides_file
+   make_source_overrides_folder
 
    make_parse_cmd ${1+"$@"}
 fi
