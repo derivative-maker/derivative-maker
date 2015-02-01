@@ -679,11 +679,17 @@ make_helper() {
       if [ -d "$d" ]; then
          for source_file in "$PWD/$d"/**; do
             if [ "$make_install_" = "true" ]; then
-               mkdir --parents "$DESTDIR"
+               if [ ! -d "$DESTDIR" ]; then
+                  mkdir --parents "$DESTDIR"
+               fi
                cp -R "$d" "$DESTDIR"
                break
             elif [ "$make_installsim_" = "true" ]; then
-               true "INFO: would do: mkdir --parents \"$DESTDIR\""
+               if [ ! -d "$DESTDIR" ]; then
+                  true "INFO: would do: mkdir --parents \"$DESTDIR\""
+               else
+                  true "INFO: No need to run, because folder already exists: mkdir --parents \"$DESTDIR\""
+               fi
                true "INFO: would do: cp -R \"$d\" \"$DESTDIR\""
                break
             fi
