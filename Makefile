@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-## generic deb build script version 1.0
+## generic deb build script version 1.1
 
 ## This is a copy.
 ## master location:
