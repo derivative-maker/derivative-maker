@@ -348,6 +348,9 @@ make_get_destdir() {
    if [ "$DESTDIR" = "" ]; then
       DESTDIR="/"
    fi
+   if type -t make_hook_at_the_end_of_get_destdir ; then
+      make_hook_at_the_end_of_get_destdir
+   fi
 }
 
 make_get_distdir() {
@@ -676,9 +679,11 @@ make_helper() {
       if [ -d "$d" ]; then
          for source_file in "$PWD/$d"/**; do
             if [ "$make_install_" = "true" ]; then
+               mkdir --parents "$DESTDIR"
                cp -R "$d" "$DESTDIR"
                break
             elif [ "$make_installsim_" = "true" ]; then
+               true "INFO: would do: mkdir --parents \"$DESTDIR\""
                true "INFO: would do: cp -R \"$d\" \"$DESTDIR\""
                break
             fi
