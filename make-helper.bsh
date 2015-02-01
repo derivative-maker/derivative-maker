@@ -340,6 +340,8 @@ make_get_variables() {
       make_upstream_tarball_file_name="${make_upstream_tarball_file_name,,}"
       make_upstream_tarball="${make_upstream_tarball,,}"
    fi
+
+   make_upstream_tarball_source_folder_name="${make_source_package_name}-${make_pkg_version}"
 }
 
 make_get_destdir() {
@@ -424,12 +426,17 @@ make git-verify
 make_dist() {
    make_undist
 
+   ## Thanks to Andy Balaam who inspired on
+   ## http://superuser.com/a/599420/255849
+   ## how to prepend a folder name by using tar with --transform.
+
    find \
       "." \
       -not \
       -iwholename '*.git*' \
       -print0 \
          | tar \
+            --transform "s,^\\.,$make_upstream_tarball_source_folder_name," \
             --null \
             --no-recursion \
             --create \
