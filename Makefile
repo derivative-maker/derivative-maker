@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
 ## generic deb build script version 1.2
 
 ## This is a copy.
