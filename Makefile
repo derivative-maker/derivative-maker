@@ -96,6 +96,9 @@ uninstallsim:
 deb-chl-bumpup:
 	./make-helper.bsh deb-chl-bumpup
 
+deb-uachl-bumpup:
+	./make-helper.bsh deb-uachl-bumpup
+
 git-tag-sign:
 	./make-helper.bsh git-tag-sign
 
