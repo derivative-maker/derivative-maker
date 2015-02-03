@@ -400,26 +400,11 @@ aptgetgpgvparsetmp() {
       return 0
    fi
 
-   gpg_bash_lib_input_cleanup="true"
-   gpg_bash_lib_input_error_handler_extra='error "$gpg_bash_lib_output_error_handler_message"'
-   gpg_bash_lib_internal_gpg_verify_status_fd_file="$WHONIX_BUILD_APT_GET_GPGV_LOG"
+   local aptgetgpgvgrepbadsigpattern
+   aptgetgpgvgrepbadsigpattern="BADSIG\|EXPSIG\|EXPKEYSIG\|REVKEYSIG\|ERRSIG"
 
-   trap "gpg_bash_lib_function_error_handler" ERR
-
-   gpg_bash_lib_function_init
-   gpg_bash_lib_function_parse_status_file
-   gpg_bash_lib_function_cleanup
-
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
-   if [ ! "$gpg_bash_lib_output_goodsig_status" = "true" ]; then
-      true "${red}${bold}ERROR: gpg_bash_lib_output_goodsig_status not set to \
-true, set to: $gpg_bash_lib_output_goodsig_status${reset}
-
-gpg_log:
-$gpg_log
-
-${red}${bold}apt-get: error occurred during the signature verification!${reset}"
+   if echo "$gpg_log" | grep -i -q "$aptgetgpgvgrepbadsigpattern" ; then
+      true "${red}${bold}ERROR: ${red}${bold}apt-get: error occurred during the signature verification!${reset}"
       error "See above!"
       return 0
    fi
