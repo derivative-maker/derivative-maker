@@ -394,49 +394,34 @@ aptgetgpgvparsetmp() {
    local gpg_log
    gpg_log="$(cat "$WHONIX_BUILD_APT_GET_GPGV_LOG")" || true
    if [ "$gpg_log" = "" ]; then
-      true "ERROR: variable gpg_log is empty!"
+      true "${red}${bold}ERROR: variable gpg_log is empty!${reset}"
       error "See above!"
+      return 0
    fi
 
-   local current_unixtime
-   current_unixtime="$(date +%s)"
-   local current_time
-   current_time="$(date)"
+   gpg_bash_lib_input_cleanup="true"
+   gpg_bash_lib_input_error_handler_extra='error "$gpg_bash_lib_output_error_handler_message"'
+   gpg_bash_lib_internal_gpg_verify_status_fd_file="$WHONIX_BUILD_APT_GET_GPGV_LOG"
 
-   while read -r -d $'\n' line; do
-      true "line: $line"
-      local one two three four five
-      read -r one two three four five _ <<< "$line"
-      true "one: $one | two: $two | three: $three | four: $four | five: $five"
-      if [ "$two" = "KEYEXPIRED" ]; then
-         local keyexpired_unixtime
-         keyexpired_unixtime="$three"
-         if [ "$current_unixtime" -ge "$keyexpired_unixtime" ]; then
-            local difference_in_seconds difference_in_minutes difference_in_hours difference_in_days difference_in_years month_has_seconds half_month_has_seconds maximum_age_in_seconds
-            difference_in_seconds="$(( $current_unixtime - $keyexpired_unixtime ))"
-            difference_in_minutes="$(( $difference_in_seconds / 60 ))"
-            difference_in_hours="$(( $difference_in_minutes / 60 ))"
-            difference_in_days="$(( $difference_in_hours / 24 ))"
-            difference_in_years="$(( $difference_in_days / 365 ))"
-            month_has_seconds="2592000"
-            half_month_has_seconds="$(( $month_has_seconds / 2 ))"
-            maximum_age_in_seconds="$half_month_has_seconds"
-            if [ "$difference_in_seconds" -ge "$maximum_age_in_seconds" ]; then
-               true "${bold}${red}ERROR: apt-get gpgv KEYEXPIRED!
-current_unixtime: $current_unixtime
-keyexpired_unixtime: $keyexpired_unixtime
-current_time: $current_time
-difference_in_seconds: $difference_in_seconds
-difference_in_minutes: $difference_in_minutes
-difference_in_hours: $difference_in_hours
-difference_in_days: $difference_in_days
-difference_in_years: $difference_in_years
-See above!${reset}"
-               error "See above!"
-            fi
-         fi
-      fi
-   done < <( echo "$gpg_log" )
+   trap "gpg_bash_lib_function_error_handler" ERR
+
+   gpg_bash_lib_function_init
+   gpg_bash_lib_function_parse_status_file
+   gpg_bash_lib_function_cleanup
+
+   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+
+   if [ ! "$gpg_bash_lib_output_goodsig_status" = "true" ]; then
+      true "${red}${bold}ERROR: gpg_bash_lib_output_goodsig_status not set to \
+true, set to: $gpg_bash_lib_output_goodsig_status${reset}
+
+gpg_log:
+$gpg_log
+
+${red}${bold}apt-get: error occurred during the signature verification!${reset}"
+      error "See above!"
+      return 0
+   fi
 }
 
 export -f aptgetgpgvparsetmp
