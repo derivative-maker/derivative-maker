@@ -128,6 +128,11 @@ make_parse_cmd() {
                make_deb-cleanup
                shift
                ;;
+           lintian)
+               matched="true"
+               make_lintian
+               shift
+               ;;
            dput-ubuntu-ppa)
                matched="true"
                make_dput-ubuntu-ppa
@@ -562,15 +567,41 @@ Therefore automatically set make_use_gain_root_command=\"true\""
       $make_debuild_maybe_unsigned_opts \
       ${1+"$@"}
 
-   if [ "$make_use_lintian" = "true" ]; then
-      if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
-         export DEBUILD_LINTIAN_OPTS="--pedantic --info --display-info --fail-on-warnings"
+   if [ "$make_use_lintian" = "false" ]; then
+      true "INFO: make_use_lintian is set to false, skipping lintian."
+   elif [ "$make_use_lintian" = "true" ]; then
+      true "INFO: make_use_lintian is set to true, running lintian..."
+      make_lintian
+   else
+      true "INFO: make_use_lintian is neither set to true or false. Autodetecting if lintian is installed..."
+      if command -v lintian >/dev/null 2>&1 ; then
+         true "INFO: lintian auto detected, using it..."
+         make_lintian
+      else
+         true "INFO: lintian not installed, skipping."
       fi
-      lintian $DEBUILD_LINTIAN_OPTS
    fi
 
    test -f "$make_main_deb_file"
    true "INFO: You can find your deb file here: $make_main_deb_file"
+}
+
+make_lintian() {
+   if [ "$DEBUILD_LINTIAN_OPTS" = "" ]; then
+      export DEBUILD_LINTIAN_OPTS="--pedantic --info --display-info --fail-on-warnings"
+   fi
+   local make_lintian_exit_code="0"
+   lintian $DEBUILD_LINTIAN_OPTS || { make_lintian_exit_code="$?" ; true; };
+   if [ "$make_lintian_exit_code" = "0" ]; then
+      true "INFO: lintian exited 0."
+   else
+      if [ "$make_use_lintian" = "true" ]; then
+         true "ERROR: lintian exited $make_lintian_exit_code. Failing closed."
+         exit "$make_lintian_exit_code"
+      else
+         true "WARNING: lintian exited $make_lintian_exit_code. Failing open."
+      fi
+   fi
 }
 
 make_deb-pkg() {

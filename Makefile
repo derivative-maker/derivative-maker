@@ -66,6 +66,9 @@ deb-clean:
 deb-cleanup:
 	./make-helper.bsh deb-cleanup
 
+lintian:
+	./make-helper.bsh lintian
+
 dput-ubuntu-ppa:
 	./make-helper.bsh dput-ubuntu-ppa
 
