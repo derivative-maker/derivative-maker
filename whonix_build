@@ -8,10 +8,9 @@ set -x
 set -o pipefail
 
 build_main_error_handler() {
-   : echo "
-${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
-"
+   true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
+   true "${red}${bold}ERROR $0: | caller: $(caller)${reset}"
+   true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
 
@@ -20,6 +19,7 @@ trap "build_main_error_handler" ERR
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
 
+source ./help-steps/colors
 source ./help-steps/parse-cmd
 
 build_main_build() {
