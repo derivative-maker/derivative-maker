@@ -11,6 +11,62 @@ fi
 set -e
 set -o pipefail
 set -o errtrace
+shopt -s extdebug
+
+function_trace_function() {
+   true "INFO: BEGIN: $FUNCNAME"
+   if [ -o xtrace ]; then
+      #set +x
+      local xtrace_reenable="true"
+   fi
+   local frame temp one two
+   frame="0"
+   while caller >/dev/null 2>&1 $frame; do
+      temp="$(caller $frame)"
+      read one two _ <<< "$temp"
+      echo "$two (line number: $one)"
+      ((frame++));
+   done
+   if [ "$xtrace_reenable" = "true" ]; then
+      set -x
+   fi
+   true "INFO: END  : $FUNCNAME"
+}
+
+## {{{ process_backtrace_function - GPL v2.0 (only)
+
+process_backtrace_function() {
+   ## function    : process_backtrace_function
+   ## Copyright   : Gian Paolo Ghilardi
+   ## LICENSE     : GPL v2.0 (only)
+   ## Source      : http://stackoverflow.com/a/1438241/2605155
+   ## Modification: Patrick Schleizer
+   true "INFO: BEGIN: $FUNCNAME"
+   if [ -o xtrace ]; then
+      set +x
+      local xtrace_reenable="true"
+   fi
+   local TRACE CP CMDLINE PP
+   TRACE=""
+   CP="$$" ## PID of the script itself [1]
+   while true ## safe because "all starts with init..."
+   do
+           CMDLINE="$(cat /proc/$CP/cmdline | tr '\000' ' ')" || true
+           PP="$(grep PPid /proc/$CP/status | awk '{ print $2; }')" || true ## [2]
+           TRACE="$TRACE : $CMDLINE\n"
+           if [ "$CP" = "1" ]; then # we reach 'init' [PID 1] => backtrace end
+                   break
+           fi
+           CP="$PP"
+   done
+   echo -en "$TRACE" | tac | grep -n ":" || true ## using tac to "print in reverse" [3]
+   if [ "$xtrace_reenable" = "true" ]; then
+      set -x
+   fi
+   true "INFO: END  : $FUNCNAME"
+}
+
+## }}} process_backtrace_function - GPL v2.0 (only)
 
 errorhandlershell() {
    true "${cyan}${bold}INFO: Opening interactive shell...${reset}"
@@ -76,22 +132,27 @@ errorhandlerretry() {
 }
 
 errorhandlerprocessshared() {
-   last_caller="$(caller)"
    last_script="$0"
    ## $1 contains trap signal type.
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
    benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
+   process_backtrace_result="$(process_backtrace_function)"
+   function_trace_result="$(function_trace_function)"
+   function_trace_result="$(echo "$function_trace_result" | tac)"
    true "
 ############################################################
-${red}${bold}ERROR in $last_script detected!${reset}
+${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 (whonix_build_error_counter: $whonix_build_error_counter)
 (benchmark: $benchmark_took_time)
 ${red}${bold}trap_signal_type_last${reset}: $trap_signal_type_last
+${red}${bold}process_backtrace_result${reset}:
+$process_backtrace_result
+${red}${bold}function_trace_result${reset}:
+$function_trace_result
 ${red}${bold}last_failed_bash_command${reset}: $last_failed_bash_command
 ${red}${bold}last_failed_exit_code${reset}: $last_failed_exit_code
-${red}${bold}caller: $last_caller${reset}
-${red}${bold}ERROR in $last_script!${reset}
+${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 ############################################################
 "
 
@@ -118,6 +179,8 @@ ${red}${bold}ERROR in $last_script!${reset}
             errorhandlerretry
             return 0
          fi
+      else
+         true "INFO: whonix_build_auto_retry set to $whonix_build_auto_retry (--retry-max). No auto retry."
       fi
    else
       true "INFO: No auto retry for non ERR signal type: $trap_signal_type_last"
