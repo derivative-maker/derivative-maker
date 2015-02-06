@@ -196,8 +196,8 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
    if [ "$whonix_build_non_interactive" = "true" ] || [ "$CI" = "true" ]; then
       true "INFO: using non-interactive error handler."
    else
-      if [ -e "/dev/stdin" ]; then
-         true "INFO: stdin available, using interactive error handler."
+      if [ -t "0" ]; then
+         true "INFO: stdin connected to terminal, using interactive error handler."
          read -p "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above (the block within ###...), note the command that failed, last_failed_exit_code and its output (further above).
@@ -206,7 +206,7 @@ Please have a look above (the block within ###...), note the command that failed
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
       else
-         true "INFO: stdin not available, using non-interactive error handler."
+         true "INFO: stdin not connected to terminal, using non-interactive error handler."
       fi
    fi
    ignore_error=""
