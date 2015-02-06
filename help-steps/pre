@@ -191,13 +191,18 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
    if [ "$whonix_build_non_interactive" = "true" ] || [ "$CI" = "true" ]; then
       true "INFO: using non-interactive error handler."
    else
-      read -p "\
+      if [ -e "/dev/stdin" ]; then
+         true "INFO: stdin available, using interactive error handler."
+         read -p "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above \"errorhandlergeneral\", note the command that failed, its output and last_failed_exit_code.
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
 - Please press r and enter to retry.
 - Please press s and enter to open an chroot interactive shell.
 - Please press enter to cleanup and exit. ${reset}" answer
+      else
+         true "INFO: stdin not available, using non-interactive error handler."
+      fi
    fi
    ignore_error=""
    error_handler_do_retry=""
