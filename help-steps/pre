@@ -252,7 +252,15 @@ This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}"
       fi
    else
-      true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above).${reset}"
+      if [ "$trap_signal_type_last" = "INT" ]; then
+         true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 130.${reset}"
+         exit 130 ## ctrl + c
+      fi
+      if [ "$trap_signal_type_last" = "TERM" ]; then
+         true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 143.${reset}"
+         exit 143
+      fi
+      true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 1.${reset}"
       exit 1
    fi
 }
