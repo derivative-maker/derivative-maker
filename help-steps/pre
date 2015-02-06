@@ -24,9 +24,15 @@ function_trace_function() {
    while caller >/dev/null 2>&1 $frame; do
       temp="$(caller $frame)"
       read one two _ <<< "$temp"
-      echo "$two (line number: $one)"
+      if [ "$function_trace_result" = "" ] ; then
+         function_trace_result="$two (line number: $one)"
+      else
+         function_trace_result="$function_trace_result
+$two (line number: $one)"
+      fi
       ((frame++));
    done
+   function_trace_result="$(echo "$function_trace_result" | tac)"
    if [ "$xtrace_reenable" = "true" ]; then
       set -x
    fi
@@ -59,7 +65,7 @@ process_backtrace_function() {
            fi
            CP="$PP"
    done
-   echo -en "$TRACE" | tac | grep -n ":" || true ## using tac to "print in reverse" [3]
+   process_backtrace_result="$(echo -en "$TRACE" | tac | grep -n ":")" || true ## using tac to "print in reverse" [3]
    if [ "$xtrace_reenable" = "true" ]; then
       set -x
    fi
@@ -137,9 +143,8 @@ errorhandlerprocessshared() {
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
    benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   process_backtrace_result="$(process_backtrace_function)"
-   function_trace_result="$(function_trace_function)"
-   function_trace_result="$(echo "$function_trace_result" | tac)"
+   process_backtrace_function ## sets process_backtrace_result
+   function_trace_function ## sets function_trace_result
    true "
 ############################################################
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
