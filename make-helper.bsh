@@ -68,6 +68,12 @@ make_parse_cmd() {
                exit 0
                shift
                ;;
+           deb-build-dep)
+               matched="true"
+               make_function_run make_deb-build-dep
+               exit 0
+               shift
+               ;;
            deb-pkg)
                matched="true"
                deb="true"
@@ -391,6 +397,9 @@ make install
    Copying the files from the source tree to system-wide directories.
 make installsim
    Simulate copying the files from the source tree to system-wide directories.
+make deb-build-dep
+   Install build dependencies listed in debian/control under Build-Depends using apt-get.
+   Various environment variables supported.
 make deb-pkg
    Create a deb, which will be stored in parent folder.
 make deb-pkg-install
@@ -536,6 +545,39 @@ make_uch() {
 
 make_clean() {
    make_function_run make_deb-clean
+}
+
+make_deb-build-dep() {
+   local make_deb_build_dependencies make_debian_control_file
+
+   make_debian_control_file="debian/control"
+   test -f "$make_debian_control_file"
+
+   ## Thanks to Jason Mehring (nrgaway@gmail.com) for the grep, cut, sed, tr magic.
+   make_deb_build_dependencies="$( \
+      grep \
+         "Build-Depends:" "$make_debian_control_file" | \
+            cut -d: -f 2- | \
+               sed -e 's/ *, */\n/g' | \
+                  cut -d'(' -f 1 | \
+                     tr -d " " \
+      )"
+
+   local apt_get_exit_code="0"
+   $CHROOT \
+      apt-get \
+         $apt_sourcelist_empty \
+         $apt_sourceparts \
+         $apt_timeout_opts \
+         $apt_verify_opts \
+         $apt_unattended_opts \
+         --yes \
+         --no-install-recommends \
+         install \
+         $make_deb_build_dependencies \
+         || { apt_get_exit_code="$?" ; true; };
+
+   exit "$apt_get_exit_code"
 }
 
 make_deb-pkg_shared() {

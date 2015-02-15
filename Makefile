@@ -36,6 +36,9 @@ uch:
 install:
 	./make-helper.bsh install
 
+deb-build-dep:
+	./make-helper.bsh deb-build-dep
+
 deb-pkg:
 	./make-helper.bsh deb-pkg ${ARGS}
 
