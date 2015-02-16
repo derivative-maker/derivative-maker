@@ -474,6 +474,15 @@ a linux kernel.)"
       true "INFO: config-package-dev with debhelper support already installed, ok."
    fi
 
+   ## Check if dh-systemd is installed.
+   ## (Build Dependency for qubes-whonix package.)
+   if dpkg-query --show dh-systemd >/dev/null 2>&1 ; then
+      true "INFO: dh-systemd already installed, ok."
+   else
+      local install_from_testing_required="1"
+      true "INFO: dh-systemd install required, ok."
+   fi
+
    if [ "$install_from_testing_required" = "1" ]; then
       local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
 
@@ -504,7 +513,8 @@ a linux kernel.)"
          -o APT::Default-Release="$whonix_build_apt_stable_release" \
          install \
          "config-package-dev/$whonix_build_apt_newer_release_codename" \
-         "grml-debootstrap/$whonix_build_apt_newer_release_codename"
+         "grml-debootstrap/$whonix_build_apt_newer_release_codename" \
+         "dh-systemd/$whonix_build_apt_newer_release_codename"
 
          #"sleuthkit/$whonix_build_apt_newer_release_codename"
 
