@@ -455,6 +455,18 @@ aptgetgpgvcreatetmp() {
       error "Variable WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN is empty!"
    fi
 
+   if [ "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN" = "" ]; then
+      error "Variable WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN is empty!"
+   fi
+   if [ "$apt_get_update_wrapper_content" = "" ]; then
+      error "Variable apt_get_update_wrapper_content is empty!"
+   fi
+
+   rm --force "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN"
+   touch "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN"
+   echo "$apt_get_update_wrapper_content" > "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN"
+   chmod +x "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN"
+
    apt_get_gpgv_opts+=" -o Dir::Bin::gpg=$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN "
    export apt_get_gpgv_opts
 
@@ -505,6 +517,7 @@ export -f aptgetgpgvparsetmp
 
 aptgetgpgvdeletetmp() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
+   rm --force "$WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN"
    rm --force "$WHONIX_BUILD_APT_GET_GPGV_LOG"
 }

@@ -195,12 +195,16 @@ get_extra_packages() {
    ## Update $whonix_build_sources_list_newer package list while keeping
    ## previously updated regular package lists. In other words, prevent
    ## needlessly updating regular package lists.
-   apt-get update \
+   aptgetgpgvcreatetmp
+   $WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN \
       $apt_timeout_opts \
       $apt_verify_opts \
       -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
       -o Dir::Etc::sourceparts="-" \
-      -o APT::Get::List-Cleanup="0"
+      -o APT::Get::List-Cleanup="0" \
+      update
+   aptgetgpgvparsetmp
+   aptgetgpgvdeletetmp
 
    ## Download python-stem from $whonix_build_sources_list_newer.
    sudo -E -u "$user_name" \
