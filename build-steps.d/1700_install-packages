@@ -239,6 +239,12 @@ install-packages() {
    $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
    $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-i386/ || true
 
+   ## XXX: aptgetgpgvcreatetmp below will be running inside chroot. Therefore,
+   ##      it cannot set the apt_get_gpgv_opts environment variable. Doing this
+   ##      here instead.
+   apt_get_gpgv_opts+=" -o Dir::Bin::gpg=$WHONIX_BUILD_APT_GET_GPGV_TEMP_BIN "
+   export apt_get_gpgv_opts
+
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT bash -x -c aptgetgpgvcreatetmp
    $CHROOT $WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts update
