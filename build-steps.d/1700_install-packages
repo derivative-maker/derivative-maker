@@ -180,6 +180,8 @@ backup-file-if-exists() {
 
    if [ -f "$1" ]; then
       cp --no-clobber --recursive --preserve "$1" "$1.backup"
+      ## Debugging.
+      cp --no-clobber --recursive --preserve "$1" "$1.backup2"
    else
       true "INFO: file $1 does not exist, skipping backup, ok."
    fi
@@ -292,6 +294,12 @@ install-packages() {
 
    ## Debugging.
    test -f "$CHROOT_FOLDER/etc/resolv.conf.backup" || true "INFO: File $CHROOT_FOLDER/etc/resolv.conf.backup does not exist."
+   test -f "$CHROOT_FOLDER/etc/resolv.conf.backup2" || true "INFO: File $CHROOT_FOLDER/etc/resolv.conf.backup2 does not exist."
+
+   ## XXX: "$CHROOT_FOLDER/etc/resolv.conf.backup" vanished for some reason. (On CI systems only?)
+   if [ "$CI" = "true" ]; then
+      cp "$CHROOT_FOLDER/etc/resolv.conf.backup2" "$CHROOT_FOLDER/etc/resolv.conf.backup"
+   fi
 
    unset WHONIX_CHROOT_MOUNT_RESOLV_CONF
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unchroot-raw"
