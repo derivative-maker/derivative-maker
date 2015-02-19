@@ -23,9 +23,11 @@ root_check
 
 ## Debugging function.
 apt_get_parse_unmet_dependency() {
-   true "INFO: Running \"dpkg -l | grep $pkg\"..."
-   $CHROOT dpkg -l | grep "$pkg" || true
-   $CHROOT apt-cache policy "$pkg" || true
+   local pkg_unmet
+   pkg_unmet="$1"
+   true "INFO: Running \"dpkg -l | grep $pkg_unmet\"..."
+   $CHROOT dpkg -l | grep "$pkg_unmet" || true
+   $CHROOT apt-cache policy "$pkg_unmet" || true
 
    local line
 
@@ -67,18 +69,19 @@ Will try to manually install it for debugging...${reset}"
 pkg-install-maybe() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   pkg="$1"
+   local pkg_install
+   pkg_install="$1"
    local skip_package
    for skip_package in $whonix_build_script_skip_package_install; do
-      if [ "$skip_package" = "$pkg" ]; then
+      if [ "$skip_package" = "$pkg_install" ]; then
          unset skip_package
-         true "${bold}${cyan}INFO: Skipping $pkg, because whonix_build_script_skip_package_install includes it.${reset}"
+         true "${bold}${cyan}INFO: Skipping $pkg_install, because whonix_build_script_skip_package_install includes it.${reset}"
          return 0
       fi
    done
    unset skip_package
 
-   true "${cyan}INFO: Installing $pkg, because whonix_build_script_skip_package_install does not include it... \
+   true "${cyan}INFO: Installing $pkg_install, because whonix_build_script_skip_package_install does not include it... \
 This may take a while...${reset}"
 
    ## apt: no way to view dpkg commandline and still run dpkg
@@ -95,7 +98,7 @@ This may take a while...${reset}"
          --yes \
          --no-install-recommends \
          install \
-         "$pkg" \
+         "$pkg_install" \
          || { apt_get_exit_code="$?" ; true; };
 
    local apt_get_exit_code="0"
@@ -109,21 +112,21 @@ This may take a while...${reset}"
          --yes \
          --no-install-recommends \
          install \
-         "$pkg" \
+         "$pkg_install" \
          || { apt_get_exit_code="$?" ; true; };
 
    $CHROOT sync
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
-      true "${cyan}INFO: Installed $pkg, no error detected.${reset}"
+      true "${cyan}INFO: Installed $pkg_install, no error detected.${reset}"
       return 0
    fi
 
-   true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: Failed to install $pkg_install. (apt_get_exit_code: $apt_get_exit_code) \
 Attempting to gather debug output to diagnose the problem...${reset}"
 
-   true "${bold}${cyan}INFO: Read output of apt-get trying to install $pkg into a \
+   true "${bold}${cyan}INFO: Read output of apt-get trying to install $pkg_install into a \
 variable for debugging. This may take a while...${reset}"
 
    local apt_get_exit_code="0"
@@ -139,7 +142,7 @@ variable for debugging. This may take a while...${reset}"
                   --yes \
                   --no-install-recommends \
                   install \
-                  "$pkg" \
+                  "$pkg_install" \
                   2>&1 \
          ) \
       " \
@@ -149,12 +152,12 @@ variable for debugging. This may take a while...${reset}"
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
-      true "${bold}${red}ERROR: Second attempt installing $pkg did not fail?!?${reset}"
+      true "${bold}${red}ERROR: Second attempt installing $pkg_install did not fail?!?${reset}"
       error "See above!"
       return 0
    fi
 
-   true "${bold}${red}ERROR: As expected, failed again to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: As expected, failed again to install $pkg_install. (apt_get_exit_code: $apt_get_exit_code) \
 Trying to diagnose the problem using function apt_get_parse_unmet_dependency...${reset}"
 
    apt_get_parse_unmet_dependency
@@ -163,7 +166,7 @@ Trying to diagnose the problem using function apt_get_parse_unmet_dependency...$
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
-      true "${bold}${red}ERROR: Failed to install $pkg. (apt_get_exit_code: $apt_get_exit_code) \
+      true "${bold}${red}ERROR: Failed to install $pkg_install. (apt_get_exit_code: $apt_get_exit_code) \
 Continue anyway, because CI detected.${reset}"
       return 0
    fi
