@@ -178,9 +178,13 @@ Continue anyway, because CI detected.${reset}"
 backup-file-if-exists() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
+   if [ ! -d "$WHONIX_BINARY/system-files-backup" ]; then
+      sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/system-files-backup"
+   fi
+
    if [ -f "$1" ]; then
       cp --no-clobber --recursive --preserve "$1" "$1.backup"
-      cp --no-clobber --recursive --preserve "$1" "$WHONIX_BINARY/system-files-backup/$1"
+      sudo -E -u "$user_name" cp --no-clobber --recursive --preserve "$1" "$WHONIX_BINARY/system-files-backup/$1"
    else
       true "INFO: file $1 does not exist, skipping backup, ok."
    fi
