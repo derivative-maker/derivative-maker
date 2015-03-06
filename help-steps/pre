@@ -161,6 +161,12 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 ############################################################
 "
 
+   if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
+      true "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
+      ## Can return here, because next that will happen is receiving signal ERR.
+      return 0
+   fi
+
    if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
       true "INFO: Signal trap ERR or called_by_errorhandlerretry, considering auto retry..."
       if [ ! "$whonix_build_auto_retry" = "0" ]; then
@@ -212,7 +218,6 @@ Please have a look above (the block within ###...), note the command that failed
          fi
       fi
    else
-      ## TODO: Would otherwise "double" the error handlers.
       true "INFO: Aborting because of non ERR signal type: $trap_signal_type_last"
       return 0
    fi
@@ -268,13 +273,9 @@ This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}"
       fi
    else
-      if [ "$trap_signal_type_last" = "INT" ]; then
-         true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 130 because signal sigint received..${reset}"
-         exit 130 ## ctrl + c
-      fi
-      if [ "$trap_signal_type_last" = "TERM" ]; then
-         true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 143 because signal sigterm received.${reset}"
-         exit 143
+      if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
+         true "INFO $FUNCNAME: trap_signal_type_last: $trap_signal_type_last"
+         return 0
       fi
       true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 1.${reset}"
       exit 1
