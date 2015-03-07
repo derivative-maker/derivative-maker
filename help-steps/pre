@@ -140,6 +140,7 @@ errorhandlerretry() {
 errorhandlerprocessshared() {
    last_script="$0"
    ## $1 contains trap signal type.
+   trap_signal_type_previous="$trap_signal_type_last"
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
    benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
@@ -150,6 +151,7 @@ errorhandlerprocessshared() {
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 (whonix_build_error_counter: $whonix_build_error_counter)
 (benchmark: $benchmark_took_time)
+trap_signal_type_previous: $trap_signal_type_previous
 ${red}${bold}trap_signal_type_last${reset}: $trap_signal_type_last
 ${red}${bold}process_backtrace_result${reset}:
 $process_backtrace_result
@@ -163,6 +165,7 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 
    if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
       true "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
+      errorhandlerprocessshared "NONE_(called_because_int_or_term)"
       ## Can return here, because next that will happen is receiving signal ERR.
       return 0
    fi
@@ -199,7 +202,7 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
    unset whonix_build_auto_retry_counter
 
    answer=""
-   if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
+   if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
       true "INFO: whonix_build_non_interactive: $whonix_build_non_interactive | CI: $CI"
       if [ "$whonix_build_non_interactive" = "true" ] || [ "$CI" = "true" ]; then
          true "INFO: using non-interactive error handler."
