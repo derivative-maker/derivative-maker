@@ -209,6 +209,10 @@ whonix_build_one_script_help() {
 ## false: Break when uncommitted changes are found. Default.
 ## true: Do not use unless you know what you are doing.
 ##
+## --allow-untagged false|true
+## false: Break when build from non-tag. Default.
+## true: Do not use unless you know what you are doing.
+##
 ## --arch
 ## Only of interest for VM builds. Not for installations to root.
 ## i386: default, best tested.
@@ -545,6 +549,18 @@ whonix_build_one_parse_cmd() {
                ;;
            --retry-after)
                export whonix_build_dispatch_after_retry="$2"
+               shift 2
+               ;;
+           --allow-untagged)
+               if [ "$2" = "false" ]; then
+                  true "${cyan}INFO: Would stop if building form untagged commits.${reset}"
+               elif [ "$2" = "true" ]; then
+                  true "${cyan}INFO: Would build form untagged commits.${reset}"
+                  export whonix_build_ignore_untagged="true"
+               else
+                  echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
                shift 2
                ;;
            --allow-uncommitted)
