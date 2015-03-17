@@ -1187,110 +1187,114 @@ end() {
    true "${bold}${cyan}INFO: End. | $whonix_build_error_counter error(s) detected. ${reset}"
 }
 
-parse_cmd ${1+"$@"}
+main_function() {
+   parse_cmd ${1+"$@"}
 
-trap "error_handler" ERR INT TERM
+   trap "error_handler" ERR INT TERM
 
-preparation
-parse_topcomment
+   preparation
+   parse_topcomment
 
-extract_ova
-convert_vmdk_to_vdi
-convert_x_to_raw
+   extract_ova
+   convert_vmdk_to_vdi
+   convert_x_to_raw
 
-parse_file_system
-parse_vbr
-parse_mbr
+   parse_file_system
+   parse_vbr
+   parse_mbr
 
-## sets: mount_raw_exit_code
-mount_image
+   ## sets: mount_raw_exit_code
+   mount_image
 
-if [ "$mount_raw_exit_code" = "0" ]; then
-   parse_special_files
-   parse_initrd
-fi
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      parse_special_files
+      parse_initrd
+   fi
 
-## skip, because we expect these files to be non-deterministic.
-## Manual analysis required.
-skip="1"
-folder="$manual_analysis_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   ## skip, because we expect the image to be non-deterministic.
+   ## skip, because we expect these files to be non-deterministic.
+   ## Manual analysis required.
    skip="1"
-fi
-folder="$extracted_ova_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   ## skip, because we expect the image to be non-deterministic.
-   skip="1"
-fi
-folder="$vdi_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   ## skip, because we expect the image to be non-deterministic.
-   skip="1"
-fi
-folder="$qcow_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   ## skip, because we expect the image to be non-deterministic.
-   skip="1"
-fi
-folder="$qcow2_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   ## skip, because we expect the image to be non-deterministic.
-   skip="1"
-fi
-folder="$raw_folder"
-parse_folder
-skip="0"
-
-skip="0"
-folder="$auto_hash_folder"
-parse_folder
-skip="0"
-
-skip="0"
-folder="$debug_folder"
-parse_folder
-skip="0"
-
-skip="0"
-folder="$initrd_folder"
-parse_folder
-skip="0"
-
-skip="0"
-folder="$extracted_initrd_folder"
-parse_folder
-skip="0"
-
-if [ "$mount_raw_exit_code" = "0" ]; then
-   disable_xtrace="1"
-   skip="0"
-   folder="$mount_folder"
+   folder="$manual_analysis_folder"
    parse_folder
    skip="0"
-   disable_xtrace="0"
-fi
 
-if [ "$mount_raw_exit_code" = "0" ]; then
-   unmount_image
-fi
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      ## skip, because we expect the image to be non-deterministic.
+      skip="1"
+   fi
+   folder="$extracted_ova_folder"
+   parse_folder
+   skip="0"
 
-parse_file_list_file
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      ## skip, because we expect the image to be non-deterministic.
+      skip="1"
+   fi
+   folder="$vdi_folder"
+   parse_folder
+   skip="0"
 
-parse_endcomment
-end
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      ## skip, because we expect the image to be non-deterministic.
+      skip="1"
+   fi
+   folder="$qcow_folder"
+   parse_folder
+   skip="0"
+
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      ## skip, because we expect the image to be non-deterministic.
+      skip="1"
+   fi
+   folder="$qcow2_folder"
+   parse_folder
+   skip="0"
+
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      ## skip, because we expect the image to be non-deterministic.
+      skip="1"
+   fi
+   folder="$raw_folder"
+   parse_folder
+   skip="0"
+
+   skip="0"
+   folder="$auto_hash_folder"
+   parse_folder
+   skip="0"
+
+   skip="0"
+   folder="$debug_folder"
+   parse_folder
+   skip="0"
+
+   skip="0"
+   folder="$initrd_folder"
+   parse_folder
+   skip="0"
+
+   skip="0"
+   folder="$extracted_initrd_folder"
+   parse_folder
+   skip="0"
+
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      disable_xtrace="1"
+      skip="0"
+      folder="$mount_folder"
+      parse_folder
+      skip="0"
+      disable_xtrace="0"
+   fi
+
+   if [ "$mount_raw_exit_code" = "0" ]; then
+      unmount_image
+   fi
+
+   parse_file_list_file
+
+   parse_endcomment
+   end
+}
+
+main_function ${1+"$@"}
