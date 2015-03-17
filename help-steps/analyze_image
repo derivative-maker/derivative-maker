@@ -269,8 +269,6 @@ unmount_image() {
 }
 
 preparation() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$minimal_report" = "true" ]; then
       true "${cyan}INFO: Only creating minimal report file because minimal_report is true.${reset}"
       rm --force "$report_file"
@@ -422,8 +420,6 @@ preparation() {
 }
 
 parse_topcomment() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$topcomment" = "" ]; then
       topcomment="No topcomment."
    fi
@@ -434,8 +430,6 @@ $topcomment
 }
 
 extract_ova() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ova" = "0" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no ova chosen. ${reset}"
       return 0
@@ -462,8 +456,6 @@ extract_ova() {
 }
 
 convert_vmdk_to_vdi() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$vmdk" = "0" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no vmdk chosen. ${reset}"
       return 0
@@ -502,8 +494,6 @@ convert_vmdk_to_vdi() {
 }
 
 convert_x_to_raw() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
@@ -541,8 +531,6 @@ convert_x_to_raw() {
 }
 
 mount_image() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       mount_raw_exit_code="0"
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
@@ -579,8 +567,6 @@ mount_image() {
 }
 
 parse_file_system() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
@@ -603,8 +589,6 @@ parse_file_system() {
 }
 
 parse_mbr() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
@@ -634,8 +618,6 @@ parse_mbr() {
 }
 
 parse_vbr() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
@@ -658,15 +640,11 @@ parse_vbr() {
 }
 
 cp_to_user() {
-   trap "error_handler" ERR INT TERM
-
    cp "$1" "$2"
    chown --recursive "$user_name:$user_name" "$2"
 }
 
 parse_special_files() {
-   trap "error_handler" ERR INT TERM
-
    true "${bold}${cyan}INFO: Parsing special files... ${reset}"
 
    ###########################
@@ -809,8 +787,6 @@ parse_special_files() {
 }
 
 parse_initrd() {
-   trap "error_handler" ERR INT TERM
-
    true "${bold}${cyan}INFO: Parsing initrd... ${reset}"
 
    ## {{{ /boot/*
@@ -854,8 +830,6 @@ parse_initrd() {
 }
 
 parse_folder() {
-   trap "error_handler" ERR INT TERM
-
    local i
    i="0"
 
@@ -1194,14 +1168,10 @@ $temp12 $Type_in_hex\
 }
 
 parse_file_list_file() {
-   trap "error_handler" ERR INT TERM
-
    sha512sum "$file_list_file" >> "$report_file"
 }
 
 parse_endcomment() {
-   trap "error_handler" ERR INT TERM
-
    if [ "$endcomment" = "" ]; then
       endcomment="INFO: No endcomment. | $whonix_build_error_counter error(s) detected."
    fi
@@ -1214,12 +1184,13 @@ $endcomment"
 }
 
 end() {
-   trap "error_handler" ERR INT TERM
-
    true "${bold}${cyan}INFO: End. | $whonix_build_error_counter error(s) detected. ${reset}"
 }
 
 parse_cmd ${1+"$@"}
+
+trap "error_handler" ERR INT TERM
+
 preparation
 parse_topcomment
 
