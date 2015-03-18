@@ -13,6 +13,14 @@ set -o pipefail
 set -o errtrace
 shopt -s extdebug
 
+error() {
+   true "${blue}############################################################${reset}"
+   true "${red}${bold}${under}ERROR${eunder}: ${1}${reset}"
+   true "${blue}############################################################${reset}"
+   error_ "See above! (There should be a bold, red message surrounded by blue hashtags (#).)"
+   true
+}
+
 function_trace_function() {
    true "INFO: BEGIN: $FUNCNAME"
    if [ -o xtrace ]; then
@@ -147,7 +155,7 @@ errorhandlerprocessshared() {
    process_backtrace_function ## sets process_backtrace_result
    function_trace_function ## sets function_trace_result
    true "
-############################################################
+${cyan}${bold}############################################################${reset}
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 (whonix_build_error_counter: $whonix_build_error_counter)
 (benchmark: $benchmark_took_time)
@@ -157,10 +165,10 @@ ${red}${bold}process_backtrace_result${reset}:
 $process_backtrace_result
 ${red}${bold}function_trace_result${reset}:
 $function_trace_result
-${red}${bold}last_failed_bash_command${reset}: $last_failed_bash_command
-${red}${bold}last_failed_exit_code${reset}: $last_failed_exit_code
+${red}${bold}last_failed_bash_command${reset}: ${bold}$last_failed_bash_command${reset}
+${red}${bold}last_failed_exit_code${reset}: ${under}$last_failed_exit_code${reset}
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
-############################################################
+${cyan}${bold}############################################################${reset}
 "
 
    if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
@@ -178,7 +186,11 @@ ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
          fi
          [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
          [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
-         if [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
+         local first
+         read -r first _ <<< "$last_failed_bash_command"
+         if [ "$first" = "error_" ]; then
+            true 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
+         elif [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
             true "${cyan}${bold}INFO: Auto retried (--retry-max) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
          else
             true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--retry-max). Auto retry... ${reset}"
