@@ -255,7 +255,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## This is not possible in buildconfig.d on first run of this script,
    ## because git submodules are not available by then. Doing that now.
-   apt_get_update_wrapper_content="$(cat "$apt_get_update_wrapper")"
+   apt_get_update_wrapper_content="$(cat "$apt_get_update_wrapper_source_path_full")"
    export apt_get_update_wrapper_content
 
    if [ ! "$WHONIX_BUILD_UNATTENDED_PKG_INSTALL" = "1" ]; then
@@ -287,7 +287,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    if [ ! "$dpkg_exit_code" = "0" ]; then
       ## Update package lists and install apt-cacher-ng.
-      $WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN $apt_timeout_opts $apt_get_gpgv_opts update
+      $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts update
 
       ## --no-install-recommends to prevent installing avahi-daemon.
       apt-get $apt_unattended_opts $apt_timeout_opts --no-install-recommends --yes install apt-cacher-ng
@@ -306,7 +306,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    aptcachemaybeenable
 
    ## Update package lists after enabling apt-cacher-ng.
-   $WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN $apt_timeout_opts $apt_get_gpgv_opts update
+   $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts update
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
@@ -506,7 +506,7 @@ a linux kernel.)"
       fi
 
       ## Update package lists to include temporary repository.
-      $WHONIX_BUILD_APT_GET_UPDATE_WRAPPER_TEMP_BIN \
+      $apt_get_update_wrapper_source_path_full \
          $apt_timeout_opts \
          -o Dir::Etc::sourcelist="$TEMP" \
          -o Dir::Etc::sourceparts="-" \
