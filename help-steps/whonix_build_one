@@ -12,7 +12,7 @@ set -o pipefail
 error_handler_whonix_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
-   true "${red}${bold}whonix_build_build_step_current${reset}: $whonix_build_build_step_current"
+   true "${red}${bold}whonix_build_one_build_step_current${reset}: $whonix_build_one_build_step_current"
    true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
@@ -58,20 +58,20 @@ whonix_build_machine() {
    ## "run-parts, trap INT, read error":
    ## https://lists.gnu.org/archive/html/help-bash/2015-03/msg00066.html
 
-   for whonix_build_build_step_current in ./build-steps.d/*; do
-      if [ -x "$whonix_build_build_step_current" ]; then
+   for whonix_build_one_build_step_current in ./build-steps.d/*; do
+      if [ -x "$whonix_build_one_build_step_current" ]; then
          ## If the last character is a ~, ignore that file,
          ## because it was created by some editor,
          ## which creates backup files.
-         if [ "${whonix_build_build_step_current: -1}" = "~" ]; then
+         if [ "${whonix_build_one_build_step_current: -1}" = "~" ]; then
             continue
          fi
          ## Skipping files such as .dpkg-old and .dpkg-dist.
-         if ( echo "$whonix_build_build_step_current" | grep -q ".dpkg-" ); then
-            true "skip $whonix_build_build_step_current"
+         if ( echo "$whonix_build_one_build_step_current" | grep -q ".dpkg-" ); then
+            true "skip $whonix_build_one_build_step_current"
             continue
          fi
-         "./$whonix_build_build_step_current"
+         "./$whonix_build_one_build_step_current"
       fi
    done
 }
