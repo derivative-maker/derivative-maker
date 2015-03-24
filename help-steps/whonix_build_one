@@ -9,7 +9,7 @@ set -e
 true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 set -o pipefail
 
-error_handler_build-machine() {
+error_handler_whonix_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
    true "${red}${bold}whonix_build_build_step_current${reset}: $whonix_build_build_step_current"
@@ -27,12 +27,12 @@ source ./help-steps/colors
 
 root_check
 
-trap "error_handler_build-machine" ERR
+trap "error_handler_whonix_build_one" ERR
 
 export WHONIX_BUILD_ONE_SCRIPT_STARTED="1"
 
 whonix_build_preparation() {
-   trap "error_handler_build-machine" ERR
+   trap "error_handler_whonix_build_one" ERR
 
    cd help-steps
 
@@ -42,13 +42,13 @@ whonix_build_preparation() {
 
    source pre
 
-   trap "error_handler_build-machine" ERR
+   trap "error_handler_whonix_build_one" ERR
 
    cd ..
 }
 
 whonix_build_machine() {
-   trap "error_handler_build-machine" ERR
+   trap "error_handler_whonix_build_one" ERR
 
    run-parts --verbose --test ./build-steps.d
 
@@ -77,7 +77,7 @@ whonix_build_machine() {
 }
 
 whonix_build_clean() {
-   trap "error_handler_build-machine" ERR
+   trap "error_handler_whonix_build_one" ERR
 
    local cleaned_up
    ## Fallback
@@ -103,7 +103,7 @@ whonix_build_clean() {
 whonix_build_preparation ${1+"$@"}
 
 ## XXX
-trap "error_handler_build-machine" ERR
+trap "error_handler_whonix_build_one" ERR
 trap - INT
 trap - TERM
 
