@@ -197,12 +197,6 @@ backup-file-if-exists() {
 install-packages() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done" ]; then
-         error "${red}${bold}$BASH_SOURCE ERROR: $WHONIX_LOCAL_SIGNING_KEY_FOLDER/done does not exist. Most likely build-steps.d/1200_create-debian-packages has not been run yet.${reset}"
-      fi
-   fi
-
    sync
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
@@ -241,10 +235,6 @@ install-packages() {
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
-
-   ## Debugging.
-   $CHROOT ls -la /etc/apt/trusted.gpg.d
-   $CHROOT apt-key finger
 
    ## Debugging.
    $CHROOT ls -la /mnt/initialdeb/dists/local/ || true

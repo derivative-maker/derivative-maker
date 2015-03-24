@@ -30,92 +30,8 @@ cd ..
 signing_key() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
-   ## We need to create a local signing key for signing our local APT repository. Otherwise,
-   ## apt-get would complain, that the package can not be verified. In theory, signing is not
-   ## required, because the local APT repository never touches any networks. However, ignoring
-   ## this warning while installing the meta package, which pull the other packages, could
-   ## make apt-get ignore if those packages can not be verified either. Shipping an already
-   ## created gpg snake oil (because known to the public) secret key is no option either,
-   ## because anyone could get this key, which also needs to be added to apt-key. In that case,
-   ## anyone could sign packages with this snake oil key. Therefore we play it safe and
-   ## create a local signing key on the build machine.
-
-   ## We only automatically create am auto local signing key, in case the builder did not
-   ## provide a custom folder for WHONIX_LOCAL_SIGNING_KEY_FOLDER. This is determined in
-   ## help-steps/variables.
-   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Using ${under}auto local signing key method${eunder}... ${reset}"
-
-      ## Check, if we previously already created a local OpenPGP signing key.
-      if [ ! -f "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done" ]; then
-         true "${cyan}$BASH_SOURCE INFO: We do not yet have a local OpenPGP signing key for our local APT repository. Creating one... ${reset}"
-
-         sudo -E -u "$user_name" mkdir --parents "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
-
-         ## chmod 700, so gpg will not complain about folder permissions
-         sudo -E -u "$user_name" chmod 700 "$WHONIX_LOCAL_SIGNING_KEY_FOLDER"
-
-         ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
-
-         ## https://github.com/ioerror/torbirdy/blob/master/gpg.conf
-
-         echo "
-            Key-Type: RSA
-            Key-Length: 4096
-            Subkey-Type: RSA
-            Subkey-Length: 4096
-            Name-Real: Whonix auto generated local APT signing key
-            Name-Email: whonix@local-signing.key
-            Expire-Date: 0
-            Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
-         " | sudo -E -u "$user_name" gpg \
-                                       --no-options \
-                                       --no-emit-version \
-                                       --no-comments \
-                                       --display-charset utf-8 \
-                                       --keyserver hkp://qdigse2yzvuglcix.onion \
-                                       --personal-digest-preferences SHA512 \
-                                       --cert-digest-algo SHA512 \
-                                       --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed" \
-                                       --keyserver-options no-honor-keyserver-url \
-                                       --fixed-list-mode \
-                                       --keyid-format 0xlong \
-                                       --list-options show-uid-validity \
-                                       --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
-                                       --no-default-keyring \
-                                       --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                                       --batch \
-                                       --gen-key
-
-         sudo -E -u "$user_name" touch "$WHONIX_LOCAL_SIGNING_KEY_FOLDER/done"
-
-         true "${cyan}$BASH_SOURCE INFO: Created local OpenPGP signing key for our local APT repository. ${reset}"
-      else
-         true "${cyan}$BASH_SOURCE INFO: We already have a local OpenPGP signing key for our local APT repository. ${reset}"
-      fi
-   else
-      true "${cyan}$BASH_SOURCE INFO: Using ${under}custom signing key method${eunder}... ${reset}"
-   fi
-
-   if [ ! -d "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" ]; then
-      msg="ERROR: WHONIX_LOCAL_SIGNING_KEY_FOLDER $WHONIX_LOCAL_SIGNING_KEY_FOLDER does not exist."
-      error "WHONIX_LOCAL_SIGNING_KEY_FOLDER $WHONIX_LOCAL_SIGNING_KEY_FOLDER does not exist."
-   else
-      true "INFO: WHONIX_LOCAL_SIGNING_KEY_FOLDER: $WHONIX_LOCAL_SIGNING_KEY_FOLDER exists, ok."
-   fi
-
-   ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
-   ## a build log, this will help with debugging.
-   sudo -E -u "$user_name" gpg \
-                             --no-options \
-                             --no-default-keyring \
-                             --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-                             --keyid-format "0xlong" \
-                             --fingerprint \
-                             --list-secret-keys
-
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$WHONIX_BUILD_USE_AUTO_LOCAL_SIGNING_KEY" = "1" ]; then
+   if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "false" ]; then
       true
    else
       if [ "$GPG_AGENT_INFO" = "" ]; then
@@ -127,8 +43,6 @@ signing_key() {
       sudo -E -u "$user_name" \
          "$WHONIX_SOURCE_HELP_STEPS_FOLDER/gpg_test_sign"
    fi
-
-   true "INFO: END of $FUNCNAME"
 }
 
 check_for_untagged_commits() {
@@ -331,6 +245,7 @@ create_whonix_repository() {
          reprepro \
             -V \
             -V \
+            $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             removematched "$WHONIX_BUILD_APT_CODENAME" "*"
       true "${cyan}$BASH_SOURCE INFO: Done, purged ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
@@ -348,8 +263,8 @@ create_whonix_repository() {
    for file_name in "$WHONIX_SOURCE_FOLDER/packages/"*".deb"; do
       sudo -E -u "$user_name" \
          reprepro \
-            --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
             --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+            $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    done
@@ -359,8 +274,8 @@ create_whonix_repository() {
    for file_name in "$WHONIX_BINARY/temp_extra_packages/"*".deb"; do
       sudo -E -u "$user_name" \
          reprepro \
-            --gnupghome "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
             --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+            $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
             $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
             includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
    done

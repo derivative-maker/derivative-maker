@@ -18,32 +18,6 @@ root_check
 create_local_temp_apt_repo() {
    errorhandlersetup "errorhandlergeneral" ERR INT TERM
 
-   local gpg_temp_homedir
-   gpg_temp_homedir="$($CHROOT mktemp --directory)"
-
-   ## Apt signing key.
-   sudo -u "$user_name" gpg \
-      --no-options \
-      --no-default-keyring \
-      --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-      --export "$DEBEMAIL" \
-         | \
-            gpg \
-               --no-options \
-               --no-default-keyring \
-               --homedir "$CHROOT_FOLDER/$gpg_temp_homedir" \
-               --keyring "$CHROOT_FOLDER/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg" \
-               --import
-
-   ## For debugging.
-   gpg \
-      --no-options \
-      --no-default-keyring \
-      --homedir "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" \
-      --keyring "$CHROOT_FOLDER/etc/apt/trusted.gpg.d/whonix-temporary-local-apt-repository.gpg" \
-      --keyid-format "0xlong" \
-      --fingerprint
-
    ## DEB_INSTALL_FOLDER Example:
    ## /mnt/initialdeb
 
@@ -64,7 +38,7 @@ create_local_temp_apt_repo() {
    mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
 
    ## Create a sources.list file for our local apt repository.
-   echo "deb file:$DEB_INSTALL_FOLDER/ $WHONIX_BUILD_APT_CODENAME main" > "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
+   echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/ $WHONIX_BUILD_APT_CODENAME main" > "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
 
    ## Copy which (frozen) sources.list will be used for building Whonix into the image (or machine).
    if [ "$CI" = "true" ]; then
