@@ -8,14 +8,14 @@ set -x
 true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 set -o pipefail
 
-build_main_error_handler() {
+error_handler_build_main() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
    true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
 
-trap "build_main_error_handler" ERR
+trap "error_handler_build_main" ERR
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
@@ -24,7 +24,7 @@ source ./help-steps/colors
 source ./help-steps/parse-cmd
 
 build_main_build() {
-   trap "build_main_error_handler" ERR
+   trap "error_handler_build_main" ERR
    true "INFO $BASH_SOURCE $FUNCNAME: build_args: $build_args"
    true "INFO $BASH_SOURCE $FUNCNAME: Build overview.
 WHONIX_MAIN_SCRIPT_BUILD_GATEWAY: $WHONIX_MAIN_SCRIPT_BUILD_GATEWAY
