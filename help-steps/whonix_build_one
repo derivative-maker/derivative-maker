@@ -12,6 +12,7 @@ set -o pipefail
 error_handler_build-machine() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
+   true "${red}${bold}whonix_build_build_step_current${reset}: $whonix_build_build_step_current"
    true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
@@ -26,12 +27,12 @@ source ./help-steps/colors
 
 root_check
 
-errorhandlersetup "error_handler_build-machine" ERR INT TERM
+trap "error_handler_build-machine" ERR
 
 export WHONIX_BUILD_ONE_SCRIPT_STARTED="1"
 
 whonix_build_preparation() {
-   errorhandlersetup "error_handler_build-machine" ERR INT TERM
+   trap "error_handler_build-machine" ERR
 
    cd help-steps
 
@@ -41,18 +42,42 @@ whonix_build_preparation() {
 
    source pre
 
+   trap "error_handler_build-machine" ERR
+
    cd ..
 }
 
 whonix_build_machine() {
-   errorhandlersetup "error_handler_build-machine" ERR INT TERM
+   trap "error_handler_build-machine" ERR
 
    run-parts --verbose --test ./build-steps.d
-   run-parts --verbose --exit-on-error ./build-steps.d
+
+   ## Not using:
+   #run-parts --verbose --exit-on-error ./build-steps.d
+   ## Because of an issue,
+   ## "run-parts, trap INT, read error":
+   ## link soon
+
+   for whonix_build_build_step_current in ./build-steps.d/*; do
+      if [ -x "$whonix_build_build_step_current" ]; then
+         ## If the last character is a ~, ignore that file,
+         ## because it was created by some editor,
+         ## which creates backup files.
+         if [ "${whonix_build_build_step_current: -1}" = "~" ]; then
+            continue
+         fi
+         ## Skipping files such as .dpkg-old and .dpkg-dist.
+         if ( echo "$whonix_build_build_step_current" | grep -q ".dpkg-" ); then
+            true "skip $whonix_build_build_step_current"
+            continue
+         fi
+         "./$whonix_build_build_step_current"
+      fi
+   done
 }
 
 whonix_build_clean() {
-   errorhandlersetup "error_handler_build-machine" ERR INT TERM
+   trap "error_handler_build-machine" ERR
 
    local cleaned_up
    ## Fallback
@@ -76,6 +101,11 @@ whonix_build_clean() {
 }
 
 whonix_build_preparation ${1+"$@"}
+
+## XXX
+trap "error_handler_build-machine" ERR
+trap - INT
+trap - TERM
 
 if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
    whonix_build_clean
