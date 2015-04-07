@@ -1,124 +1,17 @@
 #!/usr/bin/make -f
 
-## This file is part of Whonix.
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
-## generic deb build script version 1.4
+## Bootstrapping genmkfile. Using genmkfile to build genmkfile.
+## Using genmkfile without having genmkfile available as a build dependency.
 
-## This is a copy.
-## master location:
-## https://github.com/Whonix/Whonix/blob/master/Makefile
+GENMKFILE_BOOTSTRAP ?= ./packages/genmkfile/usr/share/genmkfile
+GENMKFILE_PATH ?= $(GENMKFILE_BOOTSTRAP)
+GENMKFILE_ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-DESTDIR ?= /
+export GENMKFILE_BOOTSTRAP
+export GENMKFILE_PATH
+export GENMKFILE_ROOT_DIR
 
-all:
-	@echo "make all is not required."
-
-dist:
-	./make-helper.bsh dist
-
-undist:
-	./make-helper.bsh undist
-
-debdist:
-	./make-helper.bsh debdist
-
-undebdist:
-	./make-helper.bsh undebdist
-
-manpages:
-	./make-helper.bsh manpages
-
-uch:
-	./make-helper.bsh uch
-
-install:
-	./make-helper.bsh install
-
-deb-build-dep:
-	./make-helper.bsh deb-build-dep
-
-deb-pkg:
-	./make-helper.bsh deb-pkg ${ARGS}
-
-deb-pkg-signed:
-	./make-helper.bsh deb-pkg-signed ${ARGS}
-
-deb-pkg-install:
-	./make-helper.bsh deb-pkg-install ${ARGS}
-
-deb-pkg-source:
-	./make-helper.bsh deb-pkg-source ${ARGS}
-
-deb-install:
-	./make-helper.bsh deb-install
-
-deb-icup:
-	./make-helper.bsh deb-icup
-
-deb-remove:
-	./make-helper.bsh deb-remove
-
-deb-purge:
-	./make-helper.bsh deb-purge
-
-deb-clean:
-	./make-helper.bsh deb-clean
-
-deb-cleanup:
-	./make-helper.bsh deb-cleanup
-
-lintian:
-	./make-helper.bsh lintian
-
-dput-ubuntu-ppa:
-	./make-helper.bsh dput-ubuntu-ppa
-
-clean:
-	./make-helper.bsh clean
-
-distclean:
-	./make-helper.bsh distclean
-
-checkout:
-	./make-helper.bsh checkout
-
-installcheck:
-	./make-helper.bsh installcheck
-
-installsim:
-	./make-helper.bsh installsim
-
-uninstallcheck:
-	./make-helper.bsh uninstallcheck
-
-uninstall:
-	./make-helper.bsh uninstall
-
-uninstallsim:
-	./make-helper.bsh uninstallsim
-
-deb-chl-bumpup:
-	./make-helper.bsh deb-chl-bumpup
-
-deb-uachl-bumpup:
-	./make-helper.bsh deb-uachl-bumpup
-
-git-tag-sign:
-	./make-helper.bsh git-tag-sign
-
-git-tag-verify:
-	./make-helper.bsh git-tag-verify
-
-git-tag-check:
-	./make-helper.bsh git-tag-check
-
-git-commit-verify:
-	./make-helper.bsh git-commit-verify
-
-git-verify:
-	./make-helper.bsh git-verify
-
-help:
-	./make-helper.bsh help
+include $(GENMKFILE_BOOTSTRAP)/makefile-full
