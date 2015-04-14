@@ -400,8 +400,13 @@ export -f benchmarktimeend
 benchmark_time_start
 
 exithandler() {
+   local exit_code="$?"
    benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}INFO: End of: $0 | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+   if [ "$exit_code" = "0" ]; then
+      true "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
+   else
+      true "${bold}${red}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
+   fi
 }
 
 export -f exithandler
