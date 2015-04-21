@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 export-vbox-vm() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       local TEXT="\
 ########################
@@ -136,11 +132,14 @@ Whonix is experimental software. Do not rely on it for strong anonymity.
          --dry-run
 }
 
-if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-   true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   export-vbox-vm
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-else
-   true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
-fi
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      export-vbox-vm
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+   fi
+}
+
+true "${bold}${under}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+main ${1+"$@"}

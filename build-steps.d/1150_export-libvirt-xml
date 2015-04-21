@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 export-libvirt-xml() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY"
 
    sudo -u "$user_name" cp "$libvirt_source_kvm_file" "$libvirt_target_kvm_file"
@@ -33,11 +29,14 @@ export-libvirt-xml() {
    fi
 }
 
-if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
-   true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   export-libvirt-xml
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-else
-   true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_QCOW2 is not set to 'true'.${reset}"
-fi
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+      export-libvirt-xml ${1+"$@"}
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_QCOW2 is not set to 'true'.${reset}"
+   fi
+}
+
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}

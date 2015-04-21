@@ -22,14 +22,10 @@ source pre
 source colors
 source variables
 
-root_check
-
 cd "$MYDIR"
 cd ..
 
 signing_key() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
    if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "false" ]; then
       true
@@ -46,8 +42,6 @@ signing_key() {
 }
 
 check_for_untagged_commits() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    git_tag_nearest="$(git describe --always --abbrev=0)"
    git_tag_current="$(git describe --always --abbrev=1000000000)"
 
@@ -83,8 +77,6 @@ ${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}
 }
 
 check_for_uncommitted_changes() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ -n "$(git status --porcelain)" ]; then
       if [ "$whonix_build_ignore_uncommitted" = "true" ]; then
          true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
@@ -120,8 +112,6 @@ ${cyan}or if you know what you are doing:${reset}
 }
 
 cleanup_old_packages() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    true "${cyan}$BASH_SOURCE INFO: Cleaning old packages... ${reset}"
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files"
@@ -130,8 +120,6 @@ cleanup_old_packages() {
 }
 
 get_extra_packages() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
       true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
       return 0
@@ -185,8 +173,6 @@ get_extra_packages() {
 }
 
 create_whonix_debian_packages_without_building_system() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
    shopt -s nullglob
@@ -240,8 +226,6 @@ create_whonix_debian_packages_without_building_system() {
 }
 
 create_whonix_repository() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
       true "${cyan}$BASH_SOURCE INFO: Purging ${under}local${eunder} APT repository... ${reset}"
       sudo -E -u "$user_name" \
@@ -288,8 +272,6 @@ create_whonix_repository() {
 }
 
 create-debian-packages() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    cleanup_old_packages
    check_for_untagged_commits
    check_for_uncommitted_changes
@@ -304,8 +286,6 @@ create-debian-packages() {
 }
 
 parse_cmd() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    while :
    do
        case $1 in
@@ -350,12 +330,15 @@ parse_cmd() {
    done
 }
 
+main() {
+   root_check
+   parse_cmd ${1+"$@"}
+   if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+      true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
+   else
+      create-debian-packages
+   fi
+}
+
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-parse_cmd ${1+"$@"}
-if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-   true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
-else
-   create-debian-packages
-fi
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 analyze_target() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    local target image_to_analyze
    target="$1"
    image_to_analyze="$2"
@@ -62,8 +58,8 @@ ANON_BUILD_INSTALL_TO_ROOT: $ANON_BUILD_INSTALL_TO_ROOT"
    true "${cyan}INFO: Done, analyzed $target. ${reset}"
 }
 
-create-report() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+main() {
+   root_check
 
    ## If whonix_build is run with --fast2 switch.
    if [ "$WHONIX_BUILD_FAST2" = "1" ]; then
@@ -95,6 +91,4 @@ create-report() {
 }
 
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-create-report
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

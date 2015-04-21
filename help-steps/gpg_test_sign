@@ -16,16 +16,13 @@ cd ..
 cd help-steps
 
 whonix_build_one_parsed="1"
-ROOT_CHECK="0"
 VMNAME="internalrun"
 
 source pre
 source colors
 source variables
 
-gpg-test-sign() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
+main() {
    echo "test" > "$WHONIX_BINARY/test_sign_file"
    gpg --detach-sign --armor --yes "$WHONIX_BINARY/test_sign_file"
    gpg --verify "$WHONIX_BINARY/test_sign_file.asc"
@@ -34,6 +31,4 @@ gpg-test-sign() {
 }
 
 true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-gpg-test-sign
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

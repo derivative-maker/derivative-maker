@@ -7,13 +7,7 @@
 set -x
 set -e
 
-error_handler_mount-raw() {
-   : echo "
-${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
-"
-   exit 1
-}
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -21,7 +15,13 @@ source "$MYDIR/pre"
 source "$MYDIR/colors"
 source "$MYDIR/variables"
 
-root_check
+error_handler_mount-raw() {
+   : echo "
+${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
+${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
+"
+   exit 1
+}
 
 mount_raw() {
    trap "error_handler_mount-raw" ERR INT TERM
@@ -78,12 +78,15 @@ mount_raw() {
    sync
 }
 
-if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-   true "${green}INFO: Skipping script, because ANON_BUILD_INSTALL_TO_ROOT=1: $BASH_SOURCE${reset}"
-   exit 0
-else
-   true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   mount_raw
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-fi
+main() {
+   root_check
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${green}INFO: Skipping script, because ANON_BUILD_INSTALL_TO_ROOT=1: $BASH_SOURCE${reset}"
+      exit 0
+   else
+      mount_raw
+   fi
+}
+
+true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}

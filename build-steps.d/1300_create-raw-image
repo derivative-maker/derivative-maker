@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 create-debian-raw-image() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    mkdir --parents "$WHONIX_BINARY/"
    chown --recursive "$user_name:$user_name" "$WHONIX_BINARY/"
 
@@ -136,24 +132,25 @@ create-debian-raw-image() {
 }
 
 create-empty-raw-image() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    qemu-img create -f raw "$binary_image_raw" "$VMSIZE"
 }
 
-if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-   true "${green}INFO: Skipping $BASH_SOURCE, because ANON_BUILD_INSTALL_TO_ROOT is set to 1.${reset}"
-else
-   true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      create-debian-raw-image
-   elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      create-debian-raw-image
-   elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-      create-empty-raw-image
+main() {
+   root_check
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because ANON_BUILD_INSTALL_TO_ROOT is set to 1.${reset}"
    else
-      error "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+      if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+         create-debian-raw-image
+      elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+         create-debian-raw-image
+      elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+         create-empty-raw-image
+      else
+         error "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+      fi
    fi
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-fi
+}
+
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}

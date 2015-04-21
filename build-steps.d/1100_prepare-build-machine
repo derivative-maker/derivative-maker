@@ -34,11 +34,7 @@ unset whonix_build_no_unset_xtrace
 
 unset whonix_build_on_operating_system_detect_skip
 
-root_check
-
 check-virtualbox-vm-exists() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, skipping check if a \
 VirtualBox VM named $VMNAME already exists, ok.${reset}"
@@ -128,8 +124,8 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
    ## }}
 }
 
-prepare-build-machine() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+main() {
+   root_check
 
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
@@ -631,6 +627,4 @@ can do this. Do not deploy these images! ${reset}"
 }
 
 true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-prepare-build-machine ${1+"$@"}
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

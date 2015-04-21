@@ -7,16 +7,16 @@
 set -x
 set -e
 
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$MYDIR/pre"
 source "$MYDIR/colors"
 source "$MYDIR/variables"
 
-root_check
-
-create_local_temp_apt_repo() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+main() {
+   root_check
 
    ## DEB_INSTALL_FOLDER Example:
    ## /mnt/initialdeb
@@ -62,6 +62,4 @@ because CI is set to 'true'.${reset}"
 }
 
 true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-create_local_temp_apt_repo
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

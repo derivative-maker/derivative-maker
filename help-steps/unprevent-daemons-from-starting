@@ -7,15 +7,17 @@
 set -x
 set -e
 
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$MYDIR/pre"
 source "$MYDIR/colors"
 source "$MYDIR/variables"
 
-root_check
+main() {
+   root_check
 
-unprevent_daemons_from_starting() {
    sync || true
 
    rm --verbose --force "$CHROOT_FOLDER"/usr/sbin/policy-rc.d || true
@@ -23,6 +25,4 @@ unprevent_daemons_from_starting() {
 }
 
 true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-unprevent_daemons_from_starting
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

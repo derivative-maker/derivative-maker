@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 general_setup() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    ## Create a new VM. Name: $VMNAME
    sudo -u "$user_name" VBoxManage createvm --name "$VMNAME" --register
 
@@ -112,8 +108,6 @@ general_setup() {
 }
 
 whonix-gateway_specific() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    ## Allow clipboard copying from the host to guest to ease entering bridges.
    sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --clipboard hosttoguest
 
@@ -150,8 +144,6 @@ whonix-gateway_specific() {
 }
 
 whonix-workstation_specific() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    ## Attach the HDD.
    sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
@@ -183,8 +175,6 @@ whonix-workstation_specific() {
 }
 
 whonix-custom-workstation_specific() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    whonix-workstation_specific
 
    sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
@@ -192,23 +182,23 @@ whonix-custom-workstation_specific() {
    sync
 }
 
-if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-   true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-
-   general_setup
-
-   if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
-      whonix-gateway_specific
-   elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
-      whonix-workstation_specific
-   elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
-      whonix-custom-workstation_specific
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      general_setup
+      if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
+         whonix-gateway_specific
+      elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
+         whonix-workstation_specific
+      elif [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
+         whonix-custom-workstation_specific
+      else
+         error "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+      fi
    else
-      error "ERROR: Neither WHONIX_BUILD_GATEWAY nor WHONIX_BUILD_WORKSTATION is set to 1. Please report this bug!"
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
    fi
+}
 
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-else
-   true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
-fi
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}

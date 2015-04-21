@@ -296,7 +296,8 @@ bugs, that are a result of this! Please press enter to continue. ${reset}"
          true "INFO $FUNCNAME: trap_signal_type_last: $trap_signal_type_last"
          return 0
       fi
-      true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with code 1.${reset}"
+      trap - EXIT
+      true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with exit code ${under}1${eunder}.${reset}"
       exit 1
    fi
 }
@@ -405,13 +406,14 @@ exithandler() {
    if [ "$exit_code" = "0" ]; then
       true "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
    else
-      true "${bold}${red}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
+      true "${bold}${red}ERROR: Now exiting from $0 with non-zero exit code ${under}$exit_code${eunder} (error(s) detected: ${under}$whonix_build_error_counter${eunder}) (benchmark: $benchmark_took_time)${reset}${bold}${red}.${reset}"
    fi
+   exit "$exit_code"
 }
 
 export -f exithandler
 
-#trap "exithandler" EXIT
+trap "exithandler" EXIT
 
 root_check() {
    if [ "$(id -u)" != "0" ]; then
@@ -423,8 +425,6 @@ root_check() {
 }
 
 lower_priorities() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    ## Lower IO priority.
    ionice -c3 -p$$
 
@@ -445,8 +445,6 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
 fi
 
 aptcachemaybeenable() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
       ## Someone updating Whonix-Gateway from source code.
 
@@ -468,8 +466,6 @@ aptcachemaybeenable() {
 export -f aptcachemaybeenable
 
 aptcachedisable() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    unset http_proxy
 }
 

@@ -7,6 +7,14 @@
 set -x
 set -e
 
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$MYDIR/pre"
+source "$MYDIR/colors"
+source "$MYDIR/variables"
+
 error_handler_unchroot-raw() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
@@ -15,16 +23,10 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-source "$MYDIR/pre"
-source "$MYDIR/colors"
-source "$MYDIR/variables"
-
-root_check
-
-do_unchroot() {
+main() {
    trap "error_handler_unchroot-raw" ERR INT TERM
+
+   root_check
 
    sync || true
 
@@ -49,6 +51,4 @@ do_unchroot() {
 }
 
 true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-do_unchroot
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

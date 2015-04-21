@@ -7,16 +7,16 @@
 set -x
 set -e
 
+true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$MYDIR/pre"
 source "$MYDIR/colors"
 source "$MYDIR/variables"
 
-root_check
-
-remove_local_temp_apt_repo() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
+main() {
+   root_check
 
    rm --force "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
    rm --force "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
@@ -25,6 +25,4 @@ remove_local_temp_apt_repo() {
 }
 
 true "${bold}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-remove_local_temp_apt_repo
-benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-true "${bold}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
+main ${1+"$@"}

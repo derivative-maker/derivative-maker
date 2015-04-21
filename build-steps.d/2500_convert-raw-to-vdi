@@ -19,11 +19,7 @@ source pre
 source colors
 source variables
 
-root_check
-
-convert_raw-to_vdi() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
+convert_raw_to_vdi() {
    sudo -u "$user_name" \
       mkdir --parents "$HOMEVAR/VirtualBox VMs/$VMNAME"
 
@@ -43,11 +39,14 @@ convert_raw-to_vdi() {
             "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 }
 
-if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-   true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
-   convert_raw-to_vdi
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
-   true "${bold}${under}INFO: End of: $BASH_SOURCE ${1+"$@"} | $whonix_build_error_counter error(s) detected. (benchmark: $benchmark_took_time)${reset}"
-else
-   true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
-fi
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      convert_raw_to_vdi
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+   fi
+}
+
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}

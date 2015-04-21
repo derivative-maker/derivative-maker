@@ -30,11 +30,7 @@ source pre
 source colors
 source variables
 
-root_check
-
 script_help() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    echo "\
 Required options:
 --report reportfile
@@ -75,8 +71,6 @@ and https://www.whonix.org/wiki/Trust"
 }
 
 parse_cmd() {
-   errorhandlersetup "errorhandlergeneral" ERR INT TERM
-
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
 
@@ -269,6 +263,8 @@ unmount_image() {
 }
 
 preparation() {
+   root_check
+
    if [ "$minimal_report" = "true" ]; then
       true "${cyan}INFO: Only creating minimal report file because minimal_report is true.${reset}"
       rm --force "$report_file"
@@ -1187,7 +1183,7 @@ end() {
    true "${bold}${cyan}INFO: End. | $whonix_build_error_counter error(s) detected. ${reset}"
 }
 
-main_function() {
+main() {
    parse_cmd ${1+"$@"}
 
    trap "error_handler" ERR INT TERM
@@ -1297,4 +1293,5 @@ main_function() {
    end
 }
 
-main_function ${1+"$@"}
+true "${bold}${under}INFO: Currently running script: $BASH_SOURCE ${1+"$@"}${reset}"
+main ${1+"$@"}
