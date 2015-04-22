@@ -41,76 +41,6 @@ signing_key() {
    fi
 }
 
-check_for_untagged_commits() {
-   git_tag_nearest="$(git describe --always --abbrev=0)"
-   git_tag_current="$(git describe --always --abbrev=1000000000)"
-
-   ## Example git_tag_nearest:
-   ## 9.6
-
-   ## Example git_tag_current:
-   ## 10.0.0.3.7-developers-only-6-g505c39d44d2a08451f7ff53ce67d78745e05816b
-
-   true "${cyan}$BASH_SOURCE INFO: git_tag_nearest: $git_tag_nearest ${reset}"
-   true "${cyan}$BASH_SOURCE INFO: git_tag_current: $git_tag_current ${reset}"
-
-   if [ "$git_tag_nearest" == "$git_tag_current" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
-   else
-      if [ "$whonix_build_ignore_untagged" = "true" ]; then
-         true "${bold}${cyan}$BASH_SOURCE INFO: Git reports a untagged commit! But you requested to ignore untagged commits, continuing... ${reset}"
-      else
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-         true "${bold}${red}$BASH_SOURCE ERROR: Git reports a untagged commit! ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-untagged true${eunder}, \
-which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
-Such as in case you added custom commits.) ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (As a developer or advanced user you might want to use:
-${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}). ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (See build documentation on how to verify and checkout git tags.)${reset}"
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-
-         error "Untagged commit! See above!"
-         true
-      fi
-   fi
-}
-
-check_for_uncommitted_changes() {
-   if [ -n "$(git status --porcelain)" ]; then
-      if [ "$whonix_build_ignore_uncommitted" = "true" ]; then
-         true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
-         git status
-         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for debugging. ${reset}"
-         git clean -d --force --force --dry-run
-         true
-      else
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-         true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-uncommitted true${eunder}, \
-which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
-Such as in case you added custom code.) ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (As a developer or advanced user you might want to use:
-${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}). ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
-         git status
-         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
-         git clean -d --force --force --dry-run
-         true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
-    ${under}$WHONIX_SOURCE_HELP_STEPS_FOLDER/cleanup-files${eunder}
-${cyan}or if you know what you are doing:${reset}
-    ${under}git clean -d --force --force${eunder}
-    ${under}git reset --hard${eunder}
-"
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-
-         error "Uncommitted changes! See above!"
-         true
-      fi
-   fi
-}
-
 cleanup_old_packages() {
    true "${cyan}$BASH_SOURCE INFO: Cleaning old packages... ${reset}"
 
@@ -273,8 +203,9 @@ create_whonix_repository() {
 
 create-debian-packages() {
    cleanup_old_packages
-   check_for_untagged_commits
-   check_for_uncommitted_changes
+
+   source "$WHONIX_SOURCE_HELP_STEPS_FOLDER/git_sanity_test" ${1+"$@"}
+   git_sanity_test_main ${1+"$@"}
 
    true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    sleep 3
@@ -295,30 +226,6 @@ parse_cmd() {
                fi
                shift 2
                ;;
-           --allow-untagged)
-               if [ "$2" = "false" ]; then
-                  true "${cyan}INFO: Would stop if building form untagged commits.${reset}"
-               elif [ "$2" = "true" ]; then
-                  true "${cyan}INFO: Would build form untagged commits.${reset}"
-                  export whonix_build_ignore_untagged="true"
-               else
-                  echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
-                  exit 1
-               fi
-               shift 2
-               ;;
-           --allow-uncommitted)
-               if [ "$2" = "false" ]; then
-                  true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
-               elif [ "$2" = "true" ]; then
-                  true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
-                  export whonix_build_ignore_uncommitted="true"
-               else
-                  echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
-                  exit 1
-               fi
-               shift 2
-               ;;
            --apparmor)
                whonix_build_pkg_apparmor_only="true"
                shift
@@ -336,7 +243,7 @@ main() {
    if [ "$WHONIX_BUILD_CUSTOM_WORKSTATION" = "1" ]; then
       true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
    else
-      create-debian-packages
+      create-debian-packages ${1+"$@"}
    fi
 }
 
