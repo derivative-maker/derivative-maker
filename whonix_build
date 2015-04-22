@@ -5,8 +5,16 @@
 ## See the file COPYING for copying conditions.
 
 set -x
+set -e
+
 true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
-set -o pipefail
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$MYDIR"
+
+source ./help-steps/colors
+source ./help-steps/parse-cmd
+source ./help-steps/pre
 
 error_handler_build_main() {
    true "${red}${bold}ERROR in $0${reset}"
@@ -17,16 +25,10 @@ error_handler_build_main() {
 
 trap "error_handler_build_main" ERR
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$MYDIR"
-
-source ./help-steps/colors
-source ./help-steps/parse-cmd
-
 build_main_build() {
    trap "error_handler_build_main" ERR
-   true "INFO $BASH_SOURCE $FUNCNAME: build_args: $build_args"
-   true "INFO $BASH_SOURCE $FUNCNAME: Build overview.
+   true "${cyan}${bold}INFO $BASH_SOURCE $FUNCNAME: build_args: $build_args${reset}"
+   true "${cyan}${bold}INFO $BASH_SOURCE $FUNCNAME: Build overview.${reset}
 WHONIX_MAIN_SCRIPT_BUILD_GATEWAY: $WHONIX_MAIN_SCRIPT_BUILD_GATEWAY
 WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_WORKSTATION
 WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION"
@@ -39,9 +41,19 @@ WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION: $WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WO
    if [ "$WHONIX_MAIN_SCRIPT_BUILD_CUSTOM_WORKSTATION" = "true" ]; then
       ./help-steps/whonix_build_one --flavor whonix-custom-workstation $build_args
    fi
-   true "INFO $BASH_SOURCE $FUNCNAME: Done."
+   true "${cyan}${bold}INFO $BASH_SOURCE $FUNCNAME: Done.${reset}"
 }
 
-build_main_defaults
-build_main_parse_cmd ${1+"$@"}
-build_main_build
+main() {
+   trap "error_handler_build_main" ERR
+
+   ## XXX
+   trap - INT
+   trap - TERM
+
+   build_main_defaults
+   build_main_parse_cmd ${1+"$@"}
+   build_main_build
+}
+
+main ${1+"$@"}

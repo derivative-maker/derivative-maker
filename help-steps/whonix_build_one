@@ -9,16 +9,6 @@ set -e
 
 true "INFO: Currently running script: $BASH_SOURCE${1+"$@"}"
 
-set -o pipefail
-
-error_handler_whonix_build_one() {
-   true "${red}${bold}ERROR in $0${reset}"
-   true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
-   true "${red}${bold}whonix_build_one_build_step_current${reset}: $whonix_build_one_build_step_current"
-   true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
-   exit 1
-}
-
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
@@ -27,29 +17,30 @@ cd ..
 source ./help-steps/pre
 source ./help-steps/colors
 
+error_handler_whonix_build_one() {
+   true "${red}${bold}ERROR in $0${reset}"
+   true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
+   true "${red}${bold}whonix_build_one_build_step_current${reset}: $whonix_build_one_build_step_current"
+   true "${red}args: $args${reset}"
+   true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
+   exit 1
+}
+
 trap "error_handler_whonix_build_one" ERR
 
 export WHONIX_BUILD_ONE_SCRIPT_STARTED="1"
 
 whonix_build_preparation() {
-   trap "error_handler_whonix_build_one" ERR
-
    cd help-steps
 
    source parse-cmd
    whonix_build_one_parse_cmd ${1+"$@"}
    export whonix_build_one_parsed="1"
 
-   source pre
-
-   trap "error_handler_whonix_build_one" ERR
-
    cd ..
 }
 
 whonix_build_machine() {
-   trap "error_handler_whonix_build_one" ERR
-
    run-parts --verbose --test ./build-steps.d
 
    ## Not using:
@@ -85,8 +76,6 @@ whonix_build_machine() {
 }
 
 whonix_build_clean() {
-   trap "error_handler_whonix_build_one" ERR
-
    local cleaned_up
    ## Fallback
    cleaned_up="false"
@@ -108,20 +97,26 @@ whonix_build_clean() {
    fi
 }
 
-root_check
+main() {
+   root_check
 
-whonix_build_preparation ${1+"$@"}
+   args="${1+"$@"}"
 
-## XXX
-trap "error_handler_whonix_build_one" ERR
-trap - INT
-trap - TERM
+   whonix_build_preparation ${1+"$@"}
 
-if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
-   whonix_build_clean
-elif [ "$WHONIX_BUILD_BUILD" = "1" ]; then
-   whonix_build_machine
-else
-   true "${bold}${red}ERROR $BASH_SOURCE: You must either use --build or --clean. ${reset}"
-   exit 1
-fi
+   ## XXX
+   trap "error_handler_whonix_build_one" ERR
+   trap - INT
+   trap - TERM
+
+   if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
+      whonix_build_clean
+   elif [ "$WHONIX_BUILD_BUILD" = "1" ]; then
+      whonix_build_machine
+   else
+      true "${bold}${red}ERROR $BASH_SOURCE: You must either use --build or --clean. ${reset}"
+      exit 1
+   fi
+}
+
+main ${1+"$@"}
