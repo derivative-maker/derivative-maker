@@ -473,23 +473,26 @@ a linux kernel.)"
 
    if [ "$install_from_testing_required" = "1" ]; then
       local TEMP="/etc/apt/sources.list.d/whonix_temp.list"
+      local TEMP2="jessie"
 
-      if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-         ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
-         echo "deb http://us.archive.ubuntu.com/ubuntu/ $whonix_build_apt_newer_release_codename main universe" > "$TEMP"
-      else
-         ## Hack for Debian Wheezy.
-         echo "deb http://ftp.us.debian.org/debian $whonix_build_apt_newer_release_codename main" > "$TEMP"
+      if [ ! "$whonix_build_on_operating_system" = "jessie" ]; then
+         if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
+            ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
+            echo "deb http://us.archive.ubuntu.com/ubuntu/ $whonix_build_apt_newer_release_codename main universe" > "$TEMP"
+         else
+            ## Hack for Debian Wheezy.
+            echo "deb http://ftp.us.debian.org/debian $TEMP2 main" > "$TEMP"
+         fi
+
+         ## Update package lists to include temporary repository.
+         $apt_get_update_wrapper_source_path_full \
+            $apt_timeout_opts \
+            -o Dir::Etc::sourcelist="$TEMP" \
+            -o Dir::Etc::sourceparts="-" \
+            -o APT::Get::List-Cleanup="0" \
+            $apt_get_gpgv_opts \
+            update
       fi
-
-      ## Update package lists to include temporary repository.
-      $apt_get_update_wrapper_source_path_full \
-         $apt_timeout_opts \
-         -o Dir::Etc::sourcelist="$TEMP" \
-         -o Dir::Etc::sourceparts="-" \
-         -o APT::Get::List-Cleanup="0" \
-         $apt_get_gpgv_opts \
-         update
 
       apt-get \
          --yes \
@@ -497,11 +500,11 @@ a linux kernel.)"
          $apt_unattended_opts \
          -o APT::Default-Release="$whonix_build_apt_stable_release" \
          install \
-         "config-package-dev/$whonix_build_apt_newer_release_codename" \
-         "grml-debootstrap/$whonix_build_apt_newer_release_codename" \
-         "dh-systemd/$whonix_build_apt_newer_release_codename"
+         "config-package-dev/$TEMP2" \
+         "grml-debootstrap/$TEMP2" \
+         "dh-systemd/$TEMP2"
 
-         #"sleuthkit/$whonix_build_apt_newer_release_codename"
+         #"sleuthkit/$TEMP2"
 
       if [ "$CI" = "true" ]; then
          ## Small hack for CI.
@@ -509,40 +512,42 @@ a linux kernel.)"
          apt-get --yes \
             $apt_timeout_opts \
             $apt_unattended_opts \
-            --target-release "$whonix_build_apt_newer_release_codename" \
+            --target-release "$TEMP2" \
             install \
             faketime
       fi
 
-      ## Removing temporary repository.
-      rm --force "$TEMP"
+      if [ ! "$whonix_build_on_operating_system" = "jessie" ]; then
+         ## Removing temporary repository.
+         rm --force "$TEMP"
 
-      ## Update package lists again to get rid of temporary repository.
-      apt-get \
-         --no-download \
-         --list-cleanup \
-         update
+         ## Update package lists again to get rid of temporary repository.
+         apt-get \
+            --no-download \
+            --list-cleanup \
+            update
+      fi
    fi
 
    ## }}}
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "INFO: Skip running update-guestfs-appliance, because ANON_BUILD_INSTALL_TO_ROOT is set to 1, ok."
-   else
+   #if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      #true "INFO: Skip running update-guestfs-appliance, because ANON_BUILD_INSTALL_TO_ROOT is set to 1, ok."
+   #else
       ## See if status file, which tells us whether we have already done this or
       ## not already exists.
-      if [ ! -f "$WHONIX_BINARY/status_files/update-guestfs-appliance.done" ]; then
+      #if [ ! -f "$WHONIX_BINARY/status_files/update-guestfs-appliance.done" ]; then
          ## Status file does not exist yet.
          ## Ensure status_files folder exists.
-         sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY/status_files"
+         #sudo -u "$user_name" mkdir --parents "$WHONIX_BINARY/status_files"
          ## The following is required to prevent the error
          ## "libguestfs: error: /usr/bin/supermin-helper exited with error status 1."
          ## Need to run this only once.
-         update-guestfs-appliance
+         #update-guestfs-appliance
          ## Create a status file to remember, we have already done this.
-         sudo -u "$user_name" touch "$WHONIX_BINARY/status_files/update-guestfs-appliance.done"
-      fi
-   fi
+         #sudo -u "$user_name" touch "$WHONIX_BINARY/status_files/update-guestfs-appliance.done"
+      #fi
+   #fi
 
    true "INFO: Installing genmkfile..."
    pushd "$WHONIX_SOURCE_FOLDER/packages/genmkfile"
