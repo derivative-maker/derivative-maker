@@ -105,7 +105,7 @@ get_extra_packages() {
 create_whonix_debian_packages_without_building_system() {
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
-   local number_folders_total number_folder_current
+   local number_folders_total number_folder_current benchmark_time_start benchmark_took_time
    ## Thanks to: l0b0 - http://unix.stackexchange.com/a/20855/49297
    number_folders_total="$(find "$WHONIX_SOURCE_FOLDER/packages" -mindepth 1 -maxdepth 1 -type d -printf '\n' | wc -l)" || true
    number_folder_current="0"
@@ -139,6 +139,7 @@ create_whonix_debian_packages_without_building_system() {
          fi
       fi
       true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
+      benchmark_time_start="$(date +%s)" || true
       ## The make_use_lintian is supported by the generic Makefile.
       if [ "$base_name" = "qubes-whonix" ]; then
          ## Workaround for qubes-whonix package.
@@ -160,7 +161,8 @@ create_whonix_debian_packages_without_building_system() {
          sudo -E -u "$user_name" \
             make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
       fi
-      true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total): $base_name ${reset}"
+      benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+      true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
    done
 
    true "${cyan}$BASH_SOURCE INFO: Created Whonix Debian Packages. ${reset}"

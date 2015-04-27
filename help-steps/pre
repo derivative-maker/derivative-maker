@@ -154,7 +154,7 @@ errorhandlerprocessshared() {
    fi
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
+   benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
    processbacktracefunction ## sets process_backtrace_result
    functiontracefunction ## sets function_trace_result
    true "
@@ -391,13 +391,12 @@ benchmark_time_start() {
 
 benchmarktimeend() {
    benchmarktimeend="$(date +%s)" || true
-   benchmark_took_seconds="$(( $benchmarktimeend - $benchmark_time_start ))" || true
-   benchmark_took_time="$(convertsecs "$benchmark_took_seconds")" || true
+   benchmark_took_seconds="$(( $benchmarktimeend - $1 ))" || true
+   echo "$(convertsecs "$benchmark_took_seconds")" || true
 }
 
 export -f benchmarktimeend
 
-## start benchmarktimeend
 benchmark_time_start
 
 exithandler() {
@@ -405,7 +404,7 @@ exithandler() {
    if [ ! "$exit_code" = "0" ]; then
       exit "$exit_code"
    fi
-   benchmarktimeend ## sets benchmark_took_time (implemented in help-steps/pre)
+   benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
    ## XXX
    if [ "$exit_code" = "0" ]; then
       true "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
