@@ -105,6 +105,8 @@ get_extra_packages() {
 create_whonix_debian_packages_without_building_system() {
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
+   [ -n "$make_use_lintian" ] || make_use_lintian="true"
+
    shopt -s nullglob
    shopt -s dotglob
 
@@ -133,11 +135,10 @@ create_whonix_debian_packages_without_building_system() {
          ## Workaround for qubes-whonix package.
          ## Skip lintian fail until these are fixed.
          ## https://phabricator.whonix.org/T186
-         make_use_lintian="false"
+         lintian_use_maybe="false"
       else
-         make_use_lintian="true"
+         lintian_use_maybe="$make_use_lintian"
       fi
-      export make_use_lintian
       local make_file="Makefile"
       test -f "$make_file"
       if [ "$CI" = "true" ]; then
@@ -145,10 +146,10 @@ create_whonix_debian_packages_without_building_system() {
          ## "ERROR: ld.so: object '/usr/$LIB/faketime/libfaketime.so.1' from LD_PRELOAD cannot be preloaded: ignored."
          ## on CI systems because otherwise, "Maximum output exceeded".
          sudo -E -u "$user_name" \
-            make -f "$make_file" deb-pkg >/dev/null 2>&1
+            make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg >/dev/null 2>&1
       else
          sudo -E -u "$user_name" \
-            make -f "$make_file" deb-pkg
+            make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
       fi
    done
 
