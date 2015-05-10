@@ -231,6 +231,10 @@ unmount_image() {
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true.${reset}"
+      exit 0
+   fi
 
    true "${bold}${cyan}INFO: Unmounting raw image... ${reset}"
 
@@ -317,6 +321,8 @@ preparation() {
    elif [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
+   elif [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true
    else
       tools="
          guestmount
@@ -350,7 +356,7 @@ preparation() {
 
    ## Using export, because mount_folder gets read by help-steps/mount-raw and
    ## help-steps/unmount-raw.
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
       ## mount_folder has been set in parse_cmd
       ## Remove trailing slash so for example "/" becomes "".
       mount_folder="${mount_folder%/}"
@@ -435,6 +441,10 @@ extract_ova() {
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
+      return 0
+   fi
 
    cd "$extracted_ova_folder"
 
@@ -459,6 +469,10 @@ convert_vmdk_to_vdi() {
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+      return 0
+   fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
       return 0
    fi
 
@@ -492,6 +506,10 @@ convert_vmdk_to_vdi() {
 convert_x_to_raw() {
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+      return 0
+   fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
       return 0
    fi
 
@@ -532,6 +550,10 @@ mount_image() {
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
+      return 0
+   fi
 
    true "${bold}${cyan}INFO: Mounting raw image... ${reset}"
 
@@ -567,6 +589,10 @@ parse_file_system() {
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
       return 0
    fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
+      return 0
+   fi
 
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
@@ -587,6 +613,10 @@ parse_file_system() {
 parse_mbr() {
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+      return 0
+   fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
       return 0
    fi
 
@@ -616,6 +646,10 @@ parse_mbr() {
 parse_vbr() {
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+      return 0
+   fi
+   if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_QUBES is true. ${reset}"
       return 0
    fi
 
@@ -906,7 +940,7 @@ tail -f $report_file
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
             echo "$msg" >> "$report_file"
-            if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+            if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
                continue
@@ -1103,7 +1137,7 @@ $temp12 $Type_in_hex\
       fi
 
       local maybe_timeout
-      if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
             ## For example "sudo sha512sum /dev/tty1" would run forever.
             maybe_timeout="timeout --kill-after=1 1"

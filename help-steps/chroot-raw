@@ -32,6 +32,8 @@ main() {
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true
+   elif [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true
    else
 
       #########
@@ -87,8 +89,8 @@ main() {
    if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
       true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
    else
-      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-         true "${cyan}INFO $BASH_SOURCE: ANON_BUILD_INSTALL_TO_ROOT is $ANON_BUILD_INSTALL_TO_ROOT, using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
+      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+         true "${cyan}INFO $BASH_SOURCE: ANON_BUILD_INSTALL_TO_ROOT is 1 or WHONIX_BUILD_QUBES is true, using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
 
          ## Debugging.
          test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
@@ -98,7 +100,7 @@ main() {
          mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
          mount --bind "$WHONIX_BINARY/system-files-backup/interfaces" "$CHROOT_FOLDER/etc/network/interfaces"
       else
-         true "${cyan}INFO $BASH_SOURCE: ANON_BUILD_INSTALL_TO_ROOT is $ANON_BUILD_INSTALL_TO_ROOT, NOT using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
+         true "${cyan}INFO $BASH_SOURCE: Neither ANON_BUILD_INSTALL_TO_ROOT is 1 nor WHONIX_BUILD_QUBES is true, NOT using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
          mount --bind "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
          mount --bind "/etc/hosts" "$CHROOT_FOLDER/etc/hosts"
          mount --bind "/etc/hostname" "$CHROOT_FOLDER/etc/hostname"

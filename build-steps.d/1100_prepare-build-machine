@@ -35,9 +35,10 @@ unset whonix_build_no_unset_xtrace
 unset whonix_build_on_operating_system_detect_skip
 
 check-virtualbox-vm-exists() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, skipping check if a \
-VirtualBox VM named $VMNAME already exists, ok.${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1 \
+or WHONIX_BUILD_QUBES is set to true, \
+skipping check if a VirtualBox VM named $VMNAME already exists, ok.${reset}"
       return 0
    fi
 
@@ -314,10 +315,11 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## }}}
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
       ###########################################
       ## Build Dependency for Bare Metal Builds #
       ###########################################
+      ## XXX: Qubes vs bare_metal_basic_package_list
       local bare_metal_basic_package_list
       bare_metal_basic_package_list="$(grep -vE "^\s*#" "$WHONIX_SOURCE_FOLDER/grml_packages" | tr "\n" " ")"
       if [ "$CI" = "true" ]; then
@@ -421,8 +423,8 @@ a linux kernel.)"
    ## Installing newer grml-debootstrap, because it contains the locales fix.
    ## This snippet can be removed in Debain jessie.
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "INFO: ANON_BUILD_INSTALL_TO_ROOT is set to $ANON_BUILD_INSTALL_TO_ROOT, install of grml-debootstrap not required, ok."
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1 or WHONIX_BUILD_QUBES is set to true, install of grml-debootstrap not required, ok."
    else
       local grml_debootstrap_version_installed grml_debootstrap_version_minimum_required dpkg_exit_code
       grml_debootstrap_version_installed="$(dpkg-query --show --showformat='${Version}' "grml-debootstrap")"

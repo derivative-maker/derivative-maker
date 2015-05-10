@@ -209,7 +209,7 @@ install-packages() {
 
    sync
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
       ## Backup exiting /etc/apt/sources.list, might be useful for bare metal users.
       backup-file-if-exists "$CHROOT_FOLDER/etc/apt/sources.list"
 
@@ -348,13 +348,13 @@ $whonix_build_script_skip_package_install${reset}"
    pkg-install-maybe anon-shared-build-apt-sources-tpo
    pkg-install-maybe anon-shared-build-upgrade-torsocks
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1. Skipping kernel installation (one should already be installed), ok.${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1 or WHONIX_BUILD_QUBES is set to true. Skipping kernel installation (one should already be installed), ok.${reset}"
    else
       if [ "$BUILD_KERNEL_PKGS" = "none" ]; then
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS} - Skipping kernel installation.${reset}"
       else
-         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel installation...${reset}"
+         true "${bold}${cyan}INFO: Neither ANON_BUILD_INSTALL_TO_ROOT is set not set to 1 nor WHONIX_BUILD_QUBES is set to true. Starting kernel installation...${reset}"
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
          local build_kernel
          for build_kernel in $BUILD_KERNEL_PKGS; do
@@ -365,7 +365,7 @@ $whonix_build_script_skip_package_install${reset}"
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS} - Skipping kernel header installation.${reset}"
       else
          true "${bold}${cyan}INFO: kernel installation done.${reset}"
-         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel header installation...${reset}"
+         true "${bold}${cyan}INFO: Neither ANON_BUILD_INSTALL_TO_ROOT is set not set to 1 nor WHONIX_BUILD_QUBES is set to true. Starting kernel header installation...${reset}"
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS}${reset}"
          local build_header
          for build_header in $BUILD_HEADER_PKGS; do
@@ -375,14 +375,14 @@ $whonix_build_script_skip_package_install${reset}"
       fi
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1, skipping installation of anon-shared-build-fix-grub, ok.${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1 or WHONIX_BUILD_QUBES is set to true, skipping installation of anon-shared-build-fix-grub, ok.${reset}"
    else
       pkg-install-maybe anon-shared-build-fix-grub
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1, skipping installation of weak recommended guest additions packages, ok.${reset}"
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1 or WHONIX_BUILD_QUBES is set to true, skipping installation of weak recommended guest additions packages, ok.${reset}"
    else
       ## Weak recommended packages. No other package depends on it. Can be
       ## easily uninstalled. For better usability.
