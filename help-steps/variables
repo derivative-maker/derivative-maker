@@ -188,10 +188,19 @@ if [ "$whonix_build_unsafe_io" = "true" ]; then
    export apt_misc_opts
    if command -v eatmydata >/dev/null 2>&1 ; then
       true "INFO: eatmydata installed, preloading."
-      if [ -z "$LD_PRELOAD" ]; then
-         LD_PRELOAD=libeatmydata.so
+      ## wheezy compatibility
+      if [ -f "/usr/lib/libeatmydata/libeatmydata.so" ]; then
+         if [ -z "$LD_PRELOAD" ]; then
+            LD_PRELOAD=/usr/lib/libeatmydata/libeatmydata.so
+         else
+            LD_PRELOAD="$LD_PRELOAD":/usr/lib/libeatmydata/libeatmydata.so
+         fi
       else
-         LD_PRELOAD="$LD_PRELOAD":libeatmydata.so
+         if [ -z "$LD_PRELOAD" ]; then
+            LD_PRELOAD=libeatmydata.so
+         else
+            LD_PRELOAD="$LD_PRELOAD":libeatmydata.so
+         fi
       fi
       export LD_PRELOAD
    else
@@ -472,3 +481,4 @@ unset skip_script
 set -x
 
 true "${bold}INFO: Currently running script: $0 ${1+"$@"}${reset}"
+true "INFO: LD_PRELOAD: $LD_PRELOAD"
