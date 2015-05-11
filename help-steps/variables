@@ -182,29 +182,24 @@ if [ "$VMNAME" = "" ]; then
 fi
 
 if [ "$whonix_build_unsafe_io" = "true" ]; then
+   eatmydata_install="true"
+   whonix_build_debopt+=" --include=eatmydata "
    apt_misc_opts+=" -o Dpkg::Options::=--force-unsafe-io "
    export apt_misc_opts
-   if [ -f "/usr/lib/libeatmydata/libeatmydata.so" ]; then
-      ## {{ Thanks to:
-      ##    http://www.gambaru.de/blog/2012/09/30/unschlagbare-kombination-cowbuilder-eatmydata-und-ccache/
+   if command -v eatmydata >/dev/null 2>&1 ; then
+      true "INFO: eatmydata installed, preloading."
       if [ -z "$LD_PRELOAD" ]; then
-         LD_PRELOAD=/usr/lib/libeatmydata/libeatmydata.so
+         LD_PRELOAD=libeatmydata.so
       else
-         LD_PRELOAD="$LD_PRELOAD":/usr/lib/libeatmydata/libeatmydata.so
+         LD_PRELOAD="$LD_PRELOAD":libeatmydata.so
       fi
       export LD_PRELOAD
-      ## }}
    else
-      true "INFO: /usr/lib/libeatmydata/libeatmydata.so not yet installed, not yet preloading."
+      true "INFO: eatmydata not yet installed, not yet preloading."
    fi
-   if command -v eatmydata >/dev/null 2>&1 ; then
-      eatmydata_maybe_use="eatmydata"
-   fi
-   eatmydata_install="true"
    sync() {
       true "$FUNCNAME: Not running $FUNCNAME, because using '--unsafe-io true'."
    }
-   whonix_build_debopt+=" --include=eatmydata "
 fi
 
 if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
