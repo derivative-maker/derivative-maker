@@ -253,6 +253,12 @@ whonix_build_one_script_help() {
 ## Defaults to none.
 ## Requires the tb-updater package being installed. Be careful if you modify
 ## the default package selection as well.
+##
+## --unsafe-io false|true
+## false: No unsafe io.
+## true: Use unsafe io, '-o Dpkg::Options::=--force-unsafe-io', eatmydata and ignore 'sync'.
+## Defaults to false.
+##
 "
 }
 
@@ -628,6 +634,19 @@ whonix_build_one_parse_cmd() {
                else
                   export anon_shared_inst_tb="$2"
                   true "${cyan}INFO: --tb set to: $anon_shared_inst_tb${reset}"
+               fi
+               shift 2
+               ;;
+           --unsafe-io)
+               if [ "$2" = "false" ]; then
+                  true "${cyan}INFO: Not using unsafe io.${reset}"
+               elif [ "$2" = "true" ]; then
+                  whonix_build_unsafe_io="true"
+                  export whonix_build_unsafe_io
+                  true "${cyan}INFO: Using unsafe io.${reset}"
+               else
+                  echo "${red}${bold}ERROR: supported options for --unsafe-io are 'true' or 'false'.${reset}"
+                  exit 1
                fi
                shift 2
                ;;

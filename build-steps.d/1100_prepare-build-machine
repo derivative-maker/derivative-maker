@@ -228,10 +228,10 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    if [ ! "$dpkg_exit_code" = "0" ]; then
       ## Update package lists and install apt-cacher-ng.
-      $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts update
+      $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
 
       ## --no-install-recommends to prevent installing avahi-daemon.
-      apt-get $apt_unattended_opts $apt_timeout_opts --no-install-recommends --yes install apt-cacher-ng
+      apt-get $apt_unattended_opts $apt_timeout_opts $apt_misc_opts --no-install-recommends --yes install apt-cacher-ng
    fi
 
    ## Restart apt-cacher-ng.
@@ -247,22 +247,29 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    aptcachemaybeenable
 
    ## Update package lists after enabling apt-cacher-ng.
-   $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts update
+   $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
-      apt-get $apt_unattended_opts $apt_timeout_opts --yes dist-upgrade
+      apt-get $apt_unattended_opts $apt_timeout_opts $apt_misc_opts --yes dist-upgrade
    fi
 
    ###############################################
    ## Build Dependencies for Whonix Build Script #
    ###############################################
-   apt-get $apt_timeout_opts $apt_unattended_opts --yes install $whonix_build_script_build_dependency
+   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install $whonix_build_script_build_dependency
+
+   if [ "$eatmydata_install" = "true" ]; then
+      true "INFO: Installing eatmydata, because using '--unsafe-io true'."
+      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install eatmydata
+   else
+      true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
+   fi
 
    if [ "$CI" = "true" ]; then
       true "INFO: CI detected, skip installation of git."
    else
-      apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
+      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
          git
    fi
 
@@ -274,6 +281,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    cd "$MYDIR"
    cd ..
    cd help-steps
+   whonix_build_no_unset_xtrace="true"
    source variables
 
    ## }}}
@@ -292,6 +300,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          apt-get \
             $apt_timeout_opts \
             $apt_unattended_opts \
+            $apt_misc_opts \
             --yes \
             install \
             $bare_metal_basic_package_list
@@ -311,7 +320,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ##      libguestfs-tools
       ##      guestmount (wheezy only)
       ##      guestfish (wheezy only)
-      apt-get $apt_timeout_opts $apt_unattended_opts --no-install-recommends --yes install \
+      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --no-install-recommends --yes install \
          qemu-utils \
          grml-debootstrap \
          parted \
@@ -327,8 +336,8 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          ## guestmount has been merged into libguestfs-tools in Debian.
          ## guestfish has been merged into libguestfs-tools in Debian.
          ## || true because this would fail on Debian Jessie.
-         apt-get $apt_timeout_opts $apt_unattended_opts --yes install guestmount || true
-         apt-get $apt_timeout_opts $apt_unattended_opts --yes install guestfish || true
+         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install guestmount || true
+         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install guestfish || true
       fi
 
       ## Sanity test.
@@ -364,10 +373,10 @@ a linux kernel.)"
 
          local linux_headers
          linux_headers="linux-headers-$(uname -r)" || true
-         apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
+         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
             "$linux_headers" || true
 
-         apt-get $apt_timeout_opts $apt_unattended_opts --yes install \
+         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
             virtualbox || true
 
          ## VirtualBox will be be installed at this point.
@@ -457,6 +466,7 @@ a linux kernel.)"
             -o Dir::Etc::sourceparts="-" \
             -o APT::Get::List-Cleanup="0" \
             $apt_get_gpgv_opts \
+            $apt_misc_opts \
             update
       fi
 
@@ -464,6 +474,7 @@ a linux kernel.)"
          --yes \
          $apt_timeout_opts \
          $apt_unattended_opts \
+         $apt_misc_opts \
          -o APT::Default-Release="$whonix_build_apt_stable_release" \
          install \
          "config-package-dev/$TEMP2" \
@@ -478,6 +489,7 @@ a linux kernel.)"
          apt-get --yes \
             $apt_timeout_opts \
             $apt_unattended_opts \
+            $apt_misc_opts \
             --target-release "$TEMP2" \
             install \
             faketime

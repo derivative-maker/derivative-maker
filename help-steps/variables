@@ -181,12 +181,38 @@ if [ "$VMNAME" = "" ]; then
    error "$MSG"
 fi
 
+if [ "$whonix_build_unsafe_io" = "true" ]; then
+   apt_misc_opts+=" -o Dpkg::Options::=--force-unsafe-io "
+   export apt_misc_opts
+   if [ -f "/usr/lib/libeatmydata/libeatmydata.so" ]; then
+      ## {{ Thanks to:
+      ##    http://www.gambaru.de/blog/2012/09/30/unschlagbare-kombination-cowbuilder-eatmydata-und-ccache/
+      if [ -z "$LD_PRELOAD" ]; then
+         LD_PRELOAD=/usr/lib/libeatmydata/libeatmydata.so
+      else
+         LD_PRELOAD="$LD_PRELOAD":/usr/lib/libeatmydata/libeatmydata.so
+      fi
+      export LD_PRELOAD
+      ## }}
+   else
+      true "INFO: /usr/lib/libeatmydata/libeatmydata.so not yet installed, not yet preloading."
+   fi
+   if command -v eatmydata >/dev/null 2>&1 ; then
+      eatmydata_maybe_use="eatmydata"
+   fi
+   eatmydata_install="true"
+   sync() {
+      true "$FUNCNAME: Not running $FUNCNAME, because using '--unsafe-io true'."
+   }
+   whonix_build_debopt+=" --include=eatmydata "
+fi
+
 if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
    if [ "$CHROOT" = "" ]; then
-      CHROOT=""
+      CHROOT="$eatmydata_maybe_use"
    fi
 else
-   [ -n "$CHROOT" ] || CHROOT="chroot $CHROOT_FOLDER"
+   [ -n "$CHROOT" ] || CHROOT="chroot $CHROOT_FOLDER $eatmydata_maybe_use"
 fi
 
 if [ "$no_git" = "1" ]; then
@@ -430,7 +456,7 @@ export BUILD_TARGET_ARCH
 
 [ -n "$whonix_build_os_password" ] || whonix_build_os_password="changeme"
 
-[ -n "$whonix_build_debopt" ] || whonix_build_debopt="--verbose"
+whonix_build_debopt+=" --verbose "
 
 ## {{{ SKIP_SCRIPTS
 

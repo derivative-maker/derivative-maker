@@ -94,6 +94,7 @@ This may take a while...${reset}"
          $apt_timeout_opts \
          $apt_verify_opts \
          $apt_unattended_opts \
+         $apt_misc_opts \
          $apt_debug_opts \
          --yes \
          --no-install-recommends \
@@ -109,6 +110,7 @@ This may take a while...${reset}"
          $apt_timeout_opts \
          $apt_verify_opts \
          $apt_unattended_opts \
+         $apt_misc_opts \
          --yes \
          --no-install-recommends \
          install \
@@ -139,6 +141,7 @@ variable for debugging. This may take a while...${reset}"
                   $apt_timeout_opts \
                   $apt_verify_opts \
                   $apt_unattended_opts \
+                  $apt_misc_opts \
                   --yes \
                   --no-install-recommends \
                   install \
@@ -244,7 +247,7 @@ install-packages() {
    ## Make the wrapper available.
    cp "$apt_get_update_wrapper_source_path_full" "$CHROOT_FOLDER/$apt_get_update_wrapper_bin_path_full"
 
-   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts update
+   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts $apt_misc_opts update
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unchroot-raw"
 
@@ -276,21 +279,21 @@ install-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
-   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts update
+   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts $apt_misc_opts update
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
       $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
       $CHROOT apt-cache policy zenity || true
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts install zenity || true
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts install zenity || true
    fi
 
    ## Debugging.
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts clean
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts autoclean
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-broken --yes install
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-missing --yes install
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --fix-broken --fix-missing --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts clean
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts autoclean
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-broken --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-missing --yes install
+   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-broken --fix-missing --yes install
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
 
@@ -315,7 +318,7 @@ install-packages() {
       true "INFO $BASH_SOURCE: skipping dist-upgrade, because CI detected."
       true "INFO $BASH_SOURCE: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
    else
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts --yes dist-upgrade
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade
    fi
 
    ## Debugging.
@@ -325,7 +328,7 @@ install-packages() {
 
    if [ "$CI" = "true" ]; then
       ## Debugging Travis CI.
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts install zenity || true
+      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts install zenity || true
    fi
 
    ## Debugging.
