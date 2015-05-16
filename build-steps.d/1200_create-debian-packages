@@ -158,8 +158,20 @@ create_whonix_debian_packages_without_building_system() {
       fi
       local make_file="Makefile"
       test -f "$make_file"
-      sudo -E -u "$user_name" \
-         make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
+      if [ "$CI" = "true" ]; then
+         if [ "$base_name" = "control-port-filter-python" ]; then
+            sudo -E -u "$user_name" \
+               make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
+         else
+            sudo -E -u "$user_name" \
+               make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg \
+               >/dev/null \
+               2>&1
+         fi
+      else
+         sudo -E -u "$user_name" \
+            make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
+      fi
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
    done
