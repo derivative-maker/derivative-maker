@@ -200,47 +200,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment apt_timeout_opts in help-steps/variables.${reset}"
 
-   ## {{ install apt-cacher-ng
-
-   ## Using an apt cache to speed up downloading
-   ## If you want to build multiple times (for debugging etc.),
-   ## it makes sense to install a local apt proxy on your build machine.
-   ## That safes download time and traffic.
-   ##
-   ## Minor: If you build Whonix on Whonix, apt-cacher-ng will go through Tor's TransPort.
-   ##
-   ## Thanks to source:
-   ##    https://linuxexpresso.wordpress.com/2011/02/13/howto-apt-cacher-ng-on-ubuntu/
-   ## It would be possible to download without an apt-cacher...
-   ## But why? If you do not want to use it, comment out the following lines,
-   ## change the mirror settings in grml configuration file and...
-
-   ## Check if apt-cacher-ng is installed.
-   local dpkg_exit_code
-   dpkg_exit_code="0"
-   dpkg-query -Wf '${db:Status-abbrev}' "apt-cacher-ng" 2>/dev/null | grep -q '^i' || { dpkg_exit_code="$?" ; true; };
-
-   if [ ! "$dpkg_exit_code" = "0" ]; then
-      ## Update package lists and install apt-cacher-ng.
-      $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
-
-      ## --no-install-recommends to prevent installing avahi-daemon.
-      apt-get $apt_unattended_opts $apt_timeout_opts $apt_misc_opts --no-install-recommends --yes install apt-cacher-ng
-   fi
-
-   ## Restart apt-cacher-ng.
-   ## Should not be required, but it was for me.
-   service apt-cacher-ng restart
-
-   ## Check status of apt-cacher-ng.
-   service apt-cacher-ng status
-
-   ## }}
-
-   ## Implemented in help-steps/pre.
-   aptcachemaybeenable
-
-   ## Update package lists after enabling apt-cacher-ng.
    $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
@@ -376,16 +335,6 @@ a linux kernel.)"
    sudo -u "$user_name" make deb-cleanup
    popd
    true "INFO: Done. installed genmkfile."
-
-   ##Should there ever be a problem with apt-cacher-ng (package verification failure) (rare cases), use this.
-   #sudo apt-get update
-   #sudo apt-get autoremove
-   #sudo apt-get dist-upgrade
-   #sudo apt-get clean
-   #sudo apt-get autoclean
-
-   ## Implemented in help-steps/pre.
-   aptcachedisable
 
    ## Debugging.
    cat /usr/sbin/policy-rc.d || true

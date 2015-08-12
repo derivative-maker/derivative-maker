@@ -448,33 +448,6 @@ if [ ! "$whonix_build_already_lowered_priorities" = "true" ]; then
    lower_priorities
 fi
 
-aptcachemaybeenable() {
-   if [ -f "/usr/share/anon-gw-base-files/gateway" ]; then
-      ## Someone updating Whonix-Gateway from source code.
-
-      ## apt-cacher-ng will not work on Whonix-Gateway, because Whonix-Gateway
-      ## does not have TransPort / DnsPort by default.
-      echo 'INFO: Not setting http_proxy, because Whonix-Gateway detected, ok.'
-      true
-   else
-      if [ "$http_proxy" = "" ]; then
-         ## Enable apt-cacher-ng.
-         echo 'INFO: Setting, export http_proxy="http://127.0.0.1:3142"'
-         export http_proxy="http://127.0.0.1:3142"
-      else
-         echo "INFO: Leaving custom variable http_proxy $http_proxy as is."
-      fi
-   fi
-}
-
-export -f aptcachemaybeenable
-
-aptcachedisable() {
-   unset http_proxy
-}
-
-export -f aptcachedisable
-
 #echo "${bold}Currently running script: $BASH_SOURCE${reset}"
 
 set -x
