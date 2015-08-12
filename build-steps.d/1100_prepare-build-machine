@@ -193,12 +193,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    true "INFO: Updated git sub modules."
 
-   if [ "$CI" = "true" ]; then
-      if [ "$TRAVIS" = "true" ]; then
-         apt-key adv --keyserver "keyserver.ubuntu.com" --recv-keys "790BC7277767219C42C86F933B4FE6ACC0B21F32"
-      fi
-   fi
-
    if [ ! "$WHONIX_BUILD_UNATTENDED_PKG_INSTALL" = "1" ]; then
       ## Always keep old configuration file. Do not prompt to install new config files.
       local apt_unattended_opts="--option Dpkg::Options=--force-confold"
@@ -266,12 +260,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
    fi
 
-   if [ "$CI" = "true" ]; then
-      true "INFO: CI detected, skip installation of git."
-   else
-      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
-         git
-   fi
+   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install git
 
    ## {{{ whonix_build_on_operating_system
 
@@ -294,18 +283,13 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ###########################################
       local bare_metal_basic_package_list
       bare_metal_basic_package_list="$(grep -vE "^\s*#" "$WHONIX_SOURCE_FOLDER/grml_packages" | tr "\n" " ")"
-      if [ "$CI" = "true" ]; then
-         ## Would fail on drone.io. ("E: Unable to locate package acpi-support-base")
-         true "INFO: CI detected, skip installation of bare_metal_basic_package_list."
-      else
-         apt-get \
-            $apt_timeout_opts \
-            $apt_unattended_opts \
-            $apt_misc_opts \
-            --yes \
-            install \
-            $bare_metal_basic_package_list
-      fi
+      apt-get \
+         $apt_timeout_opts \
+         $apt_unattended_opts \
+         $apt_misc_opts \
+         --yes \
+         install \
+         $bare_metal_basic_package_list
    else
       ##################################################################
       ## Build Dependencies for creating Virtual Machine Images (.raw) #
@@ -406,65 +390,8 @@ a linux kernel.)"
    ## Debugging.
    cat /usr/sbin/policy-rc.d || true
 
-   if [ "$CI" = "true" ]; then
-      ## Ensure, that haveged is functional on travis-ci machines.
-      service haveged restart
-      service haveged start
-      ## Fails on travis-ci machines?!
-      service haveged status || true
-
-      ## Debugging.
-      /etc/init.d/haveged restart || true
-      /etc/init.d/haveged start || true
-      ## Fails on travis-ci machines?!
-      /etc/init.d/haveged status || true
-   else
-      ## Debugging.
-      service haveged status
-   fi
-
-   ## Trying to work around a Travis CI specific build error while running grml-debootstrap.
-   ##
-   ## /proc/devices: No entry for misc found
-   ## Is device-mapper driver missing from kernel?
-   ## Failure to communicate with kernel device-mapper driver.
-   ## device mapper prerequisites not met
-   ## * Error setting up loopback device.
-   ## -> Failed (rc=1)
-   ##
-   ## Debugging.
-   ## Check if device-mapper is in /proc/devices. || true to overwrite, if not.
-   #grep device-mapper /proc/devices || true
-   ## According to http://www.tldp.org/HOWTO/LVM-HOWTO/builddmmod.html
-   #modprobe dm_mod || true
-   ## Check again if device-mapper is in /proc/devices. || true to overwrite, if not.
-   #grep device-mapper /proc/devices || true
-
    ## Debugging.
    #cat /proc/devices
-
-   if [ "$CI" = "true" ]; then
-      true "${bold}${red}INFO: CI detected. Linking /dev/urandom to /dev/random. In \
-CI environment, there is usually very little entropy. Therefore gpg key \
-creation takes very long. Since no images are deployed from CI systems, we \
-can do this. Do not deploy these images! ${reset}"
-      ## || true to support re-running the script.
-      mv /dev/random /dev/random_orig || true
-      ln -s /dev/urandom /dev/random || true
-   fi
-
-   ## Debugging CI.
-   if [ "$CI" = "true" ]; then
-      ls -la "/etc/resolv.conf"
-      cat "/etc/resolv.conf"
-      ls -la "/etc/hostname"
-      cat "/etc/hostname"
-      ls -la "/etc/hosts"
-      cat "/etc/hosts"
-      hostname
-      hostname --all-fqdns
-      hostname --long
-   fi
 }
 
 main ${1+"$@"}

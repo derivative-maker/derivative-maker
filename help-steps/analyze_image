@@ -315,10 +315,7 @@ preparation() {
    unset tool
    unset tools
 
-   if [ "$CI" = "true" ]; then
-      ## Tools for VM mouting not installed (not required) in this case.
-      true
-   elif [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
    elif [ "$WHONIX_BUILD_QUBES" = "true" ]; then
@@ -681,14 +678,8 @@ parse_special_files() {
    ## manual_analysis_folder #
    ###########################
 
-   if [ "$CI" = "true" ]; then
-      ## Reading /etc/shadow does usually not work on CI systems. Not even as root.
-      cp_to_user "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow" || true
-      cp_to_user "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-" || true
-   else
-      cp_to_user "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
-      cp_to_user "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
-   fi
+   cp_to_user "$mount_folder/etc/shadow" "$manual_analysis_folder/etc_shadow"
+   cp_to_user "$mount_folder/etc/shadow-" "$manual_analysis_folder/etc_shadow-"
 
    ## "|| true", because CI (Ubuntu) and custom builders may not use sysvinit.
    cp_to_user "$mount_folder/etc/init.d/.depend.boot" "$manual_analysis_folder/etc_init.d_.depend.boot" || true
@@ -863,14 +854,6 @@ parse_folder() {
    local i
    i="0"
 
-   if [ "$CI" = "true" ]; then
-      ## This is unfortunately required to avoid the following error.
-      ## "The log length has exceeded the limit of 4 Megabytes (this usually means that test suite is raising the same exception over and over).
-      ## The build has been terminated."
-      local parse_max
-      parse_max="100"
-   fi
-
    local sub_folder
    sub_folder="$(basename "$folder/")"
 
@@ -898,14 +881,6 @@ tail -f $report_file
    while read -r -d '' file_name; do
 
       i="$(( $i + 1 ))"
-
-      if [ "$CI" = "true" ]; then
-         if [ "$i" -gt "$parse_max" ]; then
-            echo "($sub_folder) parse_max $parse_max reached. Skipping the remaining files."
-            echo "($sub_folder) parse_max $parse_max reached. Skipping the remaining files." >> "$report_file"
-            break
-         fi
-      fi
 
       local absolute_file_name
       absolute_file_name="${file_name#"$folder"}"
@@ -940,7 +915,7 @@ tail -f $report_file
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
             echo "$msg" >> "$report_file"
-            if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+            if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
                continue
@@ -1137,7 +1112,7 @@ $temp12 $Type_in_hex\
       fi
 
       local maybe_timeout
-      if [ "$CI" = "true" ] || [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
             ## For example "sudo sha512sum /dev/tty1" would run forever.
             maybe_timeout="timeout --kill-after=1 1"

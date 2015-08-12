@@ -167,13 +167,6 @@ Trying to diagnose the problem using function apt_get_parse_unmet_dependency...$
 
    true "INFO: Tried to diagnose the problem using function apt_get_parse_unmet_dependency."
 
-   if [ "$CI" = "true" ]; then
-      ## Debugging Travis CI.
-      true "${bold}${red}ERROR: Failed to install $pkg_install. (apt_get_exit_code: $apt_get_exit_code) \
-Continue anyway, because CI detected.${reset}"
-      return 0
-   fi
-
    error "See above!"
    return 0
 }
@@ -258,10 +251,6 @@ install-packages() {
    export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
-   if [ "$CI" = "true" ]; then
-      $CHROOT apt-get purge resolvconf
-   fi
-
    if [ "$WHONIX_BUILD_GATEWAY" = "1" ]; then
       pkg-install-maybe whonix-gateway-packages-dependencies-pre
    elif [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
@@ -281,13 +270,6 @@ install-packages() {
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
    $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts $apt_misc_opts update
 
-   if [ "$CI" = "true" ]; then
-      ## Debugging Travis CI.
-      $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
-      $CHROOT apt-cache policy zenity || true
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts install zenity || true
-   fi
-
    ## Debugging.
    $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts clean
    $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts autoclean
@@ -297,15 +279,7 @@ install-packages() {
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
 
-   ## Workaround for Travis CI.
-   ## Not sure if that should be applied in any case. Should the build process
-   ## ever require interaction with an interactive dpkg conflict resolution
-   ## dialog, we can still think about that.
-   if [ "$CI" = "true" ]; then
-      local apt_unattended_opts='-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
-   else
-      local apt_unattended_opts=''
-   fi
+   local apt_unattended_opts=''
 
    ## While (grml-)debootstrap only used
    ## "deb http://snapshot.debian.org/archive/debian/[...]" we're now also
@@ -314,22 +288,12 @@ install-packages() {
    ## anything). For whatever that's worth. (We're not using Debian's current
    ## repositories anyway, but can't hurt. More useful for custom builders who
    ## prefer to build from Debian's current repository.)
-   if [ "$CI" = "true" ]; then
-      true "INFO $BASH_SOURCE: skipping dist-upgrade, because CI detected."
-      true "INFO $BASH_SOURCE: (Would try to upgrade from Ubuntu precise to saucy, which failed at time of writing.)"
-   else
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade
-   fi
+   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade
 
    ## Debugging.
    $CHROOT apt-cache policy
    $CHROOT grep "Package: zenity" "/var/lib/apt/lists/"* || true
    $CHROOT apt-cache policy zenity || true
-
-   if [ "$CI" = "true" ]; then
-      ## Debugging Travis CI.
-      $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts install zenity || true
-   fi
 
    ## Debugging.
    $CHROOT apt-cache policy kde-workspace || true
