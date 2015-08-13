@@ -264,8 +264,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## - required for mounting vdi images
       ##   libguestfs-tools is not required in CI/VM.
       ##      libguestfs-tools
-      ##      guestmount (wheezy only)
-      ##      guestfish (wheezy only)
       apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --no-install-recommends --yes install \
          qemu-utils \
          grml-debootstrap \
@@ -273,27 +271,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          kpartx \
          mksh \
          libguestfs-tools
-
-      if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-         ## Hack for Ubuntu 12.04 Precise Pangolin / Travis CI.
-         true
-      else
-         ## Hack for Debian Wheezy.
-         ## guestmount has been merged into libguestfs-tools in Debian.
-         ## guestfish has been merged into libguestfs-tools in Debian.
-         ## || true because this would fail on Debian Jessie.
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install guestmount || true
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install guestfish || true
-      fi
-
-      ## Sanity test.
-      command -v guestmount >/dev/null
-      command -v guestfish >/dev/null
-      command -v virt-filesystems >/dev/null
-
-      ## Debugging.
-      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
-      command -v guestunmount || true
 
       if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
          #######################################################################
