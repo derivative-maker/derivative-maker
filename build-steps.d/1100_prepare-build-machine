@@ -20,6 +20,7 @@ WHONIX_BUILD_INTERNALRUN="1"
 whonix_build_on_operating_system_detect_skip="1"
 
 whonix_build_no_unset_xtrace="true"
+no_git="1"
 true "INFO $0: BEGIN sourcing pre..."
 source pre
 true "INFO $0: END sourcing pre."
@@ -31,6 +32,7 @@ source variables
 true "INFO $0: END sourcing variables."
 
 unset whonix_build_no_unset_xtrace
+unset no_git
 
 unset whonix_build_on_operating_system_detect_skip
 
@@ -186,13 +188,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## }}
 
-   true "INFO: Updating git sub modules..."
-
-   sudo -u "$user_name" git submodule sync
-   sudo -u "$user_name" git submodule update --init --recursive
-
-   true "INFO: Updated git sub modules."
-
    if [ ! "$WHONIX_BUILD_UNATTENDED_PKG_INSTALL" = "1" ]; then
       ## Always keep old configuration file. Do not prompt to install new config files.
       local apt_unattended_opts="--option Dpkg::Options=--force-confold"
@@ -201,6 +196,15 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment apt_timeout_opts in help-steps/variables.${reset}"
 
    $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
+
+   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install git
+
+   true "INFO: Updating git sub modules..."
+
+   sudo -u "$user_name" git submodule sync
+   sudo -u "$user_name" git submodule update --init --recursive
+
+   true "INFO: Updated git sub modules."
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
@@ -219,11 +223,9 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
    fi
 
-   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install git
-
    ## {{{ whonix_build_on_operating_system
 
-   ## lsb-release will now be installed. source variables again to set
+   ## lsb-release and git will now be installed. source variables again to set
    ## whonix_build_on_operating_system
    MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
    cd "$MYDIR"
