@@ -276,8 +276,6 @@ install-packages() {
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
 
-   local apt_unattended_opts=''
-
    ## While (grml-)debootstrap only used
    ## "deb http://snapshot.debian.org/archive/debian/[...]" we're now also
    ## including "deb http://snapshot.debian.org/archive/debian-security/[...]".
@@ -414,6 +412,11 @@ $whonix_build_script_skip_package_install${reset}"
    fi
 
    if [ "$WHONIX_BUILD_QUBES" = "true" ]; then
+      ## debootstrap, which was run by qubes-builder-debian, will have created
+      ## a default /etc/fstab.
+      ## The qubes-whonix package also ships /etc/fstab.
+      ## This would result in an interactive dpkg conflict resolution dialog.
+      apt_unattended_opts+=" -o Dpkg::Options::=--force-confnew "
       pkg-install-maybe qubes-whonix
    fi
 
