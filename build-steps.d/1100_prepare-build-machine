@@ -164,14 +164,19 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    id "$user_name" || { id_exit_code="$?" ; true; };
    if [ "$id_exit_code" = "1" ]; then
       true 'INFO: Creating user "$user_name" with password "changeme", because some things have to be run as "$user_name".'
-      ## setting password of user "user" to changeme
-      ##
-      ## How this password was created:
-      ## sudo apt-get install whois
-      ## mkpasswd
-      ## changeme
-      ## Resulted in: aTayYxVyw5kDo
-      useradd --password aTayYxVyw5kDo --user-group --create-home --shell /bin/bash "$user_name"
+      if command -v qubesdb-read >/dev/null 2>&1 ; then
+         password=""
+      else
+         ## setting password of user clearnet to changeme
+         ##
+         ## How this password was created:
+         ## sudo apt-get install whois
+         ## mkpasswd
+         ## changeme
+         ## Resulted in: aTayYxVyw5kDo
+         password="aTayYxVyw5kDo"
+      fi
+      useradd --password "$password" --user-group --create-home --shell /bin/bash "$user_name"
    elif [ "$id_exit_code" = "0" ]; then
       true "${cyan}INFO: Not creating user \"$user_name\" with password \"changeme\", because it already exists.${reset}"
    else
