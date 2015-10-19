@@ -4,83 +4,54 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
-## {{ Upstream APT Repository
-
 true "whonix_build_on_operating_system: $whonix_build_on_operating_system"
 
-## Set which /etc/apt/sources.list will be used for building Whonix.
-## The whonix_build_on_operating_system variable is provided by the help-steps/variables script,
-## created using lsb_release.
-if [ "$whonix_build_on_operating_system" = "ubuntu" ]; then
-   if [ "$whonix_build_sources_list" = "" ]; then
-      ## For Travis CI systems.
-      whonix_build_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/ubuntu_current.list"
-   fi
-   if [ "$whonix_build_sources_list_newer" = "" ]; then
-      ## Required for python-stem download.
-      whonix_build_sources_list_newer="$WHONIX_SOURCE_FOLDER/build_sources/ubuntu_newer.list"
-   fi
-elif [ "$whonix_build_on_operating_system" = "debian" ]; then
-   if [ "$whonix_build_sources_list_newer" = "" ]; then
-      ## Required for python-stem download.
-      whonix_build_sources_list_newer="$WHONIX_SOURCE_FOLDER/build_sources/debian_testing_frozen.list"
-   fi
-   if [ "$whonix_build_sources_list" = "" ]; then
-      ## Frozen Debian stable repository.
-      whonix_build_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_stable_frozen.list"
-   fi
-else
-   if [ "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
-      true "whonix_build_on_operating_system_detect_skip (a): $whonix_build_on_operating_system_detect_skip"
-   else
-      ## TODO
-      error "Neither Debian nor Ubuntu detected."
-   fi
+if [ "$whonix_build_sources_list_newer" = "" ]; then
+   ## Required for python-stem download.
+   whonix_build_sources_list_newer="$WHONIX_SOURCE_FOLDER/build_sources/debian_testing_frozen.list"
+fi
+if [ "$whonix_build_sources_list" = "" ]; then
+   ## Frozen Debian stable repository.
+   whonix_build_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_stable_frozen.list"
 fi
 
-if [ "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
-   true "whonix_build_on_operating_system_detect_skip (b): $whonix_build_on_operating_system_detect_skip"
-else
-   true "whonix_build_sources_list              : $whonix_build_sources_list"
-   true "whonix_build_sources_list_newer        : $whonix_build_sources_list_newer"
+true "whonix_build_sources_list              : $whonix_build_sources_list"
+true "whonix_build_sources_list_newer        : $whonix_build_sources_list_newer"
 
-   if [ "$whonix_build_apt_stable_release" = "" ]; then
-      temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
-      read deb_ uri_ distri_ component_ _ <<< "$temp_"
-      whonix_build_apt_stable_release="$distri_"
-   fi
-
-   true "whonix_build_apt_stable_release        : $whonix_build_apt_stable_release"
-
-   if [ "$whonix_build_apt_sources_mirror" = "" ]; then
-      temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
-      read deb_ uri_ distri_ component_ _ <<< "$temp_"
-      ## Set which repository and release codename grml-debootstrap should use.
-      ## (Build step: build-steps.d/1300_create-debian-raw)
-      ## Only interested for VM builds. Not in use for physically isolated builds.
-      whonix_build_apt_sources_mirror="$uri_"
-   fi
-
-   true "whonix_build_apt_sources_mirror        : $whonix_build_apt_sources_mirror"
-
-   if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
-      temp_="$(grep "deb" "$whonix_build_sources_list_newer" | tail -1)"
-      read deb_ uri_ distri_ component_ _ <<< "$temp_"
-      whonix_build_apt_newer_release_codename="$distri_"
-   fi
-
-   true "whonix_build_apt_newer_release_codename: $whonix_build_apt_newer_release_codename"
-
-   ## Example temp_:
-   ## deb http://snapshot.debian.org/archive/debian/20140727T221338Z/ stable main
-   ## Example deb_:
-   ## deb
-   ## Example uri_:
-   ## http://snapshot.debian.org/archive/debian/20140727T221338Z/
-   ## Example distri_:
-   ## stable
-   ## Example component_:
-   ## main
+if [ "$whonix_build_apt_stable_release" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   whonix_build_apt_stable_release="$distri_"
 fi
 
-## }}
+true "whonix_build_apt_stable_release        : $whonix_build_apt_stable_release"
+
+if [ "$whonix_build_apt_sources_mirror" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   ## Set which repository and release codename grml-debootstrap should use.
+   ## (Build step: build-steps.d/1300_create-debian-raw)
+   ## Only interested for VM builds. Not in use for physically isolated builds.
+   whonix_build_apt_sources_mirror="$uri_"
+fi
+
+true "whonix_build_apt_sources_mirror        : $whonix_build_apt_sources_mirror"
+
+if [ "$whonix_build_apt_newer_release_codename" = "" ]; then
+   temp_="$(grep "deb" "$whonix_build_sources_list_newer" | tail -1)"
+   read deb_ uri_ distri_ component_ _ <<< "$temp_"
+   whonix_build_apt_newer_release_codename="$distri_"
+fi
+
+true "whonix_build_apt_newer_release_codename: $whonix_build_apt_newer_release_codename"
+
+## Example temp_:
+## deb http://snapshot.debian.org/archive/debian/20140727T221338Z/ stable main
+## Example deb_:
+## deb
+## Example uri_:
+## http://snapshot.debian.org/archive/debian/20140727T221338Z/
+## Example distri_:
+## stable
+## Example component_:
+## main
