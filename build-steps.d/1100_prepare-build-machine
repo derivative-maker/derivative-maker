@@ -299,12 +299,23 @@ If it succeeds, good. If not, we fail open, i.e. no need to break the build
 at this point. (This is useful for builders who currently have not started
 a linux kernel.)"
 
-         local linux_headers
-         linux_headers="linux-headers-$(uname -r)" || true
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
-            "$linux_headers" || true
+         if command -v qubesdb-read >/dev/null 2>&1 ; then
+            true '\
+Workaround:
+Avoid installing linux_headers $linux_headers because Qubes detected.
+https://github.com/QubesOS/qubes-issues/issues/1353'
+         else
+            local linux_headers
+            linux_headers="linux-headers-$(uname -r)" || true
+            apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
+               "$linux_headers" || true
+         fi
 
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install \
+         ## Workaround:
+         ## Use '--no-install-recommends' to avoid installing kernel headers in Qubes,
+         ## which would fail.
+         ## https://github.com/QubesOS/qubes-issues/issues/1353
+         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes --no-install-recommends install \
             virtualbox || true
 
          ## VirtualBox will be be installed at this point.
