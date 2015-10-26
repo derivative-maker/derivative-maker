@@ -26,28 +26,31 @@ bash -n "$BASH_SOURCE"
 
 ## }}
 
-## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
-if [ "$user_name" = "" ]; then
+user_name_detection() {
+   ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
+   if [ ! "$user_name" = "" ]; then
+      return 0
+   fi
    if [ ! "$SUDO_USER" = "" ]; then
       true "INFO $BASH_SOURCE: Setting user_name to SUDO_USER $SUDO_USER..."
       user_name="$SUDO_USER"
    fi
-   if [ "$user_name" = "" ]; then
+   if [ "$user_name" = "" ] || [ "$user_name" = "root" ]; then
       true "INFO $BASH_SOURCE: Trying to set user_name by using \`logname\`."
       user_name="$(logname)" || true
    fi
-   ## {{ drone.io specific workaround.
-   if [ "$user_name" = "" ]; then
+   if [ "$user_name" = "" ] || [ "$user_name" = "root" ]; then
       echo "INFO $BASH_SOURCE: SUDO_USER: $SUDO_USER"
       true "INFO $BASH_SOURCE: Trying to set user_name by using \`whoami\`."
       user_name="$(whoami)"
       echo "INFO $BASH_SOURCE: Set user_name to $user_name using whoami."
    fi
-   ## }}
    if [ "$user_name" = "" ]; then
       error "Variable user_name is empty."
    fi
-fi
+}
+
+user_name_detection
 export user_name
 
 [ -n "$HOMEVAR" ] || HOMEVAR="/home/$user_name"
