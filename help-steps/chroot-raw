@@ -87,25 +87,27 @@ main() {
    #mount -o remount,ro,noload "$CHROOT_FOLDER/etc/resolv.conf"
 
    if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
-      true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
+      true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf and others inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
    else
-      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ] || [ "$WHONIX_BUILD_QUBES" = "true" ]; then
-         true "${cyan}INFO $BASH_SOURCE: ANON_BUILD_INSTALL_TO_ROOT is 1 or WHONIX_BUILD_QUBES is true, using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
-
+      if [ ! -f "$WHONIX_BINARY/system-files-backup/hostname" ]; then
+         true "${cyan}INFO${reset}: $WHONIX_BINARY/system-files-backup/hostname does not exist. Creating..."
+         hostname_temp="$(hostname)"
+         sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/system-files-backup"
+         echo "$hostname_temp" | \
+            sudo -E -u "$user_name" \
+               tee "$WHONIX_BINARY/system-files-backup/hostname" >/dev/null
          ## Debugging.
-         test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
-
-         mount --bind "$WHONIX_BINARY/system-files-backup/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
-         mount --bind "$WHONIX_BINARY/system-files-backup/hosts" "$CHROOT_FOLDER/etc/hosts"
-         mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
-         mount --bind "$WHONIX_BINARY/system-files-backup/interfaces" "$CHROOT_FOLDER/etc/network/interfaces"
-      else
-         true "${cyan}INFO $BASH_SOURCE: Neither ANON_BUILD_INSTALL_TO_ROOT is 1 nor WHONIX_BUILD_QUBES is true, NOT using $WHONIX_BINARY/system-files-backup files as /etc/resolv.conf etc, ok.${reset}"
-         mount --bind "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
-         mount --bind "/etc/hosts" "$CHROOT_FOLDER/etc/hosts"
-         mount --bind "/etc/hostname" "$CHROOT_FOLDER/etc/hostname"
-         mount --bind "/etc/network/interfaces" "$CHROOT_FOLDER/etc/network/interfaces"
+         cat "$WHONIX_BINARY/system-files-backup/hostname"
+         true "${cyan}INFO${reset}: Done, created $WHONIX_BINARY/system-files-backup/hostname."
       fi
+
+      ## Debugging.
+      test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
+
+      mount --bind "$WHONIX_BINARY/system-files-backup/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
+      mount --bind "$WHONIX_BINARY/system-files-backup/hosts" "$CHROOT_FOLDER/etc/hosts"
+      mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
+      mount --bind "$WHONIX_BINARY/system-files-backup/interfaces" "$CHROOT_FOLDER/etc/network/interfaces"
    fi
 
    sync
