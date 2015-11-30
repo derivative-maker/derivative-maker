@@ -359,23 +359,10 @@ whonix_build_source_config_dir() {
    true "${cyan}INFO: Checking if whonix_build_config_dir $whonix_build_config_dir exists...${reset}"
    if [ -d "$1" ]; then
       true "${cyan}INFO: Parsing $1...${reset}"
-      for i in "$1/"*; do
-         if [ -f "$i" ]; then
-            ## If the last character is a ~, ignore that file,
-            ## because it was created by some editor,
-            ## which creates backup files.
-            if [ "${i: -1}" = "~" ]; then
-               true "${cyan}INFO: Skipping file_name $i because it ends with ~.${reset}"
-               continue
-            fi
-            ## Skipping files such as .dpkg-old and .dpkg-dist.
-            if ( echo "$i" | grep -q ".dpkg-" ); then
-               true "${cyan}INFO: Skipping file_name $i because it ends with .dpkg-.${reset}"
-               continue
-            fi
-            bash -n "$i"
-            source "$i"
-         fi
+      local i
+      for i in "$1/"*".conf"; do
+         bash -n "$i"
+         source "$i"
       done
    else
       true "${cyan}INFO: Skipping $1 because it does not exist.${reset}"
