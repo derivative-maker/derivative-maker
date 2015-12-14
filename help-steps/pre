@@ -4,6 +4,9 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
+## errorhandlergeneral | errorhandlerunchrootunpreventunmount | errorhandlerunmount
+## -> errorhandlerprocessshared -> functiontracefunction -> processbacktracefunction -> errorhandlershell -> errorhandlerretry -> errorhandlermaybeexit
+
 if [ ! "$whonix_build_no_unset_xtrace" ]; then
    set +x
 fi
@@ -13,16 +16,24 @@ set -o pipefail
 set -o errtrace
 shopt -s extdebug
 
+output_cmd_set() {
+   if [ -o xtrace ]; then
+      output_cmd=echo
+   else
+      output_cmd=echo
+   fi
+}
+
 error() {
-   true "${blue}############################################################${reset}"
-   true "${red}${bold}${under}ERROR${eunder}: ${1}${reset}"
-   true "${blue}############################################################${reset}"
+   $output_cmd "${blue}############################################################${reset}"
+   $output_cmd "${red}${bold}${under}ERROR${eunder}: ${1}${reset}"
+   $output_cmd "${blue}############################################################${reset}"
    error_ "See above! (There should be a bold, red message surrounded by blue hashtags (#).)"
    true
 }
 
 functiontracefunction() {
-   true "INFO: BEGIN: $FUNCNAME"
+   $output_cmd "INFO: BEGIN: $FUNCNAME"
    if [ -o xtrace ]; then
       set +x
       local xtrace_reenable="true"
@@ -44,7 +55,7 @@ $two (line number: $one)"
    if [ "$xtrace_reenable" = "true" ]; then
       set -x
    fi
-   true "INFO: END  : $FUNCNAME"
+   $output_cmd "INFO: END  : $FUNCNAME"
 }
 
 ## {{{ processbacktracefunction - GPL v2.0 (only)
@@ -55,7 +66,7 @@ processbacktracefunction() {
    ## LICENSE     : GPL v2.0 (only)
    ## Source      : http://stackoverflow.com/a/1438241/2605155
    ## Modification: Patrick Schleizer
-   true "INFO: BEGIN: $FUNCNAME"
+   $output_cmd "INFO: BEGIN: $FUNCNAME"
    if [ -o xtrace ]; then
       set +x
       local xtrace_reenable="true"
@@ -77,23 +88,23 @@ processbacktracefunction() {
    if [ "$xtrace_reenable" = "true" ]; then
       set -x
    fi
-   true "INFO: END  : $FUNCNAME"
+   $output_cmd "INFO: END  : $FUNCNAME"
 }
 
 ## }}} processbacktracefunction - GPL v2.0 (only)
 
 errorhandlershell() {
-   true "${cyan}${bold}INFO: Opening interactive shell...${reset}"
-   true "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
+   $output_cmd "${cyan}${bold}INFO: Opening interactive shell...${reset}"
+   $output_cmd "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
 continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
    interactive_chroot_shell_bash_exit_code="0"
    $CHROOT /bin/bash || { interactive_chroot_shell_bash_exit_code="${PIPESTATUS[0]}" ; true; };
    if [ "$interactive_chroot_shell_bash_exit_code" = "0" ]; then
-      true "${cyan}${bold}INFO: Interactive shell termited with \
+      $output_cmd "${cyan}${bold}INFO: Interactive shell termited with \
 exit code $interactive_chroot_shell_bash_exit_code, will ignore this error and continue...${reset}"
       ignore_error="true"
    else
-      true "${cyan}${bold}INFO: Interactive shell termited with \
+      $output_cmd "${cyan}${bold}INFO: Interactive shell termited with \
 exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requested...${reset}"
       ignore_error="false"
    fi
@@ -101,41 +112,41 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 
 errorhandlerretry() {
    if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
-      true "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
+      $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
       whonix_build_dispatch_before_retry_exit_code="0"
       eval $whonix_build_dispatch_before_retry || { whonix_build_dispatch_before_retry_exit_code="$?" ; true; };
       if [ "$whonix_build_dispatch_before_retry_exit_code" = "0" ]; then
-         true "${cyan}${bold}INFO: dispatch before retry (--retry-after) exit code was 0, ok. ${reset}"
+         $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         true "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
+         $output_cmd "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
       fi
    else
-      true "INFO: Skipping whonix_build_dispatch_before_retry (--retry-before), because empty, ok."
+      $output_cmd "INFO: Skipping whonix_build_dispatch_before_retry (--retry-before), because empty, ok."
    fi
 
-   true "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
+   $output_cmd "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
    retry_last_failed_bash_command_exit_code="0"
    eval $last_failed_bash_command || { retry_last_failed_bash_command_exit_code="$?" ; true; };
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
-      true "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
+      $output_cmd "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       unset whonix_build_auto_retry_counter
    else
-      true "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
+      $output_cmd "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
       last_failed_bash_command="$last_failed_bash_command"
    fi
 
    if [ ! "$whonix_build_dispatch_after_retry" = "" ]; then
-      true "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $whonix_build_dispatch_after_retry ${reset}"
+      $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $whonix_build_dispatch_after_retry ${reset}"
       whonix_build_dispatch_after_retry_exit_code="0"
       eval $whonix_build_dispatch_after_retry || { whonix_build_dispatch_after_retry_exit_code="$?" ; true; };
       if [ "$whonix_build_dispatch_after_retry_exit_code" = "0" ]; then
-         true "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
+         $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         true "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
+         $output_cmd "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
       fi
    else
-      true "INFO: Skipping whonix_build_dispatch_after_retry (--retry-after), because empty, ok."
+      $output_cmd "INFO: Skipping whonix_build_dispatch_after_retry (--retry-after), because empty, ok."
    fi
 
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
@@ -157,7 +168,7 @@ errorhandlerprocessshared() {
    benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
    processbacktracefunction ## sets process_backtrace_result
    functiontracefunction ## sets function_trace_result
-   true "
+   $output_cmd "
 ${cyan}${bold}############################################################${reset}
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 ${red}${bold}anon_dist_build_version${reset}: $anon_dist_build_version
@@ -176,14 +187,14 @@ ${cyan}${bold}############################################################${rese
 "
 
    if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
-      true "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
+      $output_cmd "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
       errorhandlerprocessshared "NONE_(called_because_int_or_term)"
       ## Can return here, because next that will happen is receiving signal ERR.
       return 0
    fi
 
    if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
-      true "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
+      $output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
       if [ ! "$whonix_build_auto_retry" = "0" ]; then
          if [ "$whonix_build_auto_retry_counter" = "" ]; then
             whonix_build_auto_retry_counter="1"
@@ -193,27 +204,27 @@ ${cyan}${bold}############################################################${rese
          local first
          read -r first _ <<< "$last_failed_bash_command"
          if [ "$first" = "error_" ]; then
-            true 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
+            $output_cmd 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
          elif [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
-            true "${cyan}${bold}INFO: Auto retried (--retry-max) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
+            $output_cmd "${cyan}${bold}INFO: Auto retried (--retry-max) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
          else
-            true "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--retry-max). Auto retry... ${reset}"
+            $output_cmd "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--retry-max). Auto retry... ${reset}"
             whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
             if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
-               true "${cyan}${bold}INFO: Waiting (--retry-wait) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
+               $output_cmd "${cyan}${bold}INFO: Waiting (--retry-wait) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
                sleep "$whonix_build_wait_auto_retry" &
             fi
             wait "$!"
-            ignore_error="true"
-            error_handler_do_retry="true"
+            ignore_error="$output_cmd"
+            error_handler_do_retry="$output_cmd"
             errorhandlerretry
             return 0
          fi
       else
-         true "INFO: whonix_build_auto_retry set to $whonix_build_auto_retry (--retry-max). No auto retry."
+         $output_cmd "INFO: whonix_build_auto_retry set to $whonix_build_auto_retry (--retry-max). No auto retry."
       fi
    else
-      true "INFO: No auto retry for non ERR signal type: $trap_signal_type_last"
+      $output_cmd "INFO: No auto retry for non ERR signal type: $trap_signal_type_last"
    fi
    unset whonix_build_auto_retry_counter
 
@@ -222,13 +233,13 @@ ${cyan}${bold}############################################################${rese
 
    answer=""
    if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
-      true "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
+      $output_cmd "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
       if [ "$whonix_build_non_interactive" = "true" ]; then
-         true "INFO: using non-interactive error handler."
+         $output_cmd "INFO: using non-interactive error handler."
       else
          if [ -t "0" ]; then
-            true "INFO: stdin connected to terminal, using interactive error handler."
-            true "\
+            $output_cmd "INFO: stdin connected to terminal, using interactive error handler."
+            $output_cmd "\
 ${red}${bold}ERROR in $0 detected!
 Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold}...), note the command that failed, last_failed_exit_code and its output (further above).
 - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
@@ -237,11 +248,11 @@ Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold
 - Please press enter to cleanup and exit.${reset}"
             read -p "Answer? " answer
          else
-            true "INFO: stdin not connected to terminal, using non-interactive error handler."
+            $output_cmd "INFO: stdin not connected to terminal, using non-interactive error handler."
          fi
       fi
    else
-      true "INFO: Aborting because of non ERR signal type: $trap_signal_type_last"
+      $output_cmd "INFO: Aborting because of non ERR signal type: $trap_signal_type_last"
       return 0
    fi
    error_handler_do_retry=""
@@ -284,21 +295,21 @@ errorhandlermaybeexit() {
       rm --force "/var/run/package_manager_lock"
    fi
    if [ "$ignore_error" = "true" ]; then
-      true "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
+      $output_cmd "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
       if [ "$whonix_build_non_interactive" = "true" ]; then
-         true "INFO: using non-interactive error handler."
+         $output_cmd "INFO: using non-interactive error handler."
       else
-         true "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
+         $output_cmd "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
 This is recommended against unless you know what you are doing. Do not report
 bugs, that are a result of this! Please press enter to continue. ${reset}"
       fi
    else
       if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
-         true "INFO $FUNCNAME: trap_signal_type_last: $trap_signal_type_last"
+         $output_cmd "INFO $FUNCNAME: trap_signal_type_last: $trap_signal_type_last"
          return 0
       fi
       trap - EXIT
-      true "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with exit code ${under}1${eunder}.${reset}"
+      $output_cmd "${red}${bold}INFO: Now exiting from $last_script (because error was detected, see above) with exit code ${under}1${eunder}.${reset}"
       exit 1
    fi
 }
@@ -306,16 +317,18 @@ bugs, that are a result of this! Please press enter to continue. ${reset}"
 errorhandlergeneral() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
-   true "${cyan}INFO: Middle of function $FUNCNAME of $0.${reset}"
+   output_cmd_set
+   $output_cmd "${cyan}INFO: Middle of function $FUNCNAME of $0.${reset}"
    ## $1 contains trap signal type.
    errorhandlerprocessshared "$1"
    errorhandlermaybeexit "$1"
-   true "${cyan}INFO: End of function $FUNCNAME of $0.${reset}"
+   $output_cmd "${cyan}INFO: End of function $FUNCNAME of $0.${reset}"
 }
 
 errorhandlerunchrootunpreventunmount() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
+   output_cmd_set
    ## $1 contains trap signal type.
    errorhandlerprocessshared "$1"
    if [ "$ignore_error" = "false" ]; then
@@ -330,6 +343,7 @@ errorhandlerunchrootunpreventunmount() {
 errorhandlerunmount() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
+   output_cmd_set
    ## $1 contains trap signal type.
    errorhandlerprocessshared "$1"
    if [ "$ignore_error" = "false" ]; then
@@ -406,11 +420,12 @@ exithandler() {
       exit "$exit_code"
    fi
    benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+   output_cmd_set
    ## XXX
    if [ "$exit_code" = "0" ]; then
-      true "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
+      $output_cmd "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
    else
-      true "${bold}${red}ERROR: Now exiting from $0 with non-zero exit code ${under}$exit_code${eunder} (error(s) detected: ${under}$whonix_build_error_counter${eunder}) (benchmark: $benchmark_took_time)${reset}${bold}${red}.${reset}"
+      $output_cmd "${bold}${red}ERROR: Now exiting from $0 with non-zero exit code ${under}$exit_code${eunder} (error(s) detected: ${under}$whonix_build_error_counter${eunder}) (benchmark: $benchmark_took_time)${reset}${bold}${red}.${reset}"
    fi
    exit "$exit_code"
 }
@@ -424,7 +439,7 @@ root_check() {
        echo "${red}${bold}ERROR: This must be run as root (sudo)!${reset}"
        exit 1
    else
-       true "INFO: Script running as root."
+       $output_cmd "INFO: Script running as root."
    fi
 }
 
