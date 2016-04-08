@@ -97,6 +97,134 @@ get_extra_packages() {
    true "${cyan}$BASH_SOURCE INFO: Got extra packages. ${reset}"
 }
 
+get_tpo_packages() {
+   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
+      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
+      return 0
+   fi
+
+   true "${cyan}$BASH_SOURCE INFO: Getting TPO packages... ${reset}"
+
+   rm --recursive --force "$WHONIX_BINARY/temp_tpo_packages"
+   sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_tpo_packages"
+   cd "$WHONIX_BINARY/temp_tpo_packages"
+
+   local architecture_list architecture
+   local package_list_architecture_specific pkg
+   local gpg_temp_dir
+
+   ## All architectures currently provided by deb.torproject.org at time of writing.
+   architecture_list="armel armhf i386 amd64"
+
+   ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
+   package_list_architecture_specific="tor"
+   package_list_architecture_generic="tor-geoipdb deb.torproject.org-keyring"
+
+   ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
+   for architecture in $architecture_list ; do
+      dpkg --add-architecture "$architecture"
+   done
+
+   ## Sanity tests.
+   test -f "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+   test -f "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list"
+
+   gpg_temp_dir="$(mktemp --directory)"
+
+   ## Convert torprojectarchive.asc into a keyring file that apt-get can use for verification.
+   ## This will create $gpg_temp_dir/pubring.gpg.
+   gpg \
+      --no-options \
+      --no-default-keyring \
+      --homedir "$gpg_temp_dir" \
+      --import "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+
+   ## Debugging. View contents of $gpg_temp_dir/pubring.gpg.
+   gpg \
+      --no-options \
+      --no-default-keyring \
+      --homedir "$gpg_temp_dir" \
+      --fingerprint
+
+   ## Sanity test.
+   test -f "$gpg_temp_dir/pubring.gpg"
+
+   ## Update tpo package list while keeping
+   ## previously updated regular package lists. In other words, prevent
+   ## needlessly updating regular package lists.
+   $apt_get_update_wrapper_source_path_full \
+      $apt_timeout_opts \
+      $apt_verify_opts \
+      $apt_get_gpgv_opts \
+      $apt_misc_opts \
+      -o Dir::Etc::trusted="$gpg_temp_dir/pubring.gpg" \
+      -o Dir::Etc::trusted.d="-" \
+      -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
+      -o Dir::Etc::sourceparts="-" \
+      -o APT::Get::List-Cleanup="0" \
+      update
+
+   ## Download packages from tpo repository.
+
+   for pkg in $package_list_architecture_generic ; do
+      sudo -E -u "$user_name" \
+         apt-get source --yes \
+            $apt_timeout_opts \
+            $apt_verify_opts \
+            $apt_unattended_opts \
+            $apt_misc_opts \
+            -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
+            -o Dir::Etc::sourceparts="-" \
+            "$pkg"
+      true "INFO: apt-get source exit code: $?"
+
+      sudo -E -u "$user_name" \
+         apt-get download --yes \
+            $apt_timeout_opts \
+            $apt_verify_opts \
+            $apt_unattended_opts \
+            $apt_misc_opts \
+            -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
+            -o Dir::Etc::sourceparts="-" \
+            "$pkg:all"
+      true "INFO: apt-get download exit code: $?"
+   done
+
+   for pkg in $package_list_architecture_specific ; do
+      sudo -E -u "$user_name" \
+         apt-get source --yes \
+            $apt_timeout_opts \
+            $apt_verify_opts \
+            $apt_unattended_opts \
+            $apt_misc_opts \
+            -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
+            -o Dir::Etc::sourceparts="-" \
+            "$pkg"
+      true "INFO: apt-get source exit code: $?"
+      for architecture in $architecture_list ; do
+         sudo -E -u "$user_name" \
+            apt-get download --yes \
+               $apt_timeout_opts \
+               $apt_verify_opts \
+               $apt_unattended_opts \
+               $apt_misc_opts \
+               -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
+               -o Dir::Etc::sourceparts="-" \
+               "$pkg:$architecture"
+         true "INFO: apt-get download exit code: $?"
+      done
+   done
+
+   ## Get rid of tpo package list, while keeping
+   ## regular package lists. In other words, prevent needlessly forgetting
+   ## about regular package lists.
+   apt-get update \
+      --no-download \
+      --list-cleanup
+
+   true "${cyan}$BASH_SOURCE INFO: Got tpo packages. ${reset}"
+}
+
 create_whonix_debian_packages_without_building_system() {
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
@@ -168,29 +296,62 @@ create_whonix_repository() {
 
    shopt -s dotglob
    shopt -s nullglob
-   local file_name
+   local file_name folder file_count_array check_folder check_folders
 
-   true "${cyan}$BASH_SOURCE INFO: Importing .deb files... ${reset}"
-   for file_name in "$WHONIX_SOURCE_FOLDER/packages/"*".deb"; do
-      sudo -E -u "$user_name" \
-         reprepro \
-            --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
-            $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
-            $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-            includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
-   done
-   true "${cyan}$BASH_SOURCE INFO: Imported .deb files. ${reset}"
+   check_folders+=" $WHONIX_SOURCE_FOLDER/packages "
+   check_folders+=" $WHONIX_BINARY/temp_extra_packages "
+   check_folders+=" $WHONIX_BINARY/temp_tpo_packages "
 
-   true "${cyan}$BASH_SOURCE INFO: Importing temp_extra_packages .deb files... ${reset}"
-   for file_name in "$WHONIX_BINARY/temp_extra_packages/"*".deb"; do
-      sudo -E -u "$user_name" \
-         reprepro \
-            --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
-            $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
-            $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
-            includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+   true "${cyan}$BASH_SOURCE INFO: Going to check the following folders for .deb and .dsc files... ${reset}"
+
+   for folder in $check_folders ; do
+      true "${cyan}$folder ${reset}"
    done
-   true "${cyan}$BASH_SOURCE INFO: Imported temp_extra_packages .deb files. ${reset}"
+
+   true "${cyan}$BASH_SOURCE INFO: Importing .deb and .dsc files... ${reset}"
+
+   for folder in $check_folders ; do
+      true "folder: $folder"
+      if [ ! -d "$folder" ]; then
+         true "${cyan}$BASH_SOURCE INFO: Folder $folder does not exist, skipping. ok. ${reset}"
+         continue
+      fi
+
+      file_count_array=( $(find "$folder" -maxdepth 1 -name "*.deb") )
+      if [ ${#file_count_array[@]} -gt 0 ]; then
+         true "${cyan}$BASH_SOURCE INFO: Importing $folder .deb files... ${reset}"
+         for file_name in "$folder/"*".deb" ; do
+            sudo -E -u "$user_name" \
+               reprepro \
+                  --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+                  $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
+                  $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+                  includedeb "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+         done
+         true "${cyan}$BASH_SOURCE INFO: Done, imported $folder .deb files. ${reset}"
+      else
+         true "${cyan}$BASH_SOURCE INFO: Folder $folder does not contain and .deb files, skipping. ok. ${reset}"
+         continue
+      fi
+
+      file_count_array=( $(find "$folder" -maxdepth 1 -name "*.deb") )
+      if [ ${#file_count_array[@]} -gt 0 ]; then
+         true "${cyan}$BASH_SOURCE INFO: Importing $folder .dsc files... ${reset}"
+         for file_name in "$folder/"*".dsc" ; do
+            sudo -E -u "$user_name" \
+               reprepro \
+                  --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
+                  $WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS \
+                  $WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS \
+                  includedsc "$WHONIX_BUILD_APT_CODENAME" "$file_name"
+         done
+         true "${cyan}$BASH_SOURCE INFO: Done, imported $folder .dsc files. ${reset}"
+      else
+         true "${cyan}$BASH_SOURCE INFO: Folder $folder does not contain and .dsc files, skipping. ok. ${reset}"
+      fi
+   done
+
+   true "${cyan}$BASH_SOURCE INFO: Imported .deb and .dsc files. ${reset}"
 
    true "${cyan}$BASH_SOURCE INFO: Done, created ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository. ${reset}"
 }
@@ -206,6 +367,7 @@ create-debian-packages() {
 
    signing_key
    #get_extra_packages
+   get_tpo_packages
    create_whonix_debian_packages_without_building_system
    create_whonix_repository
 }
