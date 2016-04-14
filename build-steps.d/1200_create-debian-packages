@@ -4,6 +4,9 @@
 ## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
+## example usage:
+## sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target root --function "get_tpo_packages ; create_whonix_repository"
+
 set -x
 set -e
 
@@ -357,13 +360,18 @@ create_whonix_repository() {
 }
 
 create-debian-packages() {
-   cleanup_old_packages "$@"
-
    source "$WHONIX_SOURCE_HELP_STEPS_FOLDER/git_sanity_test"
    git_sanity_test_main "$@"
 
    true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    sleep 3
+
+   if [ ! "$FUNCTION" = "" ]; then
+      eval $FUNCTION
+      return 0
+   fi
+
+   cleanup_old_packages "$@"
 
    signing_key "$@"
    #get_extra_packages "$@"
