@@ -324,6 +324,7 @@ create_whonix_repository() {
       if [ ${#file_count_array[@]} -gt 0 ]; then
          true "${cyan}$BASH_SOURCE INFO: Importing $folder .deb files... ${reset}"
          for file_name in "$folder/"*".deb" ; do
+            test -e "$file_name"
             sudo -E -u "$user_name" \
                reprepro \
                   --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
@@ -341,6 +342,7 @@ create_whonix_repository() {
       if [ ${#file_count_array[@]} -gt 0 ]; then
          true "${cyan}$BASH_SOURCE INFO: Importing $folder .dsc files... ${reset}"
          for file_name in "$folder/"*".dsc" ; do
+            test -e "$file_name"
             sudo -E -u "$user_name" \
                reprepro \
                   --basedir "$WHONIX_APT_REPOSITORY_FOLDER" \
@@ -360,6 +362,9 @@ create_whonix_repository() {
 }
 
 create-debian-packages() {
+   if [ "$WHONIX_BUILD_APT_CODENAME" = "" ]; then
+      error "Variable WHONIX_BUILD_APT_CODENAME is empty!"
+   fi
    true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    sleep 3
 
