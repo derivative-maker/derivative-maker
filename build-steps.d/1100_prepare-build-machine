@@ -211,6 +211,10 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    ## Run after git submodule fetching, so $apt_get_update_wrapper_source_path_full will be available.
    $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
 
+   ## CVE-2016-1252 sanity test
+   wc -L "/var/lib/apt/lists/"*InRelease
+   wc -L "/var/lib/apt/lists/"*InRelease | awk '$1 > 1024 {print; exit 1}'
+
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
       apt-get $apt_unattended_opts $apt_timeout_opts $apt_misc_opts --yes dist-upgrade
