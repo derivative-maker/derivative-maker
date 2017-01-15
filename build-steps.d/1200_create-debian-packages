@@ -138,23 +138,38 @@ get_tpo_packages() {
 
    gpg_temp_dir="$(mktemp --directory)"
 
-   ## Convert torprojectarchive.asc into a keyring file that apt-get can use for verification.
-   ## This will create $gpg_temp_dir/pubring.gpg.
-   gpg \
+   ## Convert torprojectarchive.asc into a keybox kbx file.
+   gpg2 \
       --no-options \
       --no-default-keyring \
       --homedir "$gpg_temp_dir" \
       --import "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
 
-   ## Debugging. View contents of $gpg_temp_dir/pubring.gpg.
-   gpg \
+   ## Debugging. View contents of $gpg_temp_dir/pubring.kbx.
+   gpg2 \
       --no-options \
       --no-default-keyring \
       --homedir "$gpg_temp_dir" \
       --fingerprint
+ 
+   ## Convert keybox kbx file into keyring gpg file.
+   gpg2 \
+      --no-options \
+      --homedir "$gpg_temp_dir" \
+      --export \
+      > "$gpg_temp_dir/trusted.gpg"
 
    ## Sanity test.
-   test -f "$gpg_temp_dir/pubring.gpg"
+   test -f "$gpg_temp_dir/pubring.kbx"
+   test -f "$gpg_temp_dir/trusted.gpg"
+   
+   gpg2 \
+      --with-fingerprint \
+      "$gpg_temp_dir/trusted.gpg"
+      
+   ## TODO: Dir::Etc::trusted does not work anymore in Debian stretch.
+   rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
+   cp "$gpg_temp_dir/trusted.gpg" "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
 
    ## Update tpo package list while keeping
    ## previously updated regular package lists. In other words, prevent
@@ -170,6 +185,9 @@ get_tpo_packages() {
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0" \
       update
+      
+   ## TODO: same as above
+   rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
 
    ## CVE-2016-1252 sanity test
    wc -L "/var/lib/apt/lists/"*InRelease
