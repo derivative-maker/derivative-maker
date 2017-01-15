@@ -151,7 +151,7 @@ get_tpo_packages() {
       --no-default-keyring \
       --homedir "$gpg_temp_dir" \
       --fingerprint
- 
+
    ## Convert keybox kbx file into keyring gpg file.
    gpg2 \
       --no-options \
@@ -162,14 +162,17 @@ get_tpo_packages() {
    ## Sanity test.
    test -f "$gpg_temp_dir/pubring.kbx"
    test -f "$gpg_temp_dir/trusted.gpg"
-   
+
    gpg2 \
       --with-fingerprint \
       "$gpg_temp_dir/trusted.gpg"
-      
+
    ## TODO: Dir::Etc::trusted does not work anymore in Debian stretch.
    rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
    cp "$gpg_temp_dir/trusted.gpg" "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
+
+   rm -r -f "$WHONIX_BINARY/apt_state"
+   mkdir -p "$WHONIX_BINARY/apt_state"
 
    ## Update tpo package list while keeping
    ## previously updated regular package lists. In other words, prevent
@@ -179,13 +182,14 @@ get_tpo_packages() {
       $apt_verify_opts \
       $apt_get_gpgv_opts \
       $apt_misc_opts \
+      -o Dir::State="$WHONIX_BINARY/apt_state" \
       -o Dir::Etc::trusted="$gpg_temp_dir/pubring.gpg" \
       -o Dir::Etc::trusted.d="-" \
       -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0" \
       update
-      
+
    ## TODO: same as above
    rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
 
