@@ -120,6 +120,65 @@ ${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from Virtu
    ## }}
 }
 
+cowbuilder_setup() {
+   true "${bold}${green}INFO${reset}: Setting up cowbuilder..."
+
+   if [ "$whonix_build_unsafe_io" = "true" ]; then
+      eatmydata_maybe_install="eatmydata"
+   fi
+
+   if mount | grep /var/cache/pbuilder | grep tmpfs ; then
+      true "INFO: /var/cache/pbuilder already tmpfs."
+   else
+      mount -t tmpfs none /var/cache/pbuilder
+   fi
+
+   ## TODO: change that folder
+   cow_folder="/var/cache/pbuilder/base.cow"
+   if [ -d "$cow_folder" ]; then
+      create_or_update="--update"
+   else
+      create_or_update="--create"
+   fi
+
+   $COWBUILDER_PREFIX cowbuilder \
+      $create_or_update \
+      --distribution "$whonix_build_apt_stable_release" \
+      --mirror "$whonix_build_apt_sources_mirror" \
+      --extrapackages "sudo devscripts debhelper faketime fakeroot $eatmydata_maybe_install"
+
+   mkdir -p "$cow_folder/home/$user_name"
+   if [ "$cow_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
+      error
+   else
+      rm -r -f "$cow_folder/home/$user_name/genmkfile"
+   fi
+   cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$cow_folder/home/$user_name/genmkfile"
+
+
+   ## Using '|| error_' because re-running in case of failure, re-running the last failed
+   ## command again would neglect the previous pipe. Therefore result in an interactive
+   ## chroot shell.
+   echo "\
+      set -x && \
+      echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
+      cat /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
+      adduser --home /nonexistent --quiet --system --group $user_name && \
+      chown --recursive $user_name:$user_name /home/user && \
+      cd /home/$user_name/genmkfile && \
+      sudo -u $user_name make deb-pkg && \
+      make deb-install && \
+      sudo -u $user_name make deb-cleanup && \
+      exit 0 || exit 1 \
+   " | \
+      cowbuilder \
+      --login \
+      --save-after-login || \
+         error_ "cowbuilder failed"
+
+   true "${bold}${green}INFO${reset}: cowbuilder setup done."
+}
+
 main() {
    root_check
 
@@ -330,19 +389,21 @@ https://github.com/QubesOS/qubes-issues/issues/1353'
       fi
    fi
 
-   true "INFO: Installing genmkfile..."
+   true "${bold}${green}INFO${reset}: Installing genmkfile..."
    pushd "$WHONIX_SOURCE_FOLDER/packages/genmkfile"
    sudo -u "$user_name" make deb-pkg
    make deb-install
    sudo -u "$user_name" make deb-cleanup
    popd
-   true "INFO: Done. installed genmkfile."
+   true "${bold}${green}INFO${reset}: Done. installed genmkfile."
 
    ## Debugging.
    cat /usr/sbin/policy-rc.d || true
 
    ## Debugging.
    #cat /proc/devices
+
+   cowbuilder_setup
 }
 
 main ${1+"$@"}

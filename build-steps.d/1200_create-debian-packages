@@ -267,6 +267,8 @@ create_whonix_debian_packages_without_building_system() {
    number_folder_current="0"
 
    [ -n "$make_use_lintian" ] || make_use_lintian="true"
+   [ -n "$genmkfile_make_cmd" ] || genmkfile_make_cmd="deb-pkg"
+   [ -n "$make_use_cowbuilder" ] || make_use_cowbuilder="true"
 
    shopt -s nullglob
    shopt -s dotglob
@@ -302,7 +304,10 @@ create_whonix_debian_packages_without_building_system() {
       #fi
       local make_file="Makefile"
       test -f "$make_file"
-      sudo -E -u "$user_name" make_use_lintian="$lintian_use_maybe" make -f "$make_file" deb-pkg
+      sudo -E -u "$user_name" \
+         make_use_lintian="$lintian_use_maybe" \
+         make_use_cowbuilder="$make_use_cowbuilder" \
+         make -f "$make_file" "$genmkfile_make_cmd"
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
    done
@@ -331,7 +336,7 @@ create_whonix_repository() {
    shopt -s nullglob
    local file_name folder file_count_array check_folder check_folders
 
-   check_folders+=" $WHONIX_SOURCE_FOLDER/packages "
+   check_folders+=" $WHONIX_BINARY/packages_temp "
    check_folders+=" $WHONIX_BINARY/temp_extra_packages "
    check_folders+=" $WHONIX_BINARY/temp_tpo_packages "
 
