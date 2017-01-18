@@ -63,6 +63,18 @@ get_extra_packages() {
    sudo -E -u "$user_name" mkdir --parents "$WHONIX_BINARY/temp_extra_packages"
    cd "$WHONIX_BINARY/temp_extra_packages"
 
+   local architecture_list architecture
+   local package_list_architecture_specific pkg
+
+   architecture_list="amd64 i386"
+
+   package_list_architecture_specific="virtualbox-guest-utils virtualbox-guest-x11"
+
+   ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
+   for architecture in $architecture_list ; do
+      dpkg --add-architecture "$architecture"
+   done
+
    ## Update $whonix_build_sources_list_newer package list while keeping
    ## previously updated regular package lists. In other words, prevent
    ## needlessly updating regular package lists.
@@ -101,7 +113,22 @@ get_extra_packages() {
          -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
          -o Dir::Etc::sourceparts="-" \
          --target-release "$whonix_build_apt_newer_release_codename" \
-         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
+         virtualbox-guest-dkms
+
+   for architecture in $architecture_list ; do
+      for pkg in $package_list_architecture_specific ; do
+         sudo -E -u "$user_name" \
+            apt-get download --yes \
+               $apt_timeout_opts \
+               $apt_verify_opts \
+               $apt_unattended_opts \
+               $apt_misc_opts \
+               -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
+               -o Dir::Etc::sourceparts="-" \
+               --target-release "$whonix_build_apt_newer_release_codename" \
+               "$pkg:$architecture"
+      done
+   done
 
    true "INFO: apt-get download exit code: $?"
 
