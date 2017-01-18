@@ -80,7 +80,18 @@ get_extra_packages() {
    wc -L "/var/lib/apt/lists/"*InRelease
    wc -L "/var/lib/apt/lists/"*InRelease | awk '$1 > 1024 {print; exit 1}'
 
-   ## Download python-stem from $whonix_build_sources_list_newer.
+   ## Download VirtualBox guest additions from $whonix_build_sources_list_newer.
+   sudo -E -u "$user_name" \
+      apt-get source --yes \
+         $apt_timeout_opts \
+         $apt_verify_opts \
+         $apt_unattended_opts \
+         $apt_misc_opts \
+         -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
+         -o Dir::Etc::sourceparts="-" \
+         --target-release "$whonix_build_apt_newer_release_codename" \
+         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
+
    sudo -E -u "$user_name" \
       apt-get download --yes \
          $apt_timeout_opts \
@@ -90,7 +101,7 @@ get_extra_packages() {
          -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
          -o Dir::Etc::sourceparts="-" \
          --target-release "$whonix_build_apt_newer_release_codename" \
-         python-stem
+         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
 
    true "INFO: apt-get download exit code: $?"
 
@@ -418,7 +429,7 @@ create-debian-packages() {
    git_sanity_test_main "$@"
 
    signing_key "$@"
-   #get_extra_packages "$@"
+   get_extra_packages "$@"
    #get_tpo_packages "$@"
    create_whonix_debian_packages_without_building_system "$@"
    create_whonix_repository "$@"
