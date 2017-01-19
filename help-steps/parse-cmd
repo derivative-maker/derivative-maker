@@ -103,169 +103,168 @@ build_main_parse_cmd() {
 
 whonix_build_main_script_help() {
    true "
-## whonix_build main script
-##
-## Syntax:
-## whonix_build <parameters for whonix_build> -- <parameters for help-steps/whonix_build_one>
-##
-## --all
-## Builds Whonix-Gateway, Whonix-Workstation and Whonix-Custom-Workstation.
-##
-## --gnw
-## Builds Whonix-Gateway and Whonix-Workstation.
-##
-## --flavor whonix-gateway|whonix-workstation|whonix-custom-workstation
-## whonix-gateway: Builds Whonix-Gateway.
-## whonix-workstation: Builds Whonix-Workstation.
-## whonix-custom-workstation: Builds Whonix-Custom-Workstation.
-##
-## Run
-## ./whonix_build --flavor whonix-gateway -- --help
-## to find out whonix_build_one parameters.
+whonix_build main script
+
+Syntax:
+whonix_build <parameters for whonix_build> -- <parameters for help-steps/whonix_build_one>
+
+--all
+Builds Whonix-Gateway, Whonix-Workstation and Whonix-Custom-Workstation.
+
+--gnw
+Builds Whonix-Gateway and Whonix-Workstation.
+
+--flavor whonix-gateway|whonix-workstation|whonix-custom-workstation
+whonix-gateway: Builds Whonix-Gateway.
+whonix-workstation: Builds Whonix-Workstation.
+whonix-custom-workstation: Builds Whonix-Custom-Workstation.
+
+Run
+./whonix_build --flavor whonix-gateway -- --help
+to find out whonix_build_one parameters.
 "
 }
 
 whonix_build_one_script_help() {
    true "
-## help-steps/whonix_build_one script
-##
-## Syntax:
-## help-steps/whonix_build_one --flavor flavor --target target
-##
-## creates separate build folder
-## $HOMEVAR/whonix_binary
-##
-## For verbose documentation on build configuration parameters please have a
-## look at the full build documentation.
-##
-## FLAGS:
-## --build
-## Build Whonix.
-##
-## --clean
-## Deletes build products (.raw, .ova and VirtualBox VM's).
-##
-## --flavor whonix-gateway|whonix-workstation|whonix-custom-workstation|none
-## whonix-gateway: Builds Whonix-Gateway.
-## whonix-workstation: Builds Whonix-Workstation.
-## whonix-custom-workstation: Builds Whonix-Custom-Workstation.
-## none: not yet implemented
-##
-## --target virtualbox|qcow2|qubes|raw|root
-## virtualbox: Use this to build VirtualBox .ovas.
-## qcow2: Use this to build qcow2 images.
-## qubes: Internally used by qubes-builder.
-## raw: Use this to build raw images.
-## root: Use this for Whonix with physical or install to root installations.
-##
-## vmram, vram, vmsize examples.
-## --vmram 128
-## --vram 12
-## --vmsize 200G
-##
-## --gui kde|none
-## kde: Install KDE specific packages.
-## none: Skip installation of gui specific packages.
-##
-## --apps true|false
-## true: Install recommended packages.
-## false: Install fewer packages. (Don't complain about missing packages then.)
-##
-## --freshness frozen|current
-## frozen: Use frozen sources.
-## current: Use current sources.
-##
-## WHONIX_APT_REPOSITORY_OPTS
-## Whonix APT Repository.
-## Disabled by default.
-## WHONIX_APT_REPOSITORY_OPTS examples:
-## WHONIX_APT_REPOSITORY_OPTS='--enable --repository stable'
-## WHONIX_APT_REPOSITORY_OPTS='--enable --repository testers'
-## WHONIX_APT_REPOSITORY_OPTS='--enable --repository developers'
-## WHONIX_APT_REPOSITORY_OPTS='--enable --codename jessie'
-##
-## --report true|false
-## true
-## false: Default. Skip.
-## (Related to Verifiable Builds.)
-##
-## --verifiable true|false
-## true
-## false: Skip deletion of non-determinstic files in the cleanup chroot script.
-##        (These files are later automatically re-created by First Run Initializer.)
-##
-## --sanity-tests true|false
-## true
-## false: Skip chroot script sanity tests.
-##
-## --retry-max 1|0|2|[...]
-## attempts
-##
-## --retry-wait 5|1|2|[...]
-## Seconds between attempts.
-##
-## --retry-before script
-## --retry-after script
-## Dispatch command or script.
-##
-## --allow-uncommitted false|true
-## false: Break when uncommitted changes are found. Default.
-## true: Do not use unless you know what you are doing.
-##
-## --allow-untagged false|true
-## false: Break when build from non-tag. Default.
-## true: Do not use unless you know what you are doing.
-##
-## --arch
-## Only of interest for VM builds. Not for installations to root.
-## i386: less tested.
-## amd64: default, best tested.
-## kfreebsd-i386: entirely untested and most likely needs work.
-## kfreebsd-amd64: entirely untested and most likely needs work.
-##
-## --kernel <Quoted space delimited list of packages.>
-## Only of interest for VM builds. Not for installations to root.
-## Defaults to linux-image-amd64.
-## none: Do not install kernel packages.
-## linux-image-586
-## linux-image-686-pae
-## linux-image-amd64
-## Possibly others. (Unmaintained!)
-##
-## --headers <Quoted space delimited list of packages.>
-## Only of interest for VM builds. Not for installations to root.
-## Defaults to linux-headers-amd64.
-## none: Do not install kernel header packages.
-## linux-headers-586
-## linux-headers-686-pae
-## linux-headers-amd64
-## Possibly others. (Unmaintained!)
-##
-## --confdir /path/to/config/dir
-## Will get sourced after
-## \$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d
-## Files need to have the '.conf' file extension.
-## and before --conffile.
-##
-## --conffile /path/to/config/file
-## Will get sourced after all other files.
-##
-## --grmlbin /path/to/grml-debootstrap
-## Defaults to grml-debootstrap.
-##
-## --tb none|closed|open
-## none: Do not install Tor Browser.
-## closed: Fail closed if Tor Browser cannot be installed.
-## open: Fail open if Tor Browser cannot and installed.
-## Defaults to closed.
-## Requires the tb-updater package being installed. Be careful if you modify
-## the default package selection as well.
-##
-## --unsafe-io false|true
-## false: No unsafe io.
-## true: Use unsafe io, '-o Dpkg::Options::=--force-unsafe-io', eatmydata and ignore 'sync'.
-## Defaults to false.
-##
+help-steps/whonix_build_one script
+
+Syntax:
+help-steps/whonix_build_one --flavor flavor --target target
+
+creates separate build folder
+$HOMEVAR/whonix_binary
+
+For verbose documentation on build configuration parameters please have a
+look at the full build documentation.
+
+FLAGS:
+--build
+Build Whonix.
+
+--clean
+Deletes build products (.raw, .ova and VirtualBox VM's).
+
+--flavor whonix-gateway|whonix-workstation|whonix-custom-workstation|none
+whonix-gateway: Builds Whonix-Gateway.
+whonix-workstation: Builds Whonix-Workstation.
+whonix-custom-workstation: Builds Whonix-Custom-Workstation.
+none: not yet implemented
+
+--target virtualbox|qcow2|qubes|raw|root
+virtualbox: Use this to build VirtualBox .ovas.
+qcow2: Use this to build qcow2 images.
+qubes: Internally used by qubes-builder.
+raw: Use this to build raw images.
+root: Use this for Whonix with physical or install to root installations.
+
+vmram, vram, vmsize examples.
+--vmram 128
+--vram 12
+--vmsize 200G
+
+--gui kde|none
+kde: Install KDE specific packages.
+none: Skip installation of gui specific packages.
+
+--apps true|false
+true: Install recommended packages.
+false: Install fewer packages. (Don't complain about missing packages then.)
+
+--freshness frozen|current
+frozen: Use frozen sources.
+current: Use current sources.
+
+WHONIX_APT_REPOSITORY_OPTS
+Whonix APT Repository.
+Disabled by default.
+WHONIX_APT_REPOSITORY_OPTS examples:
+WHONIX_APT_REPOSITORY_OPTS='--enable --repository stable'
+WHONIX_APT_REPOSITORY_OPTS='--enable --repository testers'
+WHONIX_APT_REPOSITORY_OPTS='--enable --repository developers'
+WHONIX_APT_REPOSITORY_OPTS='--enable --codename jessie'
+
+--report true|false
+true
+false: Default. Skip.
+(Related to Verifiable Builds.)
+
+--verifiable true|false
+true
+false: Skip deletion of non-determinstic files in the cleanup chroot script.
+       (These files are later automatically re-created by First Run Initializer.)
+
+--sanity-tests true|false
+true
+false: Skip chroot script sanity tests.
+
+--retry-max 1|0|2|[...]
+attempts
+
+--retry-wait 5|1|2|[...]
+Seconds between attempts.
+
+--retry-before script
+--retry-after script
+Dispatch command or script.
+
+--allow-uncommitted false|true
+false: Break when uncommitted changes are found. Default.
+true: Do not use unless you know what you are doing.
+
+--allow-untagged false|true
+false: Break when build from non-tag. Default.
+true: Do not use unless you know what you are doing.
+
+--arch
+Only of interest for VM builds. Not for installations to root.
+i386: less tested.
+amd64: default, best tested.
+kfreebsd-i386: entirely untested and most likely needs work.
+kfreebsd-amd64: entirely untested and most likely needs work.
+
+--kernel <Quoted space delimited list of packages.>
+Only of interest for VM builds. Not for installations to root.
+Defaults to linux-image-amd64.
+none: Do not install kernel packages.
+linux-image-586
+linux-image-686-pae
+linux-image-amd64
+Possibly others. (Unmaintained!)
+
+--headers <Quoted space delimited list of packages.>
+Only of interest for VM builds. Not for installations to root.
+Defaults to linux-headers-amd64.
+none: Do not install kernel header packages.
+linux-headers-586
+linux-headers-686-pae
+linux-headers-amd64
+Possibly others. (Unmaintained!)
+
+--confdir /path/to/config/dir
+Will get sourced after
+\$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d
+Files need to have the '.conf' file extension.
+and before --conffile.
+
+--conffile /path/to/config/file
+Will get sourced after all other files.
+
+--grmlbin /path/to/grml-debootstrap
+Defaults to grml-debootstrap.
+
+--tb none|closed|open
+none: Do not install Tor Browser.
+closed: Fail closed if Tor Browser cannot be installed.
+open: Fail open if Tor Browser cannot and installed.
+Defaults to closed.
+Requires the tb-updater package being installed. Be careful if you modify
+the default package selection as well.
+
+--unsafe-io false|true
+false: No unsafe io.
+true: Use unsafe io, '-o Dpkg::Options::=--force-unsafe-io', eatmydata and ignore 'sync'.
+Defaults to false.
 "
 }
 
