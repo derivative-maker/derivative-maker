@@ -27,22 +27,6 @@ source variables
 cd "$MYDIR"
 cd ..
 
-signing_key() {
-   true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "false" ]; then
-      true
-   else
-      if [ "$GPG_AGENT_INFO" = "" ]; then
-         true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
-      fi
-      ## Eventually letting builder cache its gpg passwords early, so we do not
-      ## pause the build process later when reprepro creates the local apt
-      ## repository.
-      sudo -E -u "$user_name" \
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/gpg_test_sign"
-   fi
-}
-
 cleanup_old_packages() {
    true "${cyan}$BASH_SOURCE INFO: Cleaning old packages... ${reset}"
 
@@ -304,19 +288,6 @@ create_whonix_debian_packages() {
    ## Thanks to: l0b0 - http://unix.stackexchange.com/a/20855/49297
    number_folders_total="$(find "$WHONIX_SOURCE_FOLDER/packages" -mindepth 1 -maxdepth 1 -type d -printf '\n' | wc -l)" || true
    number_folder_current="0"
-
-   [ -n "$make_use_lintian" ] || make_use_lintian="true"
-   [ -n "$genmkfile_make_cmd" ] || genmkfile_make_cmd="deb-pkg"
-   [ -n "$make_use_cowbuilder" ] || make_use_cowbuilder="true"
-
-   if [ "$WHONIX_BUILD_APT_CODENAME" = "local" ]; then
-      ## For the local repository, no signatures are required.
-      [ -n "$make_use_debsign" ] || make_use_debsign="false"
-   else
-      ## For whatever it may be worth.
-      ## https://forums.whonix.org/t/end-to-end-signed-debs-debsign-debsig-and-dpkg-sig
-      [ -n "$make_use_debsign" ] || make_use_debsign="true"
-   fi
 
    shopt -s nullglob
    shopt -s dotglob

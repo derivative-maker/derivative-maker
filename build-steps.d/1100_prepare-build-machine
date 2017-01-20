@@ -161,14 +161,16 @@ cowbuilder_setup() {
    ## chroot shell.
    echo "\
       set -x && \
+      make_use_cowbuilder=false && \
+      make_use_debsign=false && \
+      export make_use_cowbuilder make_use_debsign && \
       echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
       cat /etc/dpkg/dpkg.cfg.d/02apt-speedup && \
       adduser --home /nonexistent --quiet --system --group $user_name && \
-      chown --recursive $user_name:$user_name /home/user && \
+      chown --recursive $user_name:$user_name /home/$user_name && \
       cd /home/$user_name/genmkfile && \
       sudo -u $user_name make deb-pkg && \
       make deb-install && \
-      sudo -u $user_name make deb-cleanup && \
       exit 0 || exit 1 \
    " | \
       cowbuilder \
@@ -181,6 +183,7 @@ cowbuilder_setup() {
 
 main() {
    root_check
+   signing_key
 
    if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       ## VirtualBox might not be installed at this point.
@@ -389,14 +392,6 @@ https://github.com/QubesOS/qubes-issues/issues/1353'
       fi
    fi
 
-   true "${bold}${green}INFO${reset}: Installing genmkfile..."
-   pushd "$WHONIX_SOURCE_FOLDER/packages/genmkfile"
-   sudo -u "$user_name" make deb-pkg
-   make deb-install
-   sudo -u "$user_name" make deb-cleanup
-   popd
-   true "${bold}${green}INFO${reset}: Done. installed genmkfile."
-
    ## Debugging.
    cat /usr/sbin/policy-rc.d || true
 
@@ -404,6 +399,10 @@ https://github.com/QubesOS/qubes-issues/issues/1353'
    #cat /proc/devices
 
    cowbuilder_setup
+
+   pushd "/var/cache/pbuilder/base.cow/home/user/genmkfile"
+   make deb-install
+   popd
 }
 
 main ${1+"$@"}

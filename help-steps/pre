@@ -446,6 +446,22 @@ root_check() {
    fi
 }
 
+signing_key() {
+   true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
+   if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "false" ]; then
+      true
+   else
+      if [ "$GPG_AGENT_INFO" = "" ]; then
+         true "${cyan}${bold}INFO: Variable GPG_AGENT_INFO is not set. gnupg-agent will not be available. Did you forget adding -E to sudo?${reset}"
+      fi
+      ## Eventually letting builder cache its gpg passwords early, so we do not
+      ## pause the build process later when reprepro creates the local apt
+      ## repository.
+      sudo -E -u "$user_name" \
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/gpg_test_sign"
+   fi
+}
+
 lower_priorities() {
    ## Lower IO priority.
    ionice -c3 -p$$
