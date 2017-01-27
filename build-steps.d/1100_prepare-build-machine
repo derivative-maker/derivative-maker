@@ -350,8 +350,14 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          #######################################################################
          ## Build Dependencies for creating VirtualBox Images (.vdi and .ova)  #
          #######################################################################
+         ## uname -r returns on Qubes:
+         ## 4.4.31-11.pvops.qubes.x86_64
          local linux_headers
-         linux_headers="linux-headers-$(uname -r)" || true
+         if command -v qubesdb-read >/dev/null 2>&1 ; then
+            linux_headers="linux-headers-amd64"
+         else
+            linux_headers="linux-headers-$(uname -r)"
+         fi
          apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install "$linux_headers"
 
          apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install virtualbox
