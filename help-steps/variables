@@ -409,15 +409,12 @@ export DEBEMAIL
 [ -n "$DEBUILD_LINTIAN_OPTS" ] || DEBUILD_LINTIAN_OPTS="--pedantic --info --display-info --fail-on-warnings"
 export DEBUILD_LINTIAN_OPTS
 
-if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
-   if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "" ]; then
-      WHONIX_BUILD_SIGN_LOCAL_REPOSITORY="false"
-      export WHONIX_BUILD_SIGN_LOCAL_REPOSITORY
+[ -n "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" ] || WHONIX_BUILD_SIGN_LOCAL_REPOSITORY=false
+
+if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "true" ]; then
+   if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
+      error_ "WHONIX_BUILD_SIGN_LOCAL_REPOSITORY is true, but WHONIX_LOCAL_SIGNING_KEY_FOLDER is empty!"
    else
-      WHONIX_BUILD_SIGN_LOCAL_REPOSITORY="true"
-      export WHONIX_BUILD_SIGN_LOCAL_REPOSITORY
-      ## Do not touch WHONIX_LOCAL_SIGNING_KEY_FOLDER - the user is expected to
-      ## set this as a build configuration.
       [ -n "$WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS" ] || WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS="--gnupghome $WHONIX_LOCAL_SIGNING_KEY_FOLDER"
    fi
 fi
