@@ -384,17 +384,7 @@ $whonix_build_script_skip_package_install${reset}"
    pkg-install-maybe anon-shared-packages-recommended
 
    pkg-install-maybe anon-shared-desktop
-
-   ## Keep already existing /etc/NetworkManager/NetworkManager.conf by qubes-core-agent-linux.
-   ## Avoid dpkg interactive conflict resolution dialog while building.
-   ## workaround for Qubes issue:
-   ## 'use /etc/NetworkManager/conf.d snippet instead of /etc/NetworkManager/NetworkManager.conf to avoid dpkg interactive conflict resolution dialog questions'
-   ## https://github.com/QubesOS/qubes-issues/issues/1176
-   local temp
-   temp=" -o Dpkg::Options::=--force-confold "
-   apt_unattended_opts+="$temp"
    pkg-install-maybe anon-shared-desktop-kde
-   apt_unattended_opts="$(echo "$apt_unattended_opts" | sed "s|$temp||g")"
 
    pkg-install-maybe anon-shared-kde-accessibility
 
@@ -434,15 +424,7 @@ $whonix_build_script_skip_package_install${reset}"
       if [ "$WHONIX_BUILD_WORKSTATION" = "1" ]; then
          pkg-install-maybe qubes-whonix-workstation-packages-recommended
       fi
-      ## debootstrap, which was run by qubes-builder-debian, will have created
-      ## a default /etc/fstab.
-      ## The qubes-whonix package also ships /etc/fstab.
-      ## This would result in an interactive dpkg conflict resolution dialog.
-      local temp
-      temp=" -o Dpkg::Options::=--force-confnew "
-      apt_unattended_opts+="$temp"
       pkg-install-maybe qubes-whonix
-      apt_unattended_opts="$(echo "$apt_unattended_opts" | sed "s|$temp||g")"
    fi
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/remove-local-temp-apt-repo"
