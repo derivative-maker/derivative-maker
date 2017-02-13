@@ -141,11 +141,15 @@ cowbuilder_setup() {
       create_or_update="--create"
    fi
 
+   if [ "$create_or_update" = "--update" ];then
+      cp "$whonix_build_sources_list" "$cow_folder/etc/apt/sources.list"
+   fi
+
    $COWBUILDER_PREFIX cowbuilder \
       $create_or_update \
       --distribution "$whonix_build_apt_stable_release" \
       --mirror "$whonix_build_apt_sources_mirror" \
-      --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot $eatmydata_maybe_install"
+      --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor $eatmydata_maybe_install"
 
    mkdir -p "$cow_folder/home/$user_name"
    if [ "$cow_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
@@ -155,12 +159,16 @@ cowbuilder_setup() {
    fi
    cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$cow_folder/home/$user_name/genmkfile"
 
+   cp "$whonix_build_sources_list" "$cow_folder/etc/apt/sources.list"
 
    ## Using '|| error_' because re-running in case of failure, re-running the last failed
    ## command again would neglect the previous pipe. Therefore result in an interactive
    ## chroot shell.
    echo "\
       set -x && \
+      cat /etc/apt/sources.list && \
+      apt-get update && \
+      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade && \
       make_use_cowbuilder=false && \
       make_use_debsign=false && \
       export make_use_cowbuilder make_use_debsign && \
