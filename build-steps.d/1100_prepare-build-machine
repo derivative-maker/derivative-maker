@@ -189,7 +189,7 @@ cowbuilder_setup() {
    true "${bold}${green}INFO${reset}: cowbuilder setup done."
 }
 
-main() {
+build_machine_setup() {
    root_check
    signing_key
 
@@ -378,12 +378,18 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    ## Debugging.
    #cat /proc/devices
+}
 
-   cowbuilder_setup
-
+genmkfile_installation() {
    pushd "/var/cache/pbuilder/base.cow/home/user/genmkfile"
    make_use_cowbuilder=false make deb-install
    popd
+}
+
+main() {
+   build_machine_setup  ${1+"$@"}
+   cowbuilder_setup ${1+"$@"}
+   genmkfile_installation ${1+"$@"}
 }
 
 main ${1+"$@"}
