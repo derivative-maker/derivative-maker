@@ -161,6 +161,9 @@ cowbuilder_setup() {
    cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$cow_folder/home/$user_name/genmkfile"
 
    cp "$whonix_build_sources_list" "$cow_folder/etc/apt/sources.list"
+   mkdir -p "$cow_folder/$(dirname $apt_get_update_wrapper_bin_path_full)"
+   cp "$apt_get_update_wrapper_source_path_full" "$cow_folder/$apt_get_update_wrapper_bin_path_full"
+   cp "$apt_get_update_wrapper_source_path_full" "$cow_folder/$apt_get_update_sanity_test_bin_path_full"
 
    ## Using '|| error_' because re-running in case of failure, re-running the last failed
    ## command again would neglect the previous pipe. Therefore result in an interactive
@@ -168,7 +171,8 @@ cowbuilder_setup() {
    echo "\
       set -x && \
       cat /etc/apt/sources.list && \
-      apt-get $APTGETOPT update && \
+      $apt_get_update_wrapper_bin_path_full $APTGETOPT update && \
+      $apt_get_update_sanity_test_bin_path_full && \
       apt-get $APTGETOPT --yes dist-upgrade && \
       make_use_cowbuilder=false && \
       make_use_debsign=false && \
