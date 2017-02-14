@@ -488,10 +488,16 @@ done
 ## Remove trailing ','.
 whonix_build_debopt="${whonix_build_debopt::-1}"
 
-## cowbuilder
-APTGETOPT="$apt_timeout_opts $apt_unattended_opts $apt_misc_opts -o Acquire::BlockDotOnion=false"
-export APTGETOPT
-true "APTGETOPT: $APTGETOPT"
+## cowbuilder (which internally uses pbuilder).
+APTGETOPT+=" $apt_timeout_opts $apt_unattended_opts $apt_misc_opts -o Acquire::BlockDotOnion=false "
+whonix_build_pbuilder_config_file="$WHONIX_BINARY/pbuilder.conf"
+rm --force "$whonix_build_pbuilder_config_file"
+echo "\
+## This is an auto generated file.
+## Edits will be lost.
+set -x
+APTGETOPT+=\"$APTGETOPT\"" > "$whonix_build_pbuilder_config_file"
+cat "$whonix_build_pbuilder_config_file"
 
 ## {{{ SKIP_SCRIPTS
 
