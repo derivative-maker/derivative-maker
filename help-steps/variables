@@ -194,8 +194,7 @@ fi
 
 if [ "$whonix_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
-   apt_misc_opts+=" -o Dpkg::Options::=--force-unsafe-io "
-   export apt_misc_opts
+   APTGETOPT[${#APTGETOPT[@]}]="-o Dpkg::Options::=--force-unsafe-io"
    if command -v eatmydata >/dev/null 2>&1 ; then
       true "INFO: eatmydata installed, preloading."
       ## wheezy compatibility
@@ -222,7 +221,7 @@ if [ "$whonix_build_unsafe_io" = "true" ]; then
 fi
 
 if [ -n "${REPO_PROXY}" ]; then
-   apt_misc_opts+=" -o Acquire::http::Proxy=${REPO_PROXY} "
+   APTGETOPT[${#APTGETOPT[@]}]="-o Acquire::http::Proxy=${REPO_PROXY}"
    DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY}"
    COWBUILDER_PREFIX+=" env http_proxy=${REPO_PROXY}"
    ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
@@ -499,13 +498,15 @@ echo "\
 ## Debugging.
 set -x
 
-## TODO: $apt_timeout_opts $apt_unattended_opts $apt_misc_opts
+## TODO: $apt_timeout_opts $apt_misc_opts
 
 APTGETOPT[\${#APTGETOPT[@]}]=\"-o Acquire::BlockDotOnion=false\"
 
 ## End of $whonix_build_pbuilder_config_file.
 " > "$whonix_build_pbuilder_config_file"
 cat "$whonix_build_pbuilder_config_file"
+
+export APTGETOPT
 
 ## {{{ SKIP_SCRIPTS
 

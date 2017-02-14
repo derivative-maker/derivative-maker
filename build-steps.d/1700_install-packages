@@ -89,13 +89,10 @@ This may take a while...${reset}"
    local apt_get_exit_code="0"
    $CHROOT \
       apt-get \
+         "${APTGETOPT[@]}" \
          $apt_sourcelist_empty \
          $apt_sourceparts \
-         $apt_timeout_opts \
-         $apt_verify_opts \
          $apt_unattended_opts \
-         $apt_misc_opts \
-         $apt_debug_opts \
          --yes \
          --no-install-recommends \
          install \
@@ -105,12 +102,10 @@ This may take a while...${reset}"
    local apt_get_exit_code="0"
    $CHROOT \
       apt-get \
+         "${APTGETOPT[@]}" \
          $apt_sourcelist_empty \
          $apt_sourceparts \
-         $apt_timeout_opts \
-         $apt_verify_opts \
          $apt_unattended_opts \
-         $apt_misc_opts \
          --yes \
          --no-install-recommends \
          install \
@@ -136,12 +131,10 @@ variable for debugging. This may take a while...${reset}"
          $( \
             $CHROOT \
                apt-get \
+                  "${APTGETOPT[@]}" \
                   $apt_sourcelist_empty \
                   $apt_sourceparts \
-                  $apt_timeout_opts \
-                  $apt_verify_opts \
                   $apt_unattended_opts \
-                  $apt_misc_opts \
                   --yes \
                   --no-install-recommends \
                   install \
@@ -237,7 +230,7 @@ install-packages() {
    cp "$apt_get_update_wrapper_source_path_full" "$CHROOT_FOLDER/$apt_get_update_wrapper_bin_path_full"
    cp "$apt_get_update_sanity_test__source_path_full" "$CHROOT_FOLDER/$apt_get_update_wrapper_bin_path_full"
 
-   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts $apt_misc_opts update
+   $CHROOT $apt_get_update_wrapper_bin_path_full "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
    ## CVE-2016-1252 sanity test
    $CHROOT $apt_get_update_sanity_test_bin_path_full
@@ -268,17 +261,17 @@ install-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    ## Reading apt repository containing snapshot.debian.org and repository containing Whonix's packages.
-   $CHROOT $apt_get_update_wrapper_bin_path_full $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_get_gpgv_opts $apt_unattended_opts $apt_misc_opts update
+   $CHROOT $apt_get_update_wrapper_bin_path_full "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
    ## CVE-2016-1252 sanity test
    $CHROOT $apt_get_update_sanity_test_bin_path_full
 
    ## Debugging.
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts clean
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts autoclean
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-broken --yes install
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-missing --yes install
-   $CHROOT apt-get $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --fix-broken --fix-missing --yes install
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourceparts $apt_unattended_opts clean
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourceparts $apt_unattended_opts autoclean
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourceparts $apt_unattended_opts --fix-broken --yes install
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourceparts $apt_unattended_opts --fix-missing --yes install
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
    $CHROOT dpkg --configure -a
    $CHROOT dpkg --audit
 
@@ -289,7 +282,7 @@ install-packages() {
    ## anything). For whatever that's worth. (We're not using Debian's current
    ## repositories anyway, but can't hurt. More useful for custom builders who
    ## prefer to build from Debian's current repository.)
-   $CHROOT apt-get $apt_sourcelist_empty $apt_sourceparts $apt_timeout_opts $apt_verify_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade
+   $CHROOT apt-get "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
 
    if [ "$whonix_build_script_skip_package_install" = "" ]; then
       true "${bold}${cyan}INFO $BASH_SOURCE: Variable whonix_build_script_skip_package_install is empty. \

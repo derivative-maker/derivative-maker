@@ -172,9 +172,9 @@ cowbuilder_setup() {
    echo "\
       set -x && \
       cat /etc/apt/sources.list && \
-      $apt_get_update_wrapper_bin_path_full $apt_timeout_opts $apt_unattended_opts $apt_misc_opts update && \
+      $apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]}  $apt_unattended_opts update && \
       $apt_get_update_sanity_test_bin_path_full && \
-      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes dist-upgrade && \
+      apt-get ${APTGETOPT[@]}  $apt_unattended_opts --yes dist-upgrade && \
       make_use_cowbuilder=false && \
       make_use_debsign=false && \
       export make_use_cowbuilder make_use_debsign && \
@@ -272,7 +272,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       local apt_unattended_opts="--option Dpkg::Options=--force-confold"
    fi
 
-   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install git time
+   apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install git time
 
    ## Debugging.
    true 'INFO: Benchmarking "sudo -u "$user_name" echo "This is a test echo." using "time"...'
@@ -285,26 +285,25 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
    true "INFO: Updated git sub modules."
 
-   true "${cyan}INFO: Using longer timeout to allow more reliably downloading using apt-get over Tor. Feel free to out comment apt_timeout_opts in help-steps/variables.${reset}"
    ## Run after git submodule fetching, so $apt_get_update_wrapper_source_path_full will be available.
-   $apt_get_update_wrapper_source_path_full $apt_timeout_opts $apt_get_gpgv_opts $apt_misc_opts update
+   $apt_get_update_wrapper_source_path_full "${APTGETOPT[@]}" update
 
    ## CVE-2016-1252 sanity test
    $apt_get_update_sanity_test__source_path_full
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
-      apt-get $apt_unattended_opts $apt_timeout_opts $apt_misc_opts --yes dist-upgrade
+      apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes dist-upgrade
    fi
 
    ###############################################
    ## Build Dependencies for Whonix Build Script #
    ###############################################
-   apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install $whonix_build_script_build_dependency
+   apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install $whonix_build_script_build_dependency
 
    if [ "$eatmydata_install" = "true" ]; then
       true "INFO: Installing eatmydata, because using '--unsafe-io true'."
-      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install eatmydata
+      apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install eatmydata
    else
       true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
    fi
@@ -329,9 +328,8 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       local bare_metal_basic_package_list
       bare_metal_basic_package_list="$(grep -vE "^\s*#" "$WHONIX_SOURCE_FOLDER/grml_packages" | tr "\n" " ")"
       apt-get \
-         $apt_timeout_opts \
+         "${APTGETOPT[@]}" \
          $apt_unattended_opts \
-         $apt_misc_opts \
          --yes \
          install \
          $bare_metal_basic_package_list
@@ -348,7 +346,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## - required for mounting vdi images
       ##   libguestfs-tools is not required in CI/VM.
       ##      libguestfs-tools
-      apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --no-install-recommends --yes install \
+      apt-get "${APTGETOPT[@]}" $apt_unattended_opts --no-install-recommends --yes install \
          qemu-utils \
          grml-debootstrap \
          parted \
@@ -371,9 +369,9 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          else
             linux_headers="linux-headers-$(uname -r)"
          fi
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install "$linux_headers"
+         apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install "$linux_headers"
 
-         apt-get $apt_timeout_opts $apt_unattended_opts $apt_misc_opts --yes install virtualbox
+         apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install virtualbox
 
          ## VirtualBox will be be installed at this point.
          check-virtualbox-vm-exists
