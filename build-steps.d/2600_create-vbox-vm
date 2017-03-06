@@ -21,45 +21,45 @@ source variables
 
 general_setup() {
    ## Create a new VM. Name: $VMNAME
-   sudo -u "$user_name" VBoxManage createvm --name "$VMNAME" --register
+   sudo $SUDO_OPTS VBoxManage createvm --name "$VMNAME" --register
 
    if ! echo "$BUILD_TARGET_ARCH" | grep "64" ; then
-      sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ostype Debian
+      sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ostype Debian
    else
-      sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ostype Debian_64
+      sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ostype Debian_64
    fi
 
    ## Add SAS Controller for hdd.
    ## Not using SATA for hdd:
    ## - https://github.com/Whonix/Whonix/issues/274
    ## - https://www.virtualbox.org/ticket/10031
-   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sas --name "$VMNAME-sas"
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sas --name "$VMNAME-sas"
 
    ## HDD gets added in the gateway / workstation specific functions below.
 
    ## Add SATA Controller for DVD.
-   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
 
    ## Only 4 sata ports instead of 30. Speeds up booting.
-   sudo -u "$user_name" VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
 
    ## Add DVD.
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
 
    ## RAM
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
 
    ## Enable PAE.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --pae on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --pae on
 
    ## Hide hosts CPU info. This does not have a GUI option.
    ## Was removed from VirtualBox.
    ## https://phabricator.whonix.org/T408
-   #sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --synthcpu on
+   #sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --synthcpu on
 
    ## REVIEW
    ## ACPI speeds up the VM boot process. It has not been reviewed if this is good or bad for security.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --acpi on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --acpi on
 
    ## REVIEW
    ## It has not been reviewed if this is good or bad for security.
@@ -84,96 +84,96 @@ general_setup() {
    ## for years, it is also enabled by default in VirtualBox. [...]"
    ## Conclusion: The linux kernel is better tested with I/O APIC enabled
    ## rather than I/O APIC disabled.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --ioapic on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ioapic on
 
    ## Set system clock of VM to UTC.
    ## When VirtualBox starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
    ## and sets the VM clock to that date and time. The following option translates the date
    ## and time to UTC, thus hiding the hosts timezone from the guest.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --rtcuseutc on
 
    ## Deactivate time synchronization between host and VMs.
    ## This is documented in Whonix Design on TimeSync page
    ## Thanks to
    ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
-   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
 
    ## Disable clipboard sharing.
    ## https://www.whonix.org/wiki/VirtualBox_Guest_Additions#Clipboard_Sharing
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --clipboard disabled
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard disabled
 
    ## Disable Drag'n'Drop support.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --draganddrop disabled
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --draganddrop disabled
 
    sync
 }
 
 whonix-gateway_specific() {
    ## Allow clipboard copying from the host to guest to ease entering bridges.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --clipboard hosttoguest
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard hosttoguest
 
    ## Attach the HDD.
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## 8 MB Video RAM.
    ## Settings->Display->Video Memory->8 MB.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
 
    ## Leave Adapter 1 as NAT.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic1 nat
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 nat
 
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
    ## Prevents leaking DNS info from the host into the guest.
    ## Also useful in other cases.
    ## https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
 
    ## Prevents leaking DNS info from the host into the guest.
    ## Also useful in other cases.
    ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
 
    ## Do not pass the domain name for network name resolution to the VM.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 
    ## Enable Adapter 2, set to "Internal Network".
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic2 intnet
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic2 intnet
 
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --cableconnected2 on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected2 on
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
 
    sync
 }
 
 whonix-workstation_specific() {
    ## Attach the HDD.
-   sudo -u "$user_name" VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## 128 MB Video RAM.
    ## Settings->Display->Video Memory->128 MB.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
 
    ## Add Adapter 1, an internal network, IMPORTANT!
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --nic1 intnet
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 intnet
 
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
 
    ## Enable audio controller ac97.
    ## sb16 should be obsolete.
    ## ac97 is hopefully better supported than intel hda.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 
    ## Host audio driver can be oss, alsa or pulse.
    ## Unfortunately, no auto detection available.
    ## Depends on host driver.
    ## Ubuntu host uses pulse audio.
-   sudo -u "$user_name" VBoxManage modifyvm "$VMNAME" --audio pulse
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audio pulse
 
    sync
 }
@@ -181,7 +181,7 @@ whonix-workstation_specific() {
 whonix-custom-workstation_specific() {
    whonix-workstation_specific
 
-   sudo -u "$user_name" VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
+   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
 
    sync
 }
