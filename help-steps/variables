@@ -199,12 +199,19 @@ if [ "$whonix_build_unsafe_io" = "true" ]; then
    APTGETOPT[${#APTGETOPT[@]}]="-o Dpkg::Options::=--force-unsafe-io"
    if command -v eatmydata >/dev/null 2>&1 ; then
       true "INFO: eatmydata installed, preloading."
+      ## Thanks to:
+      ## shitpoet@gmail.com
+      ## http://shitpoet.tk/eat-all-my-data.html
+      if ! test -h /usr/lib/libeatmydata.so ; then
+         ln -s /usr/lib/x86_64-linux-gnu/libeatmydata.so /usr/lib/libeatmydata.so || true
+      fi
       if [ -z "$LD_PRELOAD" ]; then
-         LD_PRELOAD=libeatmydata.so
+         LD_PRELOAD=/usr/lib/libeatmydata.so
       else
-         LD_PRELOAD="$LD_PRELOAD":libeatmydata.so
+         LD_PRELOAD="$LD_PRELOAD":/usr/lib/libeatmydata.so
       fi
       export LD_PRELOAD
+      SUDO_OPTS="$SUDO_OPTS LD_PRELOAD=$LD_PRELOAD"
    else
       true "INFO: eatmydata not yet installed, not yet preloading."
    fi
@@ -483,7 +490,7 @@ whonix_build_debopt="${whonix_build_debopt::-1}"
 ## cowbuilder (which internally uses pbuilder).
 whonix_build_pbuilder_config_file="$WHONIX_BINARY/pbuilder.conf"
 rm --force "$whonix_build_pbuilder_config_file"
-sudo --non-interactive -u "$user_name" mkdir --parents "$WHONIX_BINARY/"
+sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/"
 
 echo "\
 ## This is an auto generated file.
@@ -502,9 +509,9 @@ true \"APTGETOPT: \${APTGETOPT[@]}\"
 
 ## End of $whonix_build_pbuilder_config_file.
 " | \
-   sudo --non-interactive -u "$user_name" tee "$whonix_build_pbuilder_config_file" > /dev/null
+   sudo $SUDO_OPTS tee "$whonix_build_pbuilder_config_file" > /dev/null
 
-#sudo --non-interactive -u "$user_name" cat "$whonix_build_pbuilder_config_file"
+#sudo $SUDO_OPTS cat "$whonix_build_pbuilder_config_file"
 
 export APTGETOPT
 
