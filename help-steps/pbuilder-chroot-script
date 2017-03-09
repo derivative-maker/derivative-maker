@@ -1,0 +1,44 @@
+#!/bin/bash
+
+## Copyright (C) 2017 - 2017 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+if [ "$whonix_build_unsafe_io" = "true" ]; then
+    if ! test -h /usr/lib/libeatmydata.so ; then
+        ln -s /usr/lib/x86_64-linux-gnu/libeatmydata.so /usr/lib/libeatmydata.so || true
+    fi
+    ## Debugging.
+    ls -la /usr/lib/libeatmydata.so || true
+
+    echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/02apt-speedup
+    cat /etc/dpkg/dpkg.cfg.d/02apt-speedup
+fi
+
+## Debugging.
+cat /etc/apt/sources.list
+true "\${APTGETOPT[@]}:
+${APTGETOPT[@]}"
+
+$apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} $apt_unattended_opts update
+
+$apt_get_update_sanity_test_bin_path_full
+
+apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
+
+make_use_cowbuilder=false
+make_use_debsign=false
+export make_use_cowbuilder make_use_debsign
+
+adduser --home /nonexistent --quiet --system --group $user_name
+chown --recursive $user_name:$user_name /home/$user_name
+
+pushd /home/$user_name/genmkfile
+
+sudo -u $user_name make deb-pkg
+
+make deb-install
+
+popd
