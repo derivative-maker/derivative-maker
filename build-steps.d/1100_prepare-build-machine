@@ -134,28 +134,21 @@ cowbuilder_setup() {
       mount -t tmpfs -o size=2G none /var/cache/pbuilder
    fi
 
-   ## TODO: change that folder
-   cow_folder="/var/cache/pbuilder/base.cow"
-   if [ -d "$cow_folder" ]; then
-      create_or_update="--update"
-   else
-      create_or_update="--create"
-   fi
-
-   if [ "$create_or_update" = "--update" ];then
-      cp "$whonix_build_sources_list" "$cow_folder/etc/apt/sources.list"
-   fi
-
    ## Debugging.
    cat "$whonix_build_pbuilder_config_file"
 
-   $COWBUILDER_PREFIX \
-      cowbuilder \
-         $create_or_update \
-         --configfile "$whonix_build_pbuilder_config_file" \
-         --distribution "$whonix_build_apt_stable_release" \
-         --mirror "$whonix_build_apt_sources_mirror" \
-         --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor python $eatmydata_maybe_install"
+   ## TODO: change that folder
+   cow_folder="/var/cache/pbuilder/base.cow"
+
+   if [ ! -d "$cow_folder" ]; then
+      $COWBUILDER_PREFIX \
+         cowbuilder \
+            --create \
+            --configfile "$whonix_build_pbuilder_config_file" \
+            --distribution "$whonix_build_apt_stable_release" \
+            --mirror "$whonix_build_apt_sources_mirror" \
+            --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor python $eatmydata_maybe_install"
+   fi
 
    mkdir -p "$cow_folder/home/$user_name"
    if [ "$cow_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
@@ -169,6 +162,7 @@ cowbuilder_setup() {
    mkdir -p "$cow_folder/$(dirname $apt_get_update_wrapper_bin_path_full)"
    cp "$apt_get_update_wrapper_source_path_full" "$cow_folder/$apt_get_update_wrapper_bin_path_full"
    cp "$apt_get_update_sanity_test__source_path_full" "$cow_folder/$apt_get_update_sanity_test_bin_path_full"
+   cp "$whonix_build_pbuilder_config_file" "$cow_folder/home/$user_name/pbuilder_config_file"
 
    $COWBUILDER_PREFIX \
       cowbuilder \
