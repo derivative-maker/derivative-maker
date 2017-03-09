@@ -39,16 +39,16 @@ umount_kill() {
     echo "-> Attempting to kill any processes still running in '$MOUNTDIR' before un-mounting"
     for dir in $(grep "$MOUNTDIR" /proc/mounts | cut -f2 -d" " | sort -r | grep "^$MOUNTDIR")
     do
-        sudo lsof "$dir" 2> /dev/null | \
+        lsof "$dir" 2> /dev/null | \
             grep "$dir" | \
             tail -n +2 | \
             awk '{print $2}' | \
-            xargs --no-run-if-empty sudo kill -9
+            xargs --no-run-if-empty kill -9
 
         if ! [ "$2" ] && $(mountpoint -q "$dir"); then
             echo "un-mounting $dir"
-            sudo umount -n "$dir" 2> /dev/null || \
-                sudo umount -n -l "$dir" 2> /dev/null || \
+            umount -n "$dir" 2> /dev/null || \
+                umount -n -l "$dir" 2> /dev/null || \
                 echo "umount $dir unsuccessful!"
         elif ! [ "$2" ]; then
             # Look for (deleted) mountpoints
@@ -57,8 +57,8 @@ umount_kill() {
             dir=$(dirname "$dir")
             base=$(echo "$base" | sed 's/[\].*$//')
             dir="$dir/$base"
-            sudo umount -v -f -n "$dir" 2> /dev/null || \
-                sudo umount -v -f -n -l "$dir" 2> /dev/null || \
+            umount -v -f -n "$dir" 2> /dev/null || \
+                umount -v -f -n -l "$dir" 2> /dev/null || \
                 echo "umount $dir unsuccessful!"
         fi
     done
