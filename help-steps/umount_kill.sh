@@ -40,11 +40,18 @@ umount_kill() {
     echo "-> Attempting to kill any processes still running in '$MOUNTDIR' before un-mounting"
     for dir in $(grep "$MOUNTDIR" /proc/mounts | cut -f2 -d" " | sort -r | grep "^$MOUNTDIR")
     do
-        lsof "$dir" 2> /dev/null | \
+        pids=$(lsof "$dir" 2> /dev/null | \
             grep "$dir" | \
             tail -n +2 | \
-            awk '{print $2}' | \
-            xargs --no-run-if-empty kill -9
+            awk '{print $2}')
+
+        if [ "$pids" = "" ]; then
+           echo "Okay, no pids still running in '$MOUNTDIR', no need to kill any."
+        else
+           echo "Okay, the following pids are still running inside '$MOUNTDIR', which will now be killed."
+           ps -p $pids
+           kill -9 $pids
+        fi
 
         if ! [ "$2" ] && $(mountpoint -q "$dir"); then
             echo "un-mounting $dir"
