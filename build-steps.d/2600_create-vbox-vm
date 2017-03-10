@@ -108,6 +108,40 @@ general_setup() {
    sync
 }
 
+hardware_obfuscation() {
+   # Thanks to dumbmouse contributing this!
+   # https://phabricator.whonix.org/T408#11595
+
+   # Clear existing (not necessary for initial install)
+   sudo $SUDO_OPTS vboxmanage modifyvm "$VMNAME" --cpuidremoveall
+
+   # GenuineIntel
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ebx 0x756e6547
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ecx 0x6c65746e
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/edx 0x49656e69
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ebx 0x756e6547
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ecx 0x6c65746e
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/edx 0x49656e69
+
+   # Model/Family/Stepping
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000001/eax 0x00000f43
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000001/eax 0x00000f43
+
+   # Pentium model name
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/eax 0x20202020
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ebx 0x20202020
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ecx 0x20202020
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/edx 0x6e492020
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/eax 0x286c6574
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ebx 0x50202952
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ecx 0x69746e65
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/edx 0x52286d75
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/eax 0x20342029
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ebx 0x20555043
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ecx 0x30302e33
+   sudo $SUDO_OPTS vboxmanage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/edx 0x007a4847
+}
+
 whonix-gateway_specific() {
    ## Allow clipboard copying from the host to guest to ease entering bridges.
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard hosttoguest
@@ -190,6 +224,7 @@ main() {
    root_check
    if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       general_setup
+      hardware_obfuscation
       if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
          whonix-gateway_specific
       elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
