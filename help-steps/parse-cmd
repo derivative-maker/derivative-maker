@@ -59,6 +59,10 @@ none: Skip installation of gui specific packages.
 frozen: Use frozen sources.
 current: Use current sources.
 
+--connection clearnet|onion
+clearnet: use clearnet apt sources
+onion: use onion apt sources
+
 WHONIX_APT_REPOSITORY_OPTS
 Whonix APT Repository.
 Disabled by default.
@@ -291,6 +295,19 @@ whonix_build_one_parse_cmd() {
                   true "${cyan}INFO: Using current sources.${reset}"
                else
                   echo "${red}${bold}ERROR: supported options for --freshness are 'frozen' or 'current'.${reset}"
+                  exit 1
+               fi
+               shift 2
+               ;;
+           --connection)
+               if [ "$2" = "clearnet" ]; then
+                  true "${cyan}INFO: Using clearnet apt sources.${reset}"
+                  whonix_build_sources_clearnet_or_onion="clearnet"
+               elif [ "$2" = "onion" ]; then
+                  true "${cyan}INFO: Using onion apt sources.${reset}"
+                  whonix_build_sources_clearnet_or_onion="onion"
+               else
+                  echo "${red}${bold}ERROR: supported options for --connection are 'clearnet' or 'onion'.${reset}"
                   exit 1
                fi
                shift 2
@@ -564,6 +581,13 @@ Defaulting BUILD_HEADER_PKGS to:${reset}
 Defaulting BUILD_TARGET_ARCH to ${under}amd64${eunder}.
 (Other possible values would be i386, kfreebsd-amd64 [untested], kfreebsd-i386 [untested].)${reset}"
       export BUILD_TARGET_ARCH="amd64"
+   fi
+
+   if [ "$whonix_build_sources_clearnet_or_onion" = "" ]; then
+      echo "${cyan}${bold}INFO: No --connection type 'clearnet' or 'onion' has been chosen. \
+Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
+(Alternative value would be 'onion'.)${reset}"
+      whonix_build_sources_clearnet_or_onion="clearnet"
    fi
 
    ## If there are input files (for example) that follow the options, they
