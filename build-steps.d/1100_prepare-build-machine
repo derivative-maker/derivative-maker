@@ -347,7 +347,33 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          fi
          apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install "$linux_headers"
 
-         apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install virtualbox
+         ## Update $whonix_build_sources_list_newer package list while keeping
+         ## previously updated regular package lists. In other words, prevent
+         ## needlessly updating regular package lists.
+         $apt_get_update_wrapper_source_path_full \
+            "${APTGETOPT[@]}" \
+            -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
+            -o Dir::Etc::sourceparts="-" \
+            -o APT::Get::List-Cleanup="0" \
+            update
+
+         ## CVE-2016-1252 sanity test
+         $apt_get_update_sanity_test__source_path_full
+
+         apt-get install --yes \
+            "${APTGETOPT[@]}" \
+            $apt_unattended_opts \
+            -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
+            -o Dir::Etc::sourceparts="-" \
+            --target-release "$whonix_build_apt_newer_release_codename" \
+            virtualbox
+
+         ## Get rid of $whonix_build_sources_list_newer package list, while keeping
+         ## regular package lists. In other words, prevent needlessly forgetting
+         ## about regular package lists.
+         apt-get update \
+            --no-download \
+            --list-cleanup
 
          ## VirtualBox will be be installed at this point.
          check-virtualbox-vm-exists
