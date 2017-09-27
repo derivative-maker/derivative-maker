@@ -51,12 +51,12 @@ get_extra_packages() {
       dpkg --add-architecture "$architecture"
    done
 
-   ## Update $whonix_build_sources_list package list while keeping
+   ## Update $whonix_build_sources_list_current package list while keeping
    ## previously updated regular package lists. In other words, prevent
    ## needlessly updating regular package lists.
    $apt_get_update_wrapper_source_path_full \
       "${APTGETOPT[@]}" \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+      -o Dir::Etc::sourcelist="$whonix_build_sources_list_current" \
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0" \
       update
@@ -64,12 +64,12 @@ get_extra_packages() {
    ## CVE-2016-1252 sanity test
    $apt_get_update_sanity_test__source_path_full
 
-   ## Download VirtualBox guest additions from $whonix_build_sources_list.
+   ## Download VirtualBox guest additions from $whonix_build_sources_list_current.
    sudo $SUDO_OPTS \
       apt-get source --yes \
          "${APTGETOPT[@]}" \
          $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+         -o Dir::Etc::sourcelist="$whonix_build_sources_list_current" \
          -o Dir::Etc::sourceparts="-" \
          virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
 
@@ -77,7 +77,7 @@ get_extra_packages() {
       apt-get download --yes \
          "${APTGETOPT[@]}" \
          $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+         -o Dir::Etc::sourcelist="$whonix_build_sources_list_current" \
          -o Dir::Etc::sourceparts="-" \
          virtualbox-guest-dkms
 
@@ -87,7 +87,7 @@ get_extra_packages() {
             apt-get download --yes \
                "${APTGETOPT[@]}" \
                $apt_unattended_opts \
-               -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+               -o Dir::Etc::sourcelist="$whonix_build_sources_list_current" \
                -o Dir::Etc::sourceparts="-" \
                "$pkg:$architecture"
       done
@@ -105,7 +105,7 @@ get_extra_packages() {
       sudo $SUDO_OPTS "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
 
-   ## Get rid of $whonix_build_sources_list package list, while keeping
+   ## Get rid of $whonix_build_sources_list_current package list, while keeping
    ## regular package lists. In other words, prevent needlessly forgetting
    ## about regular package lists.
    apt-get update \
