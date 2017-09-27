@@ -347,33 +347,54 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          fi
          apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes install "$linux_headers"
 
-         ## Update $whonix_build_sources_list_newer package list while keeping
-         ## previously updated regular package lists. In other words, prevent
-         ## needlessly updating regular package lists.
-         $apt_get_update_wrapper_source_path_full \
-            "${APTGETOPT[@]}" \
-            -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
-            -o Dir::Etc::sourceparts="-" \
-            -o APT::Get::List-Cleanup="0" \
-            update
+         true "INFO: Checking if VirtualBox is already installed..."
+         if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
+            true "INFO: VirtualBox is already installed."
 
-         ## CVE-2016-1252 sanity test
-         $apt_get_update_sanity_test__source_path_full
+            virtualbox_version_minium="5.1.28-dfsg-1~bpo9+1"
 
-         apt-get install --yes \
-            "${APTGETOPT[@]}" \
-            $apt_unattended_opts \
-            -o Dir::Etc::sourcelist="$whonix_build_sources_list_newer" \
-            -o Dir::Etc::sourceparts="-" \
-            --target-release "$whonix_build_apt_newer_release_codename" \
-            virtualbox
+            true "INFO: Checking if $virtualbox_version_installed is not lower than $virtualbox_version_minium..."
+            if dpkg --compare-versions "$virtualbox_version_installed" lt $virtualbox_version_minium 2>/dev/null ; then
+               true "INFO: Installed VirtualBox version is lower than $virtualbox_version_installed."
+               install_virtualbox="true"
+            else
+               true "INFO: Installed VirtualBox version is recent enough."
+            fi
+         else
+            true "INFO: VirtualBox is not yet installed. Installing..."
+            install_virtualbox="true"
+         fi
 
-         ## Get rid of $whonix_build_sources_list_newer package list, while keeping
-         ## regular package lists. In other words, prevent needlessly forgetting
-         ## about regular package lists.
-         apt-get update \
-            --no-download \
-            --list-cleanup
+         if [ "$install_virtualbox" = "true" ]; then
+            true "INFO: Installing VirtualBox using $whonix_build_sources_list..."
+
+            ## Enable stretch-backports Debian apt repository.
+            $apt_get_update_wrapper_source_path_full \
+               "${APTGETOPT[@]}" \
+               -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+               -o Dir::Etc::sourceparts="-" \
+               -o APT::Get::List-Cleanup="0" \
+               update
+
+            ## CVE-2016-1252 sanity test
+            $apt_get_update_sanity_test__source_path_full
+
+            apt-get install --yes \
+               "${APTGETOPT[@]}" \
+               $apt_unattended_opts \
+               -o Dir::Etc::sourcelist="$whonix_build_sources_list" \
+               -o Dir::Etc::sourceparts="-" \
+               virtualbox
+
+            ## Get rid of $whonix_build_sources_list package list, while keeping
+            ## regular package lists. In other words, prevent needlessly forgetting
+            ## about regular package lists.
+            apt-get update \
+               --no-download \
+               --list-cleanup
+
+            true "INFO: Done, installed VirtualBox."
+         fi
 
          ## VirtualBox will be be installed at this point.
          check-virtualbox-vm-exists
