@@ -98,12 +98,12 @@ general_setup() {
    ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
    sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
 
-   ## Disable clipboard sharing.
+   ## Clipboard sharing.
    ## https://www.whonix.org/wiki/VirtualBox_Guest_Additions#Clipboard_Sharing
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard disabled
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard bidirectional
 
-   ## Disable Drag'n'Drop support.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --draganddrop disabled
+   ## Drag'n'Drop
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --draganddrop hosttoguest
 
    sync
 }
@@ -143,9 +143,6 @@ hardware_obfuscation() {
 }
 
 whonix-gateway_specific() {
-   ## Allow clipboard copying from the host to guest to ease entering bridges.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard hosttoguest
-
    ## Attach the HDD.
    sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
