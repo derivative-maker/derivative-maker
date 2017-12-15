@@ -98,12 +98,12 @@ get_extra_packages() {
 
    for file_name in ./*.deb ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
 
    for file_name in ./*.dsc ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
 
    ## Get rid of $whonix_build_sources_list_primary package list, while keeping
@@ -320,10 +320,10 @@ create_whonix_debian_packages() {
       #fi
       local make_file="Makefile"
       test -f "$make_file"
-      sudo $SUDO_OPTS make -f "$make_file" reprepro-remove
+      sudo $SUDO_OPTS -E make -f "$make_file" reprepro-remove
       ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, WHONIX_BUILD_APT_CODENAME gets passed.
-      sudo $SUDO_OPTS make -f "$make_file" "$genmkfile_make_cmd"
-      sudo $SUDO_OPTS make -f "$make_file" reprepro-add
+      sudo $SUDO_OPTS -E make -f "$make_file" "$genmkfile_make_cmd"
+      sudo $SUDO_OPTS -E make -f "$make_file" reprepro-add
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       popd
       true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
