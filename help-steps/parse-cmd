@@ -546,41 +546,22 @@ whonix_build_one_parse_cmd() {
        esac
    done
 
-   if [ "$BUILD_TARGET_ARCH" = "amd64" ]; then
-      if [ "$BUILD_KERNEL_PKGS" = "" ]; then
-         echo "${cyan}${bold}INFO: (--arch amd64 has been chosen.) No --kernel has been chosen. \
-Defaulting BUILD_KERNEL_PKGS to:${reset}
-   ${under}linux-image-amd64${eunder}"
-         export BUILD_KERNEL_PKGS="linux-image-amd64"
-      fi
-      if [ "$BUILD_HEADER_PKGS" = "" ]; then
-         echo "${cyan}${bold}INFO: (--arch amd64 has been chosen.) No --headers have been chosen. \
-Defaulting BUILD_HEADER_PKGS to:${reset}
-   ${under}linux-headers-amd64${eunder}"
-         export BUILD_HEADER_PKGS="linux-headers-amd64"
-      fi
+   [ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="amd64"
+   [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-amd64"
+   [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-image-amd64"
+
+   if [ "$BUILD_TARGET_ARCH" = "i386" ]; then
+      BUILD_KERNEL_PKGS="linux-image-686-pae"
+      BUILD_HEADER_PKGS="linux-image-686-pae"
    fi
 
-   if [ "$BUILD_KERNEL_PKGS" = "" ]; then
-      echo "${cyan}${bold}INFO: No --kernel has been chosen. \
-Defaulting BUILD_KERNEL_PKGS to:${reset}
-   ${under}linux-image-amd64${eunder}}"
-      export BUILD_KERNEL_PKGS="linux-image-amd64"
-   fi
+   export BUILD_TARGET_ARCH
+   export BUILD_KERNEL_PKGS
+   export BUILD_HEADER_PKGS
 
-   if [ "$BUILD_HEADER_PKGS" = "" ]; then
-      echo "${cyan}${bold}INFO: No --headers have been chosen. \
-Defaulting BUILD_HEADER_PKGS to:${reset}
-   ${under}linux-headers-amd64${eunder}"
-      export BUILD_HEADER_PKGS="linux-headers-amd64"
-   fi
-
-   if [ "$BUILD_TARGET_ARCH" = "" ]; then
-      echo "${cyan}${bold}INFO: No --arch has been chosen. \
-Defaulting BUILD_TARGET_ARCH to ${under}amd64${eunder}.
-(Other possible values would be i386, kfreebsd-amd64 [untested], kfreebsd-i386 [untested].)${reset}"
-      export BUILD_TARGET_ARCH="amd64"
-   fi
+   echo "${cyan}INFO: BUILD_TARGET_ARCH    (--arch): $BUILD_TARGET_ARCH${reset}"
+   echo "${cyan}INFO: BUILD_KERNEL_PKGS  (--kernel): $BUILD_KERNEL_PKGS${reset}"
+   echo "${cyan}INFO: BUILD_HEADER_PKGS (--headers): $BUILD_HEADER_PKGS${reset}"
 
    if [ "$whonix_build_sources_clearnet_or_onion" = "" ]; then
       echo "${cyan}${bold}INFO: No --connection type 'clearnet' or 'onion' has been chosen. \
