@@ -45,6 +45,8 @@ mount_raw_read_only() {
    losetup --all
    sync
 
+   ## Sleep to work around some obscure bug.
+   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
    sleep 2 &
    wait "$!"
 
@@ -84,6 +86,12 @@ unmount_raw_read_only() {
 
    sync
 
+   if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
+      local img="$binary_image_raw"
+   else
+      local img="$WHONIX_BUILD_MOUNT_RAW_FILE"
+   fi
+  
    ## Sleep to work around some obscure bug.
    ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
    sleep 2 &
