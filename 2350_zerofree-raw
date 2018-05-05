@@ -18,105 +18,19 @@ source pre
 source colors
 source variables
 
-error_handler_mount-raw() {
-   : echo "
-${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
-"
-   exit 1
-}
-
-errorhandlerunmount-raw() {
-   true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}"
-   exit 1
-}
-
-mount_raw_read_only() {
-   trap "error_handler_mount-raw" ERR INT TERM
-
-   if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
-      local img="$binary_image_raw"
-   else
-      local img="$WHONIX_BUILD_MOUNT_RAW_FILE"
-   fi
-
-   ## Debugging.
-   losetup --all
-   sync
-
-   ## Sleep to work around some obscure bug.
-   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
-   sleep 2 &
-   wait "$!"
-
-   ## Better not use this, because this can lead to a kpartx bug:
-   ## "ioctl: LOOP_CLR_FD: Device or resource busy"
-   ## Difficult to reproduce.
-   ## Debugging.
-   #kpartx -l -s -v "$img"
-   #sync
-
-   local kpartx_output a b device
-   kpartx_output="$(kpartx -a -s -v "$img" 2>&1)"
-   sync
-
-   if [ "$kpartx_output" = "" ]; then
-      local msg="kpartx did not output anything."
-      error "$msg"
-   fi
-
-   ## Debugging.
-   losetup --all
-   sync
-
-   read a b device _ <<< "$kpartx_output"
-   dev_mapper_device="/dev/mapper/$device"
-
-}
-
-
 zerofree_raw() {
 
+    source  "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw-no-chroot
+
     zerofree -v "$dev_mapper_device"
-}
 
-unmount_raw_read_only() {
-   trap "errorhandlerunmount-raw" ERR INT TERM
-
-   sync
-
-   if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
-      local img="$binary_image_raw"
-   else
-      local img="$WHONIX_BUILD_MOUNT_RAW_FILE"
-   fi
-  
-   ## Sleep to work around some obscure bug.
-   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
-   sleep 2 &
-   wait "$!"
-   sync
-
-   ## Debugging.
-   losetup --all
-   sync
-
-   kpartx -d -s -v "$img"
-   sync
-
-   ## Debugging.
-   losetup --all
-   sync
-
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw-no-chroot
 }
 
 
 main() {
    root_check
-   mount_raw_read_only
    zerofree_raw
-   unmount_raw_read_only
 }
 
 main "$@"
