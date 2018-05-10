@@ -45,8 +45,13 @@ unmount_raw() {
    sleep 2 &
    wait "$!"
    sync
-   umount "$CHROOT_FOLDER"
-   sync
+
+   if [ "$kpartx_only" = "true" ]; then
+      true "INFO: kpartx_only=$kpartx_only, skipping unmount $CHROOT_FOLDER"
+   else
+      umount "$CHROOT_FOLDER"
+      sync
+   fi
 
    if [ "$WHONIX_BUILD_MOUNT_RAW_FILE" = "" ]; then
       local img="$binary_image_raw"
@@ -71,13 +76,20 @@ unmount_raw() {
    losetup --all
    sync
 
-   ## Debugging.
-   ls -la "$CHROOT_FOLDER"
+   if [ "$kpartx_only" = "true" ]; then
+      true "INFO: kpartx_only=$kpartx_only, skipping debugging: ls -la $CHROOT_FOLDER"
+   else
+      ls -la "$CHROOT_FOLDER"
+   fi
 
-   ## Delete temporary folder.
-   ## It did not contain anything. It was only a mount point.
-   rmdir --verbose "$CHROOT_FOLDER" || true
-   sync
+   if [ "$kpartx_only" = "true" ]; then
+      true "INFO: kpartx_only=$kpartx_only, skipping rmdir."
+   else
+      ## Delete temporary folder.
+      ## It did not contain anything. It was only a mount point.
+      rmdir --verbose "$CHROOT_FOLDER" || true
+      sync
+   fi
 }
 
 main() {
