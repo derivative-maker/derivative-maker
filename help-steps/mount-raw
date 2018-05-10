@@ -3,24 +3,32 @@
 ## Copyright (C) 2012 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
-set -x
-set -e
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+   script_was_sourced="true"
+else
+   script_was_sourced="false"
+fi
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+if [ "$script_was_sourced" = "false" ]; then
+   set -x
+   set -e
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+   true "INFO: Currently running script: $BASH_SOURCE $@"
 
-source "$MYDIR/pre"
-source "$MYDIR/colors"
-source "$MYDIR/variables"
+   MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-error_handler_mount-raw() {
-   : echo "
-${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
-"
-   exit 1
-}
+   source "$MYDIR/pre"
+   source "$MYDIR/colors"
+   source "$MYDIR/variables"
+
+   error_handler_mount-raw() {
+      : echo "
+   ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
+   ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
+   "
+      exit 1
+   }
+fi
 
 mount_raw() {
    trap "error_handler_mount-raw" ERR INT TERM
@@ -77,14 +85,15 @@ mount_raw() {
    sync
 }
 
-main() {
-   root_check
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${green}INFO: Skipping script, because ANON_BUILD_INSTALL_TO_ROOT=1: $BASH_SOURCE${reset}"
-      exit 0
-   else
-      mount_raw
-   fi
-}
-
-main "$@"
+if [ "$script_was_sourced" = "false" ]; then
+   main() {
+      root_check
+      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+         true "${green}INFO: Skipping script, because ANON_BUILD_INSTALL_TO_ROOT=1: $BASH_SOURCE${reset}"
+         exit 0
+      else
+         mount_raw
+      fi
+   }
+   main "$@"
+fi
