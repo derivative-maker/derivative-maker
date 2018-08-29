@@ -9,7 +9,7 @@ parse_cmd_target_error() {
 }
 
 parse_cmd_flavor_error() {
-   echo "${red}${bold}You must add --flavor whonix-gateway, --flavor whonix-workstation, --flavor whonix-custom-workstation.${reset}"
+   echo "${red}${bold}You must add --flavor whonix-gateway, --flavor whonix-gateway-rpi, --flavor whonix-gateway-cli, --flavor whonix-workstation, --flavor whonix-custom-workstation.${reset}"
    exit 1
 }
 
@@ -33,8 +33,10 @@ Build Whonix.
 --clean
 Deletes build products (.raw, .ova and VirtualBox VM's).
 
---flavor whonix-gateway|whonix-workstation|whonix-custom-workstation|none
+--flavor whonix-gateway|whonix-gateway-rpi|whonix-gateway-cli|whonix-workstation|whonix-custom-workstation|none
 whonix-gateway: Builds Whonix-Gateway.
+whonix-gateway-rpi: Builds cli Whonix-Gateway for the rpi 3.
+whonix-gateway-cli: Builds a bare metal cli Whonix-Gateway.
 whonix-workstation: Builds Whonix-Workstation.
 whonix-custom-workstation: Builds Whonix-Custom-Workstation.
 none: not yet implemented
@@ -188,6 +190,10 @@ whonix_build_one_parse_cmd() {
                   echo "TODO: Implement"
                   exit 1
                elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
@@ -582,7 +588,7 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    fi
 
    if [ "$build_machines_counter" -gt "1" ]; then
-      error "${red}${bold}You can not combine --flavor whonix-gateway, --flavor whonix-workstation or --flavor whonix-custom-workstation.${reset}"
+      error "${red}${bold}You can not combine --flavor whonix-gateway, --flavor whonix-gateway-rpi, --flavor whonix-gateway-cli, --flavor whonix-workstation or --flavor whonix-custom-workstation.${reset}"
    fi
 
    if [ "$build_machines_counter" -le "0" ]; then
