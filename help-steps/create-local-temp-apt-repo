@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ## Copyright (C) 2012 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## Copyright (C) 2018 Algernon
 ## See the file COPYING for copying conditions.
 
 set -x
@@ -44,6 +45,12 @@ main() {
 
    ## Copy which (frozen) sources.list will be used for building Whonix into the image (or machine).
    cp "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
+   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
+  	cp $WHONIX_SOURCE_FOLDER/build_sources/debian_testing_current_clearnet.list "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources_testing.list"
+   	cp $WHONIX_SOURCE_FOLDER/build_sources/rpi-preferences "$CHROOT_FOLDER/etc/apt/preferences.d/rpi-preferences"
+   else
+      true "${green}INFO: Skipping apt-pinning, because not building whonix-gateway-rpi.${reset}"
+   fi
 
    sync
 

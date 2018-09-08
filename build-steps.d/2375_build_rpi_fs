@@ -38,16 +38,16 @@ build_rpi_fs() {
    mkfs.ext4 "${dev}p2"
    ## copying boot files + rpi firmware to fat32 boot partition
    mount "${dev}p1" "$WHONIX_BINARY/whonix_gw_rpi.img_mpoint"
-   cp -a "$CHROOT_FOLDER"/boot/* "$WHONIX_BINARY/whonix_gw_rpi.img_mpoint"
+   cp -a "$CHROOT_FOLDER"/boot/firmware/* "$WHONIX_BINARY/whonix_gw_rpi.img_mpoint"
    sync
    sleep 2
    umount "$WHONIX_BINARY/whonix_gw_rpi.img_mpoint"
    ## copying main filesystem to ext4 partition
    mount "${dev}p2" "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint
    cp -a "$CHROOT_FOLDER"/* "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint
-   echo "/dev/mmcblk0p1 /boot vfat defaults 0 2" >> "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint/etc/fstab
+   echo "/dev/mmcblk0p1 /boot/firmware vfat rw 0 2" >> "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint/etc/fstab
    ##cleaning up /boot and making /dev/mmcblk0p1 available at /boot
-   rm -r "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint/boot/*
+   #rm -r "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint/boot/
    sync
    sleep 2
    umount "$WHONIX_BINARY"/whonix_gw_rpi.img_mpoint
@@ -66,3 +66,4 @@ main() {
 }
 
 main "$@"
+
