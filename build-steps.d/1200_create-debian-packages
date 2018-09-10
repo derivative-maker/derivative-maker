@@ -27,6 +27,74 @@ source variables
 cd "$MYDIR"
 cd ..
 
+get_backports_packages() {
+   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
+      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
+      return 0
+   fi
+
+   true "${cyan}$BASH_SOURCE INFO: Getting backports packages... ${reset}"
+
+   rm --recursive --force "$WHONIX_BINARY/$FUNCNAME"
+   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/$FUNCNAME"
+   pushd "$WHONIX_BINARY/$FUNCNAME"
+
+   ## Update $whonix_build_sources_list_primary package list while keeping
+   ## previously updated regular package lists. In other words, prevent
+   ## needlessly updating regular package lists.
+   $apt_get_update_wrapper_source_path_full \
+      ${APTGETOPT[@]} \
+      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+      -o Dir::Etc::sourceparts="-" \
+      -o APT::Get::List-Cleanup="0" \
+      update
+
+   ## spectre-meltdown-checker download can be disabled once Whonix is based on
+   ## Debian 10 / buster.
+
+   ## Download backports packages from Debian backports repository.
+   sudo $SUDO_OPTS \
+      apt-get source --yes \
+         ${APTGETOPT[@]} \
+         $apt_unattended_opts \
+         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+         -o Dir::Etc::sourceparts="-" \
+         -t "${whonix_build_apt_stable_release}-backports" \
+         spectre-meltdown-checker
+
+   sudo $SUDO_OPTS \
+      apt-get download --yes \
+         ${APTGETOPT[@]} \
+         $apt_unattended_opts \
+         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+         -o Dir::Etc::sourceparts="-" \
+         -t "${whonix_build_apt_stable_release}-backports" \
+         spectre-meltdown-checker
+
+   local file_name package_absolute_path
+
+   for file_name in ./*.deb ; do
+      package_absolute_path="$(readlink -f "$file_name")"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+   done
+
+   for file_name in ./*.dsc ; do
+      package_absolute_path="$(readlink -f "$file_name")"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+   done
+
+   ## Get rid of $whonix_build_sources_list_primary package list, while keeping
+   ## regular package lists. In other words, prevent needlessly forgetting
+   ## about regular package lists.
+   apt-get update \
+      --no-download \
+      --list-cleanup
+
+   popd
+
+   true "${cyan}$BASH_SOURCE INFO: Got $FUNCNAME. ${reset}"
+}
+
 get_virtualbox_packages() {
    if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
       true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
