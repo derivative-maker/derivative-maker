@@ -145,45 +145,17 @@ get_tpo_packages() {
       dpkg --add-architecture "$architecture"
    done
 
+   apt_source_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+   apt_target_key="/etc/apt/trusted.gpg.d/tpo-temp.gpg"
+
    ## Sanity tests.
-   test -f "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+   test -f "$apt_source_key"
    test -f "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list"
-
-   gpg_temp_dir="$(mktemp --directory)"
-
-   ## Convert torprojectarchive.asc into a keybox kbx file.
-   gpg2 \
-      --no-options \
-      --no-default-keyring \
-      --homedir "$gpg_temp_dir" \
-      --import "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
-
-   ## Debugging. View contents of $gpg_temp_dir/pubring.kbx.
-   gpg2 \
-      --no-options \
-      --no-default-keyring \
-      --homedir "$gpg_temp_dir" \
-      --fingerprint
-
-   ## Convert keybox kbx file into keyring gpg file.
-   gpg2 \
-      --no-options \
-      --homedir "$gpg_temp_dir" \
-      --export \
-      > "$gpg_temp_dir/trusted.gpg"
-
-   ## Sanity test.
-   test -f "$gpg_temp_dir/pubring.kbx"
-   test -f "$gpg_temp_dir/trusted.gpg"
-
-   gpg2 \
-      --with-fingerprint \
-      "$gpg_temp_dir/trusted.gpg"
 
    ## TODO: Dir::Etc::trusted does not work anymore in Debian stretch.
    ## TODO: see https://lists.debian.org/deity/2017/01/msg00055.html
-   rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
-   cp "$gpg_temp_dir/trusted.gpg" "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
+   rm -f "$apt_target_key"
+   apt-key --keyring "$apt_target_key" add "$apt_source_key"
 
    rm -r -f "$WHONIX_BINARY/apt_state"
    mkdir -p "$WHONIX_BINARY/apt_state"
@@ -268,7 +240,7 @@ get_tpo_packages() {
       --list-cleanup
 
    ## TODO: same as above
-   rm -f "/etc/apt/trusted.gpg.d/tpo-temp.gpg"
+   rm -f "$apt_target_key"
 
    popd
 
