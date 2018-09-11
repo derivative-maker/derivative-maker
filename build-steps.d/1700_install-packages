@@ -240,14 +240,14 @@ install-packages() {
    export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
+   if [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
       pkg-install-maybe whonix-gateway-packages-dependencies-pre
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-      pkg-install-maybe whonix-gateway-packages-dependencies-pre
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
-      pkg-install-maybe whonix-gateway-packages-dependencies-pre
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
+   elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
       pkg-install-maybe whonix-workstation-packages-dependencies-pre
+   elif [ "$WHONIX_BUILD_TYPE" = "debian-vm" ]; then
+      true "INFO: $WHONIX_BUILD_FLAVOR (WHONIX_BUILD_TYPE: $WHONIX_BUILD_TYPE) therefore skipping dependencies-pre, ok."
+   elif [ "$WHONIX_BUILD_TYPE" = "hardened-debian" ]; then
+      true "INFO: $WHONIX_BUILD_FLAVOR (WHONIX_BUILD_TYPE: $WHONIX_BUILD_TYPE) therefore skipping dependencies-pre, ok."
    else
       error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
    fi
@@ -321,7 +321,9 @@ $whonix_build_script_skip_package_install${reset}"
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
       true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1, skipping installation of grub-screen-resolution and grub-output-verbose, ok.${reset}"
    elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-      true "${cyan}INFO: Building whonix-gateway-rpi, skipping installation of grub-screen-resolution and grub-output-verbose, ok.${reset}"
+      true "${cyan}INFO: Building $WHONIX_BUILD_FLAVOR, skipping installation of grub-screen-resolution and grub-output-verbose, ok.${reset}"
+   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-rpi" ]; then
+      true "${cyan}INFO: Building $WHONIX_BUILD_FLAVOR, skipping installation of grub-screen-resolution and grub-output-verbose, ok.${reset}"
    else
       pkg-install-maybe grub-screen-resolution
       pkg-install-maybe grub-output-verbose
@@ -351,16 +353,10 @@ $whonix_build_script_skip_package_install${reset}"
       fi
    fi
 
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
-      pkg-install-maybe non-qubes-whonix-gateway
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-      pkg-install-maybe whonix-gateway-rpi
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
-      pkg-install-maybe non-qubes-whonix-gateway-cli
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
-      pkg-install-maybe non-qubes-whonix-workstation
+   if [ "$install_package" = "none" ]; then
+      true "${cyan}INFO: $install_package is set to 'none', skipping.${reset}"
    else
-      error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
+      pkg-install-maybe "$install_package"
    fi
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/remove-local-temp-apt-repo"
@@ -379,18 +375,10 @@ $whonix_build_script_skip_package_install${reset}"
 }
 
 main() {
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
-      install-packages
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-      install-packages
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
-      install-packages
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
-      install-packages
-   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
+   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping installing packages for $VMNAME.${reset}"
    else
-      error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
+      install-packages
    fi
 }
 

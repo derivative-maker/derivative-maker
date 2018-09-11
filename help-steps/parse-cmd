@@ -9,7 +9,18 @@ parse_cmd_target_error() {
 }
 
 parse_cmd_flavor_error() {
-   echo "${red}${bold}You must add --flavor whonix-gateway, --flavor whonix-gateway-rpi, --flavor whonix-gateway-cli, --flavor whonix-workstation, --flavor whonix-custom-workstation.${reset}"
+   echo "${red}${bold}You must add either:
+--flavor whonix-gateway-kde
+--flavor whonix-gateway-rpi
+--flavor whonix-gateway-cli
+--flavor whonix-workstation-kde
+--flavor whonix-workstation-cli
+--flavor whonix-custom-workstation
+--flavor debian-vm-kde
+--flavor debian-vm-cli
+--flavor hardened-debian-kde
+--flavor hardened-debian-cli
+${reset}"
    exit 1
 }
 
@@ -33,13 +44,17 @@ Build Whonix.
 --clean
 Deletes build products (.raw, .ova and VirtualBox VM's).
 
---flavor whonix-gateway|whonix-gateway-rpi|whonix-gateway-cli|whonix-workstation|whonix-custom-workstation|none
-whonix-gateway: Builds Whonix-Gateway.
+--flavor whonix-gateway-kde|whonix-gateway-rpi|whonix-gateway-cli|whonix-workstation-kde|whonix-workstation-cli|whonix-custom-workstation|debian-vm-cli|debian-vm-kde|hardened-debian-cli|hardened-debian-kde
+whonix-gateway-cli: Builds Whonix-Gateway.
 whonix-gateway-rpi: Builds cli Whonix-Gateway for the rpi 3.
 whonix-gateway-cli: Builds a bare metal cli Whonix-Gateway.
-whonix-workstation: Builds Whonix-Workstation.
+whonix-workstation-kde: Builds Whonix-Workstation KDE.
+whonix-workstation-cli: Builds Whonix-Workstation CLI.
 whonix-custom-workstation: Builds Whonix-Custom-Workstation.
-none: not yet implemented
+debian-vm-cli: Builds Debian VM CLI
+debian-vm-kde: Builds Debian VM KDE
+hardened-debian-cli: Builds Hardened Debian CLI
+hardened-debian-kde: Builds Hardened Debian KDE
 
 --target virtualbox|qcow2|raw|root
 virtualbox: Use this to build VirtualBox .ovas.
@@ -51,10 +66,6 @@ vmram, vram, vmsize examples.
 --vmram 128
 --vram 12
 --vmsize 200G
-
---gui kde|none
-kde: Install KDE specific packages.
-none: Skip installation of gui specific packages.
 
 --freshness frozen|current
 frozen: Use frozen sources.
@@ -184,20 +195,25 @@ whonix_build_one_parse_cmd() {
                true "${cyan}INFO: --flavor $2 chosen.${reset}"
                WHONIX_BUILD_FLAVOR="$2"
                export WHONIX_BUILD_FLAVOR
-               if [ "$WHONIX_BUILD_FLAVOR" = "none" ]; then
-                  ## TODO: implement
-                  build_machines_counter="$(( $build_machines_counter + 1 ))"
-                  echo "TODO: Implement"
-                  exit 1
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway" ]; then
+               if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-kde" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation" ]; then
+               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-kde" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "debian-vm-cli" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "debian-vm-kde" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "hardened-debian-cli" ]; then
+                  build_machines_counter="$(( $build_machines_counter + 1 ))"
+               elif [ "$WHONIX_BUILD_FLAVOR" = "hardened-debian-kde" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                else
                   parse_cmd_flavor_error
@@ -272,24 +288,6 @@ whonix_build_one_parse_cmd() {
                   echo "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize.${reset}"
                   exit 1
                fi
-               ;;
-           --gui)
-               if [ "$2" = "kde" ]; then
-                  true "${cyan}INFO: Would install kde specific packages.${reset}"
-               elif [ "$2" = "none" ]; then
-                  true "${cyan}INFO: Skip install kde specific packages.${reset}"
-                  ## TODO: make (gui) packages opt-in rather than opt-out.
-                  whonix_build_script_skip_package_install+=" anon-shared-desktop "
-                  whonix_build_script_skip_package_install+=" anon-shared-desktop-kde "
-                  whonix_build_script_skip_package_install+=" anon-shared-kde-accessibility "
-                  whonix_build_script_skip_package_install+=" whonix-gateway "
-                  whonix_build_script_skip_package_install+=" whonix-workstation "
-                  export whonix_build_script_skip_package_install
-               else
-                  echo "${red}${bold}ERROR: supported options for --gui are 'kde' and 'none'.${reset}"
-                  exit 1
-               fi
-               shift 2
                ;;
            --freshness)
                if [ "$2" = "frozen" ]; then
@@ -588,7 +586,7 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    fi
 
    if [ "$build_machines_counter" -gt "1" ]; then
-      error "${red}${bold}You can not combine --flavor whonix-gateway, --flavor whonix-gateway-rpi, --flavor whonix-gateway-cli, --flavor whonix-workstation or --flavor whonix-custom-workstation.${reset}"
+      error "${red}${bold}You can not use --flavor multiples times!${reset}"
    fi
 
    if [ "$build_machines_counter" -le "0" ]; then
