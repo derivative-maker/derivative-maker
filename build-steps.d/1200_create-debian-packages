@@ -222,15 +222,16 @@ get_tpo_packages() {
    rm -f "$apt_target_key"
    apt-key --keyring "$apt_target_key" add "$apt_source_key"
 
-   rm -r -f "$WHONIX_BINARY/apt_state"
-   mkdir -p "$WHONIX_BINARY/apt_state"
+   rm -r -f "$apt_state_dir"
+   mkdir -p "$apt_state_dir"
+   chown -R "_apt:root" "$apt_state_dir"
 
    ## Update tpo package list while keeping
    ## previously updated regular package lists. In other words, prevent
    ## needlessly updating regular package lists.
    $apt_get_update_wrapper_source_path_full \
       ${APTGETOPT[@]} \
-      -o Dir::State="$WHONIX_BINARY/apt_state" \
+      -o Dir::State="$apt_state_dir" \
       -o Dir::Etc::trusted="$gpg_temp_dir/pubring.gpg" \
       -o Dir::Etc::trusted.d="-" \
       -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
@@ -245,7 +246,7 @@ get_tpo_packages() {
          apt-get source --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$WHONIX_BINARY/apt_state" \
+            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg"
@@ -254,7 +255,7 @@ get_tpo_packages() {
          apt-get download --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$WHONIX_BINARY/apt_state" \
+            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg:all"
@@ -265,7 +266,7 @@ get_tpo_packages() {
          apt-get source --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$WHONIX_BINARY/apt_state" \
+            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg"
@@ -275,7 +276,7 @@ get_tpo_packages() {
             apt-get download --yes \
                ${APTGETOPT[@]} \
                $apt_unattended_opts \
-               -o Dir::State="$WHONIX_BINARY/apt_state" \
+               -o Dir::State="$apt_state_dir" \
                -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
                -o Dir::Etc::sourceparts="-" \
                "$pkg:$architecture"
