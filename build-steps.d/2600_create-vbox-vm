@@ -42,11 +42,17 @@ general_setup() {
    ## Only 4 sata ports instead of 30. Speeds up booting.
    sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
 
+   ## Attach the HDD.
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
    ## Add DVD.
    sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
 
    ## RAM
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
+
+   ## Settings->Display->Video Memory
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
 
    ## Enable PAE.
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --pae on
@@ -155,13 +161,6 @@ hardware_obfuscation() {
 }
 
 whonix-gateway_specific() {
-   ## Attach the HDD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
-
-   ## 16 MB Video RAM.
-   ## Settings->Display->Video Memory->16 MB.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
-
    ## Disable Audio
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audio none
 
@@ -195,13 +194,6 @@ whonix-gateway_specific() {
 }
 
 whonix-workstation_specific() {
-   ## Attach the HDD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
-
-   ## 128 MB Video RAM.
-   ## Settings->Display->Video Memory->128 MB.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
-
    ## Add Adapter 1, an internal network, IMPORTANT!
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 intnet
 
