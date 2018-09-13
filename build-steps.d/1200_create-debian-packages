@@ -190,6 +190,10 @@ get_tpo_packages() {
 
    true "${cyan}$BASH_SOURCE INFO: Getting TPO packages... ${reset}"
 
+   pushd "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo"
+   sudo $SUDO_OPTS -E make deb-icup
+   popd
+
    rm --recursive --force "$WHONIX_BINARY/temp_tpo_packages"
    sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/temp_tpo_packages"
    pushd "$WHONIX_BINARY/temp_tpo_packages"
@@ -210,29 +214,11 @@ get_tpo_packages() {
       dpkg --add-architecture "$architecture"
    done
 
-   apt_source_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
-   apt_target_key="/etc/apt/trusted.gpg.d/tpo-temp.gpg"
-
-   ## Sanity tests.
-   test -f "$apt_source_key"
-   test -f "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list"
-
-   ## TODO: Dir::Etc::trusted does not work anymore in Debian stretch.
-   ## TODO: see https://lists.debian.org/deity/2017/01/msg00055.html
-   rm -f "$apt_target_key"
-   apt-key --keyring "$apt_target_key" add "$apt_source_key"
-
-   [ -n "$apt_state_dir" ] || apt_state_dir="$(mktemp --directory)"
-   chown -R "_apt:root" "$apt_state_dir"
-
    ## Update tpo package list while keeping
    ## previously updated regular package lists. In other words, prevent
    ## needlessly updating regular package lists.
    $apt_get_update_wrapper_source_path_full \
       ${APTGETOPT[@]} \
-      -o Dir::State="$apt_state_dir" \
-      -o Dir::Etc::trusted="$gpg_temp_dir/pubring.gpg" \
-      -o Dir::Etc::trusted.d="-" \
       -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
       -o Dir::Etc::sourceparts="-" \
       -o APT::Get::List-Cleanup="0" \
@@ -245,7 +231,6 @@ get_tpo_packages() {
          apt-get source --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg"
@@ -254,7 +239,6 @@ get_tpo_packages() {
          apt-get download --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg:all"
@@ -265,7 +249,6 @@ get_tpo_packages() {
          apt-get source --yes \
             ${APTGETOPT[@]} \
             $apt_unattended_opts \
-            -o Dir::State="$apt_state_dir" \
             -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
             -o Dir::Etc::sourceparts="-" \
             "$pkg"
@@ -275,7 +258,6 @@ get_tpo_packages() {
             apt-get download --yes \
                ${APTGETOPT[@]} \
                $apt_unattended_opts \
-               -o Dir::State="$apt_state_dir" \
                -o Dir::Etc::sourcelist="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list" \
                -o Dir::Etc::sourceparts="-" \
                "$pkg:$architecture"
@@ -300,9 +282,6 @@ get_tpo_packages() {
    apt-get update \
       --no-download \
       --list-cleanup
-
-   ## TODO: same as above
-   rm -f "$apt_target_key"
 
    popd
 
