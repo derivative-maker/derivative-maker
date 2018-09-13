@@ -123,6 +123,47 @@ general_setup() {
    ## https://www.whonix.org/wiki/Hardware_Threat_Minimization#Microphones
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" audioin off
 
+   ## https://www.virtualbox.org/manual/ch08.html
+   ## > "--ibpb-on-vm-[enter|exit] on|off: Enables flushing of the indirect branch prediction buffers on every VM enter or exit respectively. This could be enabled by users overly worried about possible spectre attacks by the VM. Please note that these options may have sever impact on performance."
+   ##
+   ## There is a mistake in VirtualBox manual saying <code>enter</code> which does not work. It's <code>entry</code>.
+   VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-entry on
+   VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-exit on
+
+   ## https://www.virtualbox.org/manual/ch08.html
+   ## > "--l1d-flush-on-vm-enter on|off: Enables flushing of the level 1 data cache on VM enter. See Section 13.4.1, “CVE-2018-3646”."
+   VBoxManage modifyvm "$VMNAME" --l1d-flush-on-vm-enter on
+
+   ## https://www.virtualbox.org/manual/ch08.html
+   ## > "--l1d-flush-on-sched on|off: Enables flushing of the level 1 data cache on scheduling EMT for guest execution. See Section 13.4.1, “[https://www.virtualbox.org/manual/ch13.html#sec-rec-cve-2018-3646 CVE-2018-3646]”."
+   ## https://www.virtualbox.org/manual/ch13.html#sec-rec-cve-2018-3646
+   ## > "For users not concerned by this security issue, the default mitigation can be disabled using
+   ##    VBoxManage modifyvm "$VMNAME" --l1d-flush-on-sched off"
+   ## Since we want to enable the security feature we set '--l1d-flush-on-sched on'.
+   VBoxManage modifyvm "$VMNAME" --l1d-flush-on-sched on
+
+   ## https://www.virtualbox.org/manual/ch08.html
+   ## > "--spec-ctrl on|off: This setting enables/disables exposing speculation control interfaces to the guest, provided they are available on the host. Depending on the host CPU and workload, enabling speculation control may significantly reduce performance."
+   ## According to https://www.virtualbox.org/ticket/17987 '--spec-ctrl' should be set to 'on'.
+   VBoxManage modifyvm "$VMNAME" --spec-ctrl on
+
+   ## https://www.virtualbox.org/manual/ch08.html
+   ## > "--nestedpaging on|off: If hardware virtualization is enabled, this additional setting enables or disables the use of the nested paging feature in the processor of your host system; see Section 10.7, “Nested paging and VPIDs” and Section 13.4.1, “CVE-2018-3646”."
+   ## https://www.virtualbox.org/manual/ch13.html#sec-rec-cve-2018-3646
+   ## > "13.4.1. CVE-2018-3646"
+   ##
+   ## > "This security issue affects a range of Intel CPUs with nested paging. AMD CPUs are expected not to be impacted (pending direct confirmation by AMD). Also the issue does not affect VMs running with hardware virtualization disabled or with nested paging disabled."
+   ##
+   ## > "For more information about nested paging, see Section 10.7, “Nested paging and VPIDs”."
+   ##
+   ## > "Mitigation options:"
+   ## > "13.4.1.1. Disable nested paging"
+   ##
+   ## > "By disabling nested paging (EPT), the VMM will construct page tables shadowing the ones in the guest. It is no possible for the guest to insert anything fishy into the page tables, since the VMM carefully validates each entry before shadowing it."
+   ##
+   ## > "As a side effect of disabling nested paging, several CPU features will not be made available to the guest. Among these features are AVX, AVX2, XSAVE, AESNI, and POPCNT. Not all guests may be able to cope with dropping these features after installation. Also, for some guests, especially in SMP configurations, there could be stability issues arising from disabling nested paging. Finally, some workloads may experience a performance degradation."
+   VBoxManage modifyvm "$VMNAME" --nestedpaging off
+
    sync
 }
 
