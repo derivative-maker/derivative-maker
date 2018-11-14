@@ -1,0 +1,54 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+shrink_raw() {
+
+   cp -a "$binary_image_raw" "${binary_image_raw}.back"
+   dev=$(losetup -f)
+   losetup "$dev" "$binary_image_raw"
+   kpartx -av "$dev"
+   mapped=$(losetup -O NAME | grep "loop" | sed 's#/dev/##')
+   while true; do
+   if [ -e "/dev/mapper/${mapped}p1" ]; then
+   break
+   else
+   sleep 5
+   fi
+   done 
+   e2fsck -y -f "/dev/mapper/${mapped}p1"
+   resize2fs /"dev/mapper/${mapped}p1 -M"
+   e2fsck -y -f "/dev/mapper/${mapped}p1"
+   kpartx -dv "$dev"
+   losetup -d "$dev"
+   truncate --size=3500M "$binary_image_raw"
+   tar -C "$WHONIX_BINARY" -czf "${binary_image_raw}.gz" "${VMNAME}-${anon_dist_build_version}.raw"
+  
+}
+
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_PHYS" = "true" ]; then
+	shrink_raw
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_PHYS is not set to 'true'.${reset}"
+   fi
+}
+
+main "$@"
