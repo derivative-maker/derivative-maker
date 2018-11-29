@@ -18,22 +18,22 @@ source pre
 source colors
 source variables
 
-export-vbox-vm() {
-   if [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
-      local TEXT="\
+msg_graphical_gateway_low_ram="\
 ########################
 ## GATEWAY - LOW RAM? ##
 ########################
 
-If your computer has 2GB or less RAM, set the RAM for Whonix-Gateway to 256MB to automatically boot into a command-line environment. The Gateway will work normally, and you can configure it via the command-line. If you need a graphical environment, temporarily increase RAM to 512MB to boot to a desktop.
+If your computer has 2GB or less RAM, set the RAM for Whonix-Gateway to 256MB to automatically boot into a command-line environment. The Gateway will work normally, and you can configure it via the command-line. If you need a graphical environment, temporarily increase RAM to 512MB to boot to a desktop."
 
+msg_whonix_security_advice="\
 #####################
 ## SECURITY ADVICE ##
 #####################
 
 Whonix with its default settings may provide better protection than Tor alone. You can make it even more secure. It is recommended to read this page:
-https://www.whonix.org/wiki/Pre_Install_Advice
+https://www.whonix.org/wiki/Computer_Security_Education"
 
+msg_whonix_disclaimer="\
 ################
 ## DISCLAIMER ##
 ################
@@ -42,56 +42,54 @@ There is no magic pill for anonymity. The more you learn about Whonix, Tor, and 
 
 Whonix is produced independently of, and carries no guarantee from The Tor Project.
 
-Whonix is experimental software. Do not rely on it for strong anonymity.
-"
-   elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
-      local TEXT="\
-# For internet access, Whonix-Workstation requires that Whonix-Gateway be running. #
+Whonix is experimental software. Do not rely on it for strong anonymity."
 
+msg_whonix_workstation_requires_whonix_gateway="\
+# For internet access, Whonix-Workstation requires that Whonix-Gateway be running. #"
+
+msg_whonix_workstation_low_ram="\
 ##########################
 ## WORKSTATION LOW RAM? ##
 ##########################
 
-If your computer has less than 2GB RAM, you can lower the RAM for Whonix-Workstation to 512MB. Performance will suffer, but an advanced user can install a lighter desktop environment. Setting RAM to less than 512MB will boot to a command-line environment.
+If your computer has less than 2GB RAM, you can lower the RAM for Whonix-Workstation to 512MB. Performance will suffer, but an advanced user can install a lighter desktop environment. Setting RAM to less than 512MB will boot to a command-line environment."
 
-#####################
-## SECURITY ADVICE ##
-#####################
+export-vbox-vm() {
+   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
+      local TEXT="\
+$msg_whonix_security_advice
 
-Whonix with its default settings may provide better protection than Tor alone. You can make it even more secure. It is recommended to read this page:
-https://www.whonix.org/wiki/Pre_Install_Advice
+$msg_whonix_disclaimer"
+   elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-cli" ]; then
+      local TEXT="\
+$msg_whonix_workstation_requires_whonix_gateway
 
-################
-## DISCLAIMER ##
-################
+$msg_whonix_security_advice
 
-There is no magic pill for anonymity. The more you learn about Whonix, Tor, and threats to your privacy, the safer you can become.
+$msg_whonix_disclaimer"
+   elif [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
+      local TEXT="\
+$msg_graphical_gateway_low_ram
 
-Whonix is produced independently of, and carries no guarantee from The Tor Project.
+$msg_whonix_security_advice
 
-Whonix is experimental software. Do not rely on it for strong anonymity.
-"
+$msg_whonix_disclaimer"
+   elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
+      local TEXT="\
+$msg_whonix_workstation_requires_whonix_gateway
+
+$msg_whonix_workstation_low_ram
+
+$msg_whonix_security_advice
+
+$msg_whonix_disclaimer"
    elif [ "$WHONIX_BUILD_TYPE" = "custom-workstation" ]; then
       local TEXT="\
-# For internet access, Whonix-Custom-Workstation requires that Whonix-Gateway be running. #
+$msg_whonix_workstation_requires_whonix_gateway
 
-#####################
-## SECURITY ADVICE ##
-#####################
+$msg_whonix_security_advice
 
-Whonix with its default settings may provide better protection than Tor alone. You can make it even more secure. It is recommended to read this page:
-https://www.whonix.org/wiki/Pre_Install_Advice
-
-################
-## DISCLAIMER ##
-################
-
-There is no magic pill for anonymity. The more you learn about Whonix, Tor, and threats to your privacy, the safer you can become.
-
-Whonix is produced independently of, and carries no guarantee from The Tor Project.
-
-Whonix is experimental software. Do not rely on it for strong anonymity.
-"
+$msg_whonix_disclaimer"
    elif [ "$WHONIX_BUILD_TYPE" = "debian-vm" ]; then
       local TEXT="TODO"
    elif [ "$WHONIX_BUILD_TYPE" = "hardened-debian" ]; then
