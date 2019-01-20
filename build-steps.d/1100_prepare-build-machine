@@ -247,6 +247,15 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       local apt_unattended_opts="--option Dpkg::Options=--force-confold"
    fi
 
+   apt-get \
+      ${APTGETOPT[@]} \
+      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+      -o Dir::Etc::sourceparts="-" \
+      $apt_unattended_opts \
+      --yes \
+      install \
+      git time
+
    ## Debugging.
    true 'INFO: Benchmarking "sudo $SUDO_OPTS echo "This is a test echo." using "time"...'
    time sudo $SUDO_OPTS echo "This is a test echo."
@@ -257,11 +266,6 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    sudo $SUDO_OPTS git submodule update --init --recursive --jobs=200
 
    true "INFO: Updated git sub modules."
-
-   apt_target_key="/etc/apt/trusted.gpg.d/torprojectarchive.gpg"
-   apt_source_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
-   test -f "$apt_source_key"
-   apt-key --keyring "$apt_target_key" add "$apt_source_key"
 
    ## Run after git submodule fetching, so $apt_get_update_wrapper_source_path_full will be available.
    $apt_get_update_wrapper_source_path_full \
