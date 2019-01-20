@@ -247,7 +247,12 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       local apt_unattended_opts="--option Dpkg::Options=--force-confold"
    fi
 
-   apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes install git time
+   apt-get \
+      ${APTGETOPT[@]} \
+      $apt_unattended_opts \
+      --yes \
+      install \
+      git time
 
    ## Debugging.
    true 'INFO: Benchmarking "sudo $SUDO_OPTS echo "This is a test echo." using "time"...'
@@ -261,21 +266,37 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    true "INFO: Updated git sub modules."
 
    ## Run after git submodule fetching, so $apt_get_update_wrapper_source_path_full will be available.
-   $apt_get_update_wrapper_source_path_full ${APTGETOPT[@]} update
+   $apt_get_update_wrapper_source_path_full \
+      ${APTGETOPT[@]} \
+      update
 
    if [ ! "$WHONIX_BUILD_UPGRADE_BUILD_MACHINE" = "0" ]; then
       ## Update package lists and upgrade.
-      apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
+      apt-get \
+         ${APTGETOPT[@]} \
+         $apt_unattended_opts \
+         --yes \
+         dist-upgrade
    fi
 
    ###############################################
    ## Build Dependencies for Whonix Build Script #
    ###############################################
-   apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes install $whonix_build_script_build_dependency
+   apt-get \
+      ${APTGETOPT[@]} \
+      $apt_unattended_opts
+      --yes \
+      install \
+      $whonix_build_script_build_dependency
 
    if [ "$eatmydata_install" = "true" ]; then
       true "INFO: Installing eatmydata, because using '--unsafe-io true'."
-      apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes install eatmydata
+      apt-get \
+         ${APTGETOPT[@]} \
+         $apt_unattended_opts \
+         --yes \
+         install \
+            eatmydata
    else
       true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
    fi
@@ -304,7 +325,7 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          $apt_unattended_opts \
          --yes \
          install \
-         $bare_metal_basic_package_list
+            $bare_metal_basic_package_list
    else
       ##################################################################
       ## Build Dependencies for creating Virtual Machine Images (.raw) #
@@ -317,13 +338,18 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ##      virtualbox
       ## - for shrinking images
       ##      zerofree
-      apt-get ${APTGETOPT[@]} $apt_unattended_opts --no-install-recommends --yes install \
-         qemu-utils \
-         grml-debootstrap \
-         parted \
-         kpartx \
-         mksh \
-         zerofree
+      apt-get \
+         ${APTGETOPT[@]} \
+         $apt_unattended_opts \
+         --no-install-recommends \
+         --yes \
+         install \
+            qemu-utils \
+            grml-debootstrap \
+            parted \
+            kpartx \
+            mksh \
+            zerofree
 
       ##################################################################
       ## Build Dependencies for Raspberry PI (RPI)                     #
@@ -332,10 +358,15 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
       ## qemu
       ## qemu-user-static
       if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-         apt-get ${APTGETOPT[@]} $apt_unattended_opts --no-install-recommends --yes install \
-            binfmt-support \
-            qemu \
-            qemu-user-static
+         apt-get \
+            ${APTGETOPT[@]} \
+            $apt_unattended_opts \
+            --no-install-recommends \
+            --yes \
+            install \
+               binfmt-support \
+               qemu \
+               qemu-user-static
       fi
 
       if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
@@ -350,7 +381,12 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
          else
             linux_headers="linux-headers-$(uname -r)"
          fi
-         apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes install "$linux_headers"
+         apt-get \
+            ${APTGETOPT[@]} \
+            $apt_unattended_opts \
+            --yes \
+            install \
+               "$linux_headers"
 
          true "INFO: Checking if VirtualBox is already installed..."
          if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
@@ -381,12 +417,14 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
                -o APT::Get::List-Cleanup="0" \
                update
 
-            apt-get install --yes \
+            apt-get \
                ${APTGETOPT[@]} \
                $apt_unattended_opts \
                -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
                -o Dir::Etc::sourceparts="-" \
-               virtualbox
+               --yes \
+               install \
+                  virtualbox
 
             ## Get rid of $whonix_build_sources_list_primary package list, while keeping
             ## regular package lists. In other words, prevent needlessly forgetting
