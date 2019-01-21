@@ -119,17 +119,6 @@ get_virtualbox_packages() {
       dpkg --add-architecture "$architecture"
    done
 
-   ## Update $whonix_build_sources_list_primary package list while keeping
-   ## previously updated regular package lists. In other words, prevent
-   ## needlessly updating regular package lists.
-   $apt_get_update_wrapper_source_path_full \
-      ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-      -o Dir::Etc::sourceparts="-" \
-      -o APT::Get::List-Cleanup="0" \
-      update
-
-   ## Download VirtualBox guest additions from $whonix_build_sources_list_primary.
    sudo $SUDO_OPTS \
       apt-get source --yes \
          ${APTGETOPT[@]} \
@@ -169,13 +158,6 @@ get_virtualbox_packages() {
       package_absolute_path="$(readlink -f "$file_name")"
       sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
-
-   ## Get rid of $whonix_build_sources_list_primary package list, while keeping
-   ## regular package lists. In other words, prevent needlessly forgetting
-   ## about regular package lists.
-   apt-get update \
-      --no-download \
-      --list-cleanup
 
    popd
 
