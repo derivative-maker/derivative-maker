@@ -90,18 +90,6 @@ get_virtualbox_packages() {
    sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/temp_extra_packages"
    pushd "$WHONIX_BINARY/temp_extra_packages"
 
-   local architecture_list architecture
-   local package_list_architecture_specific pkg
-
-   architecture_list="amd64 i386"
-
-   package_list_architecture_specific="virtualbox-guest-utils virtualbox-guest-x11"
-
-   ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
-   for architecture in $architecture_list ; do
-      dpkg --add-architecture "$architecture"
-   done
-
    sudo $SUDO_OPTS \
       apt-get source --yes \
          ${APTGETOPT[@]} \
@@ -116,19 +104,7 @@ get_virtualbox_packages() {
          $apt_unattended_opts \
          -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
          -o Dir::Etc::sourceparts="-" \
-         virtualbox-guest-dkms
-
-   for architecture in $architecture_list ; do
-      for pkg in $package_list_architecture_specific ; do
-         sudo $SUDO_OPTS \
-            apt-get download --yes \
-               ${APTGETOPT[@]} \
-               $apt_unattended_opts \
-               -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-               -o Dir::Etc::sourceparts="-" \
-               "$pkg:$architecture"
-      done
-   done
+         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
 
    local file_name package_absolute_path
 
