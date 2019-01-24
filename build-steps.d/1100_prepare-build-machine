@@ -115,6 +115,11 @@ cowbuilder_setup() {
       eatmydata_maybe_install="eatmydata"
    fi
 
+   if ! test -f /etc/hostname ; then
+      ## mmdebstrap requires /etc/hostname to exist.
+      touch /etc/hostname
+   fi
+
    if mount | grep /var/cache/pbuilder | grep tmpfs ; then
       true "INFO: /var/cache/pbuilder already tmpfs."
    else
@@ -127,13 +132,17 @@ cowbuilder_setup() {
    ## TODO: change that folder
    cow_folder="/var/cache/pbuilder/base.cow"
 
+   ## TODO
+   rm -rf "$cow_folder"
+
    if [ ! -d "$cow_folder" ]; then
       $COWBUILDER_PREFIX \
+      whonix_build_sources_list_primary="$whonix_build_sources_list_primary" \
          cowbuilder \
             --create \
             --configfile "$whonix_build_pbuilder_config_file" \
             --distribution "$whonix_build_apt_stable_release" \
-            --mirror "$whonix_build_apt_sources_mirror" \
+            --debootstrap "$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-debootstrap-command-filter" \
             --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor apt-transport-https python $eatmydata_maybe_install"
    fi
 
@@ -389,9 +398,9 @@ genmkfile_installation() {
 }
 
 main() {
-   build_machine_setup "$@"
+   #build_machine_setup "$@"
    cowbuilder_setup "$@"
-   genmkfile_installation "$@"
+   #genmkfile_installation "$@"
 }
 
 main "$@"

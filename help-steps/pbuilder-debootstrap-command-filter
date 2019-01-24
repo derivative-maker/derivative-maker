@@ -1,0 +1,44 @@
+#!/bin/bash
+
+## Copyright (C) 2017 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+## This script fixes the interaction between multiple tools.
+##
+## - `cowbuilder` hardcodes setting '--buildplace'.
+##
+## - `pbuilder` sets by default '--force-check-gpg'.
+##   (This could also be sorted in `whonix_build_pbuilder_config_file`.)
+## - `pbuilder` `/usr/lib/pbuilder/pbuilder-createbuildenv` hardcodes calling `${DEBOOTSTRAP}`.
+##
+## - `mmdebstrap` does not support '--force-check-gpg'.
+## - `mmdebstrap` requires the parameters in a certain order.
+
+set -x
+set -e
+
+true "${bold}INFO: Currently running $0.${reset}"
+
+args="$@"
+
+## Example $@:
+## --include=apt --variant=buildd --force-check-gpg stretch /var/cache/pbuilder/base.cow http://ftp.us.debian.org/debian
+
+true "BUILDPLACE: $BUILDPLACE"
+true "whonix_build_sources_list_primary: $whonix_build_sources_list_primary"
+
+args="${args//"http://ftp.us.debian.org/debian"}"
+args="${args//"/var/cache/pbuilder/base.cow"}"
+args="${args//"--force-check-gpg"}"
+
+## example args:
+## --include=apt --variant=buildd  stretch
+
+true "args: $args"
+
+mmdebstrap $args $BUILDPLACE $whonix_build_sources_list_primary
+
+## example:
+## mmdebstrap --include=apt --variant=buildd stretch /var/cache/pbuilder/base.cow /home/user/whonix_dot/Whonix/build_sources/debian_stable_current_clearnet.list
+
+true "${bold}INFO: End of script $0.${reset}"
