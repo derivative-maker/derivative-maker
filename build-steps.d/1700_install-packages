@@ -163,7 +163,7 @@ Trying to diagnose the problem using function apt_get_parse_unmet_dependency...$
    return 0
 }
 
-backup-file-if-exists() {
+backup-file-if-exists-and-delete() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
    if [ ! -d "$WHONIX_BINARY/system-files-backup" ]; then
@@ -174,11 +174,17 @@ backup-file-if-exists() {
    base_name="$(basename "$1")"
 
    if [ -f "$1" ]; then
-      cp --no-clobber --preserve "$1" "$1.backup"
+      ## Otherwise /etc/apt/sources.list.backup leaks Whonix build sources inside VM.
+      ## Otherwise host /etc/resolv.conf ends up inside VM.
+      #cp --no-clobber --preserve "$1" "$1.backup"
+
       sudo $SUDO_OPTS cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-backup/$base_name"
    else
       true "INFO: file $1 does not exist, skipping backup, ok."
    fi
+
+   rm --force --verbose "$1"
+
    true
 }
 
@@ -198,23 +204,22 @@ install-packages() {
    sync
 
    ## Backup exiting /etc/apt/sources.list, might be useful for bare metal users.
-   backup-file-if-exists "$CHROOT_FOLDER/etc/apt/sources.list"
+   ## We have to delete /etc/apt/sources.list, because it is Whonix build sources.
+   ## (variable whonix_build_sources_list_primary)
+   ## "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo" will keep care of it.
+   backup-file-if-exists-and-delete "$CHROOT_FOLDER/etc/apt/sources.list"
 
    ## Backup exiting /etc/resolv.conf, so we can later use it in help-steps/chroot-img.
-   backup-file-if-exists "$CHROOT_FOLDER/etc/resolv.conf"
+   backup-file-if-exists-and-delete "$CHROOT_FOLDER/etc/resolv.conf"
 
    ## Backup exiting /etc/hosts so we can later use it in help-steps/chroot-img.
-   backup-file-if-exists "$CHROOT_FOLDER/etc/hosts"
+   backup-file-if-exists-and-delete "$CHROOT_FOLDER/etc/hosts"
 
    ## Backup exiting /etc/hostname so we can later use it in help-steps/chroot-img.
-   backup-file-if-exists "$CHROOT_FOLDER/etc/hostname"
+   backup-file-if-exists-and-delete "$CHROOT_FOLDER/etc/hostname"
 
    ## Backup exiting /etc/network/interfaces so we can later use it in help-steps/chroot-img.
-   backup-file-if-exists "$CHROOT_FOLDER/etc/network/interfaces"
-
-   ## We have to fix /etc/apt/sources.list, because it is Whonix build sources.
-   ## (variable whonix_build_sources_list_primary)
-   mv "$CHROOT_FOLDER/etc/apt/sources.list" "$CHROOT_FOLDER/etc/apt/sources.list.backup" || true
+   backup-file-if-exists-and-delete "$CHROOT_FOLDER/etc/network/interfaces"
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/create-local-temp-apt-repo"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
