@@ -26,9 +26,29 @@ cat /etc/apt/sources.list
 true "\${APTGETOPT[@]}:
 ${APTGETOPT[@]}"
 
+## /var/lib/dpkg/available is missing after running mmdebstrap.
+## aptitude does not like that.
+## Leading to cowbuilder issue during make deb-pkg.
+## Exerpt:
+##
+## Setting up pbuilder-satisfydepends-dummy (0.invalid.0) ...
+## ++ chroot /var/cache/pbuilder/build/cow.6916 cow-shell env XDG_CACHE_HOME=/root aptitude -y --without-recommends -o APT::Install-Recommends=false -o Aptitude::ProblemResolver::StepScore=100 -o 'Aptitude::ProblemResolver::Hints::KeepDummy=reject pbuilder-satisfydepends-dummy :UNINST' -o Aptitude::ProblemResolver::Keep-All-Level=55000 -o Aptitude::ProblemResolver::Remove-Essential-Level=maximum install pbuilder-satisfydepends-dummy
+## [ ERR] Writing extended state information
+## [ ERR] Building tag database
+## E: Failed to execute process to save dpkg selections, dpkg or trying to execute it exited with status/errno: 2
+## E: failed to save selections to dpkg database
+## E: pbuilder-satisfydepends failed
+##
+## The workaround is to run 'dpkg --clear-avail' followed by "apt-get update",
+## which regenerates /var/lib/dpkg/available.
+dpkg --clear-avail
+
 $apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} $apt_unattended_opts update
 
 $apt_get_update_sanity_test_bin_path_full
+
+## Sanity test for above aptitude issue.
+test -f /var/lib/dpkg/available
 
 apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
 
