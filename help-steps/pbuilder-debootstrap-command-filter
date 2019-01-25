@@ -27,13 +27,16 @@ args="$@"
 true "BUILDPLACE: $BUILDPLACE"
 true "whonix_build_sources_list_primary: $whonix_build_sources_list_primary"
 
-## filter out default mirror (if we were not using --mirror)
+## filter out default mirror by cowbuilder or pbuilder (if we were not using --mirror)
 args="${args//"http://ftp.us.debian.org/debian"}"
+
+## filter out default mirror by grml-debootstrap
+args="${args//"http://httpredir.debian.org/debian"}"
 
 ## filter out --mirror
 args="${args//"$whonix_build_apt_sources_mirror"}"
 
-## filter out variable BUILDPLACE because we need to adjust the order of arguments
+## filter out variable BUILDPLACE (set by pbuilder) because we need to adjust the order of arguments
 args="${args//"$BUILDPLACE"}"
 
 ## filter out --force-check-gpg (set by cowbuilder or pbuilder) since mmdebstrap does this by default and therefore does not support that command
@@ -47,7 +50,13 @@ args="${args//"--verbose"}"
 
 true "args: $args"
 
-mmdebstrap $args "$BUILDPLACE" "$whonix_build_sources_list_primary"
+if [ "$BUILDPLACE" = "" ]; then
+   true "probably called by called by grml-debootstrap"
+   mmdebstrap $args "$whonix_build_sources_list_primary"
+else
+   true "probably called by called by pbuilder"
+   mmdebstrap $args "$BUILDPLACE" "$whonix_build_sources_list_primary"
+fi
 
 ## example:
 ## mmdebstrap --include=apt --variant=buildd stretch /var/cache/pbuilder/base.cow /home/user/whonix_dot/Whonix/build_sources/debian_stable_current_clearnet.list
