@@ -179,6 +179,20 @@ cowbuilder_setup() {
 
 build_machine_setup() {
    root_check
+
+   local required_packages_list required_package_item
+   local required_packages_list="git time curl apt-cacher-ng lsb-release fakeroot"
+
+   for required_package_item in $required_packages_list ; do
+      if ! dpkg-query --show --showformat='${Version}' "$required_package_item" ; then
+         error "${bold}${red}ERROR $BASH_SOURCE: Requried package $required_package_item missing. Run:
+
+sudo apt-get update
+
+sudo apt-get install $required_packages_list${reset}"
+      fi
+   done
+
    signing_key
 
    if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
