@@ -35,6 +35,18 @@ get_backports_packages() {
 
    true "${cyan}$BASH_SOURCE INFO: Getting backports packages... ${reset}"
 
+   ## Not using '-t "${whonix_build_apt_stable_release}-backports"' to workaround apt-get bug.
+   local pkg_list bp
+   bp="${whonix_build_apt_stable_release}-backports"
+
+   ## spectre-meltdown-checker download can be disabled once Whonix is based on
+   ## Debian 10 / buster.
+   pkg_list+="spectre-meltdown-checker/$bp "
+
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      pkg_list+="virtualbox-guest-dkms/$bp virtualbox-guest-utils/$bp virtualbox-guest-x11/$bp "
+   fi
+
    rm --recursive --force "$WHONIX_BINARY/$FUNCNAME"
    sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/$FUNCNAME"
    pushd "$WHONIX_BINARY/$FUNCNAME"
@@ -46,11 +58,8 @@ get_backports_packages() {
       -o Dir::Etc::sourceparts="-" \
       update
 
-   ## spectre-meltdown-checker download can be disabled once Whonix is based on
-   ## Debian 10 / buster.
-
    ## Download backports packages from Debian backports repository.
-   ## Not using '-t "${whonix_build_apt_stable_release}-backports"' to workaround apt-get bug.
+
    ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=441178
    sudo $SUDO_OPTS \
       apt-get source --yes \
@@ -58,7 +67,7 @@ get_backports_packages() {
          $apt_unattended_opts \
          -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
          -o Dir::Etc::sourceparts="-" \
-         spectre-meltdown-checker/"${whonix_build_apt_stable_release}-backports"
+         $pkg_list
 
    sudo $SUDO_OPTS \
       apt-get download --yes \
@@ -66,7 +75,7 @@ get_backports_packages() {
          $apt_unattended_opts \
          -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
          -o Dir::Etc::sourceparts="-" \
-         spectre-meltdown-checker/"${whonix_build_apt_stable_release}-backports"
+         $pkg_list
 
    local file_name package_absolute_path
 
@@ -83,51 +92,6 @@ get_backports_packages() {
    popd
 
    true "${cyan}$BASH_SOURCE INFO: Got $FUNCNAME. ${reset}"
-}
-
-get_virtualbox_packages() {
-   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
-      return 0
-   fi
-
-   true "${cyan}$BASH_SOURCE INFO: Getting extra packages... ${reset}"
-
-   rm --recursive --force "$WHONIX_BINARY/temp_extra_packages"
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/temp_extra_packages"
-   pushd "$WHONIX_BINARY/temp_extra_packages"
-
-   sudo $SUDO_OPTS \
-      apt-get source --yes \
-         ${APTGETOPT[@]} \
-         $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-         -o Dir::Etc::sourceparts="-" \
-         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
-
-   sudo $SUDO_OPTS \
-      apt-get download --yes \
-         ${APTGETOPT[@]} \
-         $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-         -o Dir::Etc::sourceparts="-" \
-         virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11
-
-   local file_name package_absolute_path
-
-   for file_name in ./*.deb ; do
-      package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
-   done
-
-   for file_name in ./*.dsc ; do
-      package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
-   done
-
-   popd
-
-   true "${cyan}$BASH_SOURCE INFO: Got extra packages. ${reset}"
 }
 
 get_tpo_packages() {
@@ -311,10 +275,6 @@ create-debian-packages() {
    signing_key "$@"
 
    get_backports_packages
-
-   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-      get_virtualbox_packages "$@"
-   fi
 
    ## It is possible this fails.
    ## This happened in past when both deb.torproject.org as well as
