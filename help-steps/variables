@@ -84,11 +84,7 @@ aptgetopt_add() {
 
 aptgetopt_conf_add () {
    sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/"
-   to_add="$1"
-   local add_var
-   add_var="${to_add:3}"
-   add_var="${add_var};"
-   echo "$add_var" >> "$whonix_aptgetop_file"
+   echo "$1" >> "$whonix_aptgetop_file"
 }
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
@@ -313,7 +309,7 @@ export XZ_OPT
 if [ "$whonix_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
    aptgetopt_add "-o Dpkg::Options::=--force-unsafe-io"
-   aptgetopt_conf_add "-o Dpkg::Options::=--force-unsafe-io"
+   aptgetopt_conf_add "Dpkg::Options::=--force-unsafe-io"
    if command -v eatmydata >/dev/null 2>&1 ; then
       true "INFO: eatmydata installed, preloading."
       ## Thanks to:
@@ -347,13 +343,13 @@ if [ -n "${REPO_PROXY}" ]; then
    ## config requires with quotes
 
    aptgetopt_add "-o Acquire::http::Proxy=${REPO_PROXY}"
-   aptgetopt_conf_add "-o Acquire::http::Proxy=\"${REPO_PROXY}\""
+   aptgetopt_conf_add "Acquire::http::Proxy \"${REPO_PROXY}\";"
 
    aptgetopt_add "-o Acquire::https::Proxy=${REPO_PROXY}"
-   aptgetopt_conf_add "-o Acquire::https::Proxy=\"${REPO_PROXY}\""
+   aptgetopt_conf_add "Acquire::https::Proxy \"${REPO_PROXY}\";"
 
    aptgetopt_add "-o Acquire::tor::Proxy=${REPO_PROXY}"
-   aptgetopt_conf_add "-o Acquire::tor::Proxy=\"${REPO_PROXY}\""
+   aptgetopt_conf_add "Acquire::tor::Proxy \"${REPO_PROXY}\";"
 
    DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY}"
    COWBUILDER_PREFIX+=" env http_proxy=${REPO_PROXY}"
