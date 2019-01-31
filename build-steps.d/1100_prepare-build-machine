@@ -135,8 +135,13 @@ cowbuilder_setup() {
    ## TODO: change that folder
    cow_folder="/var/cache/pbuilder/base.cow"
 
-   ## TODO
-   rm --recursive --force --verbose "$cow_folder"
+   if [ -d "$cow_folder" ]; then
+      "$WHONIX_SOURCE_FOLDER/help-steps/umount_kill.sh" "$cow_folder/"
+      rm --recursive --force --verbose "$cow_folder"
+   fi
+
+   local cowbuilder_exit_code
+   cowbuilder_exit_code=0
 
    ## '--mirror "$whonix_build_apt_sources_mirror"' should be only cosmetic,
    ## because of pbuilder-debootstrap-command-filter and hooks.
@@ -149,7 +154,12 @@ cowbuilder_setup() {
          --mirror "$whonix_build_apt_sources_mirror" \
          --debootstrap "$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-debootstrap-command-filter" \
          --hookdir "$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-hooks" \
-         --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor apt-transport-https python $eatmydata_maybe_install"
+         --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor apt-transport-https python $eatmydata_maybe_install" \
+         || { cowbuilder_exit_code="$?" ; true; };
+
+   if [ ! "$cowbuilder_exit_code" = "0" ]; then
+      return "$cowbuilder_exit_code"
+   fi
 
    true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
    diff "$whonix_build_sources_list_primary" "$cow_folder/etc/apt/sources.list"
@@ -168,11 +178,17 @@ cowbuilder_setup() {
    cp "$apt_get_update_sanity_test__source_path_full" "$cow_folder/$apt_get_update_sanity_test_bin_path_full"
    cp "$whonix_build_pbuilder_config_file" "$cow_folder/home/$user_name/pbuilder_config_file"
 
+   cowbuilder_exit_code=0
    $COWBUILDER_PREFIX \
       cowbuilder \
          --execute "$whonix_build_pbuilder_chroot_script" \
          --configfile "$whonix_build_pbuilder_config_file" \
-         --save-after-login
+         --save-after-login \
+         || { cowbuilder_exit_code="$?" ; true; };
+
+   if [ ! "$cowbuilder_exit_code" = "0" ]; then
+      return "$cowbuilder_exit_code"
+   fi
 
    true "${bold}${green}INFO${reset}: cowbuilder setup done."
 }
