@@ -74,6 +74,19 @@ export WHONIX_SOURCE_HELP_STEPS_FOLDER
 
 cd "$WHONIX_SOURCE_FOLDER"
 
+[ -n "$whonix_aptgetop_file" ] || whonix_aptgetop_file="$WHONIX_BINARY/aptgetopt.conf"
+export whonix_aptgetop_file
+rm -f "$whonix_aptgetop_file"
+
+aptgetopt_add() {
+   APTGETOPT[${#APTGETOPT[@]}]="$1"
+   to_add="$1"
+   local add_var
+   add_var="${to_add:3}"
+   add_var="${add_var};"
+   echo "$add_var" >> "$whonix_aptgetop_file"
+}
+
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
 ## https://wiki.ubuntu.com/DebootstrapChroot and
 ## https://lists.debian.org/debian-amd64/2005/08/msg00249.html.
@@ -295,7 +308,7 @@ export XZ_OPT
 
 if [ "$whonix_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
-   APTGETOPT[${#APTGETOPT[@]}]="-o Dpkg::Options::=--force-unsafe-io"
+   aptgetopt_add "-o Dpkg::Options::=--force-unsafe-io"
    if command -v eatmydata >/dev/null 2>&1 ; then
       true "INFO: eatmydata installed, preloading."
       ## Thanks to:
@@ -325,7 +338,7 @@ fi
 [ -n "$REPO_PROXY" ] || REPO_PROXY="http://127.0.0.1:3142"
 
 if [ -n "${REPO_PROXY}" ]; then
-   APTGETOPT[${#APTGETOPT[@]}]="-o Acquire::http::Proxy=${REPO_PROXY}"
+   aptgetopt_add "-o Acquire::http::Proxy=${REPO_PROXY}"
    DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY}"
    COWBUILDER_PREFIX+=" env http_proxy=${REPO_PROXY}"
    ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
@@ -612,6 +625,8 @@ APTGETOPT[\${#APTGETOPT[@]}]=\"${APTGETOPT[@]}\"
 
 APTGETOPT[\${#APTGETOPT[@]}]=\"-o Acquire::BlockDotOnion=false\"
 
+export whonix_aptgetop_file
+
 ## making pbuilder /usr/lib/pbuilder/pbuilder-createbuildenv work with mmdebstrap.
 ## so it can be read by help-steps/pbuilder-debootstrap-command-filter
 export BUILDPLACE
@@ -619,6 +634,7 @@ export BUILDPLACE
 ## Debugging.
 true \"APTGETOPT: \${APTGETOPT[@]}\"
 true \"BUILDPLACE: \$BUILDPLACE\"
+true \"whonix_aptgetop_file: \$whonix_aptgetop_file\"
 
 ## End of $whonix_build_pbuilder_config_file.
 " | \
