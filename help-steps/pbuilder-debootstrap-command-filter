@@ -49,20 +49,25 @@ args="${args//"--force-check-gpg"}"
 ## filter out --verbose (set by grml-debootstrap) since mmdebstrap does this by default and therefore does not support that command
 args="${args//"--verbose"}"
 
+args="${args//"--include=apt"}"
+
 ## example args:
-## --include=apt --variant=buildd  stretch
+## --variant=buildd  stretch
 
 true "args: $args"
 
+## build dependencies
+include_opt="--include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,apt-transport-https,python,eatmydata,aptitude,cowdancer"
+
 if [ "$BUILDPLACE" = "" ]; then
-   true "probably called by called by grml-debootstrap"
+   true "$0: probably called by called by grml-debootstrap"
    mmdebstrap $args
 else
-   true "probably called by called by pbuilder"
-   mmdebstrap $args "$BUILDPLACE" "$whonix_build_sources_list_primary"
+   true "$0: probably called by called by pbuilder"
+   mmdebstrap $include_opt $args "$BUILDPLACE" "$whonix_build_sources_list_primary"
 fi
 
 ## example:
-## mmdebstrap --include=apt --variant=buildd stretch /var/cache/pbuilder/base.cow /home/user/whonix_dot/Whonix/build_sources/debian_stable_current_clearnet.list
+## mmdebstrap --variant=buildd stretch /var/cache/pbuilder/base.cow /home/user/whonix_dot/Whonix/build_sources/debian_stable_current_clearnet.list
 
 true "${bold}INFO: End of script $0.${reset}"
