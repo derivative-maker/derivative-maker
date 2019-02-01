@@ -109,6 +109,15 @@ main() {
       ## Debugging.
       test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
 
+      if diff "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf" >/dev/null ; then
+         true "INFO: Host '/etc/resolv.conf' matches '$CHROOT_FOLDER/etc/resolv.conf', \
+therefore shredding '$CHROOT_FOLDER/etc/resolv.conf'."
+         ## Delete leaked host resolv.conf by grml-debootstrap inside image.
+         shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/etc/resolv.conf"
+      else
+         true "INFO: Host '/etc/resolv.conf' does not match '$CHROOT_FOLDER/etc/resolv.conf', ok"
+      fi
+
       if [ ! -f "$CHROOT_FOLDER/etc/resolv.conf" ]; then
          touch "$CHROOT_FOLDER/etc/resolv.conf"
       fi
