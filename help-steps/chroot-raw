@@ -116,7 +116,7 @@ main() {
 
    sync
 
-   local mount_base_file ok_if_match_file
+   local mount_base_file ok_if_match_file is_ok
 
    ## If Whonix version already inside chroot, don't delete, keep as is, ok.
    ## If host version inside chroot, delete, ok.
@@ -132,6 +132,8 @@ main() {
       ## Delete inside chroot if host version leaked into it.
       if diff "/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
          true "INFO: Host '/$mount_base_file' matches '$CHROOT_FOLDER/$mount_base_file'"
+
+         is_ok=no
          for ok_if_match_file in \
             "$WHONIX_SOURCE_FOLDER/packages/anon-gw-dns-conf/etc/resolv.conf.anondist" \
             "$WHONIX_SOURCE_FOLDER/packages/anon-ws-dns-conf/etc/resolv.conf.anondist" \
@@ -140,14 +142,15 @@ main() {
             ; do
                if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file" >/dev/null ; then
                   true "INFO: But '$CHROOT_FOLDER/$mount_base_file' also matches '$ok_if_match_file', ok."
-                  continue
-               else
-                  true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
-                  ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
-                  shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/$mount_base_file"
-                  continue
+                  is_ok=yes
+                  break
                fi
          done
+         if [ "$is_ok" = "no" ]; then
+            true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
+            ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
+            shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/$mount_base_file"
+         fi
       else
          true "INFO: Host '/$mount_base_file' does not match '$CHROOT_FOLDER/$mount_base_file', ok"
       fi
