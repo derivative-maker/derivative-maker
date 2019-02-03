@@ -85,6 +85,22 @@ main() {
       mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
    fi
 
+   ##########################
+   ## /etc/apt/sources.list #
+   ##########################
+
+   ## XXX: This is not the cleanest solution. Doesn't belong here.
+   ## Other options:
+   ## - Using `grml-debootstrap` with `--post-scripts`.
+   ## - Inventing another build step just for this which would then require another
+   ##   mount and umount. Since too many mount/umount actions can lead to triggering bugs,
+   ##   this is best avoided.
+   ## Both other options seem more complex and error-prone than this hack.
+   if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" >/dev/null ; then
+      true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
+      rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
+   fi
+
    ################
    ## mount files #
    ################
