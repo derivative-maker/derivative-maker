@@ -91,47 +91,51 @@ main() {
    ## networking inside the chroot, so the file should remain untouched.
    #mount -o remount,ro,noload "$CHROOT_FOLDER/etc/resolv.conf"
 
+   sync
+
    if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
       true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf and others inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
-   else
-      if [ ! -f "$WHONIX_BINARY/system-files-backup/hostname" ]; then
-         true "${cyan}INFO${reset}: $WHONIX_BINARY/system-files-backup/hostname does not exist. Creating..."
-         hostname_temp="$(hostname)"
-         sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-backup"
-         echo "$hostname_temp" | \
-            sudo $SUDO_OPTS \
-               tee "$WHONIX_BINARY/system-files-backup/hostname" >/dev/null
-         ## Debugging.
-         cat "$WHONIX_BINARY/system-files-backup/hostname"
-         true "${cyan}INFO${reset}: Done, created $WHONIX_BINARY/system-files-backup/hostname."
-      fi
 
-      ## Debugging.
-      test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
-
-      if diff "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf" >/dev/null ; then
-         true "INFO: Host '/etc/resolv.conf' matches '$CHROOT_FOLDER/etc/resolv.conf', \
-therefore shredding '$CHROOT_FOLDER/etc/resolv.conf'."
-         ## Delete leaked host resolv.conf by grml-debootstrap inside image.
-         shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/etc/resolv.conf"
-      else
-         true "INFO: Host '/etc/resolv.conf' does not match '$CHROOT_FOLDER/etc/resolv.conf', ok"
-      fi
-
-      if [ ! -f "$CHROOT_FOLDER/etc/resolv.conf" ]; then
-         touch "$CHROOT_FOLDER/etc/resolv.conf"
-      fi
-      if [ ! -f "$CHROOT_FOLDER/etc/hosts" ]; then
-         touch "$CHROOT_FOLDER/etc/hosts"
-      fi
-      if [ ! -f "$CHROOT_FOLDER/etc/hostname" ]; then
-         touch "$CHROOT_FOLDER/etc/hostname"
-      fi
-
-      mount --bind "$WHONIX_BINARY/system-files-backup/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
-      mount --bind "$WHONIX_BINARY/system-files-backup/hosts" "$CHROOT_FOLDER/etc/hosts"
-      mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
+      return 0
    fi
+
+   if [ ! -f "$WHONIX_BINARY/system-files-backup/hostname" ]; then
+      true "${cyan}INFO${reset}: $WHONIX_BINARY/system-files-backup/hostname does not exist. Creating..."
+      hostname_temp="$(hostname)"
+      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-backup"
+      echo "$hostname_temp" | \
+         sudo $SUDO_OPTS \
+            tee "$WHONIX_BINARY/system-files-backup/hostname" >/dev/null
+      ## Debugging.
+      cat "$WHONIX_BINARY/system-files-backup/hostname"
+      true "${cyan}INFO${reset}: Done, created $WHONIX_BINARY/system-files-backup/hostname."
+   fi
+
+   ## Debugging.
+   test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
+
+   if diff "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf" >/dev/null ; then
+      true "INFO: Host '/etc/resolv.conf' matches '$CHROOT_FOLDER/etc/resolv.conf', \
+therefore shredding '$CHROOT_FOLDER/etc/resolv.conf'."
+      ## Delete leaked host resolv.conf by grml-debootstrap inside image.
+      shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/etc/resolv.conf"
+   else
+      true "INFO: Host '/etc/resolv.conf' does not match '$CHROOT_FOLDER/etc/resolv.conf', ok"
+   fi
+
+   if [ ! -f "$CHROOT_FOLDER/etc/resolv.conf" ]; then
+      touch "$CHROOT_FOLDER/etc/resolv.conf"
+   fi
+   if [ ! -f "$CHROOT_FOLDER/etc/hosts" ]; then
+      touch "$CHROOT_FOLDER/etc/hosts"
+   fi
+   if [ ! -f "$CHROOT_FOLDER/etc/hostname" ]; then
+      touch "$CHROOT_FOLDER/etc/hostname"
+   fi
+
+   mount --bind "$WHONIX_BINARY/system-files-backup/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
+   mount --bind "$WHONIX_BINARY/system-files-backup/hosts" "$CHROOT_FOLDER/etc/hosts"
+   mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
 
    sync
 }
