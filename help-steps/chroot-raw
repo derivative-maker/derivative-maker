@@ -22,6 +22,29 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
+backup-file-if-exists() {
+   errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
+
+   if [ ! -d "$WHONIX_BINARY/system-files-backup/etc" ]; then
+      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-backup/etc"
+   fi
+
+   local base_name
+   base_name="$(basename "$1")"
+
+   if [ -f "$1" ]; then
+      ## Otherwise /etc/apt/sources.list.backup leaks Whonix build sources inside VM.
+      ## Otherwise host /etc/resolv.conf ends up inside VM.
+      #cp --no-clobber --preserve "$1" "$1.backup"
+
+      sudo $SUDO_OPTS cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
+   else
+      true "INFO: file $1 does not exist, skipping backup, ok."
+   fi
+
+   true
+}
+
 main() {
    trap "error_handler_chroot-raw" ERR INT TERM
 
@@ -93,49 +116,52 @@ main() {
 
    sync
 
-   if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
-      true "${cyan}INFO $BASH_SOURCE: Not mounting /etc/resolv.conf and others inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
+   local mount_base_file ok_if_match_file
 
-      return 0
-   fi
+   ## If Whonix version already inside chroot, don't delete, keep as is, ok.
+   ## If host version inside chroot, delete, ok.
+   ## Empty version exists inside chroot in any case, ok.
+   ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=0: don't mount; empty file.
+   ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=1: mount host version inside chroot.
 
-   if [ ! -f "$WHONIX_BINARY/system-files-backup/hostname" ]; then
-      true "${cyan}INFO${reset}: $WHONIX_BINARY/system-files-backup/hostname does not exist. Creating..."
-      hostname_temp="$(hostname)"
-      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-backup"
-      echo "$hostname_temp" | \
-         sudo $SUDO_OPTS \
-            tee "$WHONIX_BINARY/system-files-backup/hostname" >/dev/null
-      ## Debugging.
-      cat "$WHONIX_BINARY/system-files-backup/hostname"
-      true "${cyan}INFO${reset}: Done, created $WHONIX_BINARY/system-files-backup/hostname."
-   fi
+   for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
+      ## Backup exiting $mount_base_file, so we can later use it to safely mount it inside chroot.
+      ## Safely meaning, even if the chroot overwrites it, the host version remains unchanged.
+      backup-file-if-exists "/$mount_base_file"
 
-   ## Debugging.
-   test -f "$WHONIX_BINARY/system-files-backup/resolv.conf"
+      ## Delete inside chroot if host version leaked into it.
+      if diff "/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
+         true "INFO: Host '/$mount_base_file' matches '$CHROOT_FOLDER/$mount_base_file'"
+         for ok_if_match_file in \
+            "$WHONIX_SOURCE_FOLDER/packages/anon-gw-dns-conf/etc/resolv.conf.anondist" \
+            "$WHONIX_SOURCE_FOLDER/packages/anon-ws-dns-conf/etc/resolv.conf.anondist" \
+            "$WHONIX_SOURCE_FOLDER/packages/anon-base-files/etc/hosts.anondist" \
+            "$WHONIX_SOURCE_FOLDER/packages/anon-base-files/etc/hostname.anondist" \
+            do ;
+               if diff "/$mount_base_file" "$ok_if_match_file" >/dev/null ; then
+                  true "INFO: But '/$mount_base_file' also matches '$ok_if_match_file', ok."
+                  continue
+               else
+                  true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
+                  ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
+                  shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/$mount_base_file"
+                  continue
+               fi
+         done
+      else
+         true "INFO: Host '/$mount_base_file' does not match '$CHROOT_FOLDER/$mount_base_file', ok"
+      fi
 
-   if diff "/etc/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf" >/dev/null ; then
-      true "INFO: Host '/etc/resolv.conf' matches '$CHROOT_FOLDER/etc/resolv.conf', \
-therefore shredding '$CHROOT_FOLDER/etc/resolv.conf'."
-      ## Delete leaked host resolv.conf by grml-debootstrap inside image.
-      shred -u --zero --force --random-source=/dev/random --verbose "$CHROOT_FOLDER/etc/resolv.conf"
-   else
-      true "INFO: Host '/etc/resolv.conf' does not match '$CHROOT_FOLDER/etc/resolv.conf', ok"
-   fi
+      ## File needs to exist to be able to mount in next step.
+      touch "$CHROOT_FOLDER/$mount_base_file"
 
-   if [ ! -f "$CHROOT_FOLDER/etc/resolv.conf" ]; then
-      touch "$CHROOT_FOLDER/etc/resolv.conf"
-   fi
-   if [ ! -f "$CHROOT_FOLDER/etc/hosts" ]; then
-      touch "$CHROOT_FOLDER/etc/hosts"
-   fi
-   if [ ! -f "$CHROOT_FOLDER/etc/hostname" ]; then
-      touch "$CHROOT_FOLDER/etc/hostname"
-   fi
+      if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
+         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
+         continue
+      fi
 
-   mount --bind "$WHONIX_BINARY/system-files-backup/resolv.conf" "$CHROOT_FOLDER/etc/resolv.conf"
-   mount --bind "$WHONIX_BINARY/system-files-backup/hosts" "$CHROOT_FOLDER/etc/hosts"
-   mount --bind "$WHONIX_BINARY/system-files-backup/hostname" "$CHROOT_FOLDER/etc/hostname"
+      mount --bind "$WHONIX_BINARY/system-files-backup/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
+   done
 
    sync
 }
