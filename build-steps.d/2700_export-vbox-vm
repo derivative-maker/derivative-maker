@@ -99,40 +99,7 @@ $msg_whonix_disclaimer"
       error "$MSG"
    fi
 
-   echo "$TEXT" > "${binary_image_ova}.text"
-
-   ## Not yet using: --producturl
-
-   ## --vsys needs to precede --eula.
-   sudo $SUDO_OPTS \
-      VBoxManage \
-         export "$VMNAME" \
-         --vsys "0" \
-         --eulafile "${binary_image_ova}.text" \
-         --manifest \
-         --product "$VMNAME" \
-         --vendor "Whonix" \
-         --vendorurl "https://www.whonix.org" \
-         --version "$anon_dist_build_version" \
-         --output "$binary_image_ova"
-
-   ## Only important for redistribution.
-   ## VirtualBox creates $binary_image_ova with u+r only, which is problematic
-   ## with respect to rsync.
-   chmod ugo+r "$binary_image_ova"
-
-   sync
-
-   ## Sanity test.
-   ## A different --vmname is required, because $VMNAME does already exist
-   ## in the list of imported VirtualBox machines.
-   sudo $SUDO_OPTS \
-      VBoxManage \
-         import "$binary_image_ova" \
-         --vsys "0" \
-         --eula accept \
-         --vmname "$VMNAME-$anon_dist_build_version" \
-         --dry-run
+   echo "$TEXT" > "$binary_image_text"
 }
 
 main() {
