@@ -141,74 +141,83 @@ cowbuilder_setup_do() {
    ## Debugging.
    cat "$whonix_build_pbuilder_config_file"
 
-   ## TODO: change that folder
-   cow_folder="/var/cache/pbuilder/base.cow"
+   for whonix_build_multiarch_package_item in $whonix_build_multiarch_packages_list ; do
+      export whonix_build_multiarch_package_item
 
-   if [ -d "$cow_folder" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$cow_folder/"
-      rm --recursive --force "$cow_folder"
-   fi
+      ## TODO: change that folder
+      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
+      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
 
-   local cowbuilder_exit_code
-   cowbuilder_exit_code=0
+      if [ -d "$base_folder" ]; then
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         rm --recursive --force "$base_folder"
+      fi
 
-   ## '--mirror "$whonix_build_apt_sources_mirror"' should be only cosmetic,
-   ## because of pbuilder-debootstrap-command-filter and hooks.
-   ##
-   ## Duplicate --extrapackages to prevent removal by pbuilder.
-   $COWBUILDER_PREFIX \
-   SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-      cowbuilder \
-         --create \
-         --host-arch "$BUILD_TARGET_ARCH" \
-         --configfile "$whonix_build_pbuilder_config_file" \
-         --distribution "$whonix_build_apt_stable_release" \
-         --mirror "$whonix_build_apt_sources_mirror" \
-         --debootstrap "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-debootstrap-command-filter" \
-         --hookdir "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-hooks" \
-         --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor apt-transport-https python eatmydata aptitude cowdancer" \
-         || { cowbuilder_exit_code="$?" ; true; };
+      local cowbuilder_exit_code
+      cowbuilder_exit_code=0
 
-   if [ -d "$cow_folder" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$cow_folder/"
-   fi
+      ## '--mirror "$whonix_build_apt_sources_mirror"' should be only cosmetic,
+      ## because of pbuilder-debootstrap-command-filter and hooks.
+      ##
+      ## Duplicate --extrapackages to prevent removal by pbuilder.
+      $COWBUILDER_PREFIX \
+      SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+         cowbuilder \
+            --create \
+            --host-arch "$whonix_build_multiarch_package_item" \
+            --basepath "$base_folder" \
+            --buildplace "$cow_folder" \
+            --configfile "$whonix_build_pbuilder_config_file" \
+            --distribution "$whonix_build_apt_stable_release" \
+            --mirror "$whonix_build_apt_sources_mirror" \
+            --debootstrap "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-debootstrap-command-filter" \
+            --hookdir "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-hooks" \
+            --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor apt-transport-https python eatmydata aptitude cowdancer" \
+            || { cowbuilder_exit_code="$?" ; true; };
 
-   if [ ! "$cowbuilder_exit_code" = "0" ]; then
-      return "$cowbuilder_exit_code"
-   fi
+      if [ -d "$base_folder" ]; then
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+      fi
 
-   true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
-   diff "$whonix_build_sources_list_primary" "$cow_folder/etc/apt/sources.list"
+      if [ ! "$cowbuilder_exit_code" = "0" ]; then
+         return "$cowbuilder_exit_code"
+      fi
 
-   mkdir -p "$cow_folder/home/$user_name"
-   if [ "$cow_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
-      error
-   else
-      rm -r -f "$cow_folder/home/$user_name/genmkfile"
-   fi
-   cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$cow_folder/home/$user_name/genmkfile"
+      true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
+      diff "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
-   cp "$whonix_build_sources_list_primary" "$cow_folder/etc/apt/sources.list"
-   mkdir -p "$cow_folder/$(dirname $apt_get_update_wrapper_bin_path_full)"
-   cp "$apt_get_update_wrapper_source_path_full" "$cow_folder/$apt_get_update_wrapper_bin_path_full"
-   cp "$apt_get_update_sanity_test__source_path_full" "$cow_folder/$apt_get_update_sanity_test_bin_path_full"
-   cp "$whonix_build_pbuilder_config_file" "$cow_folder/home/$user_name/pbuilder_config_file"
+      mkdir -p "$base_folder/home/$user_name"
+      if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
+         error
+      else
+         rm -r -f "$base_folder/home/$user_name/genmkfile"
+      fi
+      cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
 
-   cowbuilder_exit_code=0
-   $COWBUILDER_PREFIX \
-      cowbuilder \
-         --execute "$whonix_build_pbuilder_chroot_script" \
-         --configfile "$whonix_build_pbuilder_config_file" \
-         --save-after-login \
-         || { cowbuilder_exit_code="$?" ; true; };
+      cp "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      mkdir -p "$base_folder/$(dirname $apt_get_update_wrapper_bin_path_full)"
+      cp "$apt_get_update_wrapper_source_path_full" "$base_folder/$apt_get_update_wrapper_bin_path_full"
+      cp "$apt_get_update_sanity_test__source_path_full" "$base_folder/$apt_get_update_sanity_test_bin_path_full"
+      cp "$whonix_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
-   if [ -d "$cow_folder" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$cow_folder/"
-   fi
+      cowbuilder_exit_code=0
+      $COWBUILDER_PREFIX \
+         cowbuilder \
+            --execute "$whonix_build_pbuilder_chroot_script" \
+            --basepath "$base_folder" \
+            --buildplace "$cow_folder" \
+            --configfile "$whonix_build_pbuilder_config_file" \
+            --save-after-login \
+            || { cowbuilder_exit_code="$?" ; true; };
 
-   if [ ! "$cowbuilder_exit_code" = "0" ]; then
-      return "$cowbuilder_exit_code"
-   fi
+      if [ -d "$base_folder" ]; then
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+      fi
+
+      if [ ! "$cowbuilder_exit_code" = "0" ]; then
+         return "$cowbuilder_exit_code"
+      fi
+   done
 
    true "${bold}${green}INFO${reset}: cowbuilder setup done."
 }
@@ -451,9 +460,11 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 }
 
 genmkfile_installation() {
-   pushd "/var/cache/pbuilder/base.cow/home/$user_name/genmkfile"
-   make_use_cowbuilder=false make deb-install
-   popd
+   for whonix_build_multiarch_package_item in $whonix_build_multiarch_packages_list ; do
+      pushd "/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}/home/$user_name/genmkfile"
+      make_use_cowbuilder=false make deb-install
+      popd
+   done
 }
 
 main() {
