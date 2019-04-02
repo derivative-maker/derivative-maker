@@ -186,14 +186,6 @@ cowbuilder_setup_do() {
       true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
       diff "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
-      mkdir -p "$base_folder/home/$user_name"
-      if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
-         error
-      else
-         rm -r -f "$base_folder/home/$user_name/genmkfile"
-      fi
-      cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
-
       cp "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
       mkdir -p "$base_folder/$(dirname $apt_get_update_wrapper_bin_path_full)"
       cp "$apt_get_update_wrapper_source_path_full" "$base_folder/$apt_get_update_wrapper_bin_path_full"
@@ -461,8 +453,28 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
 
 genmkfile_installation() {
    for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
-      pushd "/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}/home/$user_name/genmkfile"
-      make_use_cowbuilder=false make deb-install
+      ## TODO: change that folder
+      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
+      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
+
+      mkdir -p "$base_folder/home/$user_name"
+      if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
+         error
+      else
+         rm -r -f "$base_folder/home/$user_name/genmkfile"
+      fi
+      cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
+
+      local make_file="/home/$user_name/genmkfile/Makefile"
+
+      pushd "$base_folder"
+      pushd "home/$user_name/genmkfile"
+
+      DESTDIR="$base_folder" \
+      make_use_cowbuilder=false \
+         make install
+
+      popd
       popd
    done
 }
