@@ -2,7 +2,7 @@
 # Filename:      grml-debootstrap
 # Purpose:       wrapper around debootstrap for installing plain Debian via Grml
 # Authors:       grml-team (grml.org), (c) Michael Prokop <mika@grml.org>
-# Bug-Reports:   see http://grml.org/bugs/
+# Bug-Reports:   see https://grml.org/bugs/
 # License:       This file is licensed under the GPL v2+
 ################################################################################
 
@@ -14,7 +14,7 @@ error_handler() {
    last_exit_code="$?"
    last_bash_command="$BASH_COMMAND"
    if [ "$REPORT_TRAP_ERR" = "yes" ]; then
-      echo "Unexpected non-zero exit code $last_exit_code in $BASH_SOURCE at line $BASH_LINENO detected!
+      echo "Unexpected non-zero exit code $last_exit_code in ${BASH_SOURCE[*]} at line ${BASH_LINENO[*]} detected!
 last bash command: $last_bash_command"
    fi
    if [ ! "$FAIL_TRAP_ERR" = "yes" ]; then
@@ -40,7 +40,7 @@ fi
 
 # variables {{{
 PN="$(basename "$0")"
-if [[ -d "$(dirname "$(which "$0")")"/.git ]]; then
+if [[ -d "$(dirname "$(command -v "$0")")"/.git ]]; then
   VERSION="$(git describe | sed 's|^v||')"
 else
   VERSION="$(dpkg-query --show --showformat='${Version}' "$PN")"
@@ -53,12 +53,12 @@ MNTPOINT="/mnt/debootstrap.$$"
 [ -n "$CONFFILES" ] || CONFFILES='/etc/debootstrap'
 [ -n "$DEBCONF" ] || DEBCONF='yes'
 [ -n "$DEBIAN_FRONTEND" ] || DEBIAN_FRONTEND='noninteractive'
-[ -n "$DEBOOTSTRAP" ] || DEBOOTSTRAP='qemu-debootstrap'
+[ -n "$DEBOOTSTRAP" ] || DEBOOTSTRAP='debootstrap'
 [ -n "$DEFAULT_LANGUAGE" ] || DEFAULT_LANGUAGE='en_US:en'
 [ -n "$DEFAULT_LOCALES" ] || DEFAULT_LOCALES='en_US.UTF-8'
 [ -n "$DISK_IDENTIFIER" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
 [ -n "$EXTRAPACKAGES" ] || EXTRAPACKAGES='yes'
-[ -n "$FALLBACK_MIRROR" ] || FALLBACK_MIRROR='http://httpredir.debian.org/debian'
+[ -n "$FALLBACK_MIRROR" ] || FALLBACK_MIRROR='http://deb.debian.org/debian'
 [ -n "$FIXED_DISK_IDENTIFIERS" ] || FIXED_DISK_IDENTIFIERS="no"
 [ -n "$FORCE" ] || FORCE=''
 [ -n "$HOSTNAME" ] || HOSTNAME='grml'
@@ -72,7 +72,7 @@ MNTPOINT="/mnt/debootstrap.$$"
 [ -n "$POST_SCRIPTS" ] || POST_SCRIPTS='yes'
 [ -n "$PRE_SCRIPTS" ] || PRE_SCRIPTS='yes'
 [ -n "$RECONFIGURE" ] || RECONFIGURE='console-data'
-[ -n "$RELEASE" ] || RELEASE='stretch'
+[ -n "$RELEASE" ] || RELEASE='buster'
 [ -n "$RM_APTCACHE" ] || RM_APTCACHE='yes'
 [ -n "$SCRIPTS" ] || SCRIPTS='no' # deprecated, replaced by POST_SCRIPTS
 [ -n "$SECURE" ] || SECURE='yes'
@@ -80,6 +80,7 @@ MNTPOINT="/mnt/debootstrap.$$"
 [ -n "$TUNE2FS" ] || TUNE2FS='tune2fs -c0 -i0'
 [ -n "$UPGRADE_SYSTEM" ] || UPGRADE_SYSTEM='yes'
 [ -n "$VMSIZE" ] || VMSIZE="2G"
+[ -n "$GRUB_INSTALL" ] || GRUB_INSTALL='yes'
 
 # inside the chroot system locales might not be available, so use minimum:
 export LANG=C
@@ -102,7 +103,7 @@ Bootstrap options:
   -m, --mirror <URL>     Mirror which should be used for apt-get/aptitude.
   -i, --iso <mnt>        Mountpoint where a Debian ISO is mounted to, for use
                          instead of fetching packages from a mirror.
-  -r, --release <name>   Release of new Debian system (default: stretch).
+  -r, --release <name>   Release of new Debian system (default: buster).
   -t, --target <target>  Target partition (/dev/...) or directory where the
                          system should be installed to.
   -p, --mntpoint <mnt>   Mountpoint used for mounting the target system,
@@ -154,6 +155,7 @@ Configuration options:
       --hostname <name>    Hostname of Debian system.
       --nopassword         Do not prompt for the root password.
       --password <pwd>     Use specified password as password for user root.
+      --sshcopyid          Use locally available public keys to authorise root login on the target system.
       --bootappend <line>  Add specified appendline to kernel whilst booting.
       --chroot-scripts <d> Execute chroot scripts from specified directory.
       --pre-scripts <dir>  Execute scripts from specified directory (before chroot-scripts).
@@ -168,7 +170,7 @@ Other options:
   -V, --version            Show summary of options and exit.
 
 Usage examples can be found in the grml-debootstrap manpage.
-Send bugreports to the grml-team: bugs (at) grml.org || http://grml.org/bugs/
+Send bugreports to the grml-team: bugs (at) grml.org || https://grml.org/bugs/
 "
 }
 
@@ -186,25 +188,25 @@ WARN='[33;01m'
 NORMAL='[0m'
 
 einfo() {
-  einfon "$1\n"
+  einfon "$1\\n"
   return 0
 }
 
 einfon() {
   [ "${RC_ENDCOL}" != "yes" ] && [ "${LAST_E_CMD}" = "ebegin" ] && echo
-  printf " ${GOOD}*${NORMAL} $*"
+  printf " %s*%s $*" "${GOOD}" "${NORMAL}"
   LAST_E_CMD=einfon
   return 0
 }
 
 ewarn() {
-  printf " ${WARN}*${NORMAL} $*\n"
+  printf " %s*%s $*\\n" "${WARN}" "${NORMAL}"
   return 0
 }
 
 eerror() {
   [ "${RC_ENDCOL}" != "yes" ] && [ "${LAST_E_CMD}" = "ebegin" ] && echo
-  printf " ${BAD}*${NORMAL} $*\n" >&2
+  printf " %s*%s $*\\n" "${BAD}" "${NORMAL}" >&2
   LAST_E_CMD=eerror
   return 0
 }
@@ -213,7 +215,7 @@ eend() {
   local retval="${1:-0}"
   shift
   if [ "$retval" -gt 0 ]; then
-    printf " ${BAD}-> Failed (rc=${retval})${NORMAL}\n"
+    printf " %s-> Failed (rc=%s)%s\\n" "${BAD}" "${retval}" "${NORMAL}"
   fi
   return "$retval"
 }
@@ -227,7 +229,7 @@ check4root(){
 check4progs(){
   local RC=''
   for arg in "$@" ; do
-    which "$arg" >/dev/null 2>&1 || RC="$arg"
+    command -v "$arg" >/dev/null 2>&1 || RC="$arg"
   done
   if [ -n "$RC" ] ; then
      echo "$RC not installed"
@@ -265,7 +267,7 @@ cleanup() {
 
       # ugly, but make sure we really don't leave anything (/proc /proc and
       # /dev /dev are intended, trying to work around timing issues, see #657023)
-      for ARG in /sys /proc /proc /dev/pts /dev/pts /dev /dev ; do
+      for ARG in /run/udev /sys /proc /proc /dev/pts /dev/pts /dev /dev ; do
         [ -x "$MNTPOINT"/bin/umount ] && chroot "$MNTPOINT" umount $ARG >/dev/null 2>&1
         umount "$MNTPOINT"/$ARG >/dev/null 2>&1
       done
@@ -298,7 +300,13 @@ cleanup() {
 
   if [ -n "${ORIG_TARGET}" ] ; then
     einfo "Removing loopback mount of file ${ORIG_TARGET}."
-    kpartx -d "${ORIG_TARGET}" ; eend $?
+    kpartx -d "${ORIG_TARGET}"
+    # Workaround for a bug in kpartx which doesn't clean up properly,
+    # see Debian Bug #891077 and Github-PR grml/grml-debootstrap#112
+    if dmsetup ls | grep -q "^${LOOP_PART} "; then
+      kpartx -d "/dev/${LOOP_DISK}" >/dev/null
+    fi
+    eend $?
   fi
 }
 
@@ -328,27 +336,188 @@ stage() {
 # }}}
 
 # make sure we have what we need {{{
-check4progs debootstrap || bailout 1
+check4progs "${DEBOOTSTRAP}" || bailout 1
 # }}}
 
 # source main configuration file {{{
 if [ -r /etc/debootstrap/config ] ; then
+  # shellcheck disable=SC1091
   . /etc/debootstrap/config
 fi
 # }}}
 
 # cmdline handling {{{
-# source external command line parameter-processing script
-self_dir="$(dirname "$(which "$0")")"
-if [ -r "${self_dir}"/cmdlineopts.clp ] ; then
-   . "${self_dir}"/cmdlineopts.clp
-elif [ -r /usr/share/grml-debootstrap/functions/cmdlineopts.clp ] ; then
-   . /usr/share/grml-debootstrap/functions/cmdlineopts.clp
-else
-   eerror "Error: cmdline function file not found, exiting."
-   eend 1
-   bailout 1
+CMDLINE_OPTS=mirror:,iso:,release:,target:,mntpoint:,debopt:,defaultinterfaces,interactive,nodebootstrap,nointerfaces,nokernel,nopackages,filesystem:,config:,confdir:,packages:,chroot-scripts:,scripts:,post-scripts:,pre-scripts:,debconf:,vm,vmfile,vmsize:,keep_src_list,hostname:,password:,nopassword,grmlrepos,backportrepos,bootappend:,grub:,efi:,arch:,insecure,verbose,help,version,force,debug,contrib,non-free,remove-configs,sshcopyid
+
+_opt_temp=$(getopt --name grml-debootstrap -o +m:i:r:t:p:c:d:vhV --long \
+  $CMDLINE_OPTS -- "$@")
+
+if [ $? != 0 ]; then
+  eerror "Try 'grml-debootstrap --help' for more information."; eend 1; exit 1
 fi
+eval set -- "$_opt_temp"
+
+while :; do
+  case "$1" in
+
+  # == Bootstrap options
+  --mirror|-m)         # Mirror which should be used for apt-get/aptitude
+    shift; _opt_mirror="$1"
+    ;;
+  --iso|-i)            # Mountpoint where a Debian ISO is mounted to
+    shift; _opt_iso="$1"
+    ;;
+  --release|-r)        # Release of new Debian system
+    shift; _opt_release="$1"
+    ;;
+  --target|-t)         # Target partition (/dev/...) or directory
+    shift; _opt_target="$1"
+    ;;
+  --vm)                # Virtual machine image (no file)
+    _opt_vm="T"
+    ;;
+  --vmfile)            # Virtual machine file
+    _opt_vmfile="T"
+    ;;
+  --vmsize)            # size of Virtual machine file
+    shift; _opt_vmsize="$1"
+    ;;
+  --mntpoint|-p)       # Mountpoint used for mounting the target system
+    shift; _opt_mntpoint="$1"
+    ;;
+  --debopt)            # Extra parameters passed to the debootstrap command
+    shift; _opt_debopt="$1"
+    ;;
+  --filesystem)        # Filesystem that should be used
+    shift; _opt_filesystem="$1"
+    ;;
+  --interactive)       # Use interactive mode (frontend)
+    _opt_interactive=T
+    ;;
+  --nodebootstrap)     # Skip debootstrap, only do configuration to the target
+    _opt_nodebootstrap=T
+    ;;
+  --nopackages)        # Skip installation of packages defined in /etc/debootstrap/packages
+    _opt_nopackages=T
+    ;;
+  --arch)              # Target architecutre
+    shift; _opt_arch="$1"
+    ;;
+  # just for backwards compatibility
+  --insecure)
+    _opt_insecure=T
+    ;;
+  #
+
+  # == Configuration options
+  --config|-c)         # Use specified configuration file, defaults to /etc/debootstrap
+    shift; _opt_config="$1"
+    ;;
+  --confdir|-d)        # Place of config files for debootstrap, defaults to /etc/debootstrap
+    shift; _opt_confdir="$1"
+    ;;
+  --packages)          # Install packages defined in specified file
+    shift; _opt_packages="$1"
+    _opt_packages_set=T
+    ;;
+  --debconf)           # Pre-seed packages using specified file
+    shift; _opt_debconf="$1"
+    _opt_debconf_set=T
+    ;;
+  --pre-scripts)       # Execute scripts from specified directory (before chroot-scripts).
+    shift; _opt_pre_scripts="$1"
+    _opt_pre_scripts_set=T
+    ;;
+  --scripts)           # Execute scripts from specified directory [NOTE: deprecated, replaced via --post-scripts]
+    shift; _opt_scripts="$1"
+    _opt_scripts_set=T
+    ;;
+  --post-scripts)       # Execute scripts from specified directory
+    shift; _opt_post_scripts="$1"
+    _opt_post_scripts_set=T
+    ;;
+  --chroot-scripts)   # Execute chroot scripts from specified directory
+    shift; _opt_chroot_scripts="$1"
+    _opt_chroot_scripts_set=T
+    ;;
+  --keep_src_list)     # Do not overwrite user provided apt sources.list
+    _opt_keep_src_list=T
+    ;;
+  --hostname)          # Hostname of Debian system
+    shift; _opt_hostname="$1"
+    ;;
+  --password)          # Use specified password as password for user root
+    shift; _opt_password="$1"
+    ;;
+  --defaultinterfaces) # Install default /etc/network/interfaces
+    _opt_defaultinterfaces=T
+    ;;
+  --nointerfaces)      # Skip installation of /etc/network/interfaces
+    _opt_nointerfaces=T
+    ;;
+  --nokernel)          # Skip installation of default kernel images
+    _opt_nokernel=T
+    ;;
+  --nopassword)        # Skip password dialog
+    _opt_nopassword=T
+    ;;
+  --sshcopyid)         # Use locally available public keys to authorise root login on the target system
+    _opt_sshcopyid=T
+    ;;
+  --grmlrepos)         # Enable Grml repository
+    _opt_grmlrepos=T
+    ;;
+  --backportrepos)     # Enable Debian backports repository
+    _opt_backportrepos=T
+    ;;
+  --bootappend)        # Add specified appendline to kernel whilst booting
+    shift; _opt_bootappend="$1"
+    ;;
+  --grub)              # Target for grub installation. Use grub syntax for specifying
+    shift; _opt_grub="$1"
+    ;;
+  --efi)               # Target for EFI boot installation
+    shift; _opt_efi="$1"
+    ;;
+  --contrib)           # Add 'contrib' to list of components
+    _opt_contrib=T
+    ;;
+  --non-free)          # Add 'non-free' to list of components
+    _opt_non_free=T
+    ;;
+  --remove-configs)    # Drop config files from installed system
+    _opt_remove_configs=T
+    ;;
+
+  # == Other options
+  --verbose|-v)        # Increase verbosity
+    if [ "$_opt_verbose" ]; then
+      _opt_verbose=$( _opt_verbose + 1 )
+    else
+      _opt_verbose=1
+    fi
+    ;;
+  --debug)             # Execute in debug mode
+    _opt_debug=T
+    ;;
+  --help|-h)           # Print usage information and exit
+    _opt_help=T
+    ;;
+  --version|-V)        # Show version information and exit
+    _opt_version=T
+    ;;
+  --force)             # Do not prompt for user input
+    _opt_force=T
+    ;;
+  --)
+    shift; break
+    ;;
+  *)
+    eerror "Internal getopt error!"; eend 1 ; exit 1
+    ;;
+  esac
+  shift
+done
 
 # == business-logic of command line parameter-processing
 
@@ -359,6 +528,7 @@ fi
   if ! [ -r "$CONFFILES/config" ] ; then
     eerror "Error: config file $CONFFILES/config not found."; eend 1; bailout 1
   fi
+  # shellcheck disable=SC1091 source=config
   if ! . "$CONFFILES/config" ; then
     eerror "Error reading config file $CONFFILES/config" ; eend 1 ; bailout 1
   fi
@@ -394,6 +564,7 @@ fi
 [ "$_opt_defaultinterfaces" ]   && USE_DEFAULT_INTERFACES="true"
 [ "$_opt_nointerfaces" ]        && NOINTERFACES="true"
 [ "$_opt_nokernel" ]            && NOKERNEL="true"
+[ "$_opt_sshcopyid" ]           && SSHCOPYID="true"
 [ "$_opt_bootappend" ]          && BOOT_APPEND=$_opt_bootappend
 [ "$_opt_grub" ]                && GRUB=$_opt_grub
 [ "$_opt_efi" ]                 && EFI=$_opt_efi
@@ -422,6 +593,12 @@ if [ "$_opt_grub" ] && [ "$_opt_vmfile" ] ; then
   bailout 1
 fi
 
+if [ -n "$ISO" ] && [[ "$DEBOOTSTRAP" =~ mmdebstrap$ ]] ; then
+  eerror "The ISO option is incompatible with usage of mmdebstrap for bootstrapping."
+  eerror "Either drop the --iso ... option or use plain debootstrap instead."
+  eend 1
+  bailout 1
+fi
 
 if [ "$DEBUG" = "true" ] ; then
   set -x
@@ -435,7 +612,7 @@ fi
 
 [ "$_opt_version" ] && {
   einfo "$PN - version $VERSION"
-  einfo "Send bug reports to bugs@grml.org or http://grml.org/bugs/"
+  einfo "Report bugs via https://github.com/grml/grml-debootstrap/ or https://grml.org/bugs/"
   eend 0
   exit 0
 }
@@ -456,14 +633,15 @@ fi
 
 # source specified configuration file {{{
 if [ -n "$CONFIGFILE" ] ; then
-   einfo "Reading specified config file $CONFIGFILE."
-   if ! . "$CONFIGFILE" ; then
-      eerror "Error reading config file $CONFIGFILE" ; eend 1 ; bailout 1
-   fi
+  einfo "Reading specified config file $CONFIGFILE."
+  # shellcheck disable=SC1091 source=config
+  if ! . "$CONFIGFILE" ; then
+    eerror "Error reading config file $CONFIGFILE" ; eend 1 ; bailout 1
+  fi
 fi
 # }}}
 
-# backwards compability checks {{{
+# backwards compatibility checks {{{
 if [ -n "$GROOT" ] ; then
    eerror "Error: you seem to have \$GROOT configured."
    eerror "This variable is no longer supported, please visit the"
@@ -511,6 +689,7 @@ prompt_for_target()
                      unset fs
                    done)
 
+  # shellcheck disable=SC2086
   TARGET=$(dialog --title "$PN" --single-quoted --stdout \
          --menu "Please select the target partition:" 0 0 0 \
          $PARTITION_LIST)
@@ -534,11 +713,13 @@ prompt_for_bootmanager()
         found=1
         break
      done
-     [ -n "$found" ] && MBRDISK=$(echo "${device}" |sed -e 's/-part[0-9][0-9]*$//')
+     # shellcheck disable=SC2001
+     [ -n "$found" ] && MBRDISK=$(echo "${device}" | sed -e 's/-part[0-9][0-9]*$//')
      if [ -e "$MBRDISK" ]; then
         MBRDISK=$(readlink -f "$MBRDISK")
      else
         # fall back to old behaviour
+        # shellcheck disable=SC2001
         MBRDISK=$(echo "${TARGET}" | sed -e 's/[0-9][0-9]*$//')
      fi
 
@@ -555,6 +736,7 @@ prompt_for_bootmanager()
 
   OIFS="$IFS"; IFS=:
 
+  # shellcheck disable=SC2086
   GETMBR=$(dialog --stdout --title "$PN" --default-item mbr \
           --menu "Where do you want to install the bootmanager grub?" 0 0 0 \
             mbr       "install bootmanager into $MBRPART" \
@@ -588,15 +770,17 @@ prompt_for_bootmanager()
 # ask for Debian release {{{
 prompt_for_release()
 {
-  [ -n "$RELEASE" ] && DEFAULT_RELEASE="$RELEASE" || DEFAULT_RELEASE='stretch'
+  [ -n "$RELEASE" ] && DEFAULT_RELEASE="$RELEASE" || DEFAULT_RELEASE='buster'
   RELEASE="$(dialog --stdout --title "${PN}" --default-item $DEFAULT_RELEASE --menu \
             "Please enter the Debian release you would like to use for installation:" \
-            0 50 5 \
+            0 50 8 \
             lenny    Debian/5.0 \
             squeeze  Debian/6.0 \
             wheezy   Debian/7.0 \
             jessie   Debian/8.0 \
             stretch  Debian/9.0 \
+            buster   Debian/10.0 \
+            bullseye Debian/11.0 \
             sid      Debian/unstable)"
   [ $? -eq 0 ] || bailout
 }
@@ -654,7 +838,7 @@ prompt_for_mirror()
   [ $? -eq 0 ] || bailout
 
   if [ "$CHOOSE_MIRROR" = 'net' ] ; then
-     [ -n "$MIRROR" ] || MIRROR='http://httpredir.debian.org/debian'
+     [ -n "$MIRROR" ] || MIRROR='http://deb.debian.org/debian'
      MIRROR="$(dialog --stdout --title "${PN}" --inputbox \
                "Please enter Debian mirror you would like to use for installing packages." \
                0 0 $MIRROR)"
@@ -682,6 +866,7 @@ MD_LIST=$(for i in $(seq 0 9) ; do
             echo "/dev/md$i /dev/md$i"
           done)
 
+# shellcheck disable=SC2086
 TARGET=$(dialog --stdout --title "$PN" --default-item /dev/md0 \
 --menu "Which device do you want to use for ${RAIDLEVEL}?
 
@@ -698,6 +883,7 @@ PARTITION_LIST=$(for i in $AVAILABLE_PARTITIONS ; do
                      echo "$i $(blkid -s TYPE -o value "$i" 2>/dev/null || echo '[no_filesystem_yet]') off"
                  done)
 
+# shellcheck disable=SC2086
 dialog --title "$PN" --separate-output \
        --checklist "Please select the partitions you would like to use for your $RAIDLEVEL on ${TARGET}:" 0 0 0 \
        $PARTITION_LIST 2>"$TMPFILE"
@@ -705,9 +891,9 @@ dialog --title "$PN" --separate-output \
 SELECTED_PARTITIONS="$(cat "$TMPFILE")"
 
 NUM_PARTITIONS=0
-for i in $(cat "$TMPFILE") ; do
-   NUM_PARTITIONS=$(( NUM_PARTITIONS + 1 ))
-done
+while IFS= read -r i; do
+  NUM_PARTITIONS=$(( NUM_PARTITIONS + 1 ))
+done < "$TMPFILE"
 
 # force metadata version 0.90 for lenny so old grub can boot from this array.
 METADATA_VERSION=""
@@ -716,6 +902,7 @@ if [ "$RELEASE" = "lenny" ]; then
 fi
 
 ERRORFILE=$(mktemp)
+# shellcheck disable=SC2086
 yes | mdadm --create "${TARGET}" --level="${RAIDLEVEL}" \
       --raid-devices="${NUM_PARTITIONS}" ${METADATA_VERSION} ${SELECTED_PARTITIONS} >/dev/null 2>$ERRORFILE
 RC=$?
@@ -761,6 +948,7 @@ Do you want to stop now?" 0 0 2>/dev/null
 }
 # }}}
 
+# format efi partition {{{
 format_efi_partition() {
   if [ -z "$EFI" ] ; then
     return 0
@@ -774,7 +962,7 @@ format_efi_partition() {
   if fsck.vfat -bn "$EFI" >/dev/null; then
     einfo "EFI partition $EFI seems to have a FAT filesystem, not modifying." ; eend 0
   else
-    einfo "EFI partition $EFI doesn't seem to be formated, creating filesystem."
+    einfo "EFI partition $EFI doesn't seem to be formatted, creating filesystem."
     mkfs.fat -F32 -n "EFI System Partition" "$EFI"
     RC=$?
     if [ $RC -eq 0 ] ; then
@@ -786,6 +974,7 @@ format_efi_partition() {
     fi
   fi
 }
+# }}}
 
 # check for EFI support or try to enable it {{{
 efi_support() {
@@ -877,12 +1066,12 @@ else # if not running automatic installation display configuration and prompt fo
    [ -n "$CONFFILES" ] && echo "   Config files:    $CONFFILES"
    if [ -n "$VIRTUAL" ] ; then
       echo "   Deploying as Virtual Machine."
-      if [ -n "$VMSIZE" -a -n "$VMFILE" ]; then
+      if [ -n "$VMSIZE" ] && [ -n "$VMFILE" ]; then
          echo "   Using Virtual Disk file with size of ${VMSIZE}."
       fi
    fi
 
-   if [ ! -t 0 -a -z "$ROOTPASSWORD" -a -z "$NOPASSWORD" ] ; then
+   if [ ! -t 0 ] && [ -z "$ROOTPASSWORD" ] && [ -z "$NOPASSWORD" ] ; then
       echo
       echo "   You do not have a TTY allocated, your password will be shown in"
       echo "   plaintext on the terminal! If you are using SSH, try its -t option!"
@@ -896,8 +1085,8 @@ else # if not running automatic installation display configuration and prompt fo
    else
      echo
      einfon "Is this ok for you? [y/N] "
-     read a
-     if ! [ "$a" = 'y' -o "$a" = 'Y' ] ; then
+     read -r a
+     if ! [ "$a" = 'y' ] || [ "$a" = 'Y' ] ; then
         eerror "Exiting as requested." ; eend 1
         bailout 1
      fi
@@ -929,7 +1118,7 @@ interactive_mode()
 }
 
 # run interactive mode if we didn't get the according configuration yet
-if [ -z "$TARGET" -o -n "$INTERACTIVE" ] ; then
+if [ -z "$TARGET" ] || [ -n "$INTERACTIVE" ] ; then
    # only target might be unset, so make sure the INTERACTIVE flag is set as well
    INTERACTIVE=1
    interactive_mode
@@ -960,7 +1149,7 @@ fi
 # Support for generic release codenames is unavailable. {{{
 if [ "$RELEASE" = "stable" ] || [ "$RELEASE" = "testing" ] ; then
    eerror "Generic release codenames (stable, testing) are unsupported. \
-Please use specific codenames such as lenny, squeeze, wheezy, jessie or stretch." ; eend 1
+Please use specific codenames such as stretch or buster." ; eend 1
    bailout 1
 fi
 # }}}
@@ -1011,6 +1200,12 @@ set_target_directory(){
 if [ -b "$TARGET" ] || [ -n "$VIRTUAL" ] ; then
     PARTITION=1
 else
+    # $TARGET was not detected as block device, but we do not want to create target directory in /dev/
+    if [[ $TARGET == "/dev/"* ]]; then
+      eerror "Error: Will not create target directory $TARGET in /dev."
+      eerror "  Please check the partition(s) of the blockdevice."; eend 1
+      bailout 1
+    fi
     set_target_directory
 fi
 # }}}
@@ -1067,7 +1262,8 @@ mkfs() {
     case "$RELEASE" in
       lenny|squeeze|wheezy|jessie)
         # assume a more recent version if we can't identify the version via dpkg-query
-        local e2fsprogs_version="$(dpkg-query --show --showformat='${Version}' e2fsprogs 2>/dev/null || echo 1.44)"
+        local e2fsprogs_version
+        e2fsprogs_version="$(dpkg-query --show --showformat='${Version}' e2fsprogs 2>/dev/null || echo 1.44)"
         if [ -n "$e2fsprogs_version" ] && dpkg --compare-versions "$e2fsprogs_version" ge '1.43~WIP.2015.05.18-1' ; then
           einfo "Disabling metadata_csum feature for $MKFS as $RELEASE doesn't support it."
           MKFS_OPTS="$MKFS_OPTS -O ^metadata_csum"
@@ -1079,6 +1275,7 @@ mkfs() {
 
   if [ -n "$MKFS" ] ; then
     einfo "Running $MKFS $MKFS_OPTS on $TARGET"
+    # shellcheck disable=SC2086
     "$MKFS" $MKFS_OPTS "$TARGET" ; RC=$?
 
     if [ "$FIXED_DISK_IDENTIFIERS" = "yes" ] ; then
@@ -1103,7 +1300,7 @@ mkfs() {
       # if we deploy to /dev/sdX# then let's see if /dev/sdX exists
       local main_device="${TARGET%%[0-9]*}"
       # sanity check to not try to e.g. access /dev/loop if we get /dev/loop0
-      if [ -f "/sys/block/$(basename ${main_device})/$(basename ${TARGET})/dev" ] ; then
+      if [ -f "/sys/block/$(basename "${main_device}")/$(basename "${TARGET}")/dev" ] ; then
         blockdev --rereadpt "$main_device"
       else
         einfo "No underlying block device for $TARGET identified, skipping blockdev --rereadpt."
@@ -1113,11 +1310,53 @@ mkfs() {
     # race conditions :-/
     sleep 2
 
-    eval "$(blkid -o udev "$TARGET" 2>/dev/null)"
-    [ -n "$ID_FS_UUID" ] && TARGET_UUID="$ID_FS_UUID" || TARGET_UUID=""
-
     eend $RC
   fi
+}
+# }}}
+
+# retrieve ID_FS_UUID {{{
+identify_target_uuid() {
+  local device="$1"
+
+  if ! [ -b "$device" ] ; then
+    return 1
+  fi
+
+  eval "$(blkid -o udev "$1" 2>/dev/null)"
+
+  if [ -n "$ID_FS_UUID" ] ; then
+    echo "$ID_FS_UUID"
+  else
+    return 1
+  fi
+}
+# }}}
+
+# identify TARGET_UUID {{{
+mountpoint_to_blockdevice() {
+  TARGET_UUID=''
+
+  TARGET_UUID=$(identify_target_uuid "$TARGET" 2>/dev/null || true)
+  if [ -n "$TARGET_UUID" ] ; then
+    einfo "Identified UUID $TARGET_UUID for $TARGET"
+    return 0
+  fi
+
+  # $TARGET might be a mountpoint and not a blockdevice, search for according entry
+  for file in /sys/block/*/*/dev ; do
+    if grep -q "^$(mountpoint -d "${TARGET}")$" "$file" ; then
+      local dev
+      dev="${file%/dev}"
+      dev="/dev/${dev##*/}"
+      TARGET_UUID=$(identify_target_uuid "$dev" 2>/dev/null || true)
+
+      if [ -n "$TARGET_UUID" ] ; then
+        einfo "Identified UUID $TARGET_UUID for $TARGET (via $file)"
+        return 0
+      fi
+    fi
+  done
 }
 # }}}
 
@@ -1163,15 +1402,30 @@ prepare_vm() {
      return 0 # be quiet by intention
   fi
 
-  if [ -b "$TARGET" -a -n "$VMFILE" ] ; then
+  if [ -b "$TARGET" ] && [ -n "$VMFILE" ] ; then
      eerror "Error: specified virtual disk target ($TARGET) is an existing block device."
      eend 1
      bailout 1
   fi
-  if [ ! -b "$TARGET" -a -z "$VMFILE" ] ; then
+  if [ ! -b "$TARGET" ] && [ -z "$VMFILE" ] ; then
      eerror "Error: specified virtual disk target ($TARGET) does not exist yet."
      eend 1
      bailout 1
+  fi
+
+  # make sure loop module is present and a usable loop device exists
+  modprobe -q loop
+  if ! losetup -f >/dev/null 2>&1; then
+    eerror "Error finding usable loop device" ; eend 1
+    bailout 1
+  fi
+
+  # if dm-mod isn't available then kpartx will fail with
+  # "Is device-mapper driver missing from kernel? [...]"
+  modprobe -q dm-mod
+  if ! grep -q 'device-mapper' /proc/misc >/dev/null 2>&1 ; then
+    eerror "Device-mapper support missing in kernel." ; eend 1
+    bailout 1
   fi
 
   ORIG_TARGET="$TARGET" # store for later reuse
@@ -1184,41 +1438,23 @@ prepare_vm() {
     einfo "Adjusting disk signature to a fixed (non-random) value"
     MBRTMPFILE=$(mktemp)
     dd if="${TARGET}" of="${MBRTMPFILE}" bs=512 count=1
-    echo -en "\x41\x41\x41\x41" | dd of="${MBRTMPFILE}" conv=notrunc seek=440 bs=1
+    echo -en "\\x41\\x41\\x41\\x41" | dd of="${MBRTMPFILE}" conv=notrunc seek=440 bs=1
     dd if="${MBRTMPFILE}" of="${TARGET}" conv=notrunc
     eend $?
   fi
   parted -s "${TARGET}" 'mkpart primary ext4 2M -1'
   parted -s "${TARGET}" 'set 1 boot on'
 
-  # if dm-mod isn't available then kpartx will fail with
-  # "Is device-mapper driver missing from kernel? [...]"
-  if ! kpartx -av "$TARGET" >/dev/null 2>&1 || ! grep -q 'device-mapper' /proc/misc >/dev/null 2>&1 ; then
-    einfo "Device-mapper not ready yet, trying to load dm-mod module."
-    modprobe dm-mod ; eend $?
-  fi
-
-  # make sure loop module is present
-  if ! losetup -f >/dev/null 2>&1; then
-    einfo "Can not find a usable loop device, retrying after loading loop module."
-    modprobe loop
-    if losetup -f >/dev/null 2>&1; then
-      einfo "Found a usable loop device now, continuing."
-    else
-      eerror "Error finding usable loop device" ; eend 1
-      bailout 1
-    fi
-  fi
-
-  DEVINFO=$(kpartx -asv "$TARGET") # 'add map loop1p1 (253:0): 0 6289408 linear /dev/loop1 2048'
+  DEVINFO=$(kpartx -asv "$TARGET") # e.g. 'add map loop0p1 (254:5): 0 20477 linear 7:0 3'
   if [ -z "${DEVINFO}" ] ; then
     eerror "Error setting up loopback device." ; eend 1
     bailout 1
   fi
 
   # hopefully this always works as expected
-  LOOP=$(echo "${DEVINFO}" | sed 's/.* linear //; s/ [[:digit:]]*//') # 'loop1'
-  LOOP_PART="$(echo "${DEVINFO##add map }" | sed 's/ .*//')" # 'loop1p1'
+  LOOP_PART="${DEVINFO##add map }" # 'loop0p1 (254:5): 0 20477 linear 7:0 3'
+  LOOP_PART="${LOOP_PART// */}"    # 'loop0p1'
+  LOOP_DISK="${LOOP_PART%p*}"      # 'loop0'
   export TARGET="/dev/mapper/$LOOP_PART" # '/dev/mapper/loop1p1'
 
   if [ -z "$TARGET" ] ; then
@@ -1228,10 +1464,14 @@ prepare_vm() {
 }
 # }}}
 
-# make VM image bootable and unmount it {{{
-finalize_vm() {
+# make VM image bootable {{{
+grub_install() {
   if [ -z "${VIRTUAL}" ] ; then
      return 0
+  fi
+  if [ "${GRUB_INSTALL}" != "yes" ] ; then
+    einfo "Not installing GRUB as requested via \$GRUB_INSTALL=$GRUB_INSTALL"
+    return 0
   fi
 
   if ! mount "${TARGET}" "${MNTPOINT}" ; then
@@ -1241,16 +1481,17 @@ finalize_vm() {
 
   mount -t proc none "${MNTPOINT}"/proc
   mount -t sysfs none "${MNTPOINT}"/sys
-  mount --bind /dev "${MNTPOINT}"/dev
-  mount --bind /dev/pts "${MNTPOINT}"/dev/pts
+  mount -t devtmpfs udev "${MNTPOINT}"/dev
+  mount -t devpts devpts "${MNTPOINT}"/dev/pts
 
 # Has chroot-script installed GRUB to MBR using grub-install (successfully), already?
 # chroot-script skips installation for unset ${GRUB}
-if [[ -z "${GRUB}" ]] || ! dd if="${GRUB}" bs=512 count=1 2>/dev/null | cat -v | fgrep -q GRUB; then
+if [[ -z "${GRUB}" ]] || ! dd if="${GRUB}" bs=512 count=1 2>/dev/null | cat -v | grep -Fq GRUB; then
   einfo "Installing Grub as bootloader."
 
   if ! chroot "${MNTPOINT}" dpkg --list grub-pc 2>/dev/null | grep -q '^ii' ; then
     echo "Notice: grub-pc package not present yet, installing it therefore."
+    # shellcheck disable=SC2086
     DEBIAN_FRONTEND=$DEBIAN_FRONTEND chroot "$MNTPOINT" apt-get -y install $DPKG_OPTIONS grub-pc
   fi
 
@@ -1293,15 +1534,30 @@ fi
     ewarn "Please note that your system might NOT be able to properly boot."
   else
     einfo "Adjusting grub.cfg for successful boot sequence."
-    sed -i "s;root=[^ ]\+;root=UUID=$TARGET_UUID;" "${MNTPOINT}"/boot/grub/grub.cfg
+    sed -i "s;root=[^ ]\\+;root=UUID=$TARGET_UUID;" "${MNTPOINT}"/boot/grub/grub.cfg
   fi
 
   umount "${MNTPOINT}"/proc
   umount "${MNTPOINT}"/sys
   umount "${MNTPOINT}"/dev/pts
   try_umount 3 "${MNTPOINT}"/dev
+
+}
+# }}}
+
+# unmount VM image {{{
+umount_target() {
+  if [ -z "${VIRTUAL}" ] ; then
+     return 0
+  fi
+
   umount "${MNTPOINT}"
   kpartx -d "${ORIG_TARGET}" >/dev/null
+  # Workaround for a bug in kpartx which doesn't clean up properly,
+  # see Debian Bug #891077 and Github-PR grml/grml-debootstrap#112
+  if dmsetup ls | grep -q "^${LOOP_PART} "; then
+    kpartx -d "/dev/${LOOP_DISK}" >/dev/null
+  fi
 }
 # }}}
 
@@ -1322,11 +1578,13 @@ debootstrap_system() {
   if [ -n "$ISO" ] ; then
     einfo "Running $DEBOOTSTRAP $DEBOOTSTRAP_OPT for release ${RELEASE}${ARCHINFO} using ${ISO}"
     einfo "Executing: $DEBOOTSTRAP $ARCHCMD $KEYRING $DEBOOTSTRAP_OPT $RELEASE $MNTPOINT $ISO"
+    # shellcheck disable=SC2086
     "$DEBOOTSTRAP" $ARCHCMD $KEYRING $DEBOOTSTRAP_OPT "$RELEASE" "$MNTPOINT" "$ISO"
     RC=$?
   else
     einfo "Running $DEBOOTSTRAP $DEBOOTSTRAP_OPT for release ${RELEASE}${ARCHINFO} using ${MIRROR}"
     einfo "Executing: $DEBOOTSTRAP $ARCHCMD $KEYRING $DEBOOTSTRAP_OPT $RELEASE $MNTPOINT $MIRROR"
+    # shellcheck disable=SC2086
     "$DEBOOTSTRAP" $ARCHCMD $KEYRING $DEBOOTSTRAP_OPT "$RELEASE" "$MNTPOINT" "$MIRROR"
     RC=$?
   fi
@@ -1438,7 +1696,7 @@ preparechroot() {
 
   cp $VERBOSE -a -L "${CONFFILES}"/extrapackages/ "${MNTPOINT}"/etc/debootstrap/
 
-  # make sure we can access network [relevant for cdebootstrap]
+  # make sure we can access network [relevant for cdebootstrap/mmdebstrap]
   [ -f "${MNTPOINT}"/etc/resolv.conf ] || cp $VERBOSE /etc/resolv.conf "${MNTPOINT}"/etc/resolv.conf
 
   # setup default locales
@@ -1470,6 +1728,16 @@ allow-hotplug eth0
 iface eth0 inet dhcp
 "
 
+  # add dhcp setting for Predictable Network Interface Names
+  if [ -x /bin/udevadm ]; then
+    for interface in $(udevadm info -e | sed -n -e 's/E: ID_NET_NAME_PATH=\([^$*]\)/\1/p'); do
+      DEFAULT_INTERFACES="${DEFAULT_INTERFACES}
+allow-hotplug ${interface}
+iface ${interface} inet dhcp
+"
+    done
+  fi
+
   if [ -n "$NOINTERFACES" ] ; then
     einfo "Not installing /etc/network/interfaces as requested via --nointerfaces option" ; eend 0
   elif [ -n "$USE_DEFAULT_INTERFACES" ] ; then
@@ -1491,8 +1759,34 @@ iface eth0 inet dhcp
   fi
 
   # install config file providing some example entries
-  if [ -r /etc/network/interfaces.examples -a ! -r "$MNTPOINT/etc/network/interfaces.examples" ] ; then
+  if [ -r /etc/network/interfaces.examples ] && [ ! -r "$MNTPOINT/etc/network/interfaces.examples" ] ; then
      cp /etc/network/interfaces.examples "$MNTPOINT/etc/network/interfaces.examples"
+  fi
+
+  if [ -n "${SSHCOPYID}" ] ; then
+    if ssh-add -L >/dev/null 2>&1 ; then
+      einfo "Use locally available public keys to authorise root login on the target system as requested via --sshcopyid option."
+      mkdir -p "${MNTPOINT}"/root/.ssh
+      chmod 0700 "${MNTPOINT}"/root/.ssh
+      if ssh-add -L >> "${MNTPOINT}"/root/.ssh/authorized_keys ; then
+        eend 0
+      else
+        eerror "Error: executing 'ssh-add -L' failed."
+        eend 1
+        bailout 1
+      fi
+    else
+      eerror "Could not open a connection to your authentication agent or the agent has no identites."
+      eend 1
+      bailout 1
+    fi
+  fi
+
+  if [ -d /run/udev ] ; then
+    einfo "Setting up bind-mount /run/udev"
+    mkdir -p "${MNTPOINT}"/run/udev
+    mount --bind /run/udev "${MNTPOINT}"/run/udev
+    eend $?
   fi
 
   eend 0
@@ -1544,6 +1838,7 @@ execute_post_scripts() {
 }
 # }}}
 
+# unmount mountpoint {{{
 try_umount() {
   local tries=$1
   local mountpoint="$2"
@@ -1563,6 +1858,7 @@ try_umount() {
   done
   return 1  # Tried enough
 }
+# }}}
 
 # execute chroot-script {{{
 chrootscript() {
@@ -1575,8 +1871,8 @@ chrootscript() {
     eend 1
   else
     einfo "Executing chroot-script now"
-    mount --bind /dev "$MNTPOINT"/dev
-    mount --bind /dev/pts "$MNTPOINT"/dev/pts
+    mount -t devtmpfs udev "${MNTPOINT}"/dev
+    mount -t devpts devpts "${MNTPOINT}"/dev/pts
     if [ "$DEBUG" = "true" ] ; then
       chroot "$MNTPOINT" /bin/bash -x /bin/chroot-script ; RC=$?
     else
@@ -1617,6 +1913,12 @@ umount_chroot() {
   fi
 
   if grep -q "$MNTPOINT" /proc/mounts ; then
+    if mountpoint "${MNTPOINT}"/run/udev &>/dev/null ; then
+      einfo "Unmounting bind-mount /run/udev"
+      umount "${MNTPOINT}"/run/udev
+      eend $?
+    fi
+
      if [ -n "$PARTITION" ] ; then
         einfo "Unmount $MNTPOINT"
         umount "$MNTPOINT"
@@ -1660,9 +1962,10 @@ remove_configs() {
 # }}}
 
 # now execute all the functions {{{
-for i in format_efi_partition prepare_vm mkfs tunefs mount_target debootstrap_system \
+for i in format_efi_partition prepare_vm mkfs tunefs \
+         mount_target mountpoint_to_blockdevice debootstrap_system \
          preparechroot execute_pre_scripts chrootscript execute_post_scripts \
-         remove_configs umount_chroot; do
+         remove_configs umount_chroot grub_install umount_target fscktool ; do
     if stage "${i}" ; then
       if "$i" ; then
         stage "${i}" 'done' && rm -f "${STAGES}/${i}"
