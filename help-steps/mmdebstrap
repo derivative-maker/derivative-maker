@@ -1870,4 +1870,1002 @@ sub main() {
 		    no warnings; # don't print a warning if the following fails
 		    exec 'arch-test', '-n', $nativearch;
 		}
-		# if exec didn't work (f
+		# if exec didn't work (for example because the arch-test program is
+		# missing) prepare for the worst and assume that the architecture
+		# cannot be executed
+		print "$nativearch: not supported on this machine/kernel\n";
+		exit 1;
+	    }
+	    chomp (my $content = do { local $/; <$fh> });
+	    close $fh;
+	    if ($? != 0 or $content ne "$nativearch: ok") {
+		info "$nativearch cannot be executed, falling back to qemu-user";
+		if (!exists $deb2qemu->{$nativearch}) {
+		    error "no mapping from $nativearch to qemu-user binary";
+		}
+		$options->{qemu} = $deb2qemu->{$nativearch};
+		{
+		    open my $fh, '<', '/proc/filesystems' or error "failed to open /proc/filesystems: $!";
+		    unless (grep /^nodev\tbinfmt_misc$/, (<$fh>)) {
+			error "binfmt_misc not found in /proc/filesystems -- is the module loaded?";
+		    }
+		    close $fh;
+		}
+		{
+		    open my $fh, '<', '/proc/mounts' or error "failed to open /proc/mounts: $!";
+		    unless (grep /^binfmt_misc \/proc\/sys\/fs\/binfmt_misc binfmt_misc/, (<$fh>)) {
+			error "binfmt_misc not found in /proc/mounts -- not mounted?";
+		    }
+		    close $fh;
+		}
+		{
+		    open my $fh, '-|', '/usr/sbin/update-binfmts', '--display', "qemu-$options->{qemu}" // error "failed to fork(): $!";
+		    chomp (my $binfmts = do { local $/; <$fh> });
+		    close $fh;
+		    if ($binfmts eq '') {
+			error "qemu-$options->{qemu} is not a supported binfmt name";
+		    }
+		}
+	    } else {
+		info "$nativearch can be executed on this $hostarch machine";
+	    }
+	} else {
+	    info "chroot architecture $nativearch is equal to the host's architecture";
+	}
+    }
+
+    {
+	my $suite;
+	if (scalar @ARGV > 0) {
+	    $suite = shift @ARGV;
+	    if (scalar @ARGV > 0) {
+		$options->{target} = shift @ARGV;
+	    } else {
+		$options->{target} = '-';
+	    }
+	} else {
+	    info "No SUITE specified, expecting sources.list on standard input";
+	    $options->{target} = '-';
+	}
+
+	my $sourceslist = '';
+	my $stdindata = '';
+	# make sure that we only attempt to read from STDIN if it's *not*
+	# connected to the terminal (because we don't expect the user to type
+	# the sources.list file
+	if (! -t STDIN) {
+	    info "Reading sources.list from standard input...";
+	    $stdindata = do { local $/; <STDIN> };
+	}
+	if (! defined $suite) {
+	    # If no suite was specified, then the whole sources.list has to
+	    # come from standard input
+	    $sourceslist .= $stdindata;
+	} else {
+	    if (scalar @ARGV > 0) {
+		for my $arg (@ARGV) {
+		    if ($arg eq '-') {
+			$sourceslist .= $stdindata;
+		    } elsif ($arg =~ /^deb(-src)? /) {
+			$sourceslist .= "$arg\n";
+		    } elsif ($arg =~ /:\/\//) {
+			$sourceslist .= "deb $arg $suite $options->{components}\n";
+		    } elsif (-f $arg) {
+			open my $fh, '<', $arg or error "cannot open $arg: $!";
+			while (my $line = <$fh>) {
+			    $sourceslist .= $line;
+			}
+			close $fh;
+		    } else {
+			error "invalid mirror: $arg";
+		    }
+		}
+		# if there was no explicit '-' mirror listed and something was
+		# read on standard input, then just append it to the end
+		if (none { $_ eq '-' } @ARGV) {
+		    # if nothing was read on standard input then nothing will
+		    # be appended
+		    $sourceslist .= $stdindata;
+		}
+	    } elsif ($stdindata ne '') {
+		$sourceslist .= $stdindata;
+	    } else {
+		# FIXME: change default mirror depending on $suite
+		#        (for derivatives)
+		$sourceslist .= "deb http://deb.debian.org/debian $suite $options->{components}\n";
+		if (any { $_ eq $suite } ('stable', 'oldstable', 'stretch') ) {
+		    $sourceslist .= "deb http://deb.debian.org/debian $suite-updates $options->{components}\n";
+		    $sourceslist .= "deb http://security.debian.org/debian-security $suite/updates $options->{components}\n";
+		}
+	    }
+	}
+	if ($sourceslist eq '') {
+	    error "empty apt sources.list";
+	}
+	$options->{sourceslist} = $sourceslist;
+    }
+
+    if ($options->{target} ne '-') {
+	my $abs_path = abs_path($options->{target});
+	if (!defined $abs_path) {
+	    error "unable to get absolute path of target directory $options->{target}";
+	}
+	$options->{target} = $abs_path;
+    }
+
+    if ($options->{target} eq '/') {
+	error "refusing to use the filesystem root as output directory";
+    }
+
+    my $tar_compressor = get_tar_compressor($options->{target});
+
+    # figure out whether a tarball has to be created in the end
+    $options->{maketar} = 0;
+    if (defined $tar_compressor or $options->{target} =~ /\.tar$/ or $options->{target} eq '-') {
+	$options->{maketar} = 1;
+	if (any { $_ eq $options->{variant} } ('extract', 'custom') and $options->{mode} eq 'fakechroot') {
+	    info "creating a tarball in fakechroot mode might fail in extract and custom variants because there might be no tar inside the chroot";
+	}
+	# try to fail early if target tarball cannot be opened for writing
+	if ($options->{target} ne '-') {
+	    open my $fh, '>', $options->{target} or error "cannot open $options->{target} for writing: $!";
+	    close $fh;
+	}
+	# check if the compressor is installed
+	if (defined $tar_compressor) {
+	    my $pid = fork();
+	    if ($pid == 0) {
+		open(STDOUT, '>', '/dev/null') or error "cannot open /dev/null for writing: $!";
+		open(STDIN, '<', '/dev/null') or error "cannot open /dev/null for reading: $!";
+		exec $tar_compressor or error "cannot exec $tar_compressor: $!";
+	    }
+	    waitpid $pid, 0;
+	    if ($? != 0) {
+		error "failed to start $tar_compressor";
+	    }
+	}
+    }
+
+    if ($options->{maketar}) {
+	# since the output is a tarball, we create the rootfs in a temporary
+	# directory
+	$options->{root} = tempdir(
+	    'mmdebstrap.XXXXXXXXXX',
+	    DIR => File::Spec->tmpdir
+	);
+	info "using $options->{root} as tempdir";
+	# in unshare and root mode, other users than the current user need to
+	# access the rootfs, most prominently, the _apt user. Thus, make the
+	# temporary directory world readable.
+	if (any { $_ eq $options->{mode} } ('unshare', 'root')) {
+	    chmod 0755, $options->{root} or error "cannot chmod root: $!";
+	}
+    } else {
+	# user does not seem to have specified a tarball as output, thus work
+	# directly in the supplied directory
+	$options->{root} = $options->{target};
+	if (-e $options->{root}) {
+	    if (!-d $options->{root}) {
+		error "$options->{root} exists and is not a directory";
+	    }
+	    # check if the directory is empty or contains nothing more than an
+	    # empty lost+found directory. The latter exists on freshly created
+	    # ext3 and ext4 partitions.
+	    # rationale for requiring an empty directory: https://bugs.debian.org/833525
+	    opendir(my $dh, $options->{root}) or error "Can't opendir($options->{root}): $!";
+	    while (my $entry = readdir $dh) {
+		# skip the "." and ".." entries
+		next if $entry eq ".";
+		next if $entry eq "..";
+		# if the entry is a directory named "lost+found" then skip it
+		# if it's empty
+		if ($entry eq "lost+found" and -d "$options->{root}/$entry") {
+		    opendir(my $dh2, "$options->{root}/$entry");
+		    # Attempt reading the directory thrice. If the third time
+		    # succeeds, then it has more entries than just "." and ".."
+		    # and must thus not be empty.
+		    readdir $dh2;
+		    readdir $dh2;
+		    # rationale for requiring an empty directory:
+		    # https://bugs.debian.org/833525
+		    if (readdir $dh2) {
+			error "$options->{root} contains a non-empty lost+found directory";
+		    }
+		    closedir($dh2);
+		} else {
+		    error "$options->{root} is not empty";
+		}
+	    }
+	    closedir($dh);
+	} else {
+	    make_path($options->{root}) or error "cannot create root: $!";
+	}
+    }
+
+    # check for double quotes because apt doesn't allow to escape them and
+    # thus paths with double quotes are invalid in the apt config
+    if ($options->{root} =~ /"/) {
+	error "apt cannot handle paths with double quotes";
+    }
+
+    my @idmap;
+    # for unshare mode the rootfs directory has to have appropriate
+    # permissions
+    if ($options->{mode} eq 'unshare') {
+	@idmap = read_subuid_subgid;
+	# sanity check
+	if (scalar(@idmap) != 2 || $idmap[0][0] ne 'u' || $idmap[1][0] ne 'g') {
+	    error "invalid idmap";
+	}
+
+	my $outer_gid = $REAL_GROUP_ID+0;
+
+	my $pid = get_unshare_cmd { chown 1, 1, $options->{root} }
+	[
+	    ['u', '0', $REAL_USER_ID, '1'],
+	    ['g', '0', $outer_gid, '1'],
+	    ['u', '1', $idmap[0][2], '1'],
+	    ['g', '1', $idmap[1][2], '1']];
+	waitpid $pid, 0;
+	$? == 0 or error "chown failed";
+    }
+
+    # figure out whether we have mknod
+    $options->{havemknod} = 0;
+    if ($options->{mode} eq 'unshare') {
+	my $pid = get_unshare_cmd {
+	    $options->{havemknod} = havemknod($options->{root});
+	} \@idmap;
+	waitpid $pid, 0;
+	$? == 0 or error "havemknod failed";
+    } elsif (any { $_ eq $options->{mode} } ('root', 'fakechroot', 'proot', 'chrootless')) {
+	$options->{havemknod} = havemknod($options->{root});
+    } else {
+	error "unknown mode: $options->{mode}";
+    }
+
+    my $devtar = '';
+    # We always craft the /dev entries ourselves if a tarball is to be created
+    if ($options->{maketar}) {
+	foreach my $file (@devfiles) {
+	    my ($fname, $mode, $type, $linkname, $devmajor, $devminor) = @{$file};
+	    my $entry = pack('a100 a8 a8 a8 a12 a12 A8 a1 a100 a8 a32 a32 a8 a8 a155 x12',
+		$fname,
+		sprintf('%07o', $mode),
+		sprintf('%07o', 0), # uid
+		sprintf('%07o', 0), # gid
+		sprintf('%011o', 0), # size
+		sprintf('%011o', $mtime),
+		'', # checksum
+		$type,
+		$linkname,
+		"ustar  ",
+		'', # username
+		'', # groupname
+		defined($devmajor) ? sprintf('%07o', $devmajor) : '',
+		defined($devminor) ? sprintf('%07o', $devminor) : '',
+		'', # prefix
+	    );
+	    # compute and insert checksum
+	    substr($entry,148,7) = sprintf("%06o\0", unpack("%16C*",$entry));
+	    $devtar .= $entry;
+	}
+    }
+
+    my $exitstatus = 0;
+    my @taropts = ('--sort=name', "--mtime=\@$mtime", '--clamp-mtime', '--numeric-owner', '--one-file-system', '-c', '--exclude=./dev');
+
+    # disable signals so that we can fork and change behaviour of the signal
+    # handler in the parent and child without getting interrupted
+    my $sigset = POSIX::SigSet->new(SIGINT, SIGHUP, SIGPIPE, SIGTERM);
+    POSIX::sigprocmask(SIG_BLOCK, $sigset) or error "Can't block signals: $!";
+
+    my $pid;
+    pipe my $rfh, my $wfh;
+    if ($options->{mode} eq 'unshare') {
+	$pid = get_unshare_cmd {
+	    # child
+	    $SIG{'INT'} = 'DEFAULT';
+	    $SIG{'HUP'} = 'DEFAULT';
+	    $SIG{'PIPE'} = 'DEFAULT';
+	    $SIG{'TERM'} = 'DEFAULT';
+
+	    # unblock all delayed signals (and possibly handle them)
+	    POSIX::sigprocmask(SIG_UNBLOCK, $sigset) or error "Can't unblock signals: $!";
+
+	    close $rfh;
+	    open(STDOUT, '>&', STDERR);
+
+	    setup($options);
+
+	    if ($options->{maketar}) {
+		info "creating tarball...";
+
+		# redirect tar output to the writing end of the pipe so that the
+		# parent process can capture the output
+		open(STDOUT, '>&', $wfh);
+
+		# Add ./dev as the first entries of the tar file.
+		# We cannot add them after calling tar, because there is no way to
+		# prevent tar from writing NULL entries at the end.
+		print $devtar;
+
+		# pack everything except ./dev
+		0 == system('tar', @taropts, '-C', $options->{root}, '.') or error "tar failed: $?";
+
+		info "done";
+	    }
+
+	    exit 0;
+	} \@idmap;
+    } elsif (any { $_ eq $options->{mode} } ('root', 'fakechroot', 'proot', 'chrootless')) {
+	$pid = fork() // error "fork() failed: $!";
+	if ($pid == 0) {
+	    $SIG{'INT'} = 'DEFAULT';
+	    $SIG{'HUP'} = 'DEFAULT';
+	    $SIG{'PIPE'} = 'DEFAULT';
+	    $SIG{'TERM'} = 'DEFAULT';
+
+	    # unblock all delayed signals (and possibly handle them)
+	    POSIX::sigprocmask(SIG_UNBLOCK, $sigset) or error "Can't unblock signals: $!";
+
+	    close $rfh;
+	    open(STDOUT, '>&', STDERR);
+
+	    setup($options);
+
+	    if ($options->{maketar}) {
+		info "creating tarball...";
+
+		# redirect tar output to the writing end of the pipe so that the
+		# parent process can capture the output
+		open(STDOUT, '>&', $wfh);
+
+		# Add ./dev as the first entries of the tar file.
+		# We cannot add them after calling tar, because there is no way to
+		# prevent tar from writing NULL entries at the end.
+		print $devtar;
+
+		if ($options->{mode} eq 'fakechroot') {
+		    # Fakechroot requires tar to run inside the chroot or
+		    # otherwise absolute symlinks will include the path to the
+		    # root directory
+		    0 == system('/usr/sbin/chroot', $options->{root}, 'tar', @taropts, '-C', '/', '.') or error "tar failed: $?";
+		} elsif ($options->{mode} eq 'proot') {
+		    # proot requires tar to run inside proot or otherwise
+		    # permissions will be completely off
+		    my @qemuopt = ();
+		    if (defined $options->{qemu}) {
+			push @qemuopt, "--qemu=qemu-$options->{qemu}";
+			push @taropts, "--exclude=./host-rootfs"
+		    }
+		    0 == system('proot', '--root-id', "--rootfs=$options->{root}", '--cwd=/', @qemuopt, 'tar', @taropts, '-C', '/', '.') or error "tar failed: $?";
+		} elsif (any { $_ eq $options->{mode} } ('root', 'chrootless')) {
+		    0 == system('tar', @taropts, '-C', $options->{root}, '.') or error "tar failed: $?";
+		} else {
+		    error "unknown mode: $options->{mode}";
+		}
+
+		info "done";
+	    }
+
+	    exit 0;
+	}
+    } else {
+	error "unknown mode: $options->{mode}";
+    }
+
+    # parent
+
+    my $got_signal = 0;
+    my $waiting_for = "setup";
+    my $ignore = sub {
+	$got_signal = shift;
+	info "main() received signal $got_signal: waiting for $waiting_for...";
+    };
+
+    $SIG{'INT'} = $ignore;
+    $SIG{'HUP'} = $ignore;
+    $SIG{'PIPE'} = $ignore;
+    $SIG{'TERM'} = $ignore;
+
+    # unblock all delayed signals (and possibly handle them)
+    POSIX::sigprocmask(SIG_UNBLOCK, $sigset) or error "Can't unblock signals: $!";
+
+    close $wfh;
+
+    if ($options->{maketar}) {
+	# we use eval() so that error() doesn't take this process down and
+	# thus leaves the setup() process without a parent
+	eval {
+	    if ($options->{target} eq '-') {
+		if (!copy($rfh, *STDOUT)) {
+		    error "cannot copy to standard output: $!";
+		}
+	    } else {
+		if (defined $tar_compressor) {
+		    POSIX::sigprocmask(SIG_BLOCK, $sigset) or error "Can't block signals: $!";
+		    my $cpid = fork();
+		    if ($cpid == 0) {
+			# child: default signal handlers
+			$SIG{'INT'} = 'DEFAULT';
+			$SIG{'HUP'} = 'DEFAULT';
+			$SIG{'PIPE'} = 'DEFAULT';
+			$SIG{'TERM'} = 'DEFAULT';
+
+			# unblock all delayed signals (and possibly handle them)
+			POSIX::sigprocmask(SIG_UNBLOCK, $sigset) or error "Can't unblock signals: $!";
+			open(STDOUT, '>', $options->{target}) or error "cannot open $options->{target} for writing: $!";
+			open(STDIN, '<&', $rfh) or error "cannot open file handle for reading: $!";
+			exec $tar_compressor or error "cannot exec $tar_compressor: $!";
+		    }
+		    POSIX::sigprocmask(SIG_UNBLOCK, $sigset) or error "Can't unblock signals: $!";
+		    waitpid $cpid, 0;
+		    if ($? != 0) {
+			error "failed to start $tar_compressor";
+		    }
+		} else {
+		    if(!copy($rfh, $options->{target})) {
+			error "cannot copy to $options->{target}: $!";
+		    }
+		}
+	    }
+	};
+	if ($@) {
+	    # we cannot die here because that would leave the other thread
+	    # running without a parent
+	    warning "run_chroot failed: $@";
+	    $exitstatus = 1;
+	}
+    }
+    close($rfh);
+    waitpid $pid, 0;
+    if ($? != 0) {
+	$exitstatus = 1;
+    }
+
+    # change signal handler message
+    $waiting_for = "cleanup";
+
+    if ($options->{maketar} and -e $options->{root}) {
+	info "removing tempdir $options->{root}...";
+	if ($options->{mode} eq 'unshare') {
+	    # We don't have permissions to remove the directory outside
+	    # the unshared namespace, so we remove it here.
+	    # Since this is still inside the unshared namespace, there is
+	    # no risk of removing anything important.
+	    $pid = get_unshare_cmd {
+		remove_tree($options->{root}, {error => \my $err});
+		if (@$err) {
+		    for my $diag (@$err) {
+			my ($file, $message) = %$diag;
+			if ($file eq '') {
+			    warning "general error: $message";
+			}
+			else {
+			    warning "problem unlinking $file: $message";
+			}
+		    }
+		}
+	    } \@idmap;
+	    waitpid $pid, 0;
+	    $? == 0 or error "remove_tree failed";
+	} elsif (any { $_ eq $options->{mode} } ('root', 'fakechroot', 'proot', 'chrootless')) {
+	    # without unshare, we use the system's rm to recursively remove the
+	    # temporary directory just to make sure that we do not accidentally
+	    # remove more than we should by using --one-file-system.
+	    #
+	    # --interactive=never is needed when in proot mode, the
+	    # write-protected file /apt/apt.conf.d/01autoremove-kernels is to
+	    # be removed.
+	    0 == system('rm', '--interactive=never', '--recursive', '--preserve-root', '--one-file-system', $options->{root}) or error "rm failed: $!";
+	} else {
+	    error "unknown mode: $options->{mode}";
+	}
+    }
+
+    if ($got_signal) {
+	$exitstatus = 1;
+    }
+
+    exit $exitstatus;
+}
+
+main();
+
+__END__
+
+=head1 NAME
+
+mmdebstrap - multi-mirror Debian chroot creation
+
+=head1 SYNOPSIS
+
+B<mmdebstrap> [B<OPTION...>] [I<SUITE> [I<TARGET> [I<MIRROR>...]]]
+
+=head1 DESCRIPTION
+
+B<mmdebstrap> creates a Debian chroot of I<SUITE> into I<TARGET> from one or
+more I<MIRROR>s. It is meant as an alternative to the debootstrap tool (see
+section B<DEBOOTSTRAP>). In contrast to debootstrap it uses apt to resolve
+dependencies and is thus able to use more than one mirror and resolve more
+complex dependencies.
+
+If no I<MIRROR> option is provided, L<http://deb.debian.org/debian> is used,
+except if data was given on standard input in which case the lines read from
+there are used as the content of the chroot's sources.list file. If I<SUITE>
+is a stable release name and no I<MIRROR> is specified, then mirrors for
+updates and security are automatically added. If a I<MIRROR> option starts
+with "deb " or "deb-src " then it is used as a one-line-style format entry for
+apt's sources.list inside the chroot.  If a I<MIRROR> option contains a "://"
+then it is interpreted as a mirror URI and the apt line inside the chroot is
+assembled as "deb [arch=A] B C D" where A is the host's native architecture, B
+is the I<MIRROR>, C is the given I<SUITE> and D is the components given via
+B<--components> (defaults to "main"). If a I<MIRROR> option happens to be an
+existing file, then its contents are pasted into the chroot's sources.list.
+This can be used to supply a deb822 style sources.list. If I<MIRROR> is C<->
+then standard input is pasted into the chroot's sources.list. If there was
+data on standard input but no C<-> mirror was listed, the lines read from
+standard input will be appended to the end of the chroot's sources.list. More
+than one mirror can be specified and are appended to the chroot's sources.list
+in the given order. If any mirror contains a https URI, then the packages
+apt-transport-https and ca-certificates will be installed inside the chroot.
+If any mirror contains a tor+xxx URI, then the apt-transport-tor package will
+be installed inside the chroot.
+
+The optional I<TARGET> argument can either be the path to a directory, the
+path to a tarball filename or C<->. If I<TARGET> ends with C<.tar>, or with
+any of the filename extensions listed in the section B<COMPRESSION>, then
+I<TARGET> will be interpreted as a path to a tarball filename. If I<TARGET> is
+the path to a tarball filename or if I<TARGET> is C<-> or if no I<TARGET> was
+specified, B<mmdebstrap> will create a temporary chroot directory in
+C<$TMPDIR> or F</tmp>. If I<TARGET> is the path to a tarball filename,
+B<mmdebstrap> will create a tarball of that directory and store it as
+I<TARGET>, optionally applying a compression algorithm as indicated by its
+filename extension. If I<TARGET> is C<-> or if no I<TARGET> was specified,
+then an uncompressed tarball of that directory will be sent to standard
+output. If I<TARGET> does not end in C<.tar> or with any of the filename
+extensions listed in the section B<COMPRESSION>, then I<TARGET> will be
+interpreted as the path to a directory. If the directory already exists, it
+must either be empty or only contain an empty C<lost+found> directory.  If a
+directory is chosen as output in any other mode than B<sudo>, then its
+contents will have wrong ownership information and special device files will
+be missing.
+
+The I<SUITE> may be a valid release code name (eg, sid, stretch, jessie) or a
+symbolic name (eg, unstable, testing, stable, oldstable). Any suite name that
+works with apt on the given mirror will work. If no I<SUITE> was specified,
+then a single I<MIRROR> C<-> is added and thus the information of the desired
+suite has to come from standard input as part of a valid apt sources.list
+file.
+
+All status output is printed to standard error unless B<--logfile> is used to
+redirect it to a file or B<--quiet> or B<--silent> is used to suppress any
+output on standard error. Help and version information will be printed to
+standard error with the B<--help> and B<--version> options, respectively.
+Otherwise, an uncompressed tarball might be sent to standard output if
+I<TARGET> is C<-> or if no I<TARGET> was specified.
+
+=head1 OPTIONS
+
+Options are case insensitive. Short options may be bundled. Long options
+require a double dash and may be abbreviated to uniqueness.
+
+=over 8
+
+=item B<-h,--help>
+
+Print this help text and exit.
+
+=item B<--version>
+
+Print the B<mmdebstrap> version and exit.
+
+=item B<--variant>=I<name>
+
+Choose which package set to install. Valid variant I<name>s are B<extract>,
+B<custom>, B<essential>, B<apt>, B<required>, B<minbase>, B<buildd>,
+B<important>, B<debootstrap>, B<->, and B<standard>. The default variant is
+B<required>. See the section B<VARIANTS> for more information.
+
+=item B<--mode>=I<name>
+
+Choose how to perform the chroot operation and create a filesystem with
+ownership information different from the current user. Valid mode I<name>s are B<auto>,
+B<sudo>, B<root>, B<unshare>, B<fakeroot>, B<fakechroot> and B<proot>. The
+default mode is B<auto>. See the section B<MODES> for more information.
+
+=item B<--aptopt>=I<option>|I<file>
+
+Pass arbitrary I<option>s to apt. Will be added to
+F</etc/apt/apt.conf.d/99mmdebstrap> inside the chroot.  Can be specified
+multiple times. Each I<option> will be appended to 99mmdebstrap. A semicolon will
+be added at the end of the option if necessary. If the command line argument
+is an existing I<file>, the content of the file will be appended to 99mmdebstrap
+verbatim.
+
+Examples:
+
+    --aptopt='Acquire::Check-Valid-Until "false"'
+    --aptopt='Acquire::Languages { "environment"; "en"; }'
+    --aptopt='Acquire::Languages "none"'
+    --aptopt='Apt::Install-Recommends "true"'
+    --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }'
+    --aptopt='APT::Sandbox::User "root"'
+
+=item B<--dpkgopt>=I<option>|I<file>
+
+Pass arbitrary I<option>s to dpkg. Will be added to
+F</etc/dpkg/dpkg.cfg.d/99mmdebstrap> inside the chroot. Can be specified
+multiple times. Each I<option> will be appended to 99mmdebstrap. If the command
+line argument is an existing I<file>, the content of the file will be appended to
+99mmdebstrap verbatim.
+
+Example: --dpkgopt="path-exclude=/usr/share/man/*"
+
+=item B<--include>=I<pkg1>[,I<pkg2>,...]
+
+Comma separated list of packages which will be installed in addition to the
+packages installed by the specified variant. The direct and indirect hard
+dependencies will also be installed. The behaviour of this option depends on
+the selected variant. The B<extract> and B<custom> variants install no packages
+by default, so for these variants, the packages specified by this option will
+be the only ones that get either extracted or installed by dpkg, respectively.
+For all other variants, apt is used to install the additional packages. The
+B<essential> variant does not include apt and thus, the include option will
+only work when the B<chrootless> mode is selected and thus apt from the outside
+can be used.
+
+=item B<--components>=I<comp1>[,I<comp2>,...]
+
+Comma separated list of components like main, contrib and non-free which will
+be used for all URI-only I<MIRROR> arguments.
+
+=item B<--architectures>=I<native>[,I<foreign1>,...]
+
+Comma separated list of architectures. The first architecture is the I<native>
+architecture inside the chroot. The remaining architectures will be added to
+the foreign dpkg architectures. Without this option, the I<native>
+architecture of the chroot defaults to the native architecture of the system
+running B<mmdebstrap>.
+
+=begin comment
+
+=item B<--setup-hook>=I<command>
+
+Execute arbitrary I<command>s right after initial setup (directory creation,
+configuration of apt and dpkg, ...) but before any packages are downloaded or
+installed. At that point, the chroot directory does not contain any
+executables and thus cannot be chroot-ed into.  The option can be specified
+multiple times and the commands are executed in the order in which they are
+given on the command line. If I<command> is an existing executable file or if
+I<command> does not contain any shell metacharacters, then I<command> is
+directly exec-ed with the path to the chroot directory passed as the first
+argument. Otherwise, I<command> is executed under I<sh> and the chroot
+directory can be accessed via I<$1>. All environment variables used by
+B<mmdebstrap> (like C<APT_CONFIG>, C<DEBIAN_FRONTEND>, C<LC_ALL> and C<PATH>)
+are preserved.
+
+Examples:
+
+    --setup-hook='for d in bin sbin lib; do ln -s usr/$d "$1/$d"; mkdir -p "$1/usr/$d"; done'
+
+=item B<--essential-hook>=I<command>
+
+Execute arbitrary I<command>s after the Essential:yes packages have been
+installed but before installing the remaining packages. The hook is not
+executed for the B<extract> and B<custom> variants. The option can be
+specified multiple times and the commands are executed in the order in which
+they are given on the command line. If I<command> is an existing executable
+file or if I<command> does not contain any shell metacharacters, then
+I<command> is directly exec-ed with the path to the chroot directory passed as
+the first argument. Otherwise, I<command> is executed under I<sh> and the
+chroot directory can be accessed via I<$1>. All environment variables used by
+B<mmdebstrap> (like C<APT_CONFIG>, C<DEBIAN_FRONTEND>, C<LC_ALL> and C<PATH>)
+are preserved.
+
+Examples:
+
+    --essential-hook='echo unattended-upgrades unattended-upgrades/enable_auto_updates boolean true | chroot "$1" debconf-set-selections'
+    --essential-hook='echo tzdata tzdata/Areas select Europe | chroot "$1" debconf-set-selections'
+    --essential-hook='echo tzdata tzdata/Zones/Europe select Berlin | chroot "$1" debconf-set-selections'
+
+=item B<--customize-hook>=I<command>
+
+Execute arbitrary I<command>s after the chroot is set up and all packages got
+installed but before final cleanup actions are carried out.  The option can be
+specified multiple times and the commands are executed in the order in which
+they are given on the command line. If I<command> is an existing executable
+file or if I<command> does not contain any shell metacharacters, then
+I<command> is directly exec-ed with the path to the chroot directory passed as
+the first argument. Otherwise, I<command> is executed under I<sh> and the
+chroot directory can be accessed via I<$1>. All environment variables used by
+B<mmdebstrap> (like C<APT_CONFIG>, C<DEBIAN_FRONTEND>, C<LC_ALL> and C<PATH>)
+are preserved.
+
+Examples:
+
+    --customize-hook='chroot "$1" passwd --delete root'
+    --customize-hook='chroot "$1" useradd --home-dir /home/user --create-home user'
+    --customize-hook='chroot "$1" passwd --delete user'
+    --customize-hook='echo host > "$1/etc/hostname"'
+    --customize-hook=/usr/share/autopkgtest/setup-commands/setup-testbed
+
+=end comment
+
+=item B<-q,--quiet>, B<-s,--silent>
+
+Do not write anything to standard error. If used together with B<--verbose> or
+B<--debug>, only the last option will take effect.
+
+=item B<-v,--verbose>
+
+Instead of progress bars, write the dpkg and apt output directly to standard
+error. If used together with B<--quiet> or B<--debug>, only the last option
+will take effect.
+
+=item B<-d,--debug>
+
+In addition to the output produced by B<--verbose>, write detailed debugging
+information to standard error. Errors will print a backtrace. If used together
+with B<--quiet> or B<--verbose>, only the last option will take effect.
+
+=item B<--logfile>=I<filename>
+
+Instead of writing status information to standard error, write it into the
+file given by I<filename>.
+
+=back
+
+=head1 MODES
+
+Creating a Debian chroot requires not only permissions for running chroot but
+also the ability to create files owned by the superuser. The selected mode
+decides which way this is achieved.
+
+=over 8
+
+=item B<auto>
+
+This mode automatically selects a fitting mode. If the effective user id is the
+one of the superuser, then the B<sudo> mode is chosen. Otherwise, the
+B<unshare> mode is picked if the system has the sysctl
+C<kernel.unprivileged_userns_clone> set to C<1>. Should that not be the case
+and if the proot binary exists, the B<proot> mode is chosen. Lastly, the
+B<fakechroot> is used if the fakechroot binary exists.
+
+=item B<sudo>, B<root>
+
+This mode directly executes chroot and is the same mode of operation as is
+used by debootstrap. It is the only mode that can directly create a directory
+chroot with the right permissions. If the chroot directory is not accessible
+by the _apt user, then apt sandboxing will be automatically disabled.
+
+=item B<unshare>
+
+This mode uses Linux user namespaces to allow unpriviliged use of chroot and
+creation of files that appear to be owned by the superuser inside the unshared
+namespace. A directory chroot created with this mode will end up with wrong
+permissions. Choose to create a tarball instead.
+
+=item B<fakeroot>, B<fakechroot>
+
+This mode will exec B<mmdebstrap> again under C<fakechroot fakeroot>. A
+directory chroot created with this mode will end up with wrong permissions.
+Choose to create a tarball instead.
+
+=item B<proot>
+
+This mode will carry out all calls to chroot with proot instead. Since
+permissions are only retained while proot is still running, this will lead to
+wrong permissions in the final directory and tarball. This mode is useful if
+you plan to use the chroot with proot.
+
+=item B<chrootless>
+
+Uses the dpkg option C<--force-script-chrootless> to install packages into
+B<TARGET> without dpkg and apt inside B<target> but using apt and dpkg from
+the machine running B<mmdebstrap>. Maintainer scripts are run without chrooting
+into B<TARGET> and rely on their dependencies being installed on the machine
+running B<mmdebstrap>.
+
+=for TODO
+=item B<qemu>
+
+=back
+
+=head1 VARIANTS
+
+All package sets also include the direct and indirect hard dependencies (but
+not recommends) of the selected package sets. The variants B<minbase>,
+B<buildd> and B<->, resemble the package sets that debootstrap would install
+with the same I<--variant> argument.
+
+=over 8
+
+=item B<extract>
+
+Installs nothing by default (not even C<Essential:yes> packages). Packages
+given by the C<--include> option are extracted but will not be installed.
+
+=item B<custom>
+
+Installs nothing by default (not even C<Essential:yes> packages). Packages
+given by the C<--include> option will be installed.  If another mode than
+B<chrootless> was selected and dpkg was not part of the included package set,
+then this variant will fail because it cannot configure the packages.
+
+=item B<essential>
+
+C<Essential:yes> packages.
+
+=item B<apt>
+
+The B<essential> set plus apt.
+
+=item B<required>, B<minbase>
+
+The B<essential> set plus all packages with Priority:required and apt.
+
+=item B<buildd>
+
+The B<minbase> set plus build-essential.
+
+=item B<important>, B<debootstrap>, B<->
+
+The B<required> set plus all packages with Priority:important. This is the default of debootstrap.
+
+=item B<standard>
+
+The B<important> set plus all packages with Priority:standard.
+
+=back
+
+=head1 EXAMPLES
+
+Use like debootstrap:
+
+    $ sudo mmdebstrap unstable ./unstable-chroot
+
+Without superuser privileges:
+
+    $ mmdebstrap unstable unstable-chroot.tar
+
+With no command line arguments at all. The chroot content is entirely defined
+by a sources.list file on standard input.
+
+    $ mmdebstrap < /etc/apt/sources.list > unstable-chroot.tar
+
+Drop locales (but not the symlink to the locale name alias database),
+translated manual packages (but not the untranslated ones), and documentation
+(but not copyright and Debian changelog).
+
+    $ mmdebstrap --variant=essential \
+        --dpkgopt='path-exclude=/usr/share/man/*' \
+        --dpkgopt='path-include=/usr/share/man/man[1-9]/*' \
+        --dpkgopt='path-exclude=/usr/share/locale/*' \
+        --dpkgopt='path-include=/usr/share/locale/locale.alias' \
+        --dpkgopt='path-exclude=/usr/share/doc/*' \
+        --dpkgopt='path-include=/usr/share/doc/*/copyright' \
+        --dpkgopt='path-include=/usr/share/doc/*/changelog.Debian.*' \
+        unstable debian-unstable.tar
+
+Use as debootstrap replacement in sbuild-createchroot:
+
+    $ sbuild-createchroot --debootstrap=mmdebstrap \
+        --make-sbuild-tarball ~/.cache/sbuild/unstable-amd64.tar.gz \
+        unstable $(mktemp -d)
+
+=begin comment
+
+Use as replacement for autopkgtest-build-qemu and vmdb2:
+
+    $ mmdebstrap --variant=important --include=linux-image-amd64 \
+        --customize-hook='chroot "$1" passwd --delete root' \
+        --customize-hook='chroot "$1" useradd --home-dir /home/user --create-home user' \
+        --customize-hook='chroot "$1" passwd --delete user' \
+        --customize-hook='echo host > "$1/etc/hostname"' \
+        --customize-hook='echo "127.0.0.1 localhost host" > "$1/etc/hosts"' \
+        --customize-hook=/usr/share/autopkgtest/setup-commands/setup-testbed \
+        unstable debian-unstable.tar
+    $ cat << END > extlinux.conf
+    > default linux
+    > timeout 0
+    >
+    > label linux
+    > kernel /vmlinuz
+    > append initrd=/initrd.img root=/dev/vda1 rw console=ttyS0
+    END
+    $ guestfish -N debian-unstable.img=disk:2G -- \
+        part-disk /dev/sda mbr : \
+        part-set-bootable /dev/sda 1 true : \
+        mkfs ext2 /dev/sda1 : mount /dev/sda1 / : \
+        tar-in debian-unstable.tar / : \
+        extlinux / : \
+        copy-in extlinux.conf /
+    $ qemu-img convert -O qcow2 debian-unstable.img debian-unstable.qcow2
+
+=end comment
+
+=head1 ENVIRONMENT VARIABLES
+
+By setting C<SOURCE_DATE_EPOCH> the result will be reproducible over multiple
+runs with the same options and mirror content.
+
+=head1 DEBOOTSTRAP
+
+This section lists some differences to debootstrap.
+
+=over 8
+
+=item * More than one mirror possible
+
+=item * Default mirrors for stable releases include updates and security mirror
+
+=item * Multiple ways to operate as non-root: fakechroot, proot, unshare
+
+=item * 3-6 times faster
+
+=item * Can create a chroot with only C<Essential:yes> packages and their dependencies
+
+=item * Reproducible output by default if $SOURCE_DATE_EPOCH is set
+
+=item * Can create output on filesystems with nodev set
+
+=item * apt cache and lists are cleaned at the end
+
+=item * foreign architecture chroots using qemu-user
+
+=back
+
+Limitations in comparison to debootstrap:
+
+=over 8
+
+=item * Only runs on systems with apt installed
+
+=item * No I<SCRIPT> argument
+
+=item * No I<--second-stage> option.
+
+=back
+
+=head1 COMPRESSION
+
+B<mmdebstrap> will choose a suitable compressor for the output tarball
+depending on the filename extension. The following mapping from filename
+extension to compressor applies:
+
+ extension compressor
+ --------------------
+ .tar      none
+ .gz       gzip
+ .tgz      gzip
+ .taz      gzip
+ .Z        compress
+ .taZ      compress
+ .bz2      bzip2
+ .tbz      bzip2
+ .tbz2     bzip2
+ .tz2      bzip2
+ .lz       lzip
+ .lzma     lzma
+ .tlz      lzma
+ .lzo      lzop
+ .lz4      lz4
+ .xz       xz
+ .txz      xz
+ .zst      zstd
+
+=head1 BUGS
+
+As of version 1.19.5, dpkg does not provide facilities preventing it from
+reading the dpkg configuration of the machine running B<mmdebstrap>.
+Therefore, until this dpkg limitation is fixed, a default dpkg configuration
+is recommended on machines running B<mmdebstrap>.
+
+=head1 SEE ALSO
+
+    debootstrap(8)
+
+=cut
