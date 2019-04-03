@@ -465,19 +465,17 @@ genmkfile_installation() {
       cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
       chown --recursive $user_name:$user_name "$base_folder/home/$user_name"
 
-      local make_file="/home/$user_name/genmkfile/Makefile"
-
       pushd "$base_folder"
       pushd "home/$user_name/genmkfile"
 
       ## install genmkfile
-      ## DESTDIR is honored by genmkfile,
-      ## and set to the root of the base_folder of the cowbuilder image.
       ## set 'make_use_cowbuilder=false' because we cannot build the
       ## cowbuilder image itself using cowbuilder.
-      DESTDIR="$base_folder" \
-      make_use_cowbuilder=false \
-         make install
+      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make dist
+      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdist
+      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdsc
+      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make deb-pkg
+      make_use_cowbuilder=false make_use_debsign=false make deb-install
 
       popd
       popd
@@ -485,8 +483,8 @@ genmkfile_installation() {
 }
 
 main() {
-   build_machine_setup "$@"
-   cowbuilder_setup "$@"
+   #build_machine_setup "$@"
+   #cowbuilder_setup "$@"
    genmkfile_installation "$@"
 }
 
