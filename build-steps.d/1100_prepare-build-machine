@@ -183,6 +183,11 @@ cowbuilder_setup_do() {
          return "$cowbuilder_exit_code"
       fi
 
+      ## help-steps/pbuilder-hooks/G10sources_list_restore.bsh should have restored it already.
+      ## `pbuilder` component `/usr/lib/pbuilder/pbuilder-createbuildenv`
+      ## unfortunately runs function `installaptlines` after `${DEBOOTSTRAP}`,
+      ## which uses a different sources list. This pbuilder hook script restores
+      ## Whonix build APT sources list.
       true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
       diff "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
@@ -192,6 +197,15 @@ cowbuilder_setup_do() {
       cp "$apt_get_update_sanity_test__source_path_full" "$base_folder/$apt_get_update_sanity_test_bin_path_full"
       mkdir -p "$base_folder/home/$user_name"
       cp "$whonix_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
+
+      mkdir -p "$base_folder/home/$user_name"
+      if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
+         error
+      else
+         rm -r -f "$base_folder/home/$user_name/genmkfile"
+      fi
+      cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
+      chown --recursive $user_name:$user_name "$base_folder/home/$user_name"
 
       cowbuilder_exit_code=0
       $COWBUILDER_PREFIX \
@@ -450,42 +464,9 @@ Please delete Whonix's source code folder and get it again as user, not root!${r
    #cat /proc/devices
 }
 
-genmkfile_installation() {
-   for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
-      ## TODO: change that folder
-      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
-      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
-
-      mkdir -p "$base_folder/home/$user_name"
-      if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
-         error
-      else
-         rm -r -f "$base_folder/home/$user_name/genmkfile"
-      fi
-      cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
-      chown --recursive $user_name:$user_name "$base_folder/home/$user_name"
-
-      pushd "$base_folder"
-      pushd "home/$user_name/genmkfile"
-
-      ## install genmkfile
-      ## set 'make_use_cowbuilder=false' because we cannot build the
-      ## cowbuilder image itself using cowbuilder.
-      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make dist
-      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdist
-      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdsc
-      sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make deb-pkg
-      make_use_cowbuilder=false make_use_debsign=false make deb-install
-
-      popd
-      popd
-   done
-}
-
 main() {
-   #build_machine_setup "$@"
-   #cowbuilder_setup "$@"
-   genmkfile_installation "$@"
+   build_machine_setup "$@"
+   cowbuilder_setup "$@"
 }
 
 main "$@"

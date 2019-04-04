@@ -52,11 +52,22 @@ test -f /var/lib/dpkg/available
 
 apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
 
-make_use_cowbuilder=false
-make_use_debsign=false
-export make_use_cowbuilder make_use_debsign
-
 adduser --home /nonexistent --quiet --system --group $user_name
 chown --recursive $user_name:$user_name /home/$user_name
+
+pushd /home/$user_name
+pushd genmkfile
+
+## set 'make_use_cowbuilder=false' because we cannot build the
+## cowbuilder image itself using cowbuilder.
+
+sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make dist
+sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdist
+sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make debdsc
+sudo $SUDO_OPTS make_use_cowbuilder=false make_use_debsign=false make deb-pkg
+make_use_cowbuilder=false make_use_debsign=false make deb-install
+
+popd
+popd
 
 true "${bold}INFO: End of script pbuilder chroot script.${reset}"
