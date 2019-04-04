@@ -101,7 +101,11 @@ get_tpo_packages() {
    true "${cyan}$BASH_SOURCE INFO: Getting TPO packages... ${reset}"
 
    pushd "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo"
-   sudo $SUDO_OPTS -E make deb-icup
+   local make_file="Makefile"
+   test -f "$make_file"
+   make -f "$make_file" deb-cleanup
+   sudo $SUDO_OPTS -E make -f "$make_file" deb-pkg
+   make -f "$make_file" deb-install
    popd
 
    rm --recursive --force "$WHONIX_BINARY/temp_tpo_packages"
@@ -113,7 +117,8 @@ get_tpo_packages() {
    local gpg_temp_dir
 
    ## All architectures currently provided by deb.torproject.org at time of writing.
-   architecture_list="armel armhf i386 amd64 arm64"
+   #architecture_list="armel armhf i386 amd64 arm64"
+   architecture_list="$make_cross_build_platform_list"
 
    ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
    package_list_architecture_specific="tor"
@@ -151,7 +156,7 @@ get_tpo_packages() {
             $apt_unattended_opts \
             -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
             -o Dir::Etc::sourceparts="-" \
-            "$pkg:all"
+            "$pkg"
    done
 
    for pkg in $package_list_architecture_specific ; do
@@ -245,7 +250,8 @@ create_whonix_debian_packages() {
       test -f "$make_file"
       sudo $SUDO_OPTS -E make -f "$make_file" reprepro-remove
       ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, WHONIX_BUILD_APT_CODENAME gets passed.
-      sudo $SUDO_OPTS -E make -f "$make_file" "$genmkfile_make_cmd"
+      make -f "$make_file" deb-cleanup
+      sudo $SUDO_OPTS -E make -f "$make_file" deb-pkg
       sudo $SUDO_OPTS -E make -f "$make_file" reprepro-add
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       popd
