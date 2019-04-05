@@ -98,107 +98,58 @@ get_tpo_packages() {
       return 0
    fi
 
-   true "${cyan}$BASH_SOURCE INFO: Getting TPO packages... ${reset}"
+   local temp_tpo_packages="$WHONIX_BINARY/temp_tpo_packages"
+   local whonix_build_tpo_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_tpo_repo_download_chroot_script"
 
-   pushd "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo"
-   local make_file="Makefile"
-   test -f "$make_file"
-   make -f "$make_file" deb-cleanup
-   sudo $SUDO_OPTS -E make -f "$make_file" deb-pkg
-   make -f "$make_file" deb-install
-   popd
+   rm --recursive --force "$temp_tpo_packages"
+   sudo $SUDO_OPTS mkdir --parents "$temp_tpo_packages"
 
-   rm --recursive --force "$WHONIX_BINARY/temp_tpo_packages"
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/temp_tpo_packages"
-   pushd "$WHONIX_BINARY/temp_tpo_packages"
+   for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
+      export whonix_build_multiarch_package_item
 
-   local architecture_list architecture
-   local package_list_architecture_specific pkg
-   local gpg_temp_dir
+      ## TODO: change that folder
+      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
+      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
 
-   ## All architectures currently provided by deb.torproject.org at time of writing.
-   #architecture_list="armel armhf i386 amd64 arm64"
-   architecture_list="$make_cross_build_platform_list"
+      test -d "$base_folder"
+      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
 
-   ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
-   package_list_architecture_specific="tor"
-   package_list_architecture_generic="tor-geoipdb deb.torproject.org-keyring"
+      mkdir -p "$base_folder/tmp/tpo_repo"
 
-   ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
-   for architecture in $architecture_list ; do
-      dpkg --add-architecture "$architecture"
-   done
+      cp "$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc" "$base_folder/tmp/tpo_repo/torprojectarchive.asc"
+      cp "$whonix_build_sources_list_torproject" "$base_folder/tmp/tpo_repo/torproject.list"
 
-   ## Update tpo package list while keeping
-   ## previously updated regular package lists. In other words, prevent
-   ## needlessly updating regular package lists.
-   $apt_get_update_wrapper_source_path_full \
-      ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
-      -o Dir::Etc::sourceparts="-" \
-      -o APT::Get::List-Cleanup="0" \
-      update
+      cowbuilder_exit_code=0
+      $COWBUILDER_PREFIX \
+      apt_get_update_wrapper_bin_path_full=$apt_get_update_wrapper_bin_path_full \
+         cowbuilder \
+            --execute "$whonix_build_tpo_repo_download_chroot_script" \
+            --basepath "$base_folder" \
+            --buildplace "$cow_folder" \
+            --configfile "$whonix_build_pbuilder_config_file" \
+            --bindmounts "$WHONIX_BINARY/temp_tpo_packages" \
+            || { cowbuilder_exit_code="$?" ; true; };
 
-   ## Download packages from tpo repository.
+      if [ -d "$base_folder" ]; then
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+      fi
 
-   for pkg in $package_list_architecture_generic ; do
-      sudo $SUDO_OPTS \
-         apt-get source --yes \
-            ${APTGETOPT[@]} \
-            $apt_unattended_opts \
-            -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
-            -o Dir::Etc::sourceparts="-" \
-            "$pkg"
-
-      sudo $SUDO_OPTS \
-         apt-get download --yes \
-            ${APTGETOPT[@]} \
-            $apt_unattended_opts \
-            -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
-            -o Dir::Etc::sourceparts="-" \
-            "$pkg"
-   done
-
-   for pkg in $package_list_architecture_specific ; do
-      sudo $SUDO_OPTS \
-         apt-get source --yes \
-            ${APTGETOPT[@]} \
-            $apt_unattended_opts \
-            -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
-            -o Dir::Etc::sourceparts="-" \
-            "$pkg"
-
-      for architecture in $architecture_list ; do
-         sudo $SUDO_OPTS \
-            apt-get download --yes \
-               ${APTGETOPT[@]} \
-               $apt_unattended_opts \
-               -o Dir::Etc::sourcelist="$whonix_build_sources_list_torproject" \
-               -o Dir::Etc::sourceparts="-" \
-               "$pkg:$architecture"
-      done
+      if [ ! "$cowbuilder_exit_code" = "0" ]; then
+         return "$cowbuilder_exit_code"
+      fi
    done
 
    local file_name package_absolute_path
 
-   for file_name in ./*.deb ; do
+   for file_name in "$temp_tpo_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
       sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
 
-   for file_name in ./*.dsc ; do
+   for file_name in "$temp_tpo_packages/"*".dsc" ; do
       package_absolute_path="$(readlink -f "$file_name")"
       sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
-
-   ## Get rid of tpo package list, while keeping
-   ## regular package lists. In other words, prevent needlessly forgetting
-   ## about regular package lists.
-   apt-get update \
-      --no-download \
-      --list-cleanup
-
-   popd
 
    true "${cyan}$BASH_SOURCE INFO: Got tpo packages. ${reset}"
 }
@@ -295,7 +246,10 @@ main() {
    if [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
    else
-      create-debian-packages "$@"
+      #create-debian-packages "$@"
+
+      ## TODO
+      get_tpo_packages
    fi
 }
 

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+## Copyright (C) 2019 - 2019 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+
+set -e
+
+test -f "/usr/lib/security-misc/apt-get-wrapper"
+test -f "/tmp/tpo_repo/torprojectarchive.asc"
+test -f "/tmp/tpo_repo/torproject.list"
+
+apt-key --keyring "/etc/apt/trusted.gpg.d/torproject.gpg" add "/tmp/tpo_repo/torprojectarchive.asc"
+
+pushd /home/user/whonix_binary/temp_tpo_packages
+
+## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
+package_list="tor tor-geoipdb deb.torproject.org-keyring"
+
+## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
+for architecture in $architecture_list ; do
+   dpkg --add-architecture "$architecture"
+done
+
+/usr/lib/security-misc/apt-get-wrapper \
+   update \
+      ${APTGETOPT[@]} \
+      $apt_unattended_opts \
+      -o Dir::Etc::sourcelist="/tmp/tpo_repo/torproject.list" \
+      -o Dir::Etc::sourceparts="-" \
+
+apt-get \
+   download \
+      ${APTGETOPT[@]} \
+      $apt_unattended_opts \
+      -o Dir::Etc::sourcelist="/tmp/tpo_repo/torproject.list" \
+      -o Dir::Etc::sourceparts="-" \
+      $package_list
+
+apt-get \
+   source \
+      ${APTGETOPT[@]} \
+      $apt_unattended_opts \
+      --yes \
+      --download-only \
+      -o Dir::Etc::sourcelist="/tmp/tpo_repo/torproject.list" \
+      -o Dir::Etc::sourceparts="-" \
+      $package_list
+
+popd
