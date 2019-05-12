@@ -5,52 +5,32 @@
 
 CHROOT_DIRECTORY="/home/user/whonix-desktop/chroot"
 RAW_DIRECTORY="/home/user/whonix-desktop"
-WHONIX_RAW_FILE="Hardened-Debian-XFCE-15.0.0.1.1-12-g51fee9cd24ced70e20244d6aea7e81f8c56eda99.raw"
-
-set -x
-
-mount-vm() {
-
-	## mounting the raw file to a newly created chroot directory then binding pseudo file systems
-
-	kpartx -a -s -v $RAW_DIRECTORY/$WHONIX_RAW_FILE
-	mkdir -p $RAW_DIRECTORY/chroot
-	mount /dev/mapper/loop0p1 $CHROOT_DIRECTORY
-	mount --bind /dev $CHROOT_DIRECTORY/dev
-	mount --bind /proc $CHROOT_DIRECTORY/proc
-	mount --bind /dev/pts $CHROOT_DIRECTORY/dev/pts
-
-}
 
 
 copy-vm-files(){
+   ## here we copy the Gateway and Workstation .qcow2 files into the host VM
+   ## previously I ran qemu-img convert -f qcow2 -O qcow2 on the host to reduce their size
+   ## a final, clean build step should also take care of building/extracting/shrinking these files automatically
+   ## of course it would also use variables instead of version numbers
+   ## we also apply correct file permissions
 
-    ## here we copy the Gateway and Workstation .qcow2 files into the host VM
-	  ## previously I ran qemu-img convert -f qcow2 -O qcow2 on the host to reduce their size
-    ## a final, clean build step should also take care of building/extracting/shrinking these files automatically
-    ## of course it would also use variables instead of version numbers
-	  ## we also apply correct file permissions
+   cp --sparse=always $RAW_DIRECTORY/Whonix-Gateway.qcow2 $CHROOT_DIRECTORY/var/lib/libvirt/images/Whonix-Gateway.qcow2
+   cp --sparse=always $RAW_DIRECTORY/Whonix-Workstation.qcow2 $CHROOT_DIRECTORY/var/lib/libvirt/images/Whonix-Workstation.qcow2
 
-	cp --sparse=always $RAW_DIRECTORY/Whonix-Gateway.qcow2 $CHROOT_DIRECTORY/var/lib/libvirt/images/Whonix-Gateway.qcow2
-	cp --sparse=always $RAW_DIRECTORY/Whonix-Workstation.qcow2 $CHROOT_DIRECTORY/var/lib/libvirt/images/Whonix-Workstation.qcow2
-
-	chroot $CHROOT_DIRECTORY chmod -v -R 444  var/lib/libvirt/images/Whonix-Gateway.qcow2
-	chroot $CHROOT_DIRECTORY chmod -v -R 444  var/lib/libvirt/images/Whonix-Workstation.qcow2
-	chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu  var/lib/libvirt/images/Whonix-Gateway.qcow2
-	chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu  var/lib/libvirt/images/Whonix-Workstation.qcow2
-
-
+   chroot $CHROOT_DIRECTORY chmod -v -R 444  var/lib/libvirt/images/Whonix-Gateway.qcow2
+   chroot $CHROOT_DIRECTORY chmod -v -R 444  var/lib/libvirt/images/Whonix-Workstation.qcow2
+   chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu  var/lib/libvirt/images/Whonix-Gateway.qcow2
+   chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu  var/lib/libvirt/images/Whonix-Workstation.qcow2
 }
 
 
 config-calamares(){
-
-    ## some modifications to the default debian Calamares settings
-    ##  - only adding new users to libvirt and qemu groups by default
-    ##  - removing live-boot and calamares related packages (it seems necessary to remove live-boot to make the target
-    ##    system bootable - needs more testing)
-    ##  - we also enable the installer to set a password for the root account (? not sure about this one)
-    ## much more customization can be done, and may be necessary (for instance branding)
+   ## some modifications to the default debian Calamares settings
+   ##  - only adding new users to libvirt and qemu groups by default
+   ##  - removing live-boot and calamares related packages (it seems necessary to remove live-boot to make the target
+   ##   system bootable - needs more testing)
+   ##  - we also enable the installer to set a password for the root account (? not sure about this one)
+   ## much more customization can be done, and may be necessary (for instance branding)
 
 cat <<'EOF'> $CHROOT_DIRECTORY/etc/calamares/modules/packages.conf
 
@@ -58,76 +38,45 @@ backend: apt
 
 operations:
   - remove:
-      - 'live-boot'
-      - 'live-boot-doc'
-      - 'live-config'
-      - 'live-config-doc'
-      - 'live-config-systemd'
-      - 'live-config-systemd'
-      - 'live-tools'
-      - 'live-task-localisation'
-      - 'calamares'
-      - 'calamares-settings-debian'
+     - 'live-boot'
+     - 'live-boot-doc'
+     - 'live-config'
+     - 'live-config-doc'
+     - 'live-config-systemd'
+     - 'live-config-systemd'
+     - 'live-tools'
+     - 'live-task-localisation'
+     - 'calamares'
+     - 'calamares-settings-debian'
 EOF
 
 
   cat <<'EOF'> $CHROOT_DIRECTORY/etc/calamares/modules/users.conf
 
 ---
-userGroup:       users
+userGroup: users
 defaultGroups:
-    - libvirt
-    - qemu
-autologinGroup:  autologin
-sudoersGroup:    sudo
+- libvirt
+- qemu
+autologinGroup: autologin
+sudoersGroup: sudo
 setRootPassword: true
 
 EOF
-
 }
 
 clean-vm() {
-
-    ## some cleaning stuff
-    ## also completely deleting the user 'user' so the Calamares installer will not copy his files into the target
-    ## unmounting everything
-
-	chroot $CHROOT_DIRECTORY apt clean
-	rm $CHROOT_DIRECTORY/root/.bash_history
-	rm $CHROOT_DIRECTORY/root/.Xauthority
-	rm $CHROOT_DIRECTORY/home/user/.Xauthority
-	rm $CHROOT_DIRECTORY/home/user/.bash_history
-	chroot $CHROOT_DIRECTORY userdel -r user
-	rm -r $CHROOT_DIRECTORY/var/log/*
-	rm -r $CHROOT_DIRECTORY/tmp/*
-	chroot $CHROOT_DIRECTORY mkdir /var/log/tor
-	chroot $CHROOT_DIRECTORY chown -R debian-tor:adm /var/log/tor
-
+   ## some cleaning stuff
+   ## also completely deleting the user 'user' so the Calamares installer will not copy his files into the target
+   ## unmounting everything
+   chroot $CHROOT_DIRECTORY apt clean
+   rm $CHROOT_DIRECTORY/root/.bash_history
+   rm $CHROOT_DIRECTORY/root/.Xauthority
+   rm $CHROOT_DIRECTORY/home/user/.Xauthority
+   rm $CHROOT_DIRECTORY/home/user/.bash_history
+   chroot $CHROOT_DIRECTORY userdel -r user
+   rm -r $CHROOT_DIRECTORY/var/log/*
+   rm -r $CHROOT_DIRECTORY/tmp/*
+   chroot $CHROOT_DIRECTORY mkdir /var/log/tor
+   chroot $CHROOT_DIRECTORY chown -R debian-tor:adm /var/log/tor
 }
-
-umount-vm() {
-
-	umount $CHROOT_DIRECTORY/mnt
-	umount $CHROOT_DIRECTORY/dev/pts
-	umount $CHROOT_DIRECTORY/dev
-	umount $CHROOT_DIRECTORY/proc
-	umount $CHROOT_DIRECTORY
-
-	sleep 2
-
-	kpartx -d -s -v $RAW_DIRECTORY/$WHONIX_RAW_FILE
-
-}
-
-
-main() {
-
-mount-vm
-copy-vm-files
-config-calamares
-clean-vm
-umount-vm
-
-}
-
-main "$@"
