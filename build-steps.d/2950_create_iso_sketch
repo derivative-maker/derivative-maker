@@ -1,0 +1,202 @@
+#!/bin/bash
+
+## Copyright (C) 2019 - 2019 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+CHROOT_DIRECTORY="/home/user/whonix-desktop/chroot"
+RAW_DIRECTORY="/home/user/whonix-desktop"
+WHONIX_RAW_FILE="Hardened-Debian-XFCE-15.0.0.1.1-12-g51fee9cd24ced70e20244d6aea7e81f8c56eda99.raw"
+ISO_FILE="Hardened-Debian-XFCE-15.0.0.1.1-12-g51fee9cd24ced70e20244d6aea7e81f8c56eda99.iso"
+
+set -x
+
+mount-iso() {
+
+	kpartx -a -s -v  $RAW_DIRECTORY/$WHONIX_RAW_FILE
+	mount /dev/mapper/loop0p1 $CHROOT_DIRECTORY
+}
+
+
+create_environment(){
+
+	mkdir -p $RAW_DIRECTORY/image/{live,isolinux}
+	mkdir -p $RAW_DIRECTORY/image/{boot/isolinux,EFI/boot}
+	mkdir -p $RAW_DIRECTORY/image/boot/grub
+
+	cp /usr/lib/ISOLINUX/isolinux.bin $RAW_DIRECTORY/image/boot/isolinux/
+	cp /usr/lib/syslinux/modules/bios/* $RAW_DIRECTORY/image/boot/isolinux/
+
+}
+
+create_squashfs_ok(){
+
+	cd $RAW_DIRECTORY/ && \
+		sudo mksquashfs \
+		    chroot \
+		    image/live/filesystem.squashfs \
+			-comp xz
+
+}
+
+copy_files(){
+
+		## we copy the kernel and the initrd
+		## better to use variables than '*'!
+
+	(cd $RAW_DIRECTORY/ && \
+		cp chroot/boot/vmlinuz-* image/live/vmlinuz
+		cp chroot/boot/initrd.img-* image/live/initrd
+	)
+	(cd $RAW_DIRECTORY/image/ && \
+
+		cp /usr/lib/ISOLINUX/isolinux.bin isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/menu.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/hdt.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/ldlinux.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/libutil.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/libmenu.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/libcom32.c32 isolinux/ && \
+		cp /usr/lib/syslinux/modules/bios/libgpl.c32 isolinux/ && \
+		cp /usr/share/misc/pci.ids isolinux/ && \
+		cp /boot/memtest86+.bin live/memtest
+	)
+
+	cat <<'EOF' > $RAW_DIRECTORY/grub-embedded.cfg
+	search --no-floppy --set=root --file /boot/grub/grub.cfg
+	set prefix=($root)/boot/grub
+EOF
+
+		(cd /usr/lib/grub && \
+			grub-mkimage \
+				--config $RAW_DIRECTORY/grub-embedded.cfg \
+				--format=x86_64-efi \
+				--prefix "" \
+				--output=$RAW_DIRECTORY/image/EFI/boot/bootx64.efi \
+				--compression=xz \
+				linux \
+				normal \
+				iso9660 \
+				efi_uga \
+				efi_gop \
+				fat \
+				chain \
+				disk \
+				exfat \
+				usb \
+				multiboot \
+				msdospart \
+				part_msdos \
+				part_gpt \
+				search \
+				part_gpt \
+				configfile \
+				ext2 \
+				boot
+		)
+
+
+		(cd $RAW_DIRECTORY/image/EFI && \
+			dd if=/dev/zero of=efiboot.img bs=1M count=100 && \
+			mkfs.vfat efiboot.img && \
+			mmd -i efiboot.img efi efi/boot efi/boot/grub && \
+			mcopy -i efiboot.img boot/bootx64.efi ::efi/boot/
+		)
+
+
+		## isolinux bootloader configuration
+		## here I append live-config.user-default-groups=libvirt,kvm to the boot parameter so that the Debian Live User is only a member of libvirt and kvm groups
+		## (default is: audio cdrom dip floppy video plugdev netdev powerdev scanner bluetooth)
+		## in a previous version I also appended other boot parameters used in the default hardened debian VM live-mode, except 'plainboot'
+    ## parameter which prevented from mounting the filesystem (slab_nomerge slab_debug=FZP page_poison=1 mce=0 boot=live
+    ## union=overlay ip=frommedia noeject nopersistence). I have removed them for the time being since at least one of them
+    ## prevented the install target to be bootable. Needs more testing.
+
+		cat <<'EOF' >$RAW_DIRECTORY/image/boot/isolinux/isolinux.cfg
+		UI menu.c32
+
+		prompt 0
+		menu title Boot Menu
+
+		timeout 30
+
+		label Whonix Desktop Live VM Live
+		menu label ^Whonix Desktop Live VM Live
+		menu default
+		kernel /live/vmlinuz
+		append initrd=/live/initrd boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
+		text help
+			Boot Whonix Desktop Live VM Live image
+		endtext
+
+		label Whonix Desktop Live VM Live Quiet
+		menu label ^Whonix Desktop Live VM Live (Quiet / Silent Boot)
+		kernel /live/vmlinuz
+		append initrd=/live/initrd boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
+		text help
+			Boot Whonix Desktop Live VM Live image with the quiet flag to hide kernel messages
+		endtext
+
+		label hdt
+		menu label ^Hardware Detection Tool (HDT)
+		kernel hdt.c32
+		text help
+			HDT displays low-level information about the systems hardware
+		endtext
+
+		label memtest86+
+		menu label ^Memory Failure Detection (memtest86+)
+		kernel /live/memtest
+		text help
+			Test system memory
+		endtext
+EOF
+
+
+		cat <<'EOF' >$RAW_DIRECTORY/image/boot/grub/grub.cfg
+		insmod all_video
+
+		set default="0"
+		set timeout=10
+
+		menuentry "Whonix Desktop Live" {
+			linux /live/vmlinuz boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
+			initrd /live/initrd
+		}
+EOF
+
+}
+
+create_iso(){
+
+	xorriso \
+		-as mkisofs \
+		-iso-level 3 \
+		-full-iso9660-filenames \
+		-volid "Whonix Desktop Live" \
+		-isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+		-eltorito-boot \
+		    boot/isolinux/isolinux.bin \
+		    -no-emul-boot -boot-load-size 4 -boot-info-table \
+		    --eltorito-catalog boot/isolinux/isolinux.cat \
+		-eltorito-alt-boot \
+		    -e EFI/efiboot.img \
+		    -no-emul-boot -isohybrid-gpt-basdat \
+		-output "$RAW_DIRECTORY/$ISO_FILE" \
+		"$RAW_DIRECTORY/image"
+
+}
+
+
+
+main() {
+
+mount-iso
+create_environment
+create_squashfs_ok
+copy_files
+create_iso
+
+
+}
+
+main "$@"
