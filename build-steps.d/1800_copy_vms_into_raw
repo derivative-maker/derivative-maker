@@ -21,6 +21,8 @@ source variables
 copy-vm-files(){
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
+
    ## here we copy the Gateway and Workstation .qcow2 files into the host VM
    ## previously I ran qemu-img convert -f qcow2 -O qcow2 on the host to reduce their size
    ## a final, clean build step should also take care of building/extracting/shrinking these files automatically
@@ -34,6 +36,10 @@ copy-vm-files(){
    chmod -v -R 444 "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
    chown -v -R libvirt-qemu:libvirt-qemu "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
    chown -v -R libvirt-qemu:libvirt-qemu "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unmount-raw"
+
+   true
 }
 
 main() {
@@ -46,9 +52,7 @@ main() {
       exit 0
    fi
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
    copy-vm-files
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unmount-raw"
 }
 
 main "$@"
