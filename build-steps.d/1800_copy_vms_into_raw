@@ -35,3 +35,20 @@ copy-vm-files(){
    chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu var/lib/libvirt/images/Whonix-Gateway.qcow2
    chroot $CHROOT_DIRECTORY chown -v -R libvirt-qemu:libvirt-qemu var/lib/libvirt/images/Whonix-Workstation.qcow2
 }
+
+main() {
+   errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
+
+   if [ "$WHONIX_BUILD_ISO" = "true" ]; then
+      true
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_ISO is not set to 'true'.${reset}"
+      exit 0
+   fi
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
+   copy-vm-files
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unmount-raw"
+}
+
+main "$@"
