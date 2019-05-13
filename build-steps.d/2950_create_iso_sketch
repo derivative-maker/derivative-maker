@@ -53,14 +53,12 @@ copy_files(){
    cp /usr/share/misc/pci.ids isolinux/
    cp /boot/memtest86+.bin live/memtest
 
-   cat <<'EOF' > $RAW_DIRECTORY/grub-embedded.cfg
-search --no-floppy --set=root --file /boot/grub/grub.cfg
-set prefix=($root)/boot/grub
-EOF
+   mkdir -p "$WHONIX_BINARY/image/"
+   cp "$WHONIX_SOURCE_FOLDER/iso/grub-embedded.cfg" "$WHONIX_BINARY/image/grub-embedded.cfg"
 
    cd /usr/lib/grub
    grub-mkimage \
-      --config $RAW_DIRECTORY/grub-embedded.cfg \
+      --config "$WHONIX_BINARY/image/grub-embedded.cfg" \
       --format=x86_64-efi \
       --prefix "" \
       --output=$RAW_DIRECTORY/image/EFI/boot/bootx64.efi \
@@ -99,57 +97,9 @@ EOF
    ## union=overlay ip=frommedia noeject nopersistence). I have removed them for the time being since at least one of them
    ## prevented the install target to be bootable. Needs more testing.
 
-   cat <<'EOF' >$RAW_DIRECTORY/image/boot/isolinux/isolinux.cfg
-UI menu.c32
-
-prompt 0
-menu title Boot Menu
-
-timeout 30
-
-label Whonix Desktop Live VM Live
-menu label ^Whonix Desktop Live VM Live
-menu default
-kernel /live/vmlinuz
-append initrd=/live/initrd boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
-text help
-   Boot Whonix Desktop Live VM Live image
-endtext
-
-label Whonix Desktop Live VM Live Quiet
-menu label ^Whonix Desktop Live VM Live (Quiet / Silent Boot)
-kernel /live/vmlinuz
-append initrd=/live/initrd boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
-text help
-   Boot Whonix Desktop Live VM Live image with the quiet flag to hide kernel messages
-endtext
-
-label hdt
-menu label ^Hardware Detection Tool (HDT)
-kernel hdt.c32
-text help
-   HDT displays low-level information about the systems hardware
-endtext
-
-label memtest86+
-menu label ^Memory Failure Detection (memtest86+)
-kernel /live/memtest
-text help
-   Test system memory
-endtext
-EOF
-
-   cat <<'EOF' >$RAW_DIRECTORY/image/boot/grub/grub.cfg
-insmod all_video
-
-set default="0"
-set timeout=10
-
-menuentry "Whonix Desktop Live" {
-   linux /live/vmlinuz boot=live live-config.user-default-groups=libvirt,kvm apparmor=1 security=apparmor ip=frommedia
-   initrd /live/initrd
-}
-EOF
+   mkdir -p "$WHONIX_BINARY/image/boot/isolinux/"
+   cp "$WHONIX_SOURCE_FOLDER/iso/isolinux.cfg" "$WHONIX_BINARY/image/boot/isolinux/isolinux.cfg"
+   cp "$WHONIX_SOURCE_FOLDER/iso/grub.cfg" "$WHONIX_BINARY/image/boot/grub/grub.cfg"
 }
 
 create_iso(){
