@@ -3,57 +3,43 @@
 ## Copyright (C) 2019 - 2019 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
 ## See the file COPYING for copying conditions.
 
-CHROOT_DIRECTORY="/home/user/whonix-desktop/chroot"
-RAW_DIRECTORY="/home/user/whonix-desktop"
-WHONIX_RAW_FILE="Hardened-Debian-XFCE-15.0.0.1.1-12-g51fee9cd24ced70e20244d6aea7e81f8c56eda99.raw"
-ISO_FILE="Hardened-Debian-XFCE-15.0.0.1.1-12-g51fee9cd24ced70e20244d6aea7e81f8c56eda99.iso"
-
 set -x
 
-mount-iso() {
-   kpartx -a -s -v  $RAW_DIRECTORY/$WHONIX_RAW_FILE
-   mount /dev/mapper/loop0p1 $CHROOT_DIRECTORY
-}
-
 create_environment(){
-   mkdir -p $RAW_DIRECTORY/image/{live,isolinux}
-   mkdir -p $RAW_DIRECTORY/image/{boot/isolinux,EFI/boot}
-   mkdir -p $RAW_DIRECTORY/image/boot/grub
+   mkdir -p "$WHONIX_BINARY/image/"{live,isolinux}
+   mkdir -p "$WHONIX_BINARY/image/"{boot/isolinux,EFI/boot}
+   mkdir -p "$WHONIX_BINARY/image/boot/grub"
 
-   cp /usr/lib/ISOLINUX/isolinux.bin $RAW_DIRECTORY/image/boot/isolinux/
-   cp /usr/lib/syslinux/modules/bios/* $RAW_DIRECTORY/image/boot/isolinux/
+   cp /usr/lib/ISOLINUX/isolinux.bin "$WHONIX_BINARY/image/boot/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/* "$WHONIX_BINARY/image/boot/isolinux/"
 }
 
 create_squashfs_ok(){
-   cd $RAW_DIRECTORY/
+   cd "$WHONIX_BINARY"
    sudo mksquashfs \
-      chroot \
+      "$CHROOT_FOLDER" \
       image/live/filesystem.squashfs \
       -comp xz
-
 }
 
 copy_files(){
    ## we copy the kernel and the initrd
    ## better to use variables than '*'!
 
-   cd $RAW_DIRECTORY/
-   cp chroot/boot/vmlinuz-* image/live/vmlinuz
-   cp chroot/boot/initrd.img-* image/live/initrd
+   cp "$CHROOT_FOLDER"/boot/vmlinuz-* "$WHONIX_BINARY/image/live/vmlinuz"
+   cp "$CHROOT_FOLDER"/boot/initrd.img-* "$WHONIX_BINARY/image/live/initrd"
 
-   cd $RAW_DIRECTORY/image/
-   cp /usr/lib/ISOLINUX/isolinux.bin isolinux/
-   cp /usr/lib/syslinux/modules/bios/menu.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/hdt.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/ldlinux.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/libutil.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/libmenu.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/libcom32.c32 isolinux/
-   cp /usr/lib/syslinux/modules/bios/libgpl.c32 isolinux/
-   cp /usr/share/misc/pci.ids isolinux/
-   cp /boot/memtest86+.bin live/memtest
+   cp /usr/lib/ISOLINUX/isolinux.bin "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/menu.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/hdt.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/ldlinux.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/libutil.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/libmenu.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/libcom32.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/lib/syslinux/modules/bios/libgpl.c32 "$WHONIX_BINARY/image/isolinux/"
+   cp /usr/share/misc/pci.ids "$WHONIX_BINARY/image/isolinux/"
+   cp /boot/memtest86+.bin "$WHONIX_BINARY/image/live/memtest"
 
-   mkdir -p "$WHONIX_BINARY/image/"
    cp "$WHONIX_SOURCE_FOLDER/iso/grub-embedded.cfg" "$WHONIX_BINARY/image/grub-embedded.cfg"
 
    cd /usr/lib/grub
@@ -61,7 +47,7 @@ copy_files(){
       --config "$WHONIX_BINARY/image/grub-embedded.cfg" \
       --format=x86_64-efi \
       --prefix "" \
-      --output=$RAW_DIRECTORY/image/EFI/boot/bootx64.efi \
+      --output="$WHONIX_BINARY/image/EFI/boot/bootx64.efi" \
       --compression=xz \
       linux \
       normal \
@@ -83,11 +69,11 @@ copy_files(){
       ext2 \
       boot
 
-   cd $RAW_DIRECTORY/image/EFI
-   dd if=/dev/zero of=efiboot.img bs=1M count=100
-   mkfs.vfat efiboot.img
-   mmd -i efiboot.img efi efi/boot efi/boot/grub
-   mcopy -i efiboot.img boot/bootx64.efi ::efi/boot/
+   cd "$WHONIX_BINARY/image/EFI"
+   dd if=/dev/zero of="$WHONIX_BINARY/image/EFI/efiboot.img" bs=1M count=100
+   mkfs.vfat "$WHONIX_BINARY/image/EFI/efiboot.img"
+   mmd -i "$WHONIX_BINARY/image/EFI/efiboot.img" efi efi/boot efi/boot/grub
+   mcopy -i "$WHONIX_BINARY/image/EFI/efiboot.img" boot/bootx64.efi ::efi/boot/
 
    ## isolinux bootloader configuration
    ## here I append live-config.user-default-groups=libvirt,kvm to the boot parameter so that the Debian Live User is only a member of libvirt and kvm groups
@@ -97,7 +83,6 @@ copy_files(){
    ## union=overlay ip=frommedia noeject nopersistence). I have removed them for the time being since at least one of them
    ## prevented the install target to be bootable. Needs more testing.
 
-   mkdir -p "$WHONIX_BINARY/image/boot/isolinux/"
    cp "$WHONIX_SOURCE_FOLDER/iso/isolinux.cfg" "$WHONIX_BINARY/image/boot/isolinux/isolinux.cfg"
    cp "$WHONIX_SOURCE_FOLDER/iso/grub.cfg" "$WHONIX_BINARY/image/boot/grub/grub.cfg"
 }
@@ -116,16 +101,17 @@ create_iso(){
       -eltorito-alt-boot \
          -e EFI/efiboot.img \
          -no-emul-boot -isohybrid-gpt-basdat \
-      -output "$RAW_DIRECTORY/$ISO_FILE" \
-      "$RAW_DIRECTORY/image"
+      -output "$binary_image_iso" \
+      "$WHONIX_BINARY/image"
 }
 
 main() {
-   mount-iso
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mount-raw"
    create_environment
    create_squashfs_ok
    copy_files
    create_iso
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unmount-raw"
 }
 
 main "$@"
