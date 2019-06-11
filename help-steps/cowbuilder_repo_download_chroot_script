@@ -8,15 +8,17 @@ set -x
 set -e
 
 test -f "/usr/lib/security-misc/apt-get-wrapper"
-test -f "/tmp/tpo_repo/repo_signing_key.asc"
 test -f "/tmp/tpo_repo/newer.list"
 
-apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "/tmp/tpo_repo/repo_signing_key.asc"
+## Delete the binary version in case it is there.
+rm -f "/etc/apt/trusted.gpg.d/newer.gpg"
+
+if [ -f "/tmp/tpo_repo/repo_signing_key.asc" ]; then
+   ## Copy from "more source like version" to binary location.
+   apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "/tmp/tpo_repo/repo_signing_key.asc"
+fi
 
 pushd /home/user/whonix_binary/temp_newer_packages
-
-## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
-package_list="tor tor-geoipdb deb.torproject.org-keyring"
 
 ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
 for architecture in $architecture_list ; do
@@ -36,7 +38,7 @@ apt-get \
       $apt_unattended_opts \
       -o Dir::Etc::sourcelist="/tmp/tpo_repo/newer.list" \
       -o Dir::Etc::sourceparts="-" \
-      $package_list
+      $newer_package_list
 
 apt-get \
    source \
@@ -46,6 +48,6 @@ apt-get \
       --download-only \
       -o Dir::Etc::sourcelist="/tmp/tpo_repo/newer.list" \
       -o Dir::Etc::sourceparts="-" \
-      $package_list
+      $newer_package_list
 
 popd

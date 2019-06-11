@@ -31,6 +31,20 @@ get_tpo_packages() {
    repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
 
+   ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
+   newer_package_list="tor tor-geoipdb deb.torproject.org-keyring"
+
+   get_newer_packages "$@"
+}
+
+get_virtualbox_packages() {
+   ## Already existing signing keys suffice. Otherwise would error out.
+   repo_signing_key="none"
+   repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_sid_current_clearnet.list"
+
+   ## Selected packages we want to mirror from Debian sid to Whonix local/remote repository.
+   newer_package_list="virtualbox virtualbox-dkms virtualbox-ext-pack virtualbox-guest-additions-iso virtualbox-guest-dkms virtualbox-guest-source virtualbox-guest-utils virtualbox-guest-x11 virtualbox-qt virtualbox-source"
+
    get_newer_packages "$@"
 }
 
@@ -58,12 +72,17 @@ get_newer_packages() {
 
       sudo $SUDO_OPTS mkdir -p "$base_folder/tmp/tpo_repo"
 
-      cp "$repo_signing_key" "$base_folder/tmp/tpo_repo/repo_signing_key.asc"
+      if [ "$repo_signing_key" = "none" ]; then
+         rm -f "$base_folder/tmp/tpo_repo/repo_signing_key.asc"
+      else
+         cp "$repo_signing_key" "$base_folder/tmp/tpo_repo/repo_signing_key.asc"
+      fi
       cp "$repo_sources_list" "$base_folder/tmp/tpo_repo/newer.list"
 
       cowbuilder_exit_code=0
       $COWBUILDER_PREFIX \
       apt_get_update_wrapper_bin_path_full="$apt_get_update_wrapper_bin_path_full" \
+      newer_package_list="$newer_package_list" \
          cowbuilder \
             --execute "$whonix_build_repo_download_chroot_script" \
             --basepath "$base_folder" \
