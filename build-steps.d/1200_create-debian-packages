@@ -93,13 +93,17 @@ get_backports_packages() {
 }
 
 get_tpo_packages() {
+   repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+   repo_sources_list="$whonix_build_sources_list_torproject"
+
+   get_newer_packages
+}
+
+get_newer_packages() {
    if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
       true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
       return 0
    fi
-
-   local repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
-   local repo_sources_list="$whonix_build_sources_list_torproject"
 
    local temp_newer_packages="$WHONIX_BINARY/temp_newer_packages"
    local whonix_build_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_repo_download_chroot_script"
@@ -154,7 +158,7 @@ get_tpo_packages() {
       sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
    done
 
-   true "${cyan}$BASH_SOURCE INFO: Got tpo packages. ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Got newer packages. ${reset}"
 }
 
 create_whonix_debian_packages() {
