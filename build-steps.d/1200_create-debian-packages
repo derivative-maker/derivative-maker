@@ -30,6 +30,7 @@ cd ..
 get_tpo_packages() {
    repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
+   temp_newer_packages="$WHONIX_BINARY/temp_packages_tpo"
 
    ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
    newer_package_list="tor tor-geoipdb deb.torproject.org-keyring"
@@ -46,6 +47,7 @@ get_virtualbox_packages() {
    ## Already existing signing keys suffice. Otherwise would error out.
    repo_signing_key="none"
    repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_sid_current_clearnet.list"
+   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox"
 
    ## Selected packages we want to mirror from Debian sid to Whonix local/remote repository.
    newer_package_list="virtualbox virtualbox-dkms virtualbox-ext-pack virtualbox-guest-additions-iso virtualbox-guest-dkms virtualbox-guest-source virtualbox-guest-utils virtualbox-guest-x11 virtualbox-qt virtualbox-source"
@@ -59,7 +61,6 @@ get_newer_packages() {
       return 0
    fi
 
-   local temp_newer_packages="$WHONIX_BINARY/temp_newer_packages"
    local whonix_build_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_repo_download_chroot_script"
 
    rm --recursive --force "$temp_newer_packages"
@@ -88,12 +89,13 @@ get_newer_packages() {
       $COWBUILDER_PREFIX \
       apt_get_update_wrapper_bin_path_full="$apt_get_update_wrapper_bin_path_full" \
       newer_package_list="$newer_package_list" \
+      temp_newer_packages="$temp_newer_packages" \
          cowbuilder \
             --execute "$whonix_build_repo_download_chroot_script" \
             --basepath "$base_folder" \
             --buildplace "$cow_folder" \
             --configfile "$whonix_build_pbuilder_config_file" \
-            --bindmounts "$WHONIX_BINARY/temp_newer_packages" \
+            --bindmounts "$temp_newer_packages" \
             || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then
