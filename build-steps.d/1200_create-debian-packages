@@ -27,76 +27,11 @@ source variables
 cd "$MYDIR"
 cd ..
 
-get_backports_packages() {
-   true "INFO: no backports packages required, ok."
-   return 0
-
-   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
-      return 0
-   fi
-
-   true "${cyan}$BASH_SOURCE INFO: Getting backports packages... ${reset}"
-
-   ## Not using '-t "${whonix_build_apt_stable_release}-backports"' to workaround apt-get bug.
-   local pkg_list bp
-   bp="${whonix_build_apt_stable_release}-backports"
-
-   ## No longer required. Can be removed/replaced if this function ever gets in use again.
-   pkg_list+="spectre-meltdown-checker/$bp "
-
-   rm --recursive --force "$WHONIX_BINARY/$FUNCNAME"
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/$FUNCNAME"
-   pushd "$WHONIX_BINARY/$FUNCNAME"
-
-   ## Workaround apt-get bug that is happening when using '--connection onion'.
-   $apt_get_update_wrapper_source_path_full \
-      ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-      -o Dir::Etc::sourceparts="-" \
-      update
-
-   ## Download backports packages from Debian backports repository.
-
-   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=441178
-   sudo $SUDO_OPTS \
-      apt-get source --yes \
-         ${APTGETOPT[@]} \
-         $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-         -o Dir::Etc::sourceparts="-" \
-         $pkg_list
-
-   sudo $SUDO_OPTS \
-      apt-get download --yes \
-         ${APTGETOPT[@]} \
-         $apt_unattended_opts \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
-         -o Dir::Etc::sourceparts="-" \
-         $pkg_list
-
-   local file_name package_absolute_path
-
-   for file_name in ./*.deb ; do
-      package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
-   done
-
-   for file_name in ./*.dsc ; do
-      package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
-   done
-
-   popd
-
-   true "${cyan}$BASH_SOURCE INFO: Got $FUNCNAME. ${reset}"
-}
-
 get_tpo_packages() {
    repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
 
-   get_newer_packages
+   get_newer_packages "$@"
 }
 
 get_newer_packages() {
@@ -235,7 +170,6 @@ create-debian-packages() {
 
    git_sanity_test_main "$@"
    signing_key "$@"
-   get_backports_packages
    get_tpo_packages "$@"
    create_whonix_debian_packages "$@"
 }
