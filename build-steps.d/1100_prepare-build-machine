@@ -23,6 +23,42 @@ source variables
 cd "$MYDIR"
 cd ..
 
+
+check-copy-vms-into-raw() {
+   if [ ! "$WHONIX_BUILD_ISO" = "true" ]; then
+      return 0
+   fi
+
+   local help_text
+   help_text="A much later build step would try to copy these into the raw image and fail. Therefore we test it already here and fail early.
+
+##########
+If you want to do a debug build, perhaps create empty files?
+
+cp /dev/null $copy_vms_into_raw_file_one
+cp /dev/null $copy_vms_into_raw_file_two
+##########
+If you want to do a debug build, manually set which files you like to copy into the raw image using build configuration variables?
+
+copy_vms_into_raw_file_one=$WHONIX_BINARY/Whonix-Gateway.qcow2 copy_vms_into_raw_file_two=$WHONIX_BINARY/Whonix-Workstation.qcow2
+##########"
+
+   if [ ! -f "$copy_vms_into_raw_file_one" ]; then
+      error "Whonix VMs need to be build first before Whonix host can be build.
+
+copy_vms_into_raw_file_one $copy_vms_into_raw_file_one does not exist!
+
+$help_text"
+   fi
+   if [ ! -f "$copy_vms_into_raw_file_two" ]; then
+      error "Whonix VMs need to be build first before Whonix host can be build
+
+copy_vms_into_raw_file_two $copy_vms_into_raw_file_two does not exist!
+
+$help_text"
+   fi
+}
+
 check-virtualbox-vm-exists() {
    if [ "$VMNAME" = "internalrun" ]; then
       true "${cyan}INFO: VNNAME is set to internalrun, skipping check, ok.${reset}"
@@ -495,6 +531,7 @@ genmkfile_installation() {
 }
 
 main() {
+   check-copy-vms-into-raw "$@"
    build_machine_setup "$@"
    cowbuilder_setup "$@"
    genmkfile_installation
