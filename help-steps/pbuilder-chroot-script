@@ -8,6 +8,13 @@ set -e
 
 true "${bold}INFO: Currently running pbuilder chroot script.${reset}"
 
+set -o pipefail
+## TODO
+#set -o nounset
+
+## Debugging.
+cat "/home/$user_name/pbuilder_config_file"
+
 source "/home/$user_name/pbuilder_config_file"
 
 if [ "$whonix_build_unsafe_io" = "true" ]; then
@@ -22,9 +29,18 @@ if [ "$whonix_build_unsafe_io" = "true" ]; then
 fi
 
 ## Debugging.
+true "apt_unattended_opts: $apt_unattended_opts"
+
+## Debugging.
 cat /etc/apt/sources.list
 true "\${APTGETOPT[@]}:
 ${APTGETOPT[@]}"
+
+if test -f /var/lib/dpkg/available ; then
+   true "INFO: /var/lib/dpkg/available exists."
+else
+   true "INFO: /var/lib/dpkg/available does not yet exist."
+fi
 
 ## /var/lib/dpkg/available is missing after running mmdebstrap.
 ## aptitude does not like that.
@@ -41,21 +57,31 @@ ${APTGETOPT[@]}"
 ##
 ## The workaround is to run 'dpkg --clear-avail' followed by "apt-get update",
 ## which regenerates /var/lib/dpkg/available.
-dpkg --clear-avail
+##
+## No longer required in Debian buster.
+#dpkg --clear-avail
 
-$apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} $apt_unattended_opts update
+## generate /var/lib/dpkg/available
+## Inspired by Chris Gibson who pointed at /usr/lib/dpkg/methods/apt/update
+## https://unix.stackexchange.com/users/162231/chris-gibson
+## https://unix.stackexchange.com/a/271387/49297
+#/usr/lib/dpkg/methods/apt/update /var/lib/dpkg apt apt
 
-$apt_get_update_sanity_test_bin_path_full
-
-## Sanity test for above aptitude issue.
-test -f /var/lib/dpkg/available
+## No longer required in Debian buster.
+## variables $apt_unattended_opts unavailable but may also not be needed since part of APTGETOPT.
+#$apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} $apt_unattended_opts update
+#$apt_get_update_sanity_test_bin_path_full
 
 apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
 
-adduser --no-create-home --home /nonexistent --quiet --system --group $user_name
-chown --recursive $user_name:$user_name /home/$user_name
+## Sanity test for above aptitude issue.
+test -f /var/lib/dpkg/available
+stat --printf="%s" /var/lib/dpkg/available
 
-pushd /home/$user_name
+adduser --no-create-home --home /nonexistent --quiet --system --group "$user_name"
+chown --recursive "$user_name:$user_name" "/home/$user_name"
+
+pushd "/home/$user_name"
 pushd genmkfile
 
 ## set 'make_use_cowbuilder=false' because we cannot build the
