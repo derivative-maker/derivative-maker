@@ -535,7 +535,7 @@ sub print_progress {
 }
 
 sub run_progress {
-    my ($get_exec, $line_handler, $line_has_error) = @_;
+    my ($get_exec, $line_handler, $line_has_error, $chdir) = @_;
     pipe my $rfh, my $wfh;
     my $got_signal = 0;
     my $ignore = sub {
@@ -568,6 +568,13 @@ sub run_progress {
 	# redirect stderr to stdout so that we can capture it
 	open(STDERR, '>&', STDOUT);
 	my @execargs = $get_exec->($fd);
+	# before apt 1.5, "apt-get update" attempted to chdir() into the
+	# working directory. This will fail if the current working directory
+	# is not accessible by the user (for example in unshare mode). See
+	# Debian bug #860738
+	if (defined $chdir) {
+	    chdir $chdir or error "failed chdir() to $chdir: $!";
+	}
 	exec { $execargs[0] } @execargs or error 'cannot exec() ' . (join ' ', @execargs);
     }
     close $wfh;
@@ -674,20 +681,24 @@ sub run_apt_progress {
 	    '-oDpkg::Use-Pty=false',
 	    @debs
 	)};
-    my $line_has_error = sub {
-	# apt-get doesn't report a non-zero exit if the update failed. Thus, we
-	# have to parse its output. See #778357, #776152, #696335 and #745735
-	if ($_[0] =~ /^(W: |Err:)/) {
-	    return 1;
-	}
-	return 0;
-    };
+    my $line_has_error = sub { return 0; };
+    if ($options->{FIND_APT_WARNINGS}) {
+	$line_has_error = sub {
+	    # apt-get doesn't report a non-zero exit if the update failed.
+	    # Thus, we have to parse its output. See #778357, #776152, #696335
+	    # and #745735
+	    if ($_[0] =~ /^(W: |Err:)/) {
+		return 1;
+	    }
+	    return 0;
+	};
+    }
     my $line_handler = sub {
 	if ($_[0] =~ /(pmstatus|dlstatus):[^:]+:(\d+\.\d+):.*/) {
 	    return $2;
 	}
     };
-    run_progress $get_exec, $line_handler, $line_has_error;
+    run_progress $get_exec, $line_handler, $line_has_error, $options->{CHDIR};
 }
 
 sub run_chroot(&$) {
@@ -942,6 +953,8 @@ sub setup {
 	print $conf "Apt::Architectures \"$options->{nativearch}\";\n";
     }
     print $conf "Dir \"$options->{root}\";\n";
+    # not needed anymore for apt 1.3 and newer
+    print $conf "Dir::State::Status \"$options->{root}/var/lib/dpkg/status\";\n";
     # for authentication, use the keyrings from the host
     print $conf "Dir::Etc::Trusted \"/etc/apt/trusted.gpg\";\n";
     print $conf "Dir::Etc::TrustedParts \"/etc/apt/trusted.gpg.d\";\n";
@@ -1126,7 +1139,9 @@ sub setup {
     run_hooks('setup', $options);
 
     info "running apt-get update...";
-    run_apt_progress({ ARGV => ['apt-get', 'update'] });
+    run_apt_progress({ ARGV => ['apt-get', 'update'],
+	    CHDIR => $options->{root},
+	    FIND_APT_WARNINGS => 1 });
 
     # check if anything was downloaded at all
     {
@@ -1487,6 +1502,11 @@ sub setup {
 			error "cannot find $qemubin";
 		    }
 		    copy $qemubin, "$options->{root}/$qemubin" or error "cannot copy $qemubin: $!";
+		    # File::Copy does not retain permissions but on some
+		    # platforms (like Travis CI) the binfmt interpreter must
+		    # have the executable bit set or otherwise execve will
+		    # fail with EACCES
+		    chmod 0755, "$options->{root}/$qemubin" or error "cannot chmod $qemubin: $!";
 		} else {
 		    error "unknown mode: $options->{mode}";
 		}
@@ -1652,17 +1672,18 @@ sub setup {
 
     # clean up temporary configuration file
     unlink "$options->{root}/etc/apt/apt.conf.d/00mmdebstrap" or error "failed to unlink /etc/apt/apt.conf.d/00mmdebstrap: $!";
+    info "cleaning package lists and apt cache...";
+    run_apt_progress({
+	    ARGV => ['apt-get', '--option', 'Dir::Etc::SourceList=/dev/null', 'update'],
+	    CHDIR => $options->{root},
+	});
+    run_apt_progress({ ARGV => ['apt-get', 'clean'], CHDIR => $options->{root} });
+
     # apt since 1.6 creates the auxfiles directory. If apt inside the chroot
     # is older than that, then it will not know how to clean it.
     if (-e "$options->{root}/var/lib/apt/lists/auxfiles") {
 	rmdir "$options->{root}/var/lib/apt/lists/auxfiles" or die "cannot rmdir /var/lib/apt/lists/auxfiles: $!";
     }
-
-    info "cleaning package lists and apt cache...";
-    run_apt_progress({
-	    ARGV => ['apt-get', '--option', 'Dir::Etc::SourceList=/dev/null', 'update'],
-	});
-    run_apt_progress({ ARGV => ['apt-get', 'clean'] });
 
     if (defined $options->{qemu} and $options->{mode} ne 'proot' and $options->{mode} ne 'fakechroot') {
 	unlink "$options->{root}/usr/bin/qemu-$options->{qemu}-static" or error "cannot unlink /usr/bin/qemu-$options->{qemu}-static: $!";
@@ -2335,6 +2356,11 @@ sub main() {
 	    # Since this is still inside the unshared namespace, there is
 	    # no risk of removing anything important.
 	    $pid = get_unshare_cmd {
+		# File::Path will produce the error "cannot stat initial
+		# working directory" if the working directory cannot be
+		# accessed by the unprivileged unshared user. Thus, we first
+		# navigate to the parent of the root directory.
+		chdir "$options->{root}/.." or error "unable to chdir() to parent directory of $options->{root}: $!";
 		remove_tree($options->{root}, {error => \my $err});
 		if (@$err) {
 		    for my $diag (@$err) {
