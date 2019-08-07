@@ -8,14 +8,14 @@ set -x
 set -e
 
 test -f "/usr/lib/security-misc/apt-get-wrapper"
-test -f "/tmp/tpo_repo/newer.list"
+test -f "/tmp/temporary-repository/newer.list"
 
 ## Delete the binary version in case it is there.
 rm -f "/etc/apt/trusted.gpg.d/newer.gpg"
 
-if [ -f "/tmp/tpo_repo/repo_signing_key.asc" ]; then
+if [ -f "/tmp/temporary-repository/repo_signing_key.asc" ]; then
    ## Copy from "more source like version" to binary location.
-   apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "/tmp/tpo_repo/repo_signing_key.asc"
+   apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "/tmp/temporary-repository/repo_signing_key.asc"
 fi
 
 if [ "$temp_newer_packages" = "" ]; then
@@ -34,14 +34,14 @@ done
    update \
       ${APTGETOPT[@]} \
       $apt_unattended_opts \
-      -o Dir::Etc::sourcelist="/tmp/tpo_repo/newer.list" \
+      -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
       -o Dir::Etc::sourceparts="-" \
 
 apt-get \
    download \
       ${APTGETOPT[@]} \
       $apt_unattended_opts \
-      -o Dir::Etc::sourcelist="/tmp/tpo_repo/newer.list" \
+      -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
       -o Dir::Etc::sourceparts="-" \
       $newer_package_list
 
@@ -51,7 +51,7 @@ apt-get \
       $apt_unattended_opts \
       --yes \
       --download-only \
-      -o Dir::Etc::sourcelist="/tmp/tpo_repo/newer.list" \
+      -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
       -o Dir::Etc::sourceparts="-" \
       $newer_package_list
 
