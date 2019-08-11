@@ -38,6 +38,14 @@ main() {
       #umount "$CHROOT_FOLDER"/sys || true
    fi
 
+   umount "$CHROOT_FOLDER/usr/local/sbin/udevadm" || true
+   rm --verbose --force "$CHROOT_FOLDER/usr/local/sbin/udevadm" || true
+   ## Remove temporary and probably empty folders in from /usr/local.
+   ## rmdir would only remove folders if these are empty, so no risk of data loss.
+   ## REVIEW: actually a good idea to remove these folders?
+   rmdir --ignore-fail-on-non-empty --verbose "$CHROOT_FOLDER/usr/local/sbin" || true
+   rmdir --ignore-fail-on-non-empty --verbose "$CHROOT_FOLDER/usr/local" || true
+
    umount "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
 
    ## Also possibly unmount .backup file for bare metal builds.
