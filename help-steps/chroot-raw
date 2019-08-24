@@ -37,7 +37,9 @@ backup-file-if-exists() {
       ## Otherwise host /etc/resolv.conf ends up inside VM.
       #cp --no-clobber --preserve "$1" "$1.backup"
 
-      sudo $SUDO_OPTS cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
+      ## Not using 'sudo $SUDO_OPTS' since that would fail if file is not accessible by user "user".
+      cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
+      chown "$user_name:$user_name" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
    else
       true "INFO: file $1 does not exist, skipping backup, ok."
    fi
