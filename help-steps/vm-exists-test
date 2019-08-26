@@ -1,0 +1,97 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+main() {
+   if [ "$VMNAME" = "internalrun" ]; then
+      true "${cyan}INFO: VNNAME is set to internalrun, skipping check, ok.${reset}"
+      return 0
+   fi
+
+   true "${cyan}INFO: Checking, if a VirtualBox VM named $VMNAME already exists...${reset}"
+
+   ## For example, we are checking if there is a VM named Whonix-Gateway or
+   ## Whonix-Workstation in VirtualBox. There must be for example no VM named
+   ## Whonix-Gateway in Virtual Box, because in the create-vbox-vm step we will
+   ## create a VM named Whonix-Gateway. This would not be possible, if a VM
+   ## with that name would be already in VirtualBox.
+
+   ## We are checking this here and not in the create-vbox-vm step, because it
+   ## is better to break the build at this early stage rather than after the
+   ## majority of the build time, which would be demotivating for the builder.
+
+   local vboxmanage_exit_code
+   vboxmanage_exit_code="0"
+   ## Do not use sudo -E or it will fail.
+   sudo $SUDO_OPTS VBoxManage showvminfo "$VMNAME" >/dev/null 2>/dev/null || { vboxmanage_exit_code="$?" ; true; };
+
+   if [ "$vboxmanage_exit_code" = "0" ]; then
+      true "${bold}${red}$BASH_SOURCE ERROR: $VMNAME already exists! ${reset}"
+      true "${cyan}$BASH_SOURCE You most likely want to delete already existing Virtual Machines.
+(Feel free to comment this check out, if you know what you are doing.)
+To delete $VMNAME, run:${reset}
+    sudo ./whonix_build --clean --target virtualbox --flavor $WHONIX_BUILD_FLAVOR
+
+To delete both virtual machines, use:
+
+    sudo ./whonix_build --clean --target virtualbox --flavor whonix-gateway
+    sudo ./whonix_build --clean --target virtualbox --flavor whonix-workstation
+
+${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from VirtualBox as well!"
+      error "A VirtualBox VM named $VMNAME already exists!"
+   else
+      true "${cyan}INFO: Done, no VirtualBox VM named $VMNAME does exist, ok.${reset}"
+   fi
+
+   true "${cyan}INFO: Checking, if an VirtualBox ova file $binary_image_ova already exists...${reset}"
+
+   ## For example, we are checking if there is a VirtualBox ova file
+   ## /home/user/whonix_binary/Whonix-Gateway-8.6.6.4.ova already exists. There
+   ## must be no such file, because otherwise the build would fail later.
+
+   ## We are checking this here and not in the create-vbox-vm step, because it
+   ## is better to break the build at this early stage rather than after the
+   ## majority of the build time, which would be demotivating for the builder.
+
+   ## Although the above test using "VBoxManage showvminfo" already passed at
+   ## this point, it could be the case, that the builder manually deleted the
+   ## VirtualBox VM but forgot to delete the ova from whonxi_binary folder.
+
+   if [ -e "$binary_image_ova" ]; then
+      true "${bold}${red}$BASH_SOURCE ERROR: VirtualBox ova file $binary_image_ova already exists! ${reset}"
+      true "${cyan}$BASH_SOURCE You most likely want to delete already existing ova files.
+(Feel free to comment this check out, if you know what you are doing.)
+To delete $VMNAME, run:${reset}
+    sudo ./whonix_build --clean --target virtualbox --flavor $WHONIX_BUILD_FLAVOR
+
+To delete both virtual machines, use:
+
+    sudo ./whonix_build --clean --target virtualbox --flavor whonix-gateway
+    sudo ./whonix_build --clean --target virtualbox --flavor whonix-workstation
+
+${bold}${red}WARNING${reset}: This will delete the virtual machine(s) from VirtualBox as well!"
+      error "A VirtualBox ova file $binary_image_ova already exists!"
+   else
+      true "${cyan}INFO: Done, no VirtualBox ova file $binary_image_ova exist, ok.${reset}"
+   fi
+
+   ## }}
+}
+
+main "$@"
