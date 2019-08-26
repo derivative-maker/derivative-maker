@@ -1,0 +1,81 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2018 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+## TODO
+#VMNAME="internalrun"
+
+source pre
+source colors
+source variables
+
+cd "$MYDIR"
+cd ..
+
+check-copy-vms-into-raw() {
+   if [ ! "$WHONIX_BUILD_ISO" = "true" ]; then
+      return 0
+   fi
+
+   local help_text
+   help_text="A much later build step would try to copy these into the raw image and fail. Therefore we test it already here and fail early.
+
+##########
+If you want to do a debug build, perhaps create empty files?
+
+cp /dev/null $copy_vms_into_raw_file_one
+cp /dev/null $copy_vms_into_raw_file_two
+##########
+If you want to do a debug build, manually set which files you like to copy into the raw image using build configuration variables?
+
+copy_vms_into_raw_file_one=$WHONIX_BINARY/Whonix-Gateway.qcow2 copy_vms_into_raw_file_two=$WHONIX_BINARY/Whonix-Workstation.qcow2
+##########"
+
+   if [ ! -f "$copy_vms_into_raw_file_one" ]; then
+      error "Whonix VMs need to be build first before Whonix host can be build.
+
+copy_vms_into_raw_file_one $copy_vms_into_raw_file_one does not exist!
+
+$help_text"
+   fi
+   if [ ! -f "$copy_vms_into_raw_file_two" ]; then
+      error "Whonix VMs need to be build first before Whonix host can be build
+
+copy_vms_into_raw_file_two $copy_vms_into_raw_file_two does not exist!
+
+$help_text"
+   fi
+}
+
+check-virtualbox-vm-exists() {
+   local command_v_exit_code="0"
+   command -v VBoxManage >/dev/null || { command_v_exit_code="$?" ; true; }
+
+   if [ ! "$command_v_exit_code" = "0" ]; then
+      true "${cyan}INFO: VBoxManage command not yet available, ok.${reset}"
+      return 0
+   fi
+
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/vm-exists-test"
+
+   true
+}
+
+main() {
+   check-copy-vms-into-raw "$@"
+   check-virtualbox-vm-exists "$@"
+}
+
+main "$@"
