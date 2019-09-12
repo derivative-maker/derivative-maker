@@ -95,6 +95,10 @@ WHONIX_APT_REPOSITORY_OPTS='--enable --repository testers'
 WHONIX_APT_REPOSITORY_OPTS='--enable --repository developers'
 WHONIX_APT_REPOSITORY_OPTS='--enable --codename jessie'
 
+--remote-derivative-packages true|false
+false: Default. Will ${under}not${eunder} remote derivative packages.
+true: ${under}use${eunder} remote derivative packages.
+
 --release buster|xenial|bionic
 Unsupported.
 
@@ -578,6 +582,20 @@ whonix_build_one_parse_cmd() {
                   exit 1
                fi
                export build_remote_repo_enable
+               shift 2
+               ;;
+           --remote-derivative-packages)
+               if [ "$2" = "false" ]; then
+                  build_remote_derivative_pkgs="false"
+                  true "${cyan}INFO: will ${under}not${eunder} use remote derivative packages.${reset}"
+               elif [ "$2" = "true" ]; then
+                  build_remote_derivative_pkgs="true"
+                  true "${cyan}INFO: will ${under}use${eunder} remote derivative packages.${reset}"
+               else
+                  echo "${red}${bold}ERROR: supported options for --remote-derivative-packages are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               export build_remote_derivative_pkgs
                shift 2
                ;;
            --freedom)

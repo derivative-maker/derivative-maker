@@ -37,14 +37,27 @@ main() {
    ## sets: WHONIX_APT_REPOSITORY_FOLDER
    set_WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS
 
-   ## Mount our local apt repository inside the image (or machine).
-   mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
+   if [ "$build_remote_derivative_pkgs" = "true" ]; then
+      cp "$WHONIX_SOURCE_FOLDER/packages/usability-misc/usr/bin/whonix-repo-add" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/whonix-repo-add"
 
-   ## Create a sources.list file for our local apt repository.
-   echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/ $WHONIX_BUILD_APT_CODENAME main contrib non-free" > "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
+      ## creates $WHONIX_SOURCES_LIST_TEMP_INITIAL_DEB_SOURCES_LIST
+      $CHROOT bash -x "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/whonix-repo-add"
+   else
+      ## Mount our local apt repository inside the image (or machine).
+      mount --bind "$WHONIX_APT_REPOSITORY_FOLDER" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
+
+      ## Create a sources.list file for our local apt repository.
+      echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/ $WHONIX_BUILD_APT_CODENAME main contrib non-free" > "$WHONIX_SOURCES_LIST_TEMP_INITIAL_DEB_SOURCES_LIST"
+   fi
+
+   ## For debugging / Info.
+   cat "$WHONIX_SOURCES_LIST_TEMP_INITIAL_DEB_SOURCES_LIST"
 
    ## Copy which (frozen) sources.list will be used for building Whonix into the image (or machine).
    cp "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
+
+   ## For debugging / Info.
+   cat "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
 
    if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
       cp "$WHONIX_SOURCE_FOLDER/build_sources/debian_testing_current_clearnet.list" "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources_testing.list"
@@ -58,8 +71,6 @@ main() {
    ## For debugging / Info.
    ls -la "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
    ls -la "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER"
-   cat "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/build_sources.list"
-   cat "$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
 }
 
 main "$@"
