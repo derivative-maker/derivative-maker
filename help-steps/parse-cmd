@@ -82,6 +82,10 @@ current: Use current sources.
 clearnet: use clearnet apt sources
 onion: use onion apt sources
 
+--repo true|false
+false: will ${under}not${eunder} enable remote repository
+true: ${under}enable${eunder} remote repository
+
 WHONIX_APT_REPOSITORY_OPTS
 Whonix APT Repository.
 Disabled by default.
@@ -562,9 +566,19 @@ whonix_build_one_parse_cmd() {
                export whonix_build_pkg_apparmor_only="true"
                shift
                ;;
-           --redistribute)
-               export whonix_build_redistribute="true"
-               shift
+           --repo)
+               if [ "$2" = "false" ]; then
+                  build_remote_repo_enable="false"
+                  true "${cyan}INFO: will ${under}not${eunder} enable remote repository.${reset}"
+               elif [ "$2" = "true" ]; then
+                  build_remote_repo_enable="true"
+                  true "${cyan}INFO: will ${under}enable${eunder} remote repository.${reset}"
+               else
+                  echo "${red}${bold}ERROR: supported options for --repo are 'true' or 'false'.${reset}"
+                  exit 1
+               fi
+               export build_remote_repo_enable
+               shift 2
                ;;
            --freedom)
                if [ "$2" = "false" ]; then
