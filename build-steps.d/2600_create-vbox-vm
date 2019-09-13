@@ -217,19 +217,6 @@ whonix-gateway_specific() {
 
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
-   ## Prevents leaking DNS info from the host into the guest.
-   ## Also useful in other cases.
-   ## https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
-
-   ## Prevents leaking DNS info from the host into the guest.
-   ## Also useful in other cases.
-   ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
-
-   ## Do not pass the domain name for network name resolution to the VM.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
-
    ## Enable Adapter 2, set to "Internal Network".
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic2 intnet
 
@@ -273,6 +260,21 @@ debian_specific() {
    true
 }
 
+dns_specific() {
+   ## Prevents leaking DNS info from the host into the guest.
+   ## Also useful in other cases.
+   ## https://www.virtualbox.org/manual/ch09.html#nat-adv-dns
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnsproxy1 on
+
+   ## Prevents leaking DNS info from the host into the guest.
+   ## Also useful in other cases.
+   ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+
+   ## Do not pass the domain name for network name resolution to the VM.
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+}
+
 main() {
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
@@ -300,6 +302,7 @@ main() {
 
    if [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
       whonix-gateway_specific
+      dns_specific
    elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
       whonix-workstation_specific
    elif [ "$WHONIX_BUILD_TYPE" = "custom-workstation" ]; then
