@@ -55,7 +55,7 @@ Will try to manually install it for debugging...${reset}"
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
          $CHROOT dpkg -l | grep "$unmet_dependency" || true
          $CHROOT apt-cache policy "$unmet_dependency" || true
-         pkg-install-maybe "$unmet_dependency" || true
+         pkg-install "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
          continue
@@ -65,16 +65,16 @@ Will try to manually install it for debugging...${reset}"
    set -x
 }
 
-pkg-install-maybe() {
+pkg-install() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   local pkg_install
-   pkg_install="$1"
+   local pkg_install_item
+   pkg_install_item="$1"
    local skip_package
    for skip_package in $whonix_build_script_skip_package_install; do
-      if [ "$skip_package" = "$pkg_install" ]; then
+      if [ "$skip_package" = "$pkg_install_item" ]; then
          unset skip_package
-         true "${bold}${cyan}INFO: Skipping $pkg_install, because whonix_build_script_skip_package_install includes it.${reset}"
+         true "${bold}${cyan}INFO: Skipping $pkg_install_item, because whonix_build_script_skip_package_install includes it.${reset}"
          return 0
       fi
    done
@@ -95,7 +95,7 @@ This may take a while...${reset}"
          --yes \
          --no-install-recommends \
          install \
-         "$pkg_install" \
+         "$@" \
          || { apt_get_exit_code="$?" ; true; };
 
    local apt_get_exit_code="0"
@@ -108,7 +108,7 @@ This may take a while...${reset}"
          --yes \
          --no-install-recommends \
          install \
-         "$pkg_install" \
+         "$@" \
          || { apt_get_exit_code="$?" ; true; };
 
    $CHROOT sync
@@ -137,7 +137,7 @@ variable for debugging. This may take a while...${reset}"
                   --yes \
                   --no-install-recommends \
                   install \
-                  "$pkg_install" \
+                  "$@" \
                   2>&1 \
          ) \
       " \
@@ -155,12 +155,44 @@ variable for debugging. This may take a while...${reset}"
    true "${bold}${red}ERROR: As expected, failed again to install $pkg_install. (apt_get_exit_code: $apt_get_exit_code) \
 Trying to diagnose the problem using function apt_get_parse_unmet_dependency...${reset}"
 
-   apt_get_parse_unmet_dependency "$pkg_install"
+   apt_get_parse_unmet_dependency "$@"
 
    true "INFO: Tried to diagnose the problem using function apt_get_parse_unmet_dependency."
 
    error "See above!"
    return 0
+}
+
+pkg-add-to-install-list() {
+   errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
+
+   local pkg_install_item
+   pkg_install_item="$1"
+   local skip_package
+   for skip_package in $whonix_build_script_skip_package_install; do
+      if [ "$skip_package" = "$pkg_install_item" ]; then
+         unset skip_package
+         true "${bold}${cyan}INFO: Skipping $pkg_install_item, because whonix_build_script_skip_package_install includes it.${reset}"
+         return 0
+      fi
+   done
+   unset skip_package
+
+   if [ "$pkg_install_debug" = "true" ]; then
+      pkg-install "$pkg_install_item"
+   else
+      pkg_install_list+=" $pkg_install_item "
+   fi
+}
+
+pkg-list-install() {
+   errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
+
+   if [ "$pkg_install_list" = "" ]; then
+      return 0
+   else
+      pkg-install $pkg_install_list
+   fi
 }
 
 install-packages() {
@@ -203,20 +235,20 @@ install-packages() {
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/chroot-raw"
 
    ## Install helper-scripts first so pre.bsh is available.
-   pkg-install-maybe helper-scripts
+   pkg-install helper-scripts
 
    ## Install whonix-legacy earlier so debconf questions are answered before
    ## meta package installation.
-   pkg-install-maybe whonix-legacy
+   pkg-install whonix-legacy
 
    if [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
-      pkg-install-maybe whonix-gateway-packages-dependencies-pre
+      pkg-install whonix-gateway-packages-dependencies-pre
    elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
-      pkg-install-maybe whonix-workstation-packages-dependencies-pre
+      pkg-install whonix-workstation-packages-dependencies-pre
    elif [ "$WHONIX_BUILD_TYPE" = "whonix-host" ]; then
-      pkg-install-maybe whonix-host-packages-dependencies-pre
+      pkg-install whonix-host-packages-dependencies-pre
    elif [ "$WHONIX_BUILD_TYPE" = "kicksecure" ]; then
-      pkg-install-maybe kicksecure-packages-dependencies-pre
+      pkg-install kicksecure-packages-dependencies-pre
    else
       error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
    fi
@@ -262,7 +294,7 @@ $whonix_build_script_skip_package_install${reset}"
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
          local build_kernel
          for build_kernel in $BUILD_KERNEL_PKGS; do
-            pkg-install-maybe "$build_kernel"
+            pkg-add-to-install-list "$build_kernel"
          done
       fi
       if [ "$BUILD_HEADER_PKGS" = "none" ]; then
@@ -273,7 +305,7 @@ $whonix_build_script_skip_package_install${reset}"
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS}${reset}"
          local build_header
          for build_header in $BUILD_HEADER_PKGS; do
-            pkg-install-maybe "$build_header"
+            pkg-add-to-install-list "$build_header"
          done
          true "${bold}${cyan}INFO: kernel header installation done.${reset}"
       fi
@@ -286,8 +318,8 @@ $whonix_build_script_skip_package_install${reset}"
    elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-rpi" ]; then
       true "${cyan}INFO: Building $WHONIX_BUILD_FLAVOR, skipping installation of grub-screen-resolution and grub-output-verbose, ok.${reset}"
    else
-      pkg-install-maybe grub-screen-resolution
-      pkg-install-maybe grub-output-verbose
+      pkg-add-to-install-list grub-screen-resolution
+      pkg-add-to-install-list grub-output-verbose
    fi
 
    if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
@@ -300,14 +332,14 @@ $whonix_build_script_skip_package_install${reset}"
          ## building. Need to manually install it, because we are
          ## using --no-install-recommends and because neither
          ## virtualbox-guest-x11 nor virtualbox-guest-utils depends on it.
-         pkg-install-maybe virtualbox-guest-dkms
-         pkg-install-maybe virtualbox-guest-x11
+         pkg-add-to-install-list virtualbox-guest-dkms
+         pkg-add-to-install-list virtualbox-guest-x11
       else
          true "${cyan}INFO: skipping installation of weak recommended guest additions package virtualbox-guest-x11, because not using --target virtualbox, ok.${reset}"
       fi
       if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
-         pkg-install-maybe spice-vdagent
-         pkg-install-maybe serial-console-enable
+         pkg-add-to-install-list spice-vdagent
+         pkg-add-to-install-list serial-console-enable
       else
          true "${cyan}INFO: skipping installation of weak recommended guest additions packages spice-vdagent because not using --target qcow2, ok.${reset}"
       fi
@@ -315,19 +347,21 @@ $whonix_build_script_skip_package_install${reset}"
 
    ## Weak recommended packages so calamares can remove them.
    if [ "$WHONIX_BUILD_TYPE" = "whonix-host" ]; then
-      pkg-install-maybe calamares
-      pkg-install-maybe calamares-settings-debian
-      pkg-install-maybe live-config
-      pkg-install-maybe rsync
-      pkg-install-maybe user-setup
-      pkg-install-maybe squashfs-tools
+      pkg-add-to-install-list calamares
+      pkg-add-to-install-list calamares-settings-debian
+      pkg-add-to-install-list live-config
+      pkg-add-to-install-list rsync
+      pkg-add-to-install-list user-setup
+      pkg-add-to-install-list squashfs-tools
    fi
 
    if [ "$install_package" = "none" ]; then
       true "${cyan}INFO: $install_package is set to 'none', skipping.${reset}"
    else
-      pkg-install-maybe "$install_package"
+      pkg-add-to-install-list "$install_package"
    fi
+
+   pkg-list-install
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/remove-local-temp-apt-repo"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/unprevent-daemons-from-starting"
