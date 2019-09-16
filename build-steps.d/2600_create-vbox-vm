@@ -244,7 +244,21 @@ whonix-workstation_specific() {
 
    ## Change the internal network to "Whonix", IMPORTANT!
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+}
 
+whonix-custom-workstation_specific() {
+   whonix-workstation_specific
+
+   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
+}
+
+debian_specific() {
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 nat
+
+   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+}
+
+audio_enable() {
    ## Enable audio controller ac97.
    ## sb16 should be obsolete.
    ## ac97 is hopefully better supported than intel hda.
@@ -258,18 +272,6 @@ whonix-workstation_specific() {
 
    ## Activate audio output.
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audioout on
-}
-
-whonix-custom-workstation_specific() {
-   whonix-workstation_specific
-
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
-}
-
-debian_specific() {
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 nat
-
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 }
 
 dns_specific() {
@@ -327,14 +329,18 @@ main() {
       dns_specific
    elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
       whonix-workstation_specific
+      audio_enable
    elif [ "$WHONIX_BUILD_TYPE" = "custom-workstation" ]; then
       whonix-custom-workstation_specific
+      audio_enable
    elif [ "$WHONIX_BUILD_TYPE" = "whonix-host" ]; then
       debian_specific
       dns_specific
+      audio_enable
    elif [ "$WHONIX_BUILD_TYPE" = "kicksecure" ]; then
       debian_specific
       dns_specific
+      audio_enable
    else
       error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
    fi
