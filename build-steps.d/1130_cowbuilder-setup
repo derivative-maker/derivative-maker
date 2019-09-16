@@ -48,10 +48,12 @@ cowbuilder_setup_do() {
       touch /etc/hostname
    fi
 
-   if mount | grep /var/cache/pbuilder | grep tmpfs ; then
-      true "INFO: /var/cache/pbuilder already tmpfs."
-   else
-      mount -t tmpfs -o size=2G none /var/cache/pbuilder
+   if [ "$whonix_build_unsafe_io" = "true" ]; then
+      if mount | grep /var/cache/pbuilder | grep tmpfs ; then
+         true "INFO: /var/cache/pbuilder already tmpfs."
+      else
+         mount -t tmpfs -o size=2G none /var/cache/pbuilder
+      fi
    fi
 
    ## Debugging.
