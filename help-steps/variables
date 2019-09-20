@@ -662,15 +662,12 @@ set_WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS() {
 [ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="amd64"
 export BUILD_TARGET_ARCH
 
-[ -n "$host_architecture" ] || host_architecture="$(dpkg --print-architecture)"
-
 ## }}}
 
 [ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="$BUILD_TARGET_ARCH"
 #[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="i386 amd64"
 ## All architectures currently provided by deb.torproject.org at time of writing.
 #[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="armel armhf i386 amd64 arm64"
-export make_cross_build_platform_list
 
 [ -n "$whonix_build_file_system" ] || whonix_build_file_system="ext4"
 
@@ -693,7 +690,11 @@ whonix_build_debopt="${whonix_build_debopt::-1}"
 
 ## cowbuilder (which internally uses pbuilder).
 whonix_build_pbuilder_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-chroot-script"
+
 whonix_build_pbuilder_config_file="$WHONIX_BINARY/pbuilder.conf"
+## export so it can be read by genmkfile
+export whonix_build_pbuilder_config_file
+
 make_cowbuilder_dist_folder="$WHONIX_BINARY/genmkfile-packages-result"
 
 rm --force "$whonix_build_pbuilder_config_file"
@@ -724,6 +725,9 @@ true \"BUILDPLACE: \$BUILDPLACE\"
 true \"whonix_aptgetop_file: \$whonix_aptgetop_file\"
 
 APTCACHEHARDLINK=no
+
+## E: Cross building is possible only with the APT dependency resolver
+PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
 
 ## End of $whonix_build_pbuilder_config_file.
 " | \
