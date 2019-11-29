@@ -50,11 +50,6 @@ create-debian-raw-image() {
 
    ## Using export, so grml-debootstrap can read it.
 
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
-      [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP='qemu-debootstrap'
-      [ -n "$GRUB_INSTALL" ] || export GRUB_INSTALL='no'
-   fi
-
    [ -n "$DEBUG" ] || export DEBUG="true"
 
    ## https://github.com/grml/grml-debootstrap/issues/22
@@ -106,9 +101,34 @@ create-debian-raw-image() {
    ## Do not use /etc/network/interfaces by grml-debootstrap.
    [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
-   [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP="$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-debootstrap-command-filter"
-   ## Works probably only with mmdebstrap.
-   [ -n "$MIRROR" ] || export MIRROR="$whonix_build_sources_list_primary"
+   mmdebstrap_wrapper="$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-debootstrap-command-filter"
+
+   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
+      ## We assume cross building on "amd64" (Intel and AMD) for "arm64" for RPi builds.
+      ## It would be safer to build on "arm64" because then it may be possible
+      ## to use mmdebstrap, which is more secure (and faster).
+      [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP='qemu-debootstrap'
+      [ -n "$GRUB_INSTALL" ] || export GRUB_INSTALL='no'
+   else
+      [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP="$mmdebstrap_wrapper"
+   fi
+
+   if [ "$DEBOOTSTRAP" = "$mmdebstrap_wrapper" ]; then
+      ## Using a sources.list probably only with mmdebstrap.
+      [ -n "$MIRROR" ] || export MIRROR="$whonix_build_sources_list_primary"
+   else
+      ## qemu-debootstrap:
+      ## - cannot be combined with mmdebstrap.
+      ## - cannot bootstrap from multiple (regular and security) repositories
+      ##   at the same time.
+      ## - does not support apt sources in a sources.list file such as for example
+      ##   build_sources/debian_stable_current_clearnet.list
+      ##   (variable: whonix_build_sources_list_primary)
+      ##   but requires a apt URI such as for example.
+      ##   http://HTTPS///deb.debian.org/debian
+      ##   (variable: whonix_build_apt_sources_mirror)
+      [ -n "$MIRROR" ] || export MIRROR="$whonix_build_apt_sources_mirror"
+   fi
 
    ## See also /etc/debootstrap/config or
    ## https://github.com/grml/grml-debootstrap/blob/master/config to learn
