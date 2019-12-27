@@ -80,6 +80,7 @@ rm -f "$whonix_aptgetop_file"
 
 aptgetopt_add() {
    APTGETOPT[${#APTGETOPT[@]}]="$1"
+   APTGETOPT_ALT="$APTGETOPT_ALT $1"
 }
 
 aptgetopt_conf_add () {
@@ -696,7 +697,9 @@ whonix_build_debopt="${whonix_build_debopt::-1}"
 ## cowbuilder (which internally uses pbuilder).
 whonix_build_pbuilder_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-chroot-script"
 
-whonix_build_pbuilder_config_file="$WHONIX_BINARY/pbuilder.conf"
+whonix_build_pbuilder_config_name="pbuilder.conf"
+whonix_build_pbuilder_config_file="$WHONIX_BINARY/$whonix_build_pbuilder_config_name"
+export whonix_build_pbuilder_config_name
 ## export so it can be read by genmkfile
 export whonix_build_pbuilder_config_file
 
@@ -740,7 +743,10 @@ PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
 
 #sudo $SUDO_OPTS cat "$whonix_build_pbuilder_config_file"
 
+## Cannot export bash array.
 export APTGETOPT
+
+export APTGETOPT_ALT
 
 ## It depends on the order in which tb-updater is installed if
 ## update-torbrowser should or should not use temporarily reset

@@ -49,12 +49,12 @@ get_virtualbox_packages() {
       return 0
    fi
 
-   whonix_build_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_repo_download_chroot_script"
-   repo_signing_key="$WHONIX_SOURCE_FOLDER/build_sources/lucas_nussbaum.asc"
-   repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_buster_backport_virtualbox_lucas_nussbaum.list"
+   whonix_build_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_build_virtualbox_chroot_script"
+   repo_signing_key="none"
+   repo_sources_list="$whonix_build_sources_list_debian_sid"
    temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox"
-   ## Not available from that repository but from Debian directly.
-   export download_source_package="false"
+   ## Doing this anyway.
+   #export download_source_package="false"
 
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
    newer_package_list="virtualbox virtualbox-dkms virtualbox-guest-dkms virtualbox-guest-source virtualbox-guest-utils virtualbox-guest-x11 virtualbox-qt virtualbox-source"
@@ -92,7 +92,14 @@ get_newer_packages() {
       else
          cp "$repo_signing_key" "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
       fi
-      cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
+
+      if [ "$repo_sources_list" = "none" ]; then
+         rm -f "$base_folder/tmp/temporary-repository/newer.list"
+      else
+         cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
+      fi
+
+      cp "$whonix_build_pbuilder_config_file" "$base_folder/tmp/"
 
       cowbuilder_exit_code=0
       $COWBUILDER_PREFIX \
@@ -105,7 +112,6 @@ get_newer_packages() {
             --execute "$whonix_build_repo_download_chroot_script" \
             --basepath "$base_folder" \
             --buildplace "$cow_folder" \
-            --configfile "$whonix_build_pbuilder_config_file" \
             --bindmounts "$temp_newer_packages" \
             || { cowbuilder_exit_code="$?" ; true; };
 

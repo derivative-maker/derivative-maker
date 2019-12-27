@@ -12,14 +12,6 @@ test -f "/tmp/temporary-repository/newer.list"
 
 true "APTGETOPT_ALT: $APTGETOPT_ALT"
 
-## Delete the binary version in case it is there.
-rm -f "/etc/apt/trusted.gpg.d/newer.gpg"
-
-if [ -f "/tmp/temporary-repository/repo_signing_key.asc" ]; then
-   ## Copy from "more source like version" to binary location.
-   apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "/tmp/temporary-repository/repo_signing_key.asc"
-fi
-
 if [ "$temp_newer_packages" = "" ]; then
    echo "ERROR $0: temp_newer_packages is empty!"
    exit 1
@@ -40,23 +32,26 @@ done
       -o Dir::Etc::sourceparts="-" \
 
 apt-get \
-   download \
+   source \
       $APTGETOPT_ALT \
       $apt_unattended_opts \
       -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
       -o Dir::Etc::sourceparts="-" \
       $newer_package_list
 
-if [ "$download_source_package" = "true" ]; then
-   apt-get \
-      source \
-         $APTGETOPT_ALT \
-         $apt_unattended_opts \
-         --yes \
-         --download-only \
-         -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
-         -o Dir::Etc::sourceparts="-" \
-         $newer_package_list
-fi
+pushd virtualbox-*-dfsg
 
+apt-get \
+   build-dep \
+      $APTGETOPT_ALT \
+      $apt_unattended_opts \
+      --yes \
+      -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
+      -o Dir::Etc::sourceparts="-" \
+      $newer_package_list
+
+## TODO
+dpkg-buildpackage --no-sign || echo "$?"
+
+popd
 popd
