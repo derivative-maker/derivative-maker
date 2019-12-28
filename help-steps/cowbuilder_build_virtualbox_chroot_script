@@ -49,14 +49,25 @@ pushd virtualbox-*-dfsg
       -o Dir::Etc::sourcelist="/etc/apt/sources.list" \
       -o Dir::Etc::sourceparts="-" \
 
+## XXX: genmkfile should not require this.
+make_use_cowbuilder=false
+
+## Source make-helper.bsh to get function make_get_variables.
+source /usr/share/genmkfile/make-helper-one.bsh
+
+make_function_run make_init
+make_function_run make_get_variables
+
+true "make_deb_build_dependencies: $make_deb_build_dependencies"
+
 apt-get \
-   build-dep \
+   install \
       $APTGETOPT_ALT \
       $apt_unattended_opts \
       --yes \
       -o Dir::Etc::sourcelist="/etc/apt/sources.list" \
       -o Dir::Etc::sourceparts="-" \
-      $newer_package_list
+      $make_deb_build_dependencies
 
 dpkg-buildpackage --no-sign
 
