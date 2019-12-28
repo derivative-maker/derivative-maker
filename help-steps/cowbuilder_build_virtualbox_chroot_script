@@ -9,6 +9,7 @@ set -e
 
 test -f "/usr/lib/security-misc/apt-get-wrapper"
 test -f "/tmp/temporary-repository/newer.list"
+test -f "/etc/apt/sources.list"
 
 true "APTGETOPT_ALT: $APTGETOPT_ALT"
 
@@ -41,12 +42,19 @@ apt-get \
 
 pushd virtualbox-*-dfsg
 
+/usr/lib/security-misc/apt-get-wrapper \
+   update \
+      $APTGETOPT_ALT \
+      $apt_unattended_opts \
+      -o Dir::Etc::sourcelist="/etc/apt/sources.list" \
+      -o Dir::Etc::sourceparts="-" \
+
 apt-get \
    build-dep \
       $APTGETOPT_ALT \
       $apt_unattended_opts \
       --yes \
-      -o Dir::Etc::sourcelist="/tmp/temporary-repository/newer.list" \
+      -o Dir::Etc::sourcelist="/etc/apt/sources.list" \
       -o Dir::Etc::sourceparts="-" \
       $newer_package_list
 
