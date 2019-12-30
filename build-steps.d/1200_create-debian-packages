@@ -6,9 +6,9 @@
 ## example usage:
 ## TODO: always check packages/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list first!
 ##
-## sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target root --function get_tpo_packages
+## sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target root --function download_tpo_packages
 ##
-## sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function get_virtualbox_packages
+## sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages
 
 set -x
 set -e
@@ -30,7 +30,7 @@ source variables
 cd "$MYDIR"
 cd ..
 
-get_tpo_packages() {
+download_tpo_packages() {
    whonix_build_repo_download_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_repo_download_chroot_script"
    repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
@@ -43,7 +43,7 @@ get_tpo_packages() {
    get_newer_packages "$@"
 }
 
-get_virtualbox_packages() {
+download_virtualbox_packages() {
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
       return 0
@@ -202,8 +202,8 @@ create-debian-packages() {
       return 0
    fi
 
-   get_virtualbox_packages "$@"
-   get_tpo_packages "$@"
+   download_virtualbox_packages "$@"
+   download_tpo_packages "$@"
    create_whonix_debian_packages "$@"
 }
 
