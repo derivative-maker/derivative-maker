@@ -43,6 +43,28 @@ download_tpo_packages() {
    get_newer_packages "$@"
 }
 
+get_virtualbox_packages() {
+   if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+      return 0
+   fi
+
+   repo_signing_key="$WHONIX_SOURCE_FOLDER/build_sources/lucas_nussbaum.asc"
+   repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_buster_backport_virtualbox_lucas_nussbaum.list"
+   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox"
+   ## Not available from that repository but from Debian directly.
+   export download_source_package="false"
+
+   ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
+   newer_package_list="virtualbox virtualbox-dkms virtualbox-guest-dkms virtualbox-guest-source virtualbox-guest-utils virtualbox-guest-x11 virtualbox-qt virtualbox-source"
+
+   ## non-essential and not available packages from the repository we are using:
+   ## virtualbox-ext-pack
+   ## virtualbox-guest-additions-iso
+
+   get_newer_packages "$@"
+}
+
 compile_virtualbox_packages() {
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
