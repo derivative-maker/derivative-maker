@@ -70,23 +70,29 @@ processbacktracefunction() {
       set +x
       local xtrace_reenable="true"
    fi
-   local TRACE CP CMDLINE PP
+   local TRACE CP CMDLINE PP loop_counter
+   loop_counter=0
    TRACE=""
    CP="$$" ## PID of the script itself [1]
    while true ; do
+      loop_counter="$(( loop_counter + 1 ))"
+      if [ "$loop_counter" -ge 20 ]; then
+         echo "$FUNCNAME ERROR: loop counter greater than 20. Aborting $FUNCNAME."
+         break
+      fi
       if [ "$CP" = "" ]; then
-         echo "$FUNCNAME: Variable CP is empty."
+         echo "$FUNCNAME ERROR:: Variable CP is empty."
          break
       fi
       if test -f "/proc/$CP/cmdline" ; then
          CMDLINE="$(cat "/proc/$CP/cmdline" | tr '\000' ' ')" || true
       else
-         echo "$FUNCNAME: /proc/$CP/cmdline does not exist"
+         echo "$FUNCNAME ERROR:: /proc/$CP/cmdline does not exist"
       fi
       if test -f "/proc/$CP/status" ; then
-         PP="$(grep PPid "/proc/$CP/status" | awk '{ print $2; }')" || true ## [2]
+         PP="$(grep PPid "/proc/$CP/status" | awk '{ print $2; }')" || true
       else
-         echo "$FUNCNAME: /proc/$CP/status does not exist"
+         echo "$FUNCNAME ERROR:: /proc/$CP/status does not exist"
       fi
       TRACE="$TRACE : $CMDLINE\n"
       if [ "$CP" = "1" ]; then
