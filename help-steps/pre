@@ -74,11 +74,19 @@ processbacktracefunction() {
    TRACE=""
    CP="$$" ## PID of the script itself [1]
    while true ; do
+      if [ "$CP" = "" ]; then
+         echo "$FUNCNAME: Variable CP is empty."
+         break
+      fi
       if test -f "/proc/$CP/cmdline" ; then
          CMDLINE="$(cat "/proc/$CP/cmdline" | tr '\000' ' ')" || true
+      else
+         echo "$FUNCNAME: /proc/$CP/cmdline does not exist"
       fi
       if test -f "/proc/$CP/status" ; then
          PP="$(grep PPid "/proc/$CP/status" | awk '{ print $2; }')" || true ## [2]
+      else
+         echo "$FUNCNAME: /proc/$CP/status does not exist"
       fi
       TRACE="$TRACE : $CMDLINE\n"
       if [ "$CP" = "1" ]; then
