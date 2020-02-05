@@ -84,6 +84,11 @@ processbacktracefunction() {
          echo "$FUNCNAME ERROR: Variable CP is empty."
          break
       fi
+      if [ "$CP" = "1" ]; then
+         ## we reach 'init' [PID 1] => backtrace end
+         TRACE="$TRACE : init\n"
+         break
+      fi
       if test -f "/proc/$CP/cmdline" ; then
          CMDLINE="$(cat "/proc/$CP/cmdline" | tr '\000' ' ')" || true
       else
@@ -95,10 +100,6 @@ processbacktracefunction() {
          echo "$FUNCNAME ERROR: /proc/$CP/status does not exist"
       fi
       TRACE="$TRACE : $CMDLINE\n"
-      if [ "$CP" = "1" ]; then
-         ## we reach 'init' [PID 1] => backtrace end
-         break
-      fi
       CP="$PP"
    done
    ## using tac to "print in reverse" [3]
