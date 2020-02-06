@@ -149,7 +149,25 @@ get_newer_packages() {
       fi
    done
 
-   local file_name package_absolute_path
+   local file_name package_absolute_path file_name_only
+
+   for file_name in "$temp_newer_packages/"*".deb" ; do
+      package_absolute_path="$(readlink -f "$file_name")"
+      file_name_only="${package_absolute_path##*/}"
+      package=${file_name_only%%_*}
+
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+   done
+
+   for file_name in "$temp_newer_packages/"*".dsc" ; do
+      package_absolute_path="$(readlink -f "$file_name")"
+      file_name_only="${package_absolute_path##*/}"
+      package=${file_name_only%%_*}
+
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+   done
 
    for file_name in "$temp_newer_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
