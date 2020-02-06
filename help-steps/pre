@@ -70,7 +70,7 @@ processbacktracefunction() {
       set +x
       local xtrace_reenable="true"
    fi
-   local TRACE CP CMDLINE PP loop_counter who_ami
+   local TRACE CP CMDLINE PP loop_counter who_ami ps_p_output
    loop_counter=0
    who_ami="$(whoami)" || true
    TRACE=""
@@ -93,12 +93,14 @@ processbacktracefunction() {
       if test -f "/proc/$CP/cmdline" ; then
          CMDLINE="$(cat "/proc/$CP/cmdline" | tr '\000' ' ')" || true
       else
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/cmdline does not exist"
+         ps_p_output="$(ps --no-headers -p "$CP")"
+         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/cmdline does not exist | ps_p_output: $ps_p_output"
       fi
       if test -f "/proc/$CP/status" ; then
          PP="$(grep PPid "/proc/$CP/status" | awk '{ print $2; }')" || true
       else
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/status does not exist"
+         ps_p_output="$(ps --no-headers -p "$CP")"
+         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/status does not exist | ps_p_output: $ps_p_output"
       fi
       TRACE="$TRACE : $CMDLINE\n"
       CP="$PP"
