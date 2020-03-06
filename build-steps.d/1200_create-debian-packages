@@ -92,11 +92,6 @@ compile_virtualbox_packages() {
 }
 
 get_newer_packages() {
-   if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Skipping $FUNCNAME, because whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only. ${reset}"
-      return 0
-   fi
-
    rm --recursive --force "$temp_newer_packages"
    sudo $SUDO_OPTS mkdir --parents "$temp_newer_packages"
 
@@ -207,15 +202,6 @@ create_whonix_debian_packages() {
          true "${cyan}INFO: Skipping $base_name as expected.${reset}"
          popd
          continue
-      fi
-      if [ "$whonix_build_pkg_apparmor_only" = "true" ]; then
-         if [ "$(echo "$base_name" | grep "apparmor-profile-")" ]; then
-            true "${cyan}INFO: Building apparmor profile: $base_name ${reset}"
-         else
-            true "${cyan}INFO${reset}: Skipping $base_name as expected because using whonix_build_pkg_apparmor_only is set to $whonix_build_pkg_apparmor_only."
-            popd
-            continue
-         fi
       fi
       true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
       benchmark_time_start="$(date +%s)" || true
