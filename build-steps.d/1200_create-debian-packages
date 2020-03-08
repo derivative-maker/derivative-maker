@@ -121,6 +121,9 @@ get_newer_packages() {
 
       cp "$whonix_build_pbuilder_config_file" "$base_folder/tmp/"
 
+      local benchmark_time_start benchmark_took_time
+      benchmark_time_start="$(date +%s)" || true
+
       cowbuilder_exit_code=0
       $COWBUILDER_PREFIX \
       newer_package_list="$newer_package_list" \
@@ -134,6 +137,9 @@ get_newer_packages() {
             --buildplace "$cow_folder" \
             --bindmounts "$temp_newer_packages" \
             || { cowbuilder_exit_code="$?" ; true; };
+
+      benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+      true "${cyan}INFO: Done with build '${FUNCNAME[1]}' (benchmark: $benchmark_took_time) ${reset}"
 
       if [ -d "$base_folder" ]; then
          "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
