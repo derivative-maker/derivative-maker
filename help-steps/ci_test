@@ -1,0 +1,45 @@
+#!/bin/bash
+
+## Copyright (C) 2019 - 2020 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+
+set -e
+
+true "$0: start"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+## travis.debian.net does not pass the CI environment variable to docker.
+## build script reads CI variable.
+if echo "$PWD" | grep -q travis ; then
+   true "INFO: travis detected, ok."
+elif [ ! "$CI" = "true" ]; then
+   true "ERROR: You probably do not want to run this outside of a CI \
+environment, because it uses virsh to undefine virtual machines."
+   exit 1
+fi
+
+apt-get update
+
+## Sanity tests.
+apt-get --yes dist-upgrade
+dpkg --configure -a
+
+apt-get --yes install sudo virt-what lintian
+
+## Debugging.
+#systemd-detect-virt || true
+virt-what || true
+pwd_output="$(pwd)" || true
+ls "$pwd_output" || true
+ls /home || true
+## TODO: remove
+find /home || true
+
+## The environment variables are not set here.
+#true "$0: TRAVIS_DEBIAN_BUILD_DIR: $TRAVIS_DEBIAN_BUILD_DIR"
+#true "$0: TRAVIS_DEBIAN_TARGET_DIR: $TRAVIS_DEBIAN_TARGET_DIR"
+
+true "$0 INFO: OK. End."
