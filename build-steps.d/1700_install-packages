@@ -74,13 +74,13 @@ pkg-install() {
    for skip_package in $whonix_build_script_skip_package_install; do
       if [ "$skip_package" = "$pkg_install_item" ]; then
          unset skip_package
-         true "${bold}${cyan}INFO: Skipping $pkg_install_item, because whonix_build_script_skip_package_install includes it.${reset}"
+         true "${bold}${cyan}INFO: Skipping installation of '$pkg_install_item', because variable whonix_build_script_skip_package_install includes it.${reset}"
          return 0
       fi
    done
    unset skip_package
 
-   true "${cyan}INFO: Installing $pkg_install_item, because whonix_build_script_skip_package_install does not include it... \
+   true "${cyan}INFO: Installing of '$@', because variable whonix_build_script_skip_package_install does not include it... \
 This may take a while...${reset}"
 
    ## apt: no way to view dpkg commandline and still run dpkg
@@ -115,14 +115,14 @@ This may take a while...${reset}"
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
-      true "${cyan}INFO: Installed $pkg_install_item, no error detected.${reset}"
+      true "${cyan}INFO: Installed '$@', no error detected.${reset}"
       return 0
    fi
 
-   true "${bold}${red}ERROR: Failed to install $pkg_install_item. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: Failed to install '$@'. (apt_get_exit_code: $apt_get_exit_code) \
 Attempting to gather debug output to diagnose the problem...${reset}"
 
-   true "${bold}${cyan}INFO: Read output of apt-get trying to install $pkg_install_item into a \
+   true "${bold}${cyan}INFO: Read output of apt-get trying to install '$@' into a \
 variable for debugging. This may take a while...${reset}"
 
    local apt_get_exit_code="0"
@@ -147,12 +147,12 @@ variable for debugging. This may take a while...${reset}"
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
-      true "${bold}${red}ERROR: Second attempt installing $pkg_install_item did not fail?!?${reset}"
+      true "${bold}${red}ERROR: Second attempt installing '$@' did not fail?!?${reset}"
       error "See above!"
       return 0
    fi
 
-   true "${bold}${red}ERROR: As expected, failed again to install $pkg_install_item. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: As expected, failed again to install '$@'. (apt_get_exit_code: $apt_get_exit_code) \
 Trying to diagnose the problem using function apt_get_parse_unmet_dependency...${reset}"
 
    apt_get_parse_unmet_dependency "$@"
@@ -290,7 +290,7 @@ $whonix_build_script_skip_package_install${reset}"
       if [ "$BUILD_KERNEL_PKGS" = "none" ]; then
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS} - Skipping kernel installation.${reset}"
       else
-         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel installation...${reset}"
+         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Add to kernel image to installation list...${reset}"
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS}${reset}"
          local build_kernel
          for build_kernel in $BUILD_KERNEL_PKGS; do
@@ -301,7 +301,7 @@ $whonix_build_script_skip_package_install${reset}"
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS} - Skipping kernel header installation.${reset}"
       else
          true "${bold}${cyan}INFO: kernel installation done.${reset}"
-         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Starting kernel header installation...${reset}"
+         true "${bold}${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set not set to 1. Add kernel header to installation list...${reset}"
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS}${reset}"
          local build_header
          for build_header in $BUILD_HEADER_PKGS; do
