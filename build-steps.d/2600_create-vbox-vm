@@ -137,6 +137,23 @@ general_setup() {
    ## Broken for some users?
    ## https://forums.whonix.org/t/black-screen-on-15-0-0-6-6-and-15-0-0-7-1/8554
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --graphicscontroller vmsvga
+
+   ## Debugging.
+   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
+
+   ## Quote https://www.virtualbox.org/manual/ch09.html#max-resolution-guests
+   ##
+   ## > "Configuring the Maximum Resolution of Guests When Using the Graphical Frontend"
+   ##
+   ## > "When guest systems with the Guest Additions installed are started using the graphical frontend, the normal Oracle VM VirtualBox application, they will not be allowed to use screen resolutions greater than the host's screen size unless the user manually resizes them by dragging the window, switching to full screen or seamless mode or sending a video mode hint using VBoxManage. This behavior is what most users will want, but if you have different needs, you can change it by issuing one of the following commands from the command line:"
+   ##
+   ## In conclusion, by VirtualBox default the VM screen resolution will not be higher than the
+   ## host's screen size. Therefore set to "standard screen resolution 1920x1080".
+   ## https://forums.whonix.org/t/consider-making-screen-resolution-1920x1080-by-default-for-all-vms/9143
+   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" GUI/LastGuestSizeHint "1920, 1080"
+
+   ## Debugging.
+   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
 }
 
 spectre_meltdown_defenses() {
@@ -307,6 +324,11 @@ dns_specific() {
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 }
 
+debugging() {
+   sudo $SUDO_OPTS VBoxManage showvminfo "$VMNAME"
+   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
+}
+
 main() {
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $BASH_SOURCE, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
@@ -352,6 +374,8 @@ main() {
    else
       error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR. Please report this bug!"
    fi
+
+   debugging
 
    sync
 }
