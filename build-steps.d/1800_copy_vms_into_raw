@@ -29,8 +29,24 @@ copy-vm-files(){
    ## of course it would also use variables instead of version numbers
    ## we also apply correct file permissions
 
-   cp --sparse=always "$copy_vms_into_raw_file_one" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   cp --sparse=always "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   ## 'cp --sparse=always' did not work.
+   ## https://forums.whonix.org/t/whonix-host-operating-system/3931/202
+   #cp --sparse=always "$copy_vms_into_raw_file_one" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   #cp --sparse=always "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+
+   ## Therefore using qemu-img.
+   qemu-img convert -f raw -O qcow2 "$copy_vms_into_raw_file_one" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   qemu-img convert -f raw -O qcow2 "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+
+   ## TODO: qemu-img parameters?
+#    qemu-img \
+#       convert \
+#          -p \
+#          -O qcow2 \
+#          -o cluster_size=2M \
+#          -o preallocation=metadata \
+#          "$binary_image_raw" \
+#          "$binary_image_qcow2"
 
    ## https://forums.whonix.org/t/whonix-host-operating-system/3931/180
    $CHROOT chmod --verbose --recursive o-r   "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
