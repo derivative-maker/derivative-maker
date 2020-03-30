@@ -41,6 +41,30 @@ ls /home || true
 codename="buster-developers" \
    ./packages/usability-misc/usr/bin/whonix-repo-add
 
+
+repo=buster-developers
+path_to_chroot=~/kicksecure-cli-chroot
+path_to_temp_sources_list=~/temp-sources.list
+
+echo "
+deb https://deb.debian.org/debian-security/ buster/updates main contrib non-free
+deb https://deb.debian.org/debian buster main contrib non-free
+deb https://deb.whonix.org $repo main contrib non-free
+" > "$path_to_temp_sources_list"
+
+sudo \
+SECURITY_MISC_INSTALL=force \
+WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+mmdebstrap \
+--verbose \
+--include kicksecure-cli \
+buster \
+"$path_to_chroot" \
+"$path_to_temp_sources_list"
+
+ls "$path_to_chroot"
+
+
 user_name=user
 user_to_be_created=user
 
