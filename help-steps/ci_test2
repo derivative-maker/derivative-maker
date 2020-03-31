@@ -27,7 +27,7 @@ apt-get update
 apt-get --yes dist-upgrade
 dpkg --configure -a
 
-apt-get --yes install sudo virt-what lintian mmdebstrap
+apt-get --yes install mmdebstrap
 
 ## Debugging.
 #systemd-detect-virt || true
@@ -42,30 +42,25 @@ whoami || true
 codename="buster-developers" \
    ./packages/usability-misc/usr/bin/whonix-repo-add
 
-user_name=user
-user_to_be_created=user
+repo=buster-developers
+path_to_chroot=~/kicksecure-cli-chroot
+path_to_temp_sources_list=~/temp-sources.list
 
-adduser --no-create-home --disabled-login --gecos "" "$user_to_be_created"
+echo "
+deb https://deb.debian.org/debian-security/ buster/updates main contrib non-free
+deb https://deb.debian.org/debian buster main contrib non-free
+deb https://deb.whonix.org $repo main contrib non-free
+" > "$path_to_temp_sources_list"
 
-addgroup --system console
+SECURITY_MISC_INSTALL=force \
+WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+mmdebstrap \
+--verbose \
+--include kicksecure-cli \
+buster \
+"$path_to_chroot" \
+"$path_to_temp_sources_list"
 
-adduser "$user_name" sudo
-adduser "$user_name" console
-
-apt-get update
-
-## Sanity tests.
-apt-get --yes dist-upgrade
-dpkg --configure -a
-
-## whonix-legacy: Prevent debconf questions by firmware packages.
-## usability-misc: apt-get-noninteractive
-apt-get --yes install whonix-legacy usability-misc
-
-apt-get-noninteractive --yes install whonix-host-xfce-kvm-nonfreedom
-
-## The environment variables are not set here.
-#true "$0: TRAVIS_DEBIAN_BUILD_DIR: $TRAVIS_DEBIAN_BUILD_DIR"
-#true "$0: TRAVIS_DEBIAN_TARGET_DIR: $TRAVIS_DEBIAN_TARGET_DIR"
+ls "$path_to_chroot"
 
 true "$0 INFO: OK. End."
