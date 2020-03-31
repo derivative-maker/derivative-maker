@@ -25,7 +25,7 @@ sudo --non-interactive apt-get update
 
 ## Sanity tests.
 #sudo --non-interactive apt-get --yes dist-upgrade
-#sudo --non-interactive dpkg --configure -a
+sudo --non-interactive dpkg --configure -a
 
 ## Highest Ubuntu version offered by Travis CI is Ubuntu "bionic" but
 ## mmdebstrap is only available since Ubuntu "disco".
@@ -33,10 +33,6 @@ sudo --non-interactive apt-get update
 ## mmdebstrap dependencies: perl perl-doc
 
 sudo --non-interactive apt-get --yes install perl perl-doc apt-cacher-ng apt-transport-https apt-transport-tor ca-certificates tor
-
-## Debugging.
-cat /etc/apt-cacher-ng/acng.conf | grep Pass || true
-cat /etc/apt-cacher-ng/acng.conf | grep --invert-match "\#" | grep -v -e '^$' || true
 
 systemctl status tor || true
 systemctl status tor@default || true
@@ -72,7 +68,7 @@ deb https://deb.debian.org/debian buster main contrib non-free
 deb https://deb.whonix.org $repo main contrib non-free
 " > "$path_to_temp_sources_list"
 
-####
+#### one test without apt-cacher-ng
 
 path_to_chroot=~/chroot/kicksecure-cli
 
@@ -99,30 +95,32 @@ replace="http://HTTPS///"
 ./packages/helper-scripts/usr/bin/str_replace "$search" "$replace" "$path_to_temp_sources_list"
 cat "$path_to_temp_sources_list"
 
-####
+#### many tests with apt-cacher-ng
 
-pkg_to_test=kicksecure-xfce
+pkg_to_test_list="kicksecure-cli-vm kicksecure-xfce kicksecure-xfce-vm"
 
-path_to_chroot=~/"chroot/${pkg_to_test}"
+for pkg_to_test_item in $pkg_to_test_list ; do
+   path_to_chroot=~/"chroot/${pkg_to_test_item}"
 
-sudo --non-interactive \
-   SECURITY_MISC_INSTALL=force \
-   WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
-   "$mmdebstrap_wrapper" \
-   --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
-   --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
-   --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
-   --verbose \
-   --include kicksecure-xfce \
-   buster \
-   "$path_to_chroot" \
-   "$path_to_temp_sources_list"
+   sudo --non-interactive \
+      SECURITY_MISC_INSTALL=force \
+      WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+      "$mmdebstrap_wrapper" \
+      --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
+      --verbose \
+      --include kicksecure-xfce \
+      buster \
+      "$path_to_chroot" \
+      "$path_to_temp_sources_list"
 
-ls "$path_to_chroot"
-ls "$path_to_chroot/home"
+   ls "$path_to_chroot"
+   ls "$path_to_chroot/home"
 
-## Safe disk space.
-rm --recursive --force "$path_to_chroot"
+   ## Safe disk space.
+   rm --recursive --force "$path_to_chroot"
+done
 
 ####
 
