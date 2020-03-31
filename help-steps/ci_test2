@@ -21,13 +21,13 @@ environment, because it uses virsh to undefine virtual machines."
    exit 1
 fi
 
-apt-get update
+sudo --non-interactive apt-get update
 
 ## Sanity tests.
-apt-get --yes dist-upgrade
-dpkg --configure -a
+sudo --non-interactive apt-get --yes dist-upgrade
+sudo --non-interactive dpkg --configure -a
 
-apt-get --yes install mmdebstrap
+sudo --non-interactive apt-get --yes install mmdebstrap
 
 ## Debugging.
 #systemd-detect-virt || true
@@ -37,9 +37,8 @@ ls "$pwd_output" || true
 ls /home || true
 whoami || true
 
-## Debugging.
-#bash -x ./packages/usability-misc/usr/bin/whonix-repo-add
-codename="buster-developers" \
+sudo --non-interactive \
+   codename="buster-developers" \
    ./packages/usability-misc/usr/bin/whonix-repo-add
 
 repo=buster-developers
@@ -52,6 +51,7 @@ deb https://deb.debian.org/debian buster main contrib non-free
 deb https://deb.whonix.org $repo main contrib non-free
 " > "$path_to_temp_sources_list"
 
+sudo --non-interactive \
 SECURITY_MISC_INSTALL=force \
 WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
 mmdebstrap \
