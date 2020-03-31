@@ -24,40 +24,35 @@ fi
 sudo --non-interactive apt-get update
 
 ## Sanity tests.
-## Broken in Travis CI.
-sudo --non-interactive apt-get --yes dist-upgrade || true
-
-## Sanity tests.
-sudo --non-interactive dpkg --configure -a
+#sudo --non-interactive apt-get --yes dist-upgrade
+#sudo --non-interactive dpkg --configure -a
 
 ## Highest Ubuntu version offered by Travis CI is Ubuntu "bionic" but
 ## mmdebstrap is only available since Ubuntu "disco".
 
 ## mmdebstrap dependencies: perl perl-doc
-## debian-archive-keyring: required so mmdebstrap gets key for packages.debian.org.
-sudo --non-interactive apt-get --yes install perl perl-doc debian-archive-keyring || true
 
-wget http://mirrors.kernel.org/ubuntu/pool/universe/m/mmdebstrap/mmdebstrap_0.4.1-2_all.deb || true
-sudo --non-interactive dpkg -i mmdebstrap_0.4.1-2_all.deb || true
+sudo --non-interactive apt-get --yes install perl perl-doc apt-cacher-ng
+
+wget http://mirrors.kernel.org/ubuntu/pool/universe/m/mmdebstrap/mmdebstrap_0.4.1-2_all.deb
+sudo --non-interactive dpkg -i mmdebstrap_0.4.1-2_all.deb
 
 sudo --non-interactive apt-get --yes install mmdebstrap
 
-## Debugging.
-#systemd-detect-virt || true
-virt-what || true
-pwd_output="$(pwd)" || true
-ls "$pwd_output" || true
-ls /home || true
-whoami || true
-cat /etc/os-release || true
+## debian-archive-keyring: required so mmdebstrap gets key for packages.debian.org.
+wget http://http.us.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2019.1_all.deb
+sudo --non-interactive dpkg -i debian-archive-keyring_2019.1_all.deb
 
 sudo --non-interactive \
    codename="buster-developers" \
    ./packages/usability-misc/usr/bin/whonix-repo-add
 
+####
+
 repo=buster-developers
-path_to_chroot=~/kicksecure-cli-chroot
 path_to_temp_sources_list=~/temp-sources.list
+
+####
 
 echo "
 deb https://deb.debian.org/debian-security/ buster/updates main contrib non-free
@@ -65,16 +60,48 @@ deb https://deb.debian.org/debian buster main contrib non-free
 deb https://deb.whonix.org $repo main contrib non-free
 " > "$path_to_temp_sources_list"
 
+####
+
+path_to_chroot=~/kicksecure-cli-chroot
+
 sudo --non-interactive \
-SECURITY_MISC_INSTALL=force \
-WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
-mmdebstrap \
---verbose \
---include kicksecure-cli \
-buster \
-"$path_to_chroot" \
-"$path_to_temp_sources_list"
+   SECURITY_MISC_INSTALL=force \
+   WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+   mmdebstrap \
+   --verbose \
+   --include kicksecure-cli \
+   buster \
+   "$path_to_chroot" \
+   "$path_to_temp_sources_list"
 
 ls "$path_to_chroot"
+
+####
+
+search="https://"
+replace="http://HTTPS///"
+./packages/helper-scripts/usr/bin/str_replace "$search" "$replace" "$path_to_temp_sources_list"
+cat "$path_to_temp_sources_list"
+
+####
+
+path_to_chroot=~/kicksecure-xfce-chroot
+
+sudo --non-interactive \
+   SECURITY_MISC_INSTALL=force \
+   WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+   mmdebstrap \
+   --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
+   --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
+   --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
+   --verbose \
+   --include kicksecure-xfce \
+   buster \
+   "$path_to_chroot" \
+   "$path_to_temp_sources_list"
+
+ls "$path_to_chroot"
+
+####
 
 true "$0 INFO: OK. End."
