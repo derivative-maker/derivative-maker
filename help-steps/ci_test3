@@ -85,6 +85,8 @@ non-qubes-whonix-gateway-xfce
 non-qubes-whonix-workstation-xfce
 "
 
+## https://git-tails.immerda.ch/tails/tree/config/chroot_local-preseed/firmware
+
 for pkg_to_test_item in $pkg_to_test_list ; do
    path_to_chroot=~/"chroot/${pkg_to_test_item}"
 
@@ -95,6 +97,10 @@ for pkg_to_test_item in $pkg_to_test_list ; do
       --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
       --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
       --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
+      --essential-hook='echo b43-fwcutter b43-fwcutter/cut_firmware boolean true | chroot "$1" debconf-set-selections' \
+      --essential-hook='echo firmware-ipw2x00 firmware-ipw2x00/license/accepted boolean true | chroot "$1" debconf-set-selections' \
+      --essential-hook='echo firmware-iwlwifi firmware-iwlwifi/license/accepted boolean true | chroot "$1" debconf-set-selections' \
+      --essential-hook='echo firmware-ralink firmware-ralink/license/accepted boolean true | chroot "$1" debconf-set-selections' \
       --verbose \
       --include "$pkg_to_test_item" \
       buster \
