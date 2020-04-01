@@ -64,26 +64,50 @@ path_to_temp_sources_list=~/temp-sources.list
 ####
 
 echo "
-deb https://deb.debian.org/debian-security/ buster/updates main contrib non-free
-deb https://deb.debian.org/debian buster main contrib non-free
-deb https://deb.whonix.org $repo main contrib non-free
+deb http://HTTPS///deb.debian.org/debian-security/ buster/updates main contrib non-free
+deb http://HTTPS///deb.debian.org/debian buster main contrib non-free
+deb http://HTTPS///deb.whonix.org $repo main contrib non-free
 " > "$path_to_temp_sources_list"
 
-#### one test without apt-cacher-ng
+#### many tests with apt-cacher-ng
 
-path_to_chroot=~/chroot/kicksecure-cli
+pkg_to_test_list="
+whonix-host-xfce-kvm-nonfreedom
 
-sudo --non-interactive \
-   SECURITY_MISC_INSTALL=force \
-   WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
-   "$mmdebstrap_wrapper" \
-   --verbose \
-   --include kicksecure-cli \
-   buster \
-   "$path_to_chroot" \
-   "$path_to_temp_sources_list"
+qubes-whonix-gateway
+qubes-whonix-workstation
 
-ls "$path_to_chroot"
-ls "$path_to_chroot/home"
+kicksecure-cli-vm
+kicksecure-xfce
+kicksecure-xfce-vm
+
+non-qubes-whonix-gateway-xfce
+non-qubes-whonix-workstation-xfce
+"
+
+for pkg_to_test_item in $pkg_to_test_list ; do
+   path_to_chroot=~/"chroot/${pkg_to_test_item}"
+
+   sudo --non-interactive \
+      SECURITY_MISC_INSTALL=force \
+      WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+      "$mmdebstrap_wrapper" \
+      --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
+      --verbose \
+      --include "$pkg_to_test_item" \
+      buster \
+      "$path_to_chroot" \
+      "$path_to_temp_sources_list"
+
+   ls "$path_to_chroot"
+   ls "$path_to_chroot/home"
+
+   ## Safe disk space.
+   sudo rm --recursive --force "$path_to_chroot"
+done
+
+####
 
 true "$0 INFO: OK. End."
