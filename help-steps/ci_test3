@@ -69,13 +69,10 @@ deb http://HTTPS///deb.debian.org/debian buster main contrib non-free
 deb http://HTTPS///deb.whonix.org $repo main contrib non-free
 " > "$path_to_temp_sources_list"
 
-#### many tests with apt-cacher-ng
+#### many tests with apt-cacher-ng Non-Qubes-Whonix
 
 pkg_to_test_list="
 whonix-host-xfce-kvm-nonfreedom
-
-qubes-whonix-gateway
-qubes-whonix-workstation
 
 kicksecure-cli-vm
 kicksecure-xfce
@@ -120,6 +117,48 @@ for pkg_to_test_item in $pkg_to_test_list ; do
    sudo rm --recursive --force "$path_to_chroot"
 done
 
-####
+#### many tests with apt-cacher-ng Qubes-Whonix
+
+echo "
+# Qubes updates candidates repository
+deb [arch=amd64] https://deb.qubes-os.org/r4.0/vm buster-testing main
+#deb-src https://deb.qubes-os.org/r4.0/vm buster-testing main
+
+# Qubes security updates testing repository
+deb [arch=amd64] https://deb.qubes-os.org/r4.0/vm buster-securitytesting main
+" >> "$path_to_temp_sources_list"
+
+cat "$path_to_temp_sources_list"
+
+pkg_to_test_list="
+qubes-whonix-gateway
+qubes-whonix-workstation
+"
+
+for pkg_to_test_item in $pkg_to_test_list ; do
+   path_to_chroot=~/"chroot/${pkg_to_test_item}"
+
+   sudo --non-interactive \
+      SOURCE_DATE_EPOCH="1548374400" \
+      SECURITY_MISC_INSTALL=force \
+      WHONIX_APT_REPOSITORY_OPTS="--enable --codename $repo" \
+      anon_shared_inst_tb=open \
+      "$mmdebstrap_wrapper" \
+      --verbose \
+      --variant=required \
+      --aptopt='Acquire::http { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::https { Proxy "http://127.0.0.1:3142"; }' \
+      --aptopt='Acquire::tor { Proxy "http://127.0.0.1:3142"; }' \
+      --include "$pkg_to_test_item" \
+      buster \
+      "$path_to_chroot" \
+      "$path_to_temp_sources_list"
+
+   ls "$path_to_chroot"
+   ls "$path_to_chroot/home"
+
+   ## Safe disk space.
+   sudo rm --recursive --force "$path_to_chroot"
+done
 
 true "$0 INFO: OK. End."
