@@ -133,6 +133,16 @@ main() {
       rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
    fi
 
+   base_name_whonix_build_sources_list_primary="$(basename "$whonix_build_sources_list_primary")"
+   file_to_delete_maybe="/etc/apt/sources.list.d/0000"
+   file_to_delete_maybe+="$base_name_whonix_build_sources_list_primary"
+   ## example file_to_delete_maybe:
+   ## /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list
+   if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" >/dev/null ; then
+      true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
+      rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
+   fi
+
    ################
    ## mount files #
    ################
