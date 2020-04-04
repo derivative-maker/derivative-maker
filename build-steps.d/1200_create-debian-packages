@@ -217,6 +217,35 @@ create_whonix_debian_packages() {
          popd
          continue
       fi
+
+      ## 'Architecture:' currently in ./packages/ folder:
+      ## all
+      ## any
+      ## amd64
+      ## linux-amd64
+      if cat "debian/control" | grep "Architecture:" | grep "all" ; then
+         true OK
+      elif cat "debian/control" | grep "Architecture:" | grep "any" ; then
+         true OK
+      elif cat "debian/control" | grep "Architecture:" | grep "amd64" ; then
+         if [ "$BUILD_TARGET_ARCH" = "amd64" ]; then
+            true OK
+         else
+            true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
+            continue
+         fi
+      elif cat "debian/control" | grep "Architecture:" | grep "linux-amd64" ; then
+         if [ "$BUILD_TARGET_ARCH" = "amd64" ]; then
+            true OK
+         else
+            true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
+            continue
+         fi
+      else
+         cat "debian/control" | grep "Architecture:" || true
+         error "unknown Architecture:"
+      fi
+
       true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
       benchmark_time_start="$(date +%s)" || true
       lintian_use_maybe="$make_use_lintian"
