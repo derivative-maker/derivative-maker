@@ -34,7 +34,8 @@ build_rpi_fs() {
    parted -s "$dev" set 1 boot on
    parted -s "$dev" unit s mkpart primary ext4 -- 524281 -1
    parted -s "$dev" print
-   mkfs.fat -F "${dev}p1"
+   ## mkfs.fat does not support force ('-F'). Only mkfs.ext4 does.
+   mkfs.fat "${dev}p1"
    mkfs.ext4 -F "${dev}p2"
    ## copying boot files + rpi firmware to fat32 boot partition
    mount "${dev}p1" "$WHONIX_BINARY/whonix_gw_rpi.img_mpoint"
