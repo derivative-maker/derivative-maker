@@ -675,21 +675,24 @@ parse_special_files() {
 
    cp_to_user "$mount_folder/etc/fstab" "$debug_folder/etc_fstab"
 
-   ## Legacy, old path to build version file.
+   ## Legacy, old paths to build version file.
    ## Allow running this script in non-Whonix environments as well.
    if [ -e "$mount_folder/usr/share/whonix/build_version" ]; then
-      cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_whonix_build_version"
+      cp_to_user "$mount_folder/usr/share/whonix/build_version" "$debug_folder/usr_share_anon-dist_build_version"
+   fi
+   if [ -e "$mount_folder/var/lib/anon-dist/build_version" ]; then
+      cp_to_user "$mount_folder/var/lib/anon-dist/build_version" "$debug_folder/usr_share_anon-dist_build_version"
    fi
 
    ## Allow running this script in non-Whonix environments as well.
-   if [ -e "$mount_folder/var/lib/anon-dist/build_version" ]; then
-      cp_to_user "$mount_folder/var/lib/anon-dist/build_version" "$debug_folder/usr_lib_anon-dist_build_version"
-      echo "$debug_folder/usr_lib_anon-dist_build_version BEGIN..."
-      sudo $SUDO_OPTS cat "$debug_folder/usr_lib_anon-dist_build_version"
-      echo "END $debug_folder/usr_lib_anon-dist_build_version."
+   if [ -e "$mount_folder/var/lib/dist-base-files/build_version" ]; then
+      cp_to_user "$mount_folder/var/lib/dist-base-files/build_version" "$debug_folder/usr_lib_dist-base-files_build_version"
+      echo "$debug_folder/usr_lib_dist-base-files_build_version BEGIN..."
+      sudo $SUDO_OPTS cat "$debug_folder/usr_lib_dist-base-files_build_version"
+      echo "END $debug_folder/usr_lib_dist-base-files_build_version"
    else
-      msg="Strange, $mount_folder/var/lib/anon-dist/build_version does not exist. Perhaps not running in Whonix."
-      echo "$msg" > "$debug_folder/usr_lib_anon-dist_build_version"
+      msg="Strange, $mount_folder/var/lib/dist-base-files/build_version does not exist. Perhaps not running in Whonix."
+      echo "$msg" > "$debug_folder/usr_lib_dist-base-files_build_version"
    fi
 
    cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
