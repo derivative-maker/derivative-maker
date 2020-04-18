@@ -27,6 +27,7 @@ error() {
    $output_cmd "${blue}############################################################${reset}"
    $output_cmd "${red}${bold}${under}ERROR${eunder}: ${1}${reset}"
    $output_cmd "${blue}############################################################${reset}"
+   error_reason="${1}"
    error_ "See above! (There should be a bold, red message surrounded by blue hashtags (#).)"
    true
 }
@@ -188,26 +189,35 @@ errorhandlerprocessshared() {
    trap_signal_type_last="$1"
    whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
    benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+   local first
+   read -r first _ <<< "$last_failed_bash_command" || true
+
    processbacktracefunction ## sets process_backtrace_result
    functiontracefunction ## sets function_trace_result
    output_cmd_set
    $output_cmd "
 ${cyan}${bold}############################################################${reset}
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
-${red}${bold}dist_build_version${reset}: $dist_build_version
-(whonix_build_error_counter: $whonix_build_error_counter)
-(benchmark: $benchmark_took_time)
+
+dist_build_version${reset}: ${under}$dist_build_version${eunder}
+whonix_build_error_counter: $whonix_build_error_counter
+benchmark: $benchmark_took_time
+last_failed_exit_code: $last_failed_exit_code
 trap_signal_type_previous: $trap_signal_type_previous
-${red}${bold}trap_signal_type_last${reset}    : $trap_signal_type_last
-${red}${bold}process_backtrace_result${reset}:
+trap_signal_type_last${reset}    : $trap_signal_type_last
+
+${bold}process_backtrace_result${reset}:
 $process_backtrace_result
-${red}${bold}function_trace_result${reset}:
+
+${bold}function_trace_result${reset}:
 $function_trace_result
+
+${red}${bold}${under}$error_reason${eunder}${reset}
 ${red}${bold}last_failed_bash_command${reset}: ${bold}$last_failed_bash_command${reset}
-${red}${bold}last_failed_exit_code${reset}: ${under}$last_failed_exit_code${reset}
-${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 ${cyan}${bold}############################################################${reset}
 "
+
+   unset error_reason
 
    if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
       $output_cmd "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
@@ -217,15 +227,13 @@ ${cyan}${bold}############################################################${rese
    fi
 
    if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
-      $output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
+      #$output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
       if [ ! "$whonix_build_auto_retry" = "0" ]; then
          if [ "$whonix_build_auto_retry_counter" = "" ]; then
             whonix_build_auto_retry_counter="1"
          fi
          [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
          [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
-         local first
-         read -r first _ <<< "$last_failed_bash_command"
          if [ "$first" = "error_" ]; then
             $output_cmd 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
          elif [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
@@ -257,7 +265,7 @@ ${cyan}${bold}############################################################${rese
 
       answer=""
       if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
-         $output_cmd "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
+
          if [ "$whonix_build_non_interactive" = "true" ]; then
             $output_cmd "INFO: using non-interactive error handler."
             break
@@ -265,12 +273,14 @@ ${cyan}${bold}############################################################${rese
             if [ -t "0" ]; then
                $output_cmd "INFO: stdin connected to terminal, using interactive error handler."
                $output_cmd "\
-   ${red}${bold}ERROR in $0 detected!
-   Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold}...), note the command that failed, last_failed_exit_code and its output (further above).
-   - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
-   - Please press r and enter to retry.
-   - Please press s and enter to open an chroot interactive shell.
-   - Please press a and enter to abort.${reset}"
+${red}${bold}ERROR in ${under}$0${eunder} detected!
+
+Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold}...).
+
+ - Please enter c and press enter to ignore the error and continue building. (Recommended against!)
+ - Please press r and enter to retry.
+ - Please press s and enter to open an chroot interactive shell.
+ - Please press a and enter to abort.${reset}"
                read -p "Answer? " answer
             else
                $output_cmd "INFO: stdin not connected to terminal, using non-interactive error handler."
