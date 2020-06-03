@@ -1,0 +1,38 @@
+#!/bin/bash
+
+## Copyright (C) 2019 - 2020 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+
+set -e
+
+true "$0: start"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+## travis.debian.net does not pass the CI environment variable to docker.
+## build script reads CI variable.
+if echo "$PWD" | grep -q travis ; then
+   true "INFO: travis detected, ok."
+elif [ ! "$CI" = "true" ]; then
+   true "ERROR: You probably do not want to run this outside of a CI \
+environment, because it uses virsh to undefine virtual machines."
+   exit 1
+fi
+
+apt-get update
+
+## Sanity tests.
+apt-get --yes dist-upgrade
+dpkg --configure -a
+
+## XXX
+#make_cross_build_platform_list="armel armhf i386 amd64 arm64"
+
+sudo -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
+sudo -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
+sudo -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
+sudo -E ./build-steps.d/1200_create-debian-packages --internalrun --build --target root
+
+true "$0 INFO: OK. End."
