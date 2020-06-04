@@ -24,6 +24,27 @@ source variables
 cd "$MYDIR"
 cd ..
 
+
+check-source-folder-permissions() {
+   ## Debugging.
+   true "${bold}${cyan}INFO: PWD: $PWD ${reset}"
+
+   ## Checking if Whonix's source folder has been obtained (git cloned) as user or root.
+
+   stat_output_owner="$(stat -c %U "$BASH_SOURCE")"
+   stat_output_group="$(stat -c %G "$BASH_SOURCE")"
+
+   if [ "$stat_output_owner" = "root" ]; then
+      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root user! Instructions say you should get Whonix's source code as user, not root! \
+Please delete Whonix's source code folder and get it again as user, not root!${reset}"
+   fi
+
+   if [ "$stat_output_group" = "root" ]; then
+      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root group! Instructions say you should get Whonix's source code as user, not root! \
+Please delete Whonix's source code folder and get it again as user, not root!${reset}"
+   fi
+}
+
 check-copy-vms-into-raw() {
    if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
       return 0
@@ -110,6 +131,7 @@ sudo apt-get install $required_packages_list${reset}"
 
 main() {
    root_check "$@"
+   check-source-folder-permissions "$@"
    check-copy-vms-into-raw "$@"
    check-virtualbox-vm-exists "$@"
    check_required_packages_installed "$@"
