@@ -1,0 +1,39 @@
+#!/bin/bash
+
+## Copyright (C) 2019 - 2020 ENCRYPTED SUPPORT LP <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+set -x
+
+set -e
+
+true "$0: start"
+
+## Debugging.
+true "$0: $(whoami)" || true
+ls -la || true
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+## travis.debian.net does not pass the CI environment variable to docker.
+## build script reads CI variable.
+if echo "$PWD" | grep -q travis ; then
+   true "INFO: travis detected, ok."
+elif [ ! "$CI" = "true" ]; then
+   true "ERROR: You probably do not want to run this outside of a CI \
+environment, because it uses virsh to undefine virtual machines."
+   exit 1
+fi
+
+apt-get update
+
+apt-get --yes --no-install-recommends install git time tor torsocks
+
+systemctl status tor || true
+systemctl status tor@default || true
+
+pushd /tmp
+time git clone --branch 15.0.1.3.8-developers-only --jobs=100 --recursive https://gitlab.com/whonix/Whonix.git
+popd
+
+true "$0 INFO: OK. End."
