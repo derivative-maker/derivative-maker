@@ -42,12 +42,26 @@ dpkg --configure -a
 
 apt-get --yes --no-install-recommends install sudo git time curl apt-cacher-ng lsb-release fakeroot dpkg-dev
 
-## XXX
-#make_cross_build_platform_list="armel armhf i386 amd64 arm64"
+user_name=user
+user_to_be_created=user
+
+adduser --no-create-home --disabled-login --gecos "" "$user_to_be_created"
+
+addgroup --system console
+
+adduser "$user_name" sudo
+adduser "$user_name" console
+
+sudo -u user /bin/bash - << EOF
 
 sudo -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
 sudo -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
 sudo -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
 sudo -E ./build-steps.d/1200_create-debian-packages --internalrun --build --target root
+
+EOF
+
+## XXX
+#make_cross_build_platform_list="armel armhf i386 amd64 arm64"
 
 true "$0 INFO: OK. End."
