@@ -53,9 +53,14 @@ addgroup --system console
 adduser "$user_name" sudo
 adduser "$user_name" console
 
+echo "ALL ALL=(ALL) ALL" > /etc/sudoers.d/allow-all-sudo-on-ci
+
 chown --recursive "$user_name:$user_name" /home/travis
 
 sudo --non-interactive -u "$user_name" /bin/bash - << EOF
+
+set -x
+set -e
 
 sudo -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
 sudo -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
