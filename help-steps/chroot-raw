@@ -91,28 +91,28 @@ main() {
       ## required by unbuffer
       ## (required by apt-get-wrapper)
       mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
+
+      ## {{{
+
+      ## fuse postinst uses udevadm without hardcoding the path fortunately.
+      ## default search path of /sbin/udevadm:
+      ## `which udevadm`
+      ## /sbin/udevadm
+      ##
+      ## Content of the PATH environment variable during fuse postinst:
+      #/usr/sbin:/usr/bin:/sbin:/bin
+
+      mkdir --parents "$CHROOT_FOLDER/usr/bin"
+      ## File needs to exist before we can use mount.
+      touch "$CHROOT_FOLDER/usr/bin/udevadm"
+      ## Workaround to install fuse.
+      ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
+      ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
+      ## preference over the real /sbin/udevadm.
+      mount --bind "$WHONIX_SOURCE_FOLDER/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
+
+      ## }}}
    fi
-
-   ## {{{
-
-   ## fuse postinst uses udevadm without hardcoding the path fortunately.
-   ## default search path of /sbin/udevadm:
-   ## `which udevadm`
-   ## /sbin/udevadm
-   ##
-   ## Content of the PATH environment variable during fuse postinst:
-   #/usr/sbin:/usr/bin:/sbin:/bin
-
-   mkdir --parents "$CHROOT_FOLDER/usr/bin"
-   ## File needs to exist before we can use mount.
-   touch "$CHROOT_FOLDER/usr/bin/udevadm"
-   ## Workaround to install fuse.
-   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
-   ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
-   ## preference over the real /sbin/udevadm.
-   mount --bind "$WHONIX_SOURCE_FOLDER/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
-
-   ## }}}
 
    ## Leftover from build process using mmdebstrap.
    rm --force "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
