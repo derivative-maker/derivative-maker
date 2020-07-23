@@ -98,6 +98,39 @@ download_virtualbox_packages_virtualbox_org() {
    get_newer_packages "$@"
 }
 
+## Upstream virtualbox.org does not provide guest additions debian packages:
+## (Neither VirtualBox guest addition ISO nor VirtualBox guest addition debian package.)
+## https://www.virtualbox.org/ticket/734
+##
+## https://packages.debian.org/bullseye/virtualbox-guest-additions-iso
+## provides:
+## /usr/share/virtualbox/VBoxGuestAdditions.iso
+##
+## nonfreedom vs freedom discussion:
+## https://www.whonix.org/wiki/Dev/VirtualBox#VirtualBox_Unavailable_in_Debian_main_due_to_Licensing_Issues
+## https://forums.virtualbox.org/viewtopic.php?f=10&t=21374&p=477656#p477656
+## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=962311
+## https://www.virtualbox.org/ticket/19751
+##
+#sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_virtualbox_guest_additions_iso
+download_virtualbox_packages_virtualbox_guest_additions_iso() {
+   if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+      return 0
+   fi
+
+   whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/cowbuilder_repo_download_chroot_script"
+   repo_signing_key="none"
+   repo_sources_list="$whonix_build_sources_list_debian_sid"
+   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox_guest_additions_iso"
+   export download_source_package="true"
+
+   ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
+   newer_package_list="virtualbox-guest-additions-iso"
+
+   get_newer_packages "$@"
+}
+
 ## Currently not in use. Reason:
 ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=942873
 ## https://salsa.debian.org/fasttrack-team/support/issues/10
@@ -312,6 +345,7 @@ create-debian-packages() {
    fi
 
    download_virtualbox_packages_virtualbox_org "$@"
+   download_virtualbox_packages_virtualbox_guest_additions_iso "$@"
    download_tpo_packages "$@"
    create_whonix_debian_packages "$@"
 }
