@@ -60,6 +60,12 @@ gpasswd -a "$user_name" console
 ## Debugging.
 id "$user_name"
 
+## https://askubuntu.com/questions/250720/is-it-necessary-to-reboot-after-changing-group-membership
+su --login "$user_name"
+
+## Debugging.
+id "$user_name"
+
 echo "ALL ALL=(ALL) ALL" > /etc/sudoers.d/allow-all-sudo-on-ci
 
 chown --recursive "$user_name:$user_name" /home/travis
@@ -68,6 +74,8 @@ sudo --non-interactive -u "$user_name" /bin/bash - << EOF
 
 set -x
 set -e
+
+id "$user_name"
 
 sudo --non-interactive -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
 sudo --non-interactive -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
