@@ -85,21 +85,33 @@ cat /etc/sudoers.d/allow-all-sudo-on-ci
 
 chown --recursive "$user_name:$user_name" /home/travis
 
-sudo --non-interactive -u "$user_name" /bin/bash - << EOF
+echo '#!/bin/bash
 
 set -x
 set -e
 
 export REPO_PROXY="http://172.17.0.1:3142"
 
-id "$user_name"
-
 sudo --non-interactive -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
-sudo --non-interactive -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
-sudo --non-interactive -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
-sudo --non-interactive -E ./build-steps.d/1200_create-debian-packages --internalrun --build --target root
+true "exit code: $?"
 
-EOF
+sudo --non-interactive -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
+true "exit code: $?"
+
+sudo --non-interactive -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
+true "exit code: $?"
+
+sudo --non-interactive -E ./build-steps.d/1200_create-debian-packages --internalrun --build --target root
+true "exit code: $?"
+
+' \ | tee ~/ci_script
+
+chmod +x ~/ci_script
+realpath ~/ci_script
+
+cat ~/ci_script
+
+sudo --non-interactive -u "$user_name" ~/ci_script
 
 ## XXX
 #make_cross_build_platform_list="armel armhf i386 amd64 arm64"
