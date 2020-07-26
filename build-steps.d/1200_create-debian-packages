@@ -191,29 +191,33 @@ get_newer_packages() {
       local benchmark_time_start benchmark_took_time
       benchmark_time_start="$(date +%s)" || true
 
-      cowbuilder_exit_code=0
-      $COWBUILDER_PREFIX \
-      newer_package_list="$newer_package_list" \
-      temp_newer_packages="$temp_newer_packages" \
-         cowbuilder \
-            --host-arch "$host_architecture" \
-            --architecture "$BUILD_TARGET_ARCH" \
-            --configfile "$whonix_build_pbuilder_config_file" \
-            --execute "$whonix_build_special_packages_chroot_script" \
-            --basepath "$base_folder" \
-            --buildplace "$cow_folder" \
-            --bindmounts "$temp_newer_packages" \
-            || { cowbuilder_exit_code="$?" ; true; };
+      if [ "$make_use_cowbuilder" = "true" ]; then
+         whonix_build_download_script_exit_code=0
+         $COWBUILDER_PREFIX \
+         newer_package_list="$newer_package_list" \
+         temp_newer_packages="$temp_newer_packages" \
+            cowbuilder \
+               --host-arch "$host_architecture" \
+               --architecture "$BUILD_TARGET_ARCH" \
+               --configfile "$whonix_build_pbuilder_config_file" \
+               --execute "$whonix_build_special_packages_chroot_script" \
+               --basepath "$base_folder" \
+               --buildplace "$cow_folder" \
+               --bindmounts "$temp_newer_packages" \
+               || { whonix_build_download_script_exit_code="$?" ; true; };
+
+            if [ -d "$base_folder" ]; then
+               "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+            fi
+      else
+         "$whonix_build_special_packages_chroot_script" || { whonix_build_download_script_exit_code="$?" ; true; };
+      fi
 
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       true "${cyan}INFO: Done with build '${FUNCNAME[1]}' (benchmark: $benchmark_took_time) ${reset}"
 
-      if [ -d "$base_folder" ]; then
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
-      fi
-
-      if [ ! "$cowbuilder_exit_code" = "0" ]; then
-         return "$cowbuilder_exit_code"
+      if [ ! "$whonix_build_download_script_exit_code" = "0" ]; then
+         return "$whonix_build_download_script_exit_code"
       fi
    done
 
