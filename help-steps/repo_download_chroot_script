@@ -7,7 +7,9 @@ set -x
 
 set -e
 
-test -f "/usr/lib/security-misc/apt-get-wrapper"
+[ -n "$apt_get_update_wrapper_bin_path_full" ] || apt_get_update_wrapper_bin_path_full="/usr/lib/security-misc/apt-get-wrapper"
+
+test -f "$apt_get_update_wrapper_bin_path_full"
 test -f "/tmp/temporary-repository/newer.list"
 
 true "APTGETOPT_ALT: $APTGETOPT_ALT"
@@ -32,7 +34,7 @@ for architecture in $architecture_list ; do
    dpkg --add-architecture "$architecture"
 done
 
-/usr/lib/security-misc/apt-get-wrapper \
+"$apt_get_update_wrapper_bin_path_full" \
    update \
       $APTGETOPT_ALT \
       $apt_unattended_opts \
