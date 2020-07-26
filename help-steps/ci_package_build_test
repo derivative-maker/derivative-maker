@@ -88,7 +88,12 @@ echo '#!/bin/bash
 set -x
 set -e
 
+## This script runs inside a docker container.
+## Access apt-cacher-ng on the docker host.
 export REPO_PROXY="http://172.17.0.1:3142"
+
+## Since already running inside docker it is not easy to use cowbuilder.
+export make_use_cowbuilder="false"
 
 sudo --non-interactive -E ./build-steps.d/1100_sanity-tests --internalrun --build --target root --allow-untagged true --allow-uncommitted true
 true "exit code: $?"
@@ -96,8 +101,13 @@ true "exit code: $?"
 sudo --non-interactive -E ./build-steps.d/1120_prepare-build-machine --internalrun --build --target root
 true "exit code: $?"
 
-sudo --non-interactive -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
-true "exit code: $?"
+## Broken.
+## mount: /var/cache/pbuilder/base.cow_amd64/dev/pts: permission denied.
+## umount: /var/cache/pbuilder/base.cow_amd64/./dev/pts/: must be superuser to unmount.
+## umount ./dev/pts/ failed: 8192 at /home/travis/build/Whonix/Whonix/help-steps/mmdebstrap line 900.
+## E: run_chroot failed: E: mount ./dev/pts/ failed: 8192 at /home/travis/build/Whonix/Whonix/help-steps/## mmdebstrap line 152.
+#sudo --non-interactive -E ./build-steps.d/1130_cowbuilder-setup --internalrun --build --target root
+#true "exit code: $?"
 
 sudo --non-interactive -E ./build-steps.d/1200_create-debian-packages --internalrun --build --target root
 true "exit code: $?"
