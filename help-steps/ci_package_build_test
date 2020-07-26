@@ -28,25 +28,25 @@ fi
 
 apt-get update
 
-apt-get --yes --no-install-recommends install apt-cacher-ng
-
-## Debugging.
-debsums -ce
-
 ### XXX: duplicated from apt-get-noninteractive
 ## XXX: not using POLICYRCD
+##      becuase apt-cacher-ng needs to be started
 #[ -n "$POLICYRCD" ] || POLICYRCD="/usr/share/usability-misc/policy-rc.d"
 [ -n "$DEBIAN_FRONTEND" ] || DEBIAN_FRONTEND="noninteractive"
 [ -n "$DEBIAN_PRIORITY" ] || DEBIAN_PRIORITY="critical"
 [ -n "$DEBCONF_NOWARNINGS" ] || DEBCONF_NOWARNINGS="yes"
 [ -n "$APT_LISTCHANGES_FRONTEND" ] || APT_LISTCHANGES_FRONTEND="text"
-export POLICYRCD DEBIAN_FRONTEND DEBIAN_PRIORITY DEBCONF_NOWARNINGS APT_LISTCHANGES_FRONTEND
+#export POLICYRCD
+export DEBIAN_FRONTEND DEBIAN_PRIORITY DEBCONF_NOWARNINGS APT_LISTCHANGES_FRONTEND
 
 ## Sanity tests.
 apt-get --yes dist-upgrade
 dpkg --configure -a
 
 apt-get --yes --no-install-recommends install sudo git time curl apt-cacher-ng lsb-release fakeroot dpkg-dev
+
+## Debugging.
+debsums -ce
 
 service apt-cacher-ng restart
 service apt-cacher-ng status
