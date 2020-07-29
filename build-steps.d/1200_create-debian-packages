@@ -159,18 +159,26 @@ compile_virtualbox_packages() {
 }
 
 get_newer_packages() {
+   local cow_folder base_folder
+
    rm --recursive --force "$temp_newer_packages"
    sudo $SUDO_OPTS mkdir --parents "$temp_newer_packages"
 
    for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
       export whonix_build_multiarch_package_item
 
-      ## TODO: change that folder
-      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
-      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
+      if [ "$make_use_cowbuilder" = "true" ]; then
+         ## TODO: change that folder
+         cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
+         base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
 
-      test -d "$base_folder"
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         test -d "$base_folder"
+         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+      else
+         base_folder="$WHONIX_BINARY/no-pbuilder/base"
+         ## Not needed. For completeness sake. Just in case.
+         cow_folder="$WHONIX_BINARY/no-pbuilder/cow"
+      fi
 
       sudo $SUDO_OPTS mkdir -p "$base_folder/tmp/temporary-repository"
 
