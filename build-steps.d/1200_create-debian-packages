@@ -225,6 +225,10 @@ get_newer_packages() {
          export newer_package_list
          export temp_newer_packages
          "$whonix_build_special_packages_chroot_script" || { whonix_build_download_script_exit_code="$?" ; true; };
+
+         ## XXX
+         ## help-steps/repo_download_chroot_script messes up APT downloaded sources
+         $apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} update
       fi
 
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
@@ -288,12 +292,6 @@ create_whonix_debian_packages() {
 
    shopt -s nullglob
    shopt -s dotglob
-
-   ## XXX
-   ## help-steps/repo_download_chroot_script messes up APT downloaded sources
-   if [ "$make_use_cowbuilder" = "false" ]; then
-      $apt_get_update_wrapper_bin_path_full ${APTGETOPT[@]} update
-   fi
 
    for item in $pkg_list; do
       item="$WHONIX_SOURCE_FOLDER/packages/$item"
