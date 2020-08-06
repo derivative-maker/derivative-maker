@@ -189,7 +189,7 @@ main() {
 
       ## Delete inside chroot if host version leaked into it.
       if diff "/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
-         true "INFO: Host '/$mount_base_file' matches '$CHROOT_FOLDER/$mount_base_file'"
+         true "INFO #1: Host '/$mount_base_file' matches '$CHROOT_FOLDER/$mount_base_file'"
 
          is_ok=no
          for ok_if_match_file in \
@@ -199,18 +199,22 @@ main() {
             "$WHONIX_SOURCE_FOLDER/packages/whonix-base-files/etc/hostname.whonix" \
             ; do
                if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file" >/dev/null ; then
-                  true "INFO: But '$CHROOT_FOLDER/$mount_base_file' also matches '$ok_if_match_file', ok."
+                  true "INFO #1: But '$CHROOT_FOLDER/$mount_base_file' also matches '$ok_if_match_file', ok."
                   is_ok=yes
                   break
                fi
          done
          if [ "$is_ok" = "no" ]; then
-            true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
-            ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
-            shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
+            if [ "$WHONIX_BUILD_SHORT_TYPE" = "whonix" ]; then
+               true "INFO #1: WHONIX_BUILD_SHORT_TYPE: $WHONIX_BUILD_SHORT_TYPE Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
+               ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
+               shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
+            else
+               true "INFO #1: WHONIX_BUILD_SHORT_TYPE: $WHONIX_BUILD_SHORT_TYPE Therefore not touching '$CHROOT_FOLDER/$mount_base_file'."
+            fi
          fi
       else
-         true "INFO: Host '/$mount_base_file' does not match '$CHROOT_FOLDER/$mount_base_file', ok"
+         true "INFO #1: Host '/$mount_base_file' does not match '$CHROOT_FOLDER/$mount_base_file', ok"
       fi
 
       ## File needs to exist to be able to mount in next step.
