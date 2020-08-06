@@ -35,8 +35,13 @@ sudo --non-interactive dpkg --configure -a
 
 sudo --non-interactive apt-get --yes install perl perl-doc apt-cacher-ng apt-transport-https apt-transport-tor ca-certificates tor
 
-systemctl status tor || true
-systemctl status tor@default || true
+echo 'PassThroughPattern: .*' | sudo --non-interactive tee /etc/apt-cacher-ng/zz_debconf.conf >/dev/null
+cat /etc/apt-cacher-ng/zz_debconf.conf
+sudo --non-interactive systemctl restart apt-cacher-ng || true
+sudo --non-interactive systemctl status apt-cacher-ng || true
+
+sudo --non-interactive systemctl status tor || true
+sudo --non-interactive systemctl status tor@default || true
 
 wget http://mirrors.kernel.org/ubuntu/pool/universe/m/mmdebstrap/mmdebstrap_0.4.1-6_all.deb
 sudo --non-interactive dpkg -i mmdebstrap_0.4.1-6_all.deb
@@ -116,7 +121,8 @@ for pkg_to_test_item in $pkg_to_test_list ; do
    ls "$path_to_chroot/home"
 
    ## Safe disk space.
-   sudo rm --recursive --force "$path_to_chroot"
+   sudo --non-interactive \
+      rm --recursive --force "$path_to_chroot"
 done
 
 #### many tests with apt-cacher-ng Qubes-Whonix
