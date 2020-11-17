@@ -49,7 +49,7 @@ download_tpo_packages() {
    ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
    newer_package_list="tor tor-geoipdb deb.torproject.org-keyring"
 
-   get_newer_packages "$@"
+   build_run_function get_newer_packages "$@"
 }
 
 ## https://forums.whonix.org/t/missing-dependencies-on-buster-for-virtualbox-6-1-6/9634
@@ -79,7 +79,7 @@ download_virtualbox_packages_virtualbox_org() {
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
    newer_package_list="virtualbox-6.1"
 
-   get_newer_packages "$@"
+   build_run_function get_newer_packages "$@"
 }
 
 ## Upstream virtualbox.org does not provide guest additions debian packages:
@@ -113,7 +113,7 @@ download_virtualbox_packages_virtualbox_guest_additions_iso() {
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
    newer_package_list="virtualbox-guest-additions-iso"
 
-   get_newer_packages "$@"
+   build_run_function get_newer_packages "$@"
 }
 
 get_newer_packages() {
@@ -349,21 +349,21 @@ create-debian-packages() {
       return 0
    fi
 
-   download_virtualbox_packages_virtualbox_org "$@"
-   download_virtualbox_packages_virtualbox_guest_additions_iso "$@"
-   download_tpo_packages "$@"
-   create_whonix_debian_packages "$@"
+   build_run_function download_virtualbox_packages_virtualbox_org "$@"
+   build_run_function download_virtualbox_packages_virtualbox_guest_additions_iso "$@"
+   build_run_function download_tpo_packages "$@"
+   build_run_function create_whonix_debian_packages "$@"
 }
 
 main() {
-   root_check "$@"
+   build_run_function root_check "$@"
    if [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
    elif [ "$build_remote_derivative_pkgs" = "true" ]; then
       true "${cyan}INFO: build_remote_derivative_pkgs is set to $build_remote_derivative_pkgs, skipping creation of packages.${reset}"
    else
-      create-debian-packages "$@"
+      build_run_function create-debian-packages "$@"
    fi
 }
 
-main "$@"
+build_run_function main "$@"
