@@ -38,6 +38,8 @@ cd "$MYDIR"
 cd ..
 
 download_tpo_packages() {
+   ## https://forums.whonix.org/t/tor-integration-in-whonix/10593/2
+   available_architectures_for_download_only_list="i386 amd64 arm64"
    whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
    repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
@@ -53,11 +55,20 @@ download_tpo_packages() {
 ## https://forums.whonix.org/t/missing-dependencies-on-buster-for-virtualbox-6-1-6/9634
 #sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_virtualbox_org
 download_virtualbox_packages_virtualbox_org() {
+   ## Only when using '--target virtualbox'.
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
       return 0
    fi
 
+   ## XXX: Better set to "i386 amd64" which are the only actually available platforms for this repo_sources_list?
+   ## Or better set available_architectures_for_download_only_list="all" to make the build process fail early?
+   ## But does not matter since this code is only processed when using '--target virtualbox'.
+   ## Only platforms i386 amd64 are available from this repo_sources_list.
+   ## (Even packages.debian.org having amd64 only https://packages.debian.org/sid/virtualbox at time of writing.)
+   ## Creating '--target virtualbox' on platforms other than amd64 such as arm64 would fail anyhow since
+   ## nobody is providing packages for these platforms. At time of writing, nobody reported trying that either.
+   available_architectures_for_download_only_list="i386 amd64"
    whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
    repo_signing_key="$WHONIX_SOURCE_FOLDER/build_sources/oracle_vbox_2016.asc"
    repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_buster_backport_virtualbox_org.list"
@@ -92,6 +103,7 @@ download_virtualbox_packages_virtualbox_guest_additions_iso() {
       return 0
    fi
 
+   available_architectures_for_download_only_list="all"
    whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
    repo_signing_key="none"
    repo_sources_list="$whonix_build_sources_list_debian_sid"
@@ -112,6 +124,28 @@ get_newer_packages() {
 
    for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
       export whonix_build_multiarch_package_item
+
+      architecture_available=""
+      for available_architectures_for_download_only_item in $available_architectures_for_download_only_list ; do
+         if [ "all" = "$available_architectures_for_download_only_item" ]; then
+            true "${cyan}INFO: available_architectures_for_download_only_item: '$available_architectures_for_download_only_item'${reset}"
+            architecture_available="true"
+            continue
+         fi
+         if [ "$whonix_build_multiarch_package_item" = "$available_architectures_for_download_only_item" ]; then
+            true "${cyan}INFO: available_architectures_for_download_only_item: '$available_architectures_for_download_only_item'${reset}"
+            architecture_available="true"
+            continue
+         fi
+      done
+      if [ ! "$architecture_available" = "true" ]; then
+         true "${red}${bold}INFO: Skipping,
+download newer_package_list: ${under}$newer_package_list${eunder}
+for platform: ${under}$whonix_build_multiarch_package_item${eunder}
+becuase whonix_build_multiarch_package_item: $whonix_build_multiarch_package_item
+is not included in available_architectures_for_download_only_list: $available_architectures_for_download_only_list${reset}"
+         return 0
+      fi
 
       if [ "$make_use_cowbuilder" = "true" ]; then
          ## TODO: change that folder
