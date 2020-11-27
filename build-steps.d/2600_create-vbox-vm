@@ -39,14 +39,6 @@ general_setup() {
    ## Attach the HDD.
    sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
-   ## https://forums.whonix.org/t/no-longer-add-virtual-dvd-drive-to-vm-by-default/9337
-   ## Add SATA Controller for DVD.
-   #sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
-   ## Only 4 sata ports instead of 30. Speeds up booting.
-   #sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
-   ## Add DVD.
-   #sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
-
    ## RAM
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
 
@@ -271,6 +263,15 @@ whonix-workstation_specific() {
 
 whonix-custom-workstation_specific() {
    whonix-workstation_specific
+
+   ## Only for Whonix-Custom-Workstation.
+   ## https://forums.whonix.org/t/no-longer-add-virtual-dvd-drive-to-vm-by-default/9337
+   ## Add SATA Controller for DVD.
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
+   ## Only 4 sata ports instead of 30. Speeds up booting.
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
+   ## Add DVD.
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
 
    sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
 }
