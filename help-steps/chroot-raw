@@ -25,8 +25,8 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
 backup-file-if-exists() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   if [ ! -d "$WHONIX_BINARY/system-files-backup/etc" ]; then
-      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-backup/etc"
+   if [ ! -d "$WHONIX_BINARY/system-files-copy/etc" ]; then
+      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-copy/etc"
    fi
 
    local base_name
@@ -39,8 +39,8 @@ backup-file-if-exists() {
       #cp --no-clobber --preserve "$1" "$1.backup"
 
       ## Not using 'sudo $SUDO_OPTS' since that would fail if file is not accessible by user "user".
-      cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
-      chown "$user_name:$user_name" "$WHONIX_BINARY/system-files-backup/etc/$base_name"
+      cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-copy/etc/$base_name"
+      chown "$user_name:$user_name" "$WHONIX_BINARY/system-files-copy/etc/$base_name"
    else
       true "INFO: file $1 does not exist, skipping backup, ok."
    fi
@@ -226,7 +226,7 @@ main() {
          continue
       fi
 
-      mount --bind "$WHONIX_BINARY/system-files-backup/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
+      mount --bind "$WHONIX_BINARY/system-files-copy/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
    done
 
    sync
