@@ -310,47 +310,47 @@ $whonix_build_script_skip_package_install${reset}"
       fi
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${cyan}INFO: ANON_BUILD_INSTALL_TO_ROOT is set to 1, skipping installation of weak recommended guest additions packages, ok.${reset}"
+   ## Weak recommended packages. No other package depends on it. Can be
+   ## easily uninstalled. For better usability.
+   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      ## virtualbox-guest-dkms is required VirtualBox guest additions module
+      ## building. Need to manually install it, because we are
+      ## using --no-install-recommends and because neither
+      ## virtualbox-guest-x11 nor virtualbox-guest-utils depends on it.
+      ##
+      ## There is currently no repository offering Debian buster packages
+      ## virtualbox-guest-dkms / virtualbox-guest-utils / virtualbox-guest-x11
+      ## for download for current versions of VirtualBox.
+      #pkg-add-to-install-list virtualbox-guest-dkms
+      #pkg-add-to-install-list virtualbox-guest-x11
+      ##
+      ## Therefore falling back to package virtualbox-guest-additions-iso.
+      ##
+      ## https://packages.debian.org/sid/virtualbox-guest-additions-iso
+      ##
+      ## provides:
+      ## /usr/share/virtualbox/VBoxGuestAdditions.iso
+      ##
+      ## See also build-steps.d/1200_create-debian-packages function
+      ## download_virtualbox_packages_virtualbox_guest_additions_iso
+      pkg-add-to-install-list virtualbox-guest-additions-iso
    else
-      ## Weak recommended packages. No other package depends on it. Can be
-      ## easily uninstalled. For better usability.
-      if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-         ## virtualbox-guest-dkms is required VirtualBox guest additions module
-         ## building. Need to manually install it, because we are
-         ## using --no-install-recommends and because neither
-         ## virtualbox-guest-x11 nor virtualbox-guest-utils depends on it.
-         ##
-         ## There is currently no repository offering Debian buster packages
-         ## virtualbox-guest-dkms / virtualbox-guest-utils / virtualbox-guest-x11
-         ## for download for current versions of VirtualBox.
-         #pkg-add-to-install-list virtualbox-guest-dkms
-         #pkg-add-to-install-list virtualbox-guest-x11
-         ##
-         ## Therefore falling back to package virtualbox-guest-additions-iso.
-         ##
-         ## https://packages.debian.org/sid/virtualbox-guest-additions-iso
-         ##
-         ## provides:
-         ## /usr/share/virtualbox/VBoxGuestAdditions.iso
-         ##
-         ## See also build-steps.d/1200_create-debian-packages function
-         ## download_virtualbox_packages_virtualbox_guest_additions_iso
-         ##
-         ## Not using pkg-add-to-install-list and using pkg-install instead,
-         ## so it is available during package vm-config-dist postinst without
-         ## having to add a dependency.
-         #pkg-add-to-install-list virtualbox-guest-additions-iso
-         pkg-install virtualbox-guest-additions-iso
-      else
-         true "${cyan}INFO: skipping installation of weak recommended guest additions, because not using --target virtualbox, ok.${reset}"
-      fi
-      if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
-         pkg-add-to-install-list spice-vdagent
-         pkg-add-to-install-list serial-console-enable
-      else
-         true "${cyan}INFO: skipping installation of weak recommended guest additions packages spice-vdagent because not using --target qcow2, ok.${reset}"
-      fi
+      true "${cyan}INFO: skipping installation of weak recommended guest additions, because not using --target virtualbox, ok.${reset}"
+   fi
+
+   ## Executing pkg-list-install already this this point for the first time to
+   ## make sure linux kernel(s) and linux header(s) as well as
+   ## virtualbox-guest-additions-iso get installed now so it is available
+   ## during later package vm-config-dist postinst (vbox-guest-installer by
+   ## derivative maintainers) without having to add `Depends:` to
+   ## vm-config-dist.
+   pkg-list-install
+
+   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+      pkg-add-to-install-list spice-vdagent
+      pkg-add-to-install-list serial-console-enable
+   else
+      true "${cyan}INFO: skipping installation of weak recommended guest additions packages spice-vdagent because not using --target qcow2, ok.${reset}"
    fi
 
    ## Weak recommended packages so calamares can remove them.
