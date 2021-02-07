@@ -22,7 +22,7 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
-backup-file-if-exists() {
+copy-file-if-exists() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
    if [ ! -d "$WHONIX_BINARY/system-files-copy/etc" ]; then
@@ -186,7 +186,7 @@ main() {
    for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
       ## Backup exiting $mount_base_file, so we can later use it to safely mount it inside chroot.
       ## Safely meaning, even if the chroot overwrites it, the host version remains unchanged.
-      backup-file-if-exists "/$mount_base_file"
+      copy-file-if-exists "/$mount_base_file"
 
       ## Delete inside chroot if host version leaked into it.
       if diff "/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
