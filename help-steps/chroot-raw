@@ -22,32 +22,6 @@ ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
    exit 1
 }
 
-copy-file-if-exists() {
-   errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
-
-   if [ ! -d "$WHONIX_BINARY/system-files-copy/etc" ]; then
-      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-copy/etc"
-   fi
-
-   local base_name
-   base_name="$(basename "$1")"
-
-   if [ -f "$1" ]; then
-      ## Not using.
-      ## Otherwise /etc/apt/sources.list.backup leaks Whonix build sources inside VM.
-      ## Otherwise host /etc/resolv.conf ends up inside VM.
-      #cp --no-clobber --preserve "$1" "$1.backup"
-
-      ## Not using 'sudo $SUDO_OPTS' since that would fail if file is not accessible by user "user".
-      cp --no-clobber --preserve "$1" "$WHONIX_BINARY/system-files-copy/etc/$base_name"
-      chown "$user_name:$user_name" "$WHONIX_BINARY/system-files-copy/etc/$base_name"
-   else
-      true "INFO: file $1 does not exist, skipping copy, ok."
-   fi
-
-   true
-}
-
 main() {
    trap "error_handler_chroot-raw" ERR INT TERM
 
@@ -176,6 +150,7 @@ main() {
    sync
 
    local mount_base_file ok_if_match_file is_ok
+   local host_system_file_full_path system_file_copy_full_path
 
    ## If Whonix version already inside chroot, don't delete, keep as is, ok.
    ## If host version inside chroot, delete, ok.
@@ -183,13 +158,40 @@ main() {
    ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=0: don't mount; empty file.
    ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=1: mount host version inside chroot.
 
+   if [ ! -d "$WHONIX_BINARY/system-files-copy/etc" ]; then
+      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-copy/etc"
+   fi
+
    for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
       ## Backup exiting $mount_base_file, so we can later use it to safely mount it inside chroot.
       ## Safely meaning, even if the chroot overwrites it, the host version remains unchanged.
-      copy-file-if-exists "/$mount_base_file"
+      host_system_file_full_path="/$mount_base_file"
 
-      ## Delete inside chroot if host version leaked into it.
-      if diff "/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
+      host_system_file_base_name="$(basename "$host_system_file_full_path")"
+      system_file_copy_full_path="$WHONIX_BINARY/system-files-copy/etc/$host_system_file_base_name"
+
+      if [ -f "$host_system_file_full_path" ]; then
+         ## Not using.
+         ## Otherwise /etc/apt/sources.list.backup leaks Whonix build sources inside VM.
+         ## Otherwise host /etc/resolv.conf ends up inside VM.
+         #cp --no-clobber --preserve "$1" "$1.backup"
+
+         ## Not using 'sudo $SUDO_OPTS' since that would fail if file is not accessible by user "user".
+         cp --preserve "$host_system_file_full_path" "$system_file_copy_full_path"
+      else
+         true "INFO: file '$host_system_file_full_path' does not exist, skipping copy, ok."
+         if [ -f "$system_file_copy_full_path" ]; then
+            true "INFO: Deleting stale version from previous run..."
+            rm --verbose "$system_file_copy_full_path"
+         fi
+         ## Create empty file to make sure it exists.
+         touch "$system_file_copy_full_path"
+      fi
+      chown "$user_name:$user_name" "$system_file_copy_full_path"
+
+      ## Delete inside chroot if host version leaked into it previously through
+      ## another process such as perhaps mmdebstrap.
+      if diff "$host_system_file_full_path" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
          true "INFO #1: Host '/$mount_base_file' matches '$CHROOT_FOLDER/$mount_base_file'"
 
          is_ok=no
