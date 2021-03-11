@@ -7,6 +7,22 @@ set -x
 
 set -e
 
+gpg_tmp_create() {
+   gpg_tmp="$(mktemp --directory)"
+
+   rm --recursive --force "$gpg_tmp"
+   mkdir --parents "$gpg_tmp"
+   chmod 700 "$gpg_tmp"
+}
+
+gpg_tmp_delete() {
+   if [ -d "$gpg_tmp" ]; then
+      ## Debugging.
+      #ls -la "$gpg_tmp" || true
+      rm --recursive "$gpg_tmp" || true
+   fi
+}
+
 [ -n "$apt_get_update_wrapper_bin_path_full" ] || apt_get_update_wrapper_bin_path_full="/usr/lib/security-misc/apt-get-wrapper"
 
 test -f "$apt_get_update_wrapper_bin_path_full"
@@ -18,8 +34,17 @@ true "APTGETOPT_ALT: $APTGETOPT_ALT"
 rm -f "/etc/apt/trusted.gpg.d/newer.gpg"
 
 if [ -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" ]; then
-   ## Copy from "more source like version" to binary location.
-   apt-key --keyring "/etc/apt/trusted.gpg.d/newer.gpg" add "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc"
+   gpg_tmp_create
+
+   cat "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" | \
+      gpg \
+         --dearmor \
+         --no-options \
+         --homedir "$gpg_tmp" \
+         --no-default-keyring \
+         > "/etc/apt/trusted.gpg.d/newer.gpg"
+
+   gpg_tmp_delete
 fi
 
 if [ "$temp_newer_packages" = "" ]; then
