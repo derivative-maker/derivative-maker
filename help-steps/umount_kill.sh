@@ -2,7 +2,7 @@
 
 #
 # Written by Jason Mehring (nrgaway@gmail.com)
-# Modified by Patrick Schleizer (adrelanos@riseup.net)
+# Modified by Patrick Schleizer (adrelanos@whonix.org)
 #
 # Kills any processes within the mounted location and
 # unmounts any mounts active within.
