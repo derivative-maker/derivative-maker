@@ -103,9 +103,16 @@ main() {
    ##   mount and umount. Since too many mount/umount actions can lead to triggering bugs,
    ##   this is best avoided.
    ## Both other options seem more complex and error-prone than this hack.
-   if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" >/dev/null ; then
-      true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
-      rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
+
+   test -f "$whonix_build_sources_list_primary"
+
+   if test -f "$CHROOT_FOLDER/etc/apt/sources.list" ; then
+      if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
+         true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
+         rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
+      fi
+   else
+      true "INFO: chroot $CHROOT_FOLDER/etc/apt/sources.list, does not exist, ok."
    fi
 
    base_name_whonix_build_sources_list_primary="$(basename "$whonix_build_sources_list_primary")"
@@ -113,9 +120,14 @@ main() {
    file_to_delete_maybe+="$base_name_whonix_build_sources_list_primary"
    ## example file_to_delete_maybe:
    ## /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list
-   if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" >/dev/null ; then
-      true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
-      rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
+
+   if test -f "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
+      if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
+         true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
+         rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
+      fi
+   else
+      true "INFO: chroot $CHROOT_FOLDER/$file_to_delete_maybe, does not exist, ok."
    fi
 
    ################
