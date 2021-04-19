@@ -46,17 +46,56 @@ pushd /tmp
 ## Speed up download. Save traffic. Repositories binaries-freedom and
 ## monero-gui is too large which lead to failed git clone.
 
+# time \
+#    torsocks \
+#       git \
+#          clone \
+#          --depth=1 \
+#          --branch "$git_tag_nearest" \
+#          --jobs=100 \
+#          --recurse-submodules \
+#          --shallow-submodules \
+#          https://gitlab.com/whonix/Whonix.git
+
 time \
    torsocks \
       git \
          clone \
          --depth=1 \
          --branch "$git_tag_nearest" \
-         --jobs=100 \
-         --recurse-submodules \
-         --shallow-submodules \
          https://gitlab.com/whonix/Whonix.git
 
-popd
+pushd Whonix
+
+git_submodule_fetch_command="time \
+      torsocks \
+         git \
+         submodule \
+            update \
+            --init \
+            --recursive \
+            --progress \
+            --jobs=4"
+
+counter=0
+while true ; do
+   if $git_submodule_fetch_command ; then
+      success=true
+      break
+   fi
+   counter=$( counter + 1 ))
+   if [ "$counter" -gt "3" ]; then
+      success=false
+      break
+   fi
+done
+
+if [ "$success" = "false" ]; then
+   true "$0 ERROR: downloading git submodules failed."
+   exit 1
+fi
+
+## Sanity test.
+git status
 
 true "$0 INFO: OK. End."
