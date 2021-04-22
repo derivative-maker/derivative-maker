@@ -28,16 +28,29 @@ general_setup() {
       sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ostype Debian_64
    fi
 
-   ## Add SAS Controller for hdd.
-   ## Not using SATA for hdd:
+   ## SATA AHCI is VirtualBox's default for VMs created using the VirtualBox
+   ## graphical user interface (GUI) for Debian 64-bit VMs.
+   ##
+   ## No longer using `--add sas`, because:
+   ## https://forums.whonix.org/t/whonix-virtualbox-failed-to-start-ns-error-failure-0x80004005-the-vm-session-was-aborted/11471
+   ## Related:
    ## - https://github.com/Whonix/Whonix/issues/274
    ## - https://www.virtualbox.org/ticket/10031
-   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sas --name "$VMNAME-sas"
+   ## - https://www.whonix.org/wiki/VirtualBox/Troubleshooting#Failed_to_open_a_session_for_the_virtual_machine
+   ##
+   ## `--name` is mandatory by `VBoxManage`.
+   ## `--name "controller"` is arbitrary. VirtualBox default for VMs created
+   ## by VirtualBox GUI would be "Controller: SATA". Keeping it generic to
+   ## simplify maybe required later manual user changes.
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "controller"
+
+   ## Only 4 sata ports instead of 30. Speeds up booting.
+   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "controller" --portcount 4
 
    ## HDD gets added in the gateway / workstation specific functions below.
 
    ## Attach the HDD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sas" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "controller" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## RAM
    sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
@@ -266,12 +279,9 @@ whonix-custom-workstation_specific() {
 
    ## Only for Whonix-Custom-Workstation.
    ## https://forums.whonix.org/t/no-longer-add-virtual-dvd-drive-to-vm-by-default/9337
-   ## Add SATA Controller for DVD.
-   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "$VMNAME-sata"
-   ## Only 4 sata ports instead of 30. Speeds up booting.
-   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "$VMNAME-sata" --portcount 4
+
    ## Add DVD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "$VMNAME-sata" --type dvddrive --port 1 --medium emptydrive
+   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "controller" --type dvddrive --port 1 --medium emptydrive
 
    sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
 }
