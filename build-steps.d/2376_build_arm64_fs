@@ -25,9 +25,9 @@ build_arm64_fs() {
    ## create a copy of the raw output,
    ## such that we can make a new one with grub on an EFI partition
    ## along with mount points
-   orig_img = "${binary_image_raw}.orig"
-   mpoint_os = "${binary_image_raw}_mpoint_os"
-   mpoint_efi = "${mpoint_os}/boot/efi"
+   orig_img="${binary_image_raw}.orig"
+   mpoint_os="${binary_image_raw}_mpoint_os"
+   mpoint_efi="${mpoint_os}/boot/efi"
    cp $binary_image_raw $orig_img
 
    ## provides: dev_mapper_device
@@ -42,9 +42,9 @@ build_arm64_fs() {
    dev=$(losetup -f)
    losetup "$dev" $binary_image_raw
    parted -s "$dev" mklabel gpt
-   parted -s "$dev" unit s mkpart EFI fat32 -- 1 524280
+   parted -s "$dev" mkpart EFI fat32 1MiB 10MiB 
    parted -s "$dev" set 1 boot on
-   parted -s "$dev" unit s mkpart LINUX ext4 -- 524281 -1
+   parted -s "$dev" mkpart LINUX ext4 10MiB 100%
    mkfs.vfat -n EFI "${dev}p1"
    mkfs.ext4 -F -L LINUX "${dev}p2"
    parted -s "$dev" print
@@ -55,7 +55,7 @@ build_arm64_fs() {
    sync
 
    ## setup arm64 grub on EFI partition
-   sudo $SUDO_OPTS mkdir --parents $mpoint_efi
+   mkdir --parents $mpoint_efi
    mount "${dev}p1" "${mpoint_efi}"
 
    mount --bind /dev "${mpoint_os}/dev"
