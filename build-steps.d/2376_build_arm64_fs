@@ -1,0 +1,100 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2021 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## Copyright (C) 2021 Gavin Pacini
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+build_arm64_fs() {
+   source "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw
+
+   ## create a copy of the raw output,
+   ## such that we can make a new one with grub on an EFI partition
+   ## along with mount points
+   orig_img = "${binary_image_raw}.orig"
+   mpoint_os = "${binary_image_raw}_mpoint_os"
+   mpoint_efi = "${mpoint_os}/boot/efi"
+   cp $binary_image_raw $orig_img
+
+   ## provides: dev_mapper_device
+   export WHONIX_BUILD_MOUNT_RAW_FILE="$orig_img"
+   mount_raw
+
+   ## creating the image
+   sudo $SUDO_OPTS truncate -s $VMSIZE $binary_image_raw
+   sudo $SUDO_OPTS mkdir --parents $mpoint_os
+
+   ## partitioning
+   dev=$(losetup -f)
+   losetup "$dev" $binary_image_raw
+   parted -s "$dev" mklabel gpt
+   parted -s "$dev" unit s mkpart EFI fat32 -- 1 524280
+   parted -s "$dev" set 1 boot on
+   parted -s "$dev" unit s mkpart LINUX ext4 -- 524281 -1
+   mkfs.vfat -n EFI "${dev}p1"
+   mkfs.ext4 -F -L LINUX "${dev}p2"
+   parted -s "$dev" print
+
+   ## copying OS files
+   mount "${dev}p2" "${mpoint_os}"
+   cp -a "$CHROOT_FOLDER"/* "${mpoint_os}"
+   sync
+
+   ## setup arm64 grub on EFI partition
+   sudo $SUDO_OPTS mkdir --parents $mpoint_efi
+   mount "${dev}p1" "${mpoint_efi}"
+
+   mount --bind /dev "${mpoint_os}/dev"
+   mount -t devpts /dev/pts "${mpoint_os}/dev/pts"
+   mount -t proc proc "${mpoint_os}/proc"
+   mount -t sysfs sysfs "${mpoint_os}/sys"
+   mount -t tmpfs tmpfs "${mpoint_os}/tmp"
+
+   chroot $mpoint_os grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
+   chroot $mpoint_os update-grub
+   chroot $mpoint_os sync
+   sync
+   sleep 2
+
+   umount "${mpoint_os}/dev/pts"
+   umount "${mpoint_os}/dev"
+   umount "${mpoint_os}/proc"
+   umount "${mpoint_os}/sys"
+   umount "${mpoint_os}/tmp"
+   umount "${mpoint_efi}"
+   umount "${mpoint_os}"
+
+   losetup -d "$dev"
+
+   rmdir "${mpoint_os}"
+
+   export WHONIX_BUILD_MOUNT_RAW_FILE="$orig_img"
+   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
+
+   rm $orig_img
+}
+
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_FLAVOR" != "whonix-gateway-rpi" ] && [ "$BUILD_TARGET_ARCH" = "arm64" ]; then
+      build_arm64_fs
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because not building standard arm64.${reset}"
+   fi
+}
+
+main "$@"
