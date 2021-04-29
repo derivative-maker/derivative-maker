@@ -28,19 +28,19 @@ build_arm64_fs() {
    orig_img="${binary_image_raw}.orig"
    mpoint_os="${binary_image_raw}_mpoint_os"
    mpoint_efi="${mpoint_os}/boot/efi"
-   cp $binary_image_raw $orig_img
+   cp "$binary_image_raw" "$orig_img"
 
    ## provides: dev_mapper_device
    export WHONIX_BUILD_MOUNT_RAW_FILE="$orig_img"
    mount_raw
 
    ## creating the image
-   sudo $SUDO_OPTS truncate -s $VMSIZE $binary_image_raw
-   sudo $SUDO_OPTS mkdir --parents $mpoint_os
+   sudo $SUDO_OPTS truncate -s "$VMSIZE" "$binary_image_raw"
+   sudo $SUDO_OPTS mkdir --parents "$mpoint_os"
 
    ## partitioning
    dev=$(losetup -f)
-   losetup "$dev" $binary_image_raw
+   losetup "$dev" "$binary_image_raw"
    parted -s "$dev" mklabel gpt
    parted -s "$dev" mkpart EFI fat32 1MiB 10MiB 
    parted -s "$dev" set 1 boot on
@@ -55,7 +55,7 @@ build_arm64_fs() {
    sync
 
    ## setup arm64 grub on EFI partition
-   mkdir --parents $mpoint_efi
+   mkdir --parents "$mpoint_efi"
    mount "${dev}p1" "${mpoint_efi}"
 
    mount --bind /dev "${mpoint_os}/dev"
@@ -64,12 +64,13 @@ build_arm64_fs() {
    mount -t sysfs sysfs "${mpoint_os}/sys"
    mount -t tmpfs tmpfs "${mpoint_os}/tmp"
 
-   chroot $mpoint_os grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
-   chroot $mpoint_os update-grub
-   chroot $mpoint_os sync
+   chroot "$mpoint_os" grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
+   chroot "$mpoint_os" update-grub
+   chroot "$mpoint_os" sync
    sync
    sleep 2
 
+   ## unmount all the things
    umount "${mpoint_os}/dev/pts"
    umount "${mpoint_os}/dev"
    umount "${mpoint_os}/proc"
@@ -85,7 +86,8 @@ build_arm64_fs() {
    export WHONIX_BUILD_MOUNT_RAW_FILE="$orig_img"
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
 
-   rm $orig_img
+   ## remove the original image which did not have GRUB nor EFI partitions
+   rm "$orig_img"
 }
 
 main() {
