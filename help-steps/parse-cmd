@@ -80,14 +80,29 @@ onion: use onion apt sources
 false: Default. Will ${under}not${eunder} enable remote repository.
 true: ${under}enable${eunder} remote repository.
 
-DERIVATIVE_APT_REPOSITORY_OPTS
-Whonix APT Repository.
+flavor_meta_packages_to_install - environment variable
+Meta Package Selection
+Quoted space delimited list of packages or 'none'.
+flavor_meta_packages_to_install examples:
+flavor_meta_packages_to_install='none'
+flavor_meta_packages_to_install=' non-qubes-vm-enhancements-cli kicksecure-dependencies-cli whonix-shared-packages-dependencies-cli whonix-gateway-packages-dependencies-cli '
+
+install_package_list - environment variable
+Custom Additional Packages Install List
+Quoted space delimited list of packages or 'none'.
+Defaults to: none
+install_package_list examples:
+install_package_list=' gparted '
+install_package_list=' gparted gedit '
+
+DERIVATIVE_APT_REPOSITORY_OPTS - environment variable
+Derivative APT Repository.
 Disabled by default.
 DERIVATIVE_APT_REPOSITORY_OPTS examples:
 DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository stable'
 DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository testers'
 DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository developers'
-DERIVATIVE_APT_REPOSITORY_OPTS='--enable --codename jessie'
+DERIVATIVE_APT_REPOSITORY_OPTS='--enable --codename buster'
 
 --remote-derivative-packages true|false
 false: Default. Will ${under}not${eunder} remote derivative packages.
@@ -629,18 +644,23 @@ whonix_build_one_parse_cmd() {
    if [ "$BUILD_TARGET_ARCH" = "i386" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-686"
       [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-686"
+      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="i386"
    elif [ "$BUILD_TARGET_ARCH" = "arm64" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-arm64"
       [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-arm64"
+      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="arm64"
    fi
 
    [ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="amd64"
    [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-amd64"
    [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-amd64"
+   ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
+   [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="PC"
 
    export BUILD_TARGET_ARCH
    export BUILD_KERNEL_PKGS
    export BUILD_HEADER_PKGS
+   export target_architecture_pretty_name
 
    echo "${cyan}INFO: BUILD_TARGET_ARCH    (--arch): $BUILD_TARGET_ARCH${reset}"
    echo "${cyan}INFO: BUILD_KERNEL_PKGS  (--kernel): $BUILD_KERNEL_PKGS${reset}"

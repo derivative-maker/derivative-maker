@@ -351,7 +351,11 @@ $whonix_build_script_skip_package_install${reset}"
    ## vm-config-dist.
    pkg-list-install
 
-   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+   if [ "$WHONIX_BUILD_RAW" = "true" ]; then
+      ## XXX: Superfluous for non-libvirt raw image builds.
+      pkg-add-to-install-list spice-vdagent
+      pkg-add-to-install-list serial-console-enable
+   elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
       pkg-add-to-install-list spice-vdagent
       pkg-add-to-install-list serial-console-enable
    else
@@ -379,10 +383,20 @@ $whonix_build_script_skip_package_install${reset}"
       pkg-add-to-install-list squashfs-tools
    fi
 
-   if [ "$install_package_list" = "none" ] || [ "$install_package_list" = "" ]; then
-      true "${cyan}INFO: $install_package_list is set to '$install_package_list', skipping.${reset}"
+   if [ "$flavor_meta_packages_to_install" = "none" ] || [ "$flavor_meta_packages_to_install" = "" ] || [ "$flavor_meta_packages_to_install" = " " ]; then
+      true "${cyan}INFO: variable flavor_meta_packages_to_install is set to '$flavor_meta_packages_to_install', skipping.${reset}"
+   else
+      for flavor_meta_package_item in $flavor_meta_packages_to_install ; do
+         true "${cyan}INFO: flavor_meta_packages_to_install: '$flavor_meta_packages_to_install'${reset}"
+         pkg-add-to-install-list "$flavor_meta_package_item"
+      done
+   fi
+
+   if [ "$install_package_list" = "none" ] || [ "$install_package_list" = "" ] || [ "$install_package_list" = " " ]; then
+      true "${cyan}INFO: variable install_package_list (custom additional packages list) is set to '$install_package_list', skipping, ok.${reset}"
    else
       for install_package_item in $install_package_list ; do
+         true "${cyan}INFO: install_package_item: '$install_package_item'${reset}"
          pkg-add-to-install-list "$install_package_item"
       done
    fi
