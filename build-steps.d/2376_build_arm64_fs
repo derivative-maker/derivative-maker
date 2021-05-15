@@ -64,8 +64,19 @@ build_arm64_fs() {
    mount -t sysfs sysfs "${mpoint_os}/sys"
    mount -t tmpfs tmpfs "${mpoint_os}/tmp"
 
+   ## grub-install requires /sys inside chroot.
    chroot "$mpoint_os" grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
+
+   ## update-grub does not require /sys inside chroot.
+   ## Mounted /sys inside chroot causing issues with update-grub inside chroot.
+   ## https://forums.whonix.org/t/whonix-on-mac-m1-arm/11310/40
+   ## Therefore unmounting here already.
+   ## https://forums.whonix.org/t/whonix-on-mac-m1-arm/11310/55
+   umount "${mpoint_os}/sys"
+   sync
+   sleep 2
    chroot "$mpoint_os" update-grub
+
    chroot "$mpoint_os" sync
    sync
    sleep 2
@@ -74,7 +85,8 @@ build_arm64_fs() {
    umount "${mpoint_os}/dev/pts"
    umount "${mpoint_os}/dev"
    umount "${mpoint_os}/proc"
-   umount "${mpoint_os}/sys"
+   ## Already unmounted earlier above.
+   #umount "${mpoint_os}/sys"
    umount "${mpoint_os}/tmp"
    umount "${mpoint_efi}"
    umount "${mpoint_os}"
