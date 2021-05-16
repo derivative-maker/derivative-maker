@@ -221,9 +221,30 @@ build_machine_setup() {
    #cat /proc/devices
 }
 
+repo_proxy_test() {
+   if [ "$REPO_PROXY" = "" ]; then
+      return 0
+   fi
+   if [ "$REPO_PROXY" = "none" ]; then
+      return 0
+   fi
+
+   true "INFO: Testing REPO_PROXY $REPO_PROXY (most likely apt-cacher-ng, since default)..."
+   local curl_exit_code=0
+   curl --fail --silent "$REPO_PROXY" || { curl_exit_code="$?" ; true; };
+   if [ "$curl_exit_code" = "22" ]; then
+      true "INFO: apt-cacher-ng functional..."
+      return 0
+   fi
+
+   true "${red}${bold}ERROR: REPO_PROXY curl curl_exit_code: $curl_exit_code. REPO_PROXY $REPO_PROXY unreachable! Does a local firewall blcok connections to REPO_PROXY?${reset}"
+   error "See above!"
+}
+
 main() {
    root_check "$@"
    build_machine_setup "$@"
+   repo_proxy_test "$@"
 }
 
 main "$@"
