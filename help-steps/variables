@@ -364,18 +364,13 @@ if [ "$whonix_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
    aptgetopt_add "-o Dpkg::Options::=--force-unsafe-io"
    aptgetopt_conf_add "Dpkg::Options:: \"--force-unsafe-io\";"
-   if command -v eatmydata >/dev/null 2>&1 ; then
+   libeatmydata_file=/usr/lib/*-linux-gnu/libeatmydata.so
+   if test -f "$libeatmydata_file" ; then
       true "INFO: eatmydata installed, preloading."
-      ## Thanks to:
-      ## shitpoet@gmail.com
-      ## http://shitpoet.tk/eat-all-my-data.html
-      #if ! test -h /usr/lib/libeatmydata.so ; then
-         #ln -s /usr/lib/x86_64-linux-gnu/libeatmydata.so /usr/lib/libeatmydata.so || true
-      #fi
       if [ -z "$LD_PRELOAD" ]; then
-         LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libeatmydata.so
+         LD_PRELOAD="$libeatmydata_file"
       else
-         LD_PRELOAD="$LD_PRELOAD":/usr/lib/x86_64-linux-gnu/libeatmydata.so
+         LD_PRELOAD="${LD_PRELOAD}:${libeatmydata_file}"
       fi
       export LD_PRELOAD
       SUDO_OPTS="$SUDO_OPTS LD_PRELOAD=$LD_PRELOAD"
