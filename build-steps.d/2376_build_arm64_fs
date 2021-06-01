@@ -42,7 +42,7 @@ build_arm64_fs() {
    dev=$(losetup -f)
    losetup "$dev" "$binary_image_raw"
    parted -s "$dev" mklabel gpt
-   parted -s "$dev" mkpart EFI fat32 1MiB 10MiB 
+   parted -s "$dev" mkpart EFI fat32 1MiB 10MiB
    parted -s "$dev" set 1 boot on
    parted -s "$dev" mkpart LINUX ext4 10MiB 100%
    mkfs.vfat -n EFI "${dev}p1"
@@ -58,8 +58,8 @@ build_arm64_fs() {
    mkdir --parents "$mpoint_efi"
    mount "${dev}p1" "${mpoint_efi}"
 
-   mount --bind /dev "${mpoint_os}/dev"
-   mount -t devpts /dev/pts "${mpoint_os}/dev/pts"
+   mount -t devtmpfs udev "${mpoint_os}/dev"
+   mount -t devpts devpts "${mpoint_os}/dev/pts"
    mount -t proc proc "${mpoint_os}/proc"
    mount -t sysfs sysfs "${mpoint_os}/sys"
    mount -t tmpfs tmpfs "${mpoint_os}/tmp"
