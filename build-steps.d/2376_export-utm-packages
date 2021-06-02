@@ -1,0 +1,43 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2021 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## Copyright (C) 2021 Gavin Pacini
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+export_utm_packages() {
+   ## create folder structure for UTM
+   ## move image file
+   ## copy configs
+   utmfolder="${dist_binary_build_folder}/${VMNAME}.utm"
+   sudo $SUDO_OPTS mkdir --parents "${utmfolder}/Images"
+   mv "$binary_image_raw" "${utmfolder}/Images/${VMNAME}.raw"
+   cp "$source_utm_file" "${utmfolder}/config.plist"
+
+   tar -zcvSf "${dist_binary_build_folder}/${VMNAME}.utm.tar.gz" "$utmfolder"
+}
+
+main() {
+   root_check
+   if [ "$WHONIX_BUILD_UTM" = "true" ] && [ "$BUILD_TARGET_ARCH" = "arm64" ]; then
+      export_utm_packages
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because not building standard arm64.${reset}"
+   fi
+}
+
+main "$@"
