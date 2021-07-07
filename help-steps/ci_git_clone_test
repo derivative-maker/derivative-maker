@@ -12,6 +12,7 @@ true "$0: start"
 ## Debugging.
 true "$0: $(whoami)" || true
 ls -la || true
+env || true
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -19,21 +20,21 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ## build script reads CI variable.
 if echo "$PWD" | grep -q travis ; then
    true "INFO: travis detected, ok."
+   sudo_maybe="sudo --non-interactive"
 elif [ ! "$CI" = "true" ]; then
    true "ERROR: You probably do not want to run this outside of a CI."
    exit 1
 fi
 
-## gitlab CI
-apt-get update || true
-apt-get --yes --no-install-recommends install sudo || true
+$sudo_maybe apt-get update
 
-sudo --non-interactive apt-get update
+$sudo_maybe apt-get --yes --no-install-recommends install git time tor torsocks
 
-sudo --non-interactive apt-get --yes --no-install-recommends install git time tor torsocks
+$sudo_maybe service tor start || true
+$sudo_maybe service tor@default start || true
 
-sudo --non-interactive systemctl status tor || true
-sudo --non-interactive systemctl status tor@default || true
+$sudo_maybe service tor status || true
+$sudo_maybe service tor@default status || true
 
 git_tag_nearest="$(git describe --always --abbrev=0)"
 
