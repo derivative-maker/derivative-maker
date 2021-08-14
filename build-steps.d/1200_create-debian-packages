@@ -83,6 +83,11 @@ download_virtualbox_packages_virtualbox_org() {
    build_run_function get_newer_packages "$@"
 }
 
+## See:
+## https://forums.whonix.org/t/challenges-installing-virtualbox/9984/6
+##
+## comment outdated:
+##
 ## Upstream virtualbox.org does not provide guest additions debian packages:
 ## (Neither VirtualBox guest addition ISO nor VirtualBox guest addition debian package.)
 ## https://www.virtualbox.org/ticket/734
@@ -97,8 +102,8 @@ download_virtualbox_packages_virtualbox_org() {
 ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=962311
 ## https://www.virtualbox.org/ticket/19751
 ##
-#sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_virtualbox_guest_additions_iso_from_debian_sid
-download_virtualbox_packages_virtualbox_guest_additions_iso_from_debian_sid() {
+#sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_from_debian_sid
+download_virtualbox_packages_from_debian_sid() {
    if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
       return 0
@@ -108,11 +113,28 @@ download_virtualbox_packages_virtualbox_guest_additions_iso_from_debian_sid() {
    whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
    repo_signing_key="none"
    repo_sources_list="$whonix_build_sources_list_debian_sid"
-   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox_guest_additions_iso"
+   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox"
    export download_source_package="true"
 
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
-   newer_package_list="virtualbox-guest-additions-iso"
+   #newer_package_list="virtualbox-guest-additions-iso"
+
+   ## quote debian/changelog
+   ## * Drop virtualbox guest modules dkms and sources, as in Ubuntu and Debian,
+   ## all kernel flavours provide those from the upstream kernel since at least
+   ## focal 20.04 LTS.
+   ## Thus these are not needed anymore. LP: #1933248
+   ##
+   ## please drop virtualbox-guest-dkms virtualbox-guest-source
+   ## https://bugs.launchpad.net/ubuntu/+source/virtualbox/+bug/1933248
+   newer_package_list=""
+   newer_package_list+=" virtualbox "
+   newer_package_list+=" virtualbox-dkms "
+   newer_package_list+=" virtualbox-guest-utils "
+   newer_package_list+=" virtualbox-guest-x11 "
+   newer_package_list+=" virtualbox-qt "
+   newer_package_list+=" virtualbox-source "
+   newer_package_list+=" virtualbox-guest-additions-iso "
 
    build_run_function get_newer_packages "$@"
 }
@@ -343,7 +365,7 @@ create-debian-packages() {
    fi
    true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
    true "make_cross_build_platform_list: ${under}$make_cross_build_platform_list${eunder}"
-   sleep 3
+   #sleep 3
 
    if [ ! "$FUNCTION" = "" ]; then
       $FUNCTION
@@ -351,7 +373,7 @@ create-debian-packages() {
    fi
 
    #build_run_function download_virtualbox_packages_virtualbox_org "$@"
-   #build_run_function download_virtualbox_packages_virtualbox_guest_additions_iso_from_debian_sid "$@"
+   build_run_function download_virtualbox_packages_from_debian_sid "$@"
 
    ## https://www.whonix.org/wiki/Dev/Tor
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593
