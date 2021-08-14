@@ -7,6 +7,9 @@ set -x
 
 set -e
 
+true "INFO: (hardcoded) this script is: help-steps/repo_download_script"
+true "INFO: \$0: $0 | \$@; $@"
+
 gpg_tmp_create() {
    gpg_tmp="$(mktemp --directory)"
 
@@ -24,6 +27,8 @@ gpg_tmp_delete() {
 }
 
 test -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list"
+
+cat "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list"
 
 true "APTGETOPT_ALT: $APTGETOPT_ALT"
 
@@ -57,30 +62,46 @@ for architecture in $architecture_list ; do
 done
 
 apt-get \
-   update \
-      $APTGETOPT_ALT \
-      $apt_unattended_opts \
-      -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
-      -o Dir::Etc::sourceparts="-" \
+   $APTGETOPT_ALT \
+   $apt_unattended_opts \
+   -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
+   -o Dir::Etc::sourceparts="-" \
+   update
+
+# apt-cache \
+#    $APTGETOPT_ALT \
+#    $apt_unattended_opts \
+#    -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
+#    -o Dir::Etc::sourceparts="-" \
+#    show $newer_package_list || true
+
+#apt-config \
+   #$APTGETOPT_ALT \
+   #$apt_unattended_opts \
+   #-o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
+   #-o Dir::Etc::sourceparts="-"
+   #dump
+
+#ls /var/lib/apt/lists/
 
 apt-get \
+   $APTGETOPT_ALT \
+   $apt_unattended_opts \
+   -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
+   -o Dir::Etc::sourceparts="-" \
    download \
-      $APTGETOPT_ALT \
-      $apt_unattended_opts \
-      -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
-      -o Dir::Etc::sourceparts="-" \
-      $newer_package_list
+   $newer_package_list
 
 if [ "$download_source_package" = "true" ]; then
    apt-get \
+      $APTGETOPT_ALT \
+      $apt_unattended_opts \
+      --yes \
+      --download-only \
+      -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
+      -o Dir::Etc::sourceparts="-" \
       source \
-         $APTGETOPT_ALT \
-         $apt_unattended_opts \
-         --yes \
-         --download-only \
-         -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list" \
-         -o Dir::Etc::sourceparts="-" \
-         $newer_package_list
+      $newer_package_list
 fi
 
 popd
