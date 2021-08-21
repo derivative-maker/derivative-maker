@@ -10,22 +10,6 @@ set -e
 true "INFO: (hardcoded) this script is: help-steps/repo_download_script"
 true "INFO: \$0: $0 | \$@; $@"
 
-gpg_tmp_create() {
-   gpg_tmp="$(mktemp --directory)"
-
-   rm --recursive --force "$gpg_tmp"
-   mkdir --parents "$gpg_tmp"
-   chmod 700 "$gpg_tmp"
-}
-
-gpg_tmp_delete() {
-   if [ -d "$gpg_tmp" ]; then
-      ## Debugging.
-      #ls -la "$gpg_tmp" || true
-      rm --recursive "$gpg_tmp" || true
-   fi
-}
-
 test -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list"
 
 cat "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list"
@@ -33,20 +17,10 @@ cat "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.list"
 true "APTGETOPT_ALT: $APTGETOPT_ALT"
 
 ## Delete the binary version in case it is there.
-rm -f "/etc/apt/trusted.gpg.d/newer.gpg"
+rm -f "/etc/apt/trusted.gpg.d/newer.asc"
 
 if [ -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" ]; then
-   gpg_tmp_create
-
-   cat "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" | \
-      gpg \
-         --dearmor \
-         --no-options \
-         --homedir "$gpg_tmp" \
-         --no-default-keyring \
-         > "/etc/apt/trusted.gpg.d/newer.gpg"
-
-   gpg_tmp_delete
+   cp --verbose "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" "/etc/apt/trusted.gpg.d/newer.asc"
 fi
 
 if [ "$temp_newer_packages" = "" ]; then
