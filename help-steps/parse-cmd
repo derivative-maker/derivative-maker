@@ -393,6 +393,19 @@ whonix_build_one_parse_cmd() {
                fi
                shift 2
                ;;
+           --initramfs)
+               if [ "$2" = "" ]; then
+                  echo "${red}${bold}ERROR: --initramfs must not be empty.${reset}"
+                  exit 1
+               elif [ "$2" = "none" ]; then
+                  export BUILD_INITRAMFS_PKGS="none"
+                  true "${cyan}BUILD_INITRAMFS_PKGS set to $BUILD_INITRAMFS_PKGS.${reset}"
+               else
+                  export BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_PKGS $2"
+                  true "${cyan}BUILD_INITRAMFS_PKGS set to $BUILD_INITRAMFS_PKGS.${reset}"
+               fi
+               shift 2
+               ;;
            --kernel)
                if [ "$2" = "" ]; then
                   echo "${red}${bold}ERROR: --kernel must not be empty.${reset}"
@@ -416,19 +429,6 @@ whonix_build_one_parse_cmd() {
                else
                   export BUILD_HEADER_PKGS="$BUILD_HEADER_PKGS $2"
                   true "${cyan}BUILD_HEADER_PKGS set to $BUILD_HEADER_PKGS.${reset}"
-               fi
-               shift 2
-               ;;
-           --initramfs)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --initramfs must not be empty.${reset}"
-                  exit 1
-               elif [ "$2" = "none" ]; then
-                  export BUILD_INITRAMFS_PKGS="none"
-                  true "${cyan}BUILD_INITRAMFS_PKGS set to $BUILD_INITRAMFS_PKGS.${reset}"
-               else
-                  export BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_PKGS $2"
-                  true "${cyan}BUILD_INITRAMFS_PKGS set to $BUILD_INITRAMFS_PKGS.${reset}"
                fi
                shift 2
                ;;
@@ -666,6 +666,8 @@ whonix_build_one_parse_cmd() {
        esac
    done
 
+   [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="dracut"
+
    if [ "$BUILD_TARGET_ARCH" = "i386" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-686"
       [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-686"
@@ -682,18 +684,16 @@ whonix_build_one_parse_cmd() {
    ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
    [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
 
-   [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="dracut"
-
+   export BUILD_INITRAMFS_PKGS
    export BUILD_TARGET_ARCH
    export BUILD_KERNEL_PKGS
    export BUILD_HEADER_PKGS
    export target_architecture_pretty_name
-   export BUILD_INITRAMFS_PKGS
 
+   echo "${cyan}INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
    echo "${cyan}INFO: BUILD_TARGET_ARCH         (--arch): $BUILD_TARGET_ARCH${reset}"
    echo "${cyan}INFO: BUILD_KERNEL_PKGS       (--kernel): $BUILD_KERNEL_PKGS${reset}"
    echo "${cyan}INFO: BUILD_HEADER_PKGS      (--headers): $BUILD_HEADER_PKGS${reset}"
-   echo "${cyan}INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
 
    if [ "$whonix_build_sources_clearnet_or_onion" = "" ]; then
       echo "${cyan}${bold}INFO: No --connection type 'clearnet' or 'onion' has been chosen. \
