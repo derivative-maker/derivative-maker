@@ -341,11 +341,6 @@ $whonix_build_script_skip_package_install${reset}"
       pkg-add-to-install-list grub-efi-arm64
    fi
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-      ## Debugging.
-      $CHROOT dracut --print-cmdline || true
-   fi
-
    ## Weak recommended packages. No other package depends on it. Can be
    ## easily uninstalled. For better usability.
    if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
@@ -429,8 +424,9 @@ $whonix_build_script_skip_package_install${reset}"
 
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## Debugging.
-      $CHROOT dracut --print-cmdline || true
-      $CHROOT dracut --force --verbose
+      $CHROOT dracut --print-cmdline           &> "$dist_binary_build_folder/dracut-cmdline.txt"
+      $CHROOT dracut --force --verbose         &> "$dist_binary_build_folder/dracut-verbose.txt"
+      $CHROOT dracut --force --verbose --debug &> "$dist_binary_build_folder/dracut-debug.txt"
    fi
 
    "$WHONIX_SOURCE_HELP_STEPS_FOLDER/remove-local-temp-apt-repo"
