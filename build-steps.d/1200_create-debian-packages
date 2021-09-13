@@ -317,22 +317,20 @@ create_whonix_debian_packages() {
       ## any
       ## amd64
       ## linux-amd64
-      if cat "debian/control" | grep "Architecture:" | grep "all" ; then
-         true OK
-      elif cat "debian/control" | grep "Architecture:" | grep "any" ; then
-         true OK
-      elif cat "debian/control" | grep "Architecture:" | grep "amd64" ; then
-         if [ "$BUILD_TARGET_ARCH" = "amd64" ]; then
-            true OK
-         else
+      if cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "all" ; then
+         true "DEBUG: Architecture: all"
+      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "any" ; then
+         true "DEBUG: Architecture: any"
+      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "amd64" ; then
+         true "DEBUG: Architecture: amd64"
+         if [ ! "$BUILD_TARGET_ARCH" = "amd64" ]; then
             true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
             popd
             continue
          fi
-      elif cat "debian/control" | grep "Architecture:" | grep "linux-amd64" ; then
-         if [ "$BUILD_TARGET_ARCH" = "amd64" ]; then
-            true OK
-         else
+      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
+         true "DEBUG: Architecture: linux-amd64"
+         if [ ! "$BUILD_TARGET_ARCH" = "amd64" ]; then
             true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
             popd
             continue
