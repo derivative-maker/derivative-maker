@@ -109,31 +109,31 @@ main() {
    ##   this is best avoided.
    ## Both other options seem more complex and error-prone than this hack.
 
-   test -f "$whonix_build_sources_list_primary"
+   test -f "$dist_build_sources_list_primary"
 
    if test -f "$CHROOT_FOLDER/etc/apt/sources.list" ; then
-      if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
-         true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
+      if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
+         true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
          rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
       else
-         error "ERROR: Host $whonix_build_sources_list_primary does not match chroot $CHROOT_FOLDER/etc/apt/sources.list"
+         error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/etc/apt/sources.list"
       fi
    else
       true "INFO: chroot $CHROOT_FOLDER/etc/apt/sources.list, does not exist, ok."
    fi
 
-   base_name_whonix_build_sources_list_primary="$(basename "$whonix_build_sources_list_primary")"
+   dist_base_name_build_sources_list_primary="$(basename "$dist_build_sources_list_primary")"
    file_to_delete_maybe="/etc/apt/sources.list.d/0000"
-   file_to_delete_maybe+="$base_name_whonix_build_sources_list_primary"
+   file_to_delete_maybe+="$dist_base_name_build_sources_list_primary"
    ## example file_to_delete_maybe:
    ## /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list
 
    if test -f "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
-      if diff "$whonix_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
-         true "INFO: Host $whonix_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
+      if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
+         true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
          rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
       else
-         error "ERROR: Host $whonix_build_sources_list_primary does not match chroot $CHROOT_FOLDER/$file_to_delete_maybe"
+         error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/$file_to_delete_maybe"
       fi
    else
       true "INFO: chroot $CHROOT_FOLDER/$file_to_delete_maybe, does not exist, ok."
@@ -176,8 +176,8 @@ main() {
    ## If Whonix version already inside chroot, don't delete, keep as is, ok.
    ## If host version inside chroot, delete, ok.
    ## Empty version exists inside chroot in any case, ok.
-   ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=0: don't mount; empty file.
-   ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=1: mount host version inside chroot.
+   ## If dist_chroot_mount_resolv_conf: don't mount; empty file.
+   ## If dist_chroot_mount_resolv_conf=1: mount host version inside chroot.
 
    if [ ! -d "$binary_build_folder_dist/system-files-copy/etc" ]; then
       sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist/system-files-copy/etc"
@@ -244,8 +244,8 @@ main() {
       ## File needs to exist to be able to mount in next step.
       touch "$CHROOT_FOLDER/$mount_base_file"
 
-      if [ "$WHONIX_CHROOT_MOUNT_RESOLV_CONF" = "0" ]; then
-         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, because WHONIX_CHROOT_MOUNT_RESOLV_CONF is 0.${reset}"
+      if [ "$dist_chroot_mount_resolv_conf" = "0" ]; then
+         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, because dist_chroot_mount_resolv_conf is 0.${reset}"
          continue
       fi
 

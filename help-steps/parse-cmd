@@ -24,12 +24,12 @@ ${reset}"
    exit 1
 }
 
-whonix_build_one_script_help() {
+dist_build_one_script_help() {
    true "
-help-steps/whonix_build_one script
+help-steps/dist_build_one script
 
 Syntax:
-help-steps/whonix_build_one --flavor flavor --target target
+help-steps/dist_build_one --flavor flavor --target target
 
 creates separate build folder
 $HOMEVAR/whonix_binary
@@ -209,11 +209,11 @@ Not required for Whonix VM builds since always pure build only containing Freedo
 "
 }
 
-whonix_build_one_parse_cmd() {
+dist_build_one_parse_cmd() {
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
 
-   if [ ! "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+   if [ ! "$dist_build_internal_run" = "1" ]; then
       if [ "$*" = "" ]; then
          error "${red}${bold}no option chosen. Use --help.${reset}"
       fi
@@ -229,7 +229,7 @@ whonix_build_one_parse_cmd() {
    do
        case $1 in
            -h | --help | -\?)
-               whonix_build_one_script_help
+               dist_build_one_script_help
                exit 0
                ;;
            --flavor)
@@ -265,23 +265,23 @@ whonix_build_one_parse_cmd() {
                true "${cyan}INFO: --target $2 chosen.${reset}"
                if [ "$2" = "virtualbox" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export WHONIX_BUILD_VIRTUALBOX="true"
+                  export dist_build_virtualbox="true"
                elif [ "$2" = "root" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_install_to_root="1"
                elif [ "$2" = "qcow2" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export WHONIX_BUILD_QCOW2="true"
+                  export dist_build_qcow2="true"
                elif [ "$2" = "raw" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export WHONIX_BUILD_RAW="true"
+                  export dist_build_raw="true"
                elif [ "$2" = "utm" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export WHONIX_BUILD_RAW="true"
-                  export WHONIX_BUILD_UTM="true"
+                  export dist_build_raw="true"
+                  export dist_build_utm="true"
                elif [ "$2" = "iso" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export WHONIX_BUILD_ISO="true"
+                  export dist_build_iso="true"
                else
                   parse_cmd_target_error
                fi
@@ -290,10 +290,10 @@ whonix_build_one_parse_cmd() {
            --fast)
                true "${cyan}INFO: --fast $2 chosen.${reset}"
                if [ "$2" = "1" ]; then
-                  export WHONIX_BUILD_FAST1="1"
+                  export dist_build_fast1="1"
                elif [ "$2" = "2" ]; then
-                  export WHONIX_BUILD_FAST1="1"
-                  export WHONIX_BUILD_FAST2="1"
+                  export dist_build_fast1="1"
+                  export dist_build_fast2="1"
                else
                   echo "${red}${bold}ERROR: supported options for --fast are '1' and '2'.${reset}"
                   exit 1
@@ -301,15 +301,15 @@ whonix_build_one_parse_cmd() {
                shift 2
                ;;
            -c  | --clean)
-               export WHONIX_BUILD_CLEAN="1"
+               export dist_build_clean="1"
                shift
                ;;
            -b  | --build)
-               export WHONIX_BUILD_BUILD="1"
+               export dist_build_build="1"
                shift
                ;;
            -i  | --internalrun)
-               export WHONIX_BUILD_INTERNALRUN="1"
+               export dist_build_internal_run="1"
                build_machines_counter="$(( $build_machines_counter + 1 ))"
                shift
                ;;
@@ -353,10 +353,10 @@ whonix_build_one_parse_cmd() {
            --connection)
                if [ "$2" = "clearnet" ]; then
                   true "${cyan}INFO: Using clearnet apt sources.${reset}"
-                  whonix_build_sources_clearnet_or_onion="clearnet"
+                  dist_build_sources_clearnet_or_onion="clearnet"
                elif [ "$2" = "onion" ]; then
                   true "${cyan}INFO: Using onion apt sources.${reset}"
-                  whonix_build_sources_clearnet_or_onion="onion"
+                  dist_build_sources_clearnet_or_onion="onion"
                   ## tb-updater
                   ## https://phabricator.whonix.org/T678
                   tb_onion=true
@@ -365,7 +365,7 @@ whonix_build_one_parse_cmd() {
                   exit 1
                fi
                export tb_onion
-               export whonix_build_sources_clearnet_or_onion
+               export dist_build_sources_clearnet_or_onion
                shift 2
                ;;
            --release)
@@ -380,7 +380,7 @@ whonix_build_one_parse_cmd() {
                ;;
            ## TODO
            --testing-frozen-sources)
-               export whonix_build_sources_list_primary="build_sources/debian_testing_frozen.list"
+               export dist_build_sources_list_primary="build_sources/debian_testing_frozen.list"
                shift
                ;;
            --arch)
@@ -435,10 +435,10 @@ whonix_build_one_parse_cmd() {
            --report)
                if [ "$2" = "true" ]; then
                   true "${cyan}INFO: Full report.${reset}"
-                  export whonix_build_script_create_report="true"
+                  export dist_build_script_create_report="true"
                elif [ "$2" = "false" ]; then
                   true "${cyan}INFO: No report.${reset}"
-                  export whonix_build_script_create_report="false"
+                  export dist_build_script_create_report="false"
                else
                   echo "${red}${bold}ERROR: supported options for --report are 'true' or 'false'.${reset}"
                   exit 1
@@ -448,10 +448,10 @@ whonix_build_one_parse_cmd() {
            --verifiable)
                if [ "$2" = "true" ]; then
                   true "${cyan}INFO: Building verifiable.${reset}"
-                  export whonix_build_script_verifiable="true"
+                  export dist_build_script_verifiable="true"
                elif [ "$2" = "false" ]; then
                   true "${cyan}INFO: Not building verifiable.${reset}"
-                  export whonix_build_script_verifiable="false"
+                  export dist_build_script_verifiable="false"
                else
                   echo "${red}${bold}ERROR: supported options for --verifiable are 'true' or 'false'.${reset}"
                   exit 1
@@ -492,11 +492,11 @@ whonix_build_one_parse_cmd() {
                shift 2
                ;;
            --retry-before)
-               export whonix_build_dispatch_before_retry="$2"
+               export dist_build_dispatch_before_retry="$2"
                shift 2
                ;;
            --retry-after)
-               export whonix_build_dispatch_after_retry="$2"
+               export dist_build_dispatch_after_retry="$2"
                shift 2
                ;;
            --allow-untagged)
@@ -504,7 +504,7 @@ whonix_build_one_parse_cmd() {
                   true "${cyan}INFO: Would stop if building form untagged commits.${reset}"
                elif [ "$2" = "true" ]; then
                   true "${cyan}INFO: Would build form untagged commits.${reset}"
-                  export whonix_build_ignore_untagged="true"
+                  export dist_build_ignore_untagged="true"
                else
                   echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
                   exit 1
@@ -516,7 +516,7 @@ whonix_build_one_parse_cmd() {
                   true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
                elif [ "$2" = "true" ]; then
                   true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
-                  export whonix_build_ignore_uncommitted="true"
+                  export dist_build_ignore_uncommitted="true"
                else
                   echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
                   exit 1
@@ -528,12 +528,12 @@ whonix_build_one_parse_cmd() {
                   echo "${red}${bold}ERROR: --confdir may not be empty.${reset}"
                   exit 1
                else
-                  export whonix_build_custom_config_dir="$2"
-                  true "${cyan}INFO: --confdir set to: $whonix_build_custom_config_dir${reset}"
-                  if [ -d "$whonix_build_custom_config_dir" ]; then
-                     true "${cyan}INFO: --confdir $whonix_build_custom_config_dir exists.${reset}"
+                  export dist_build_custom_config_dir="$2"
+                  true "${cyan}INFO: --confdir set to: $dist_build_custom_config_dir${reset}"
+                  if [ -d "$dist_build_custom_config_dir" ]; then
+                     true "${cyan}INFO: --confdir $dist_build_custom_config_dir exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --confdir $whonix_build_custom_config_dir does not exist!${reset}"
+                     echo "${red}${bold}ERROR: --confdir $dist_build_custom_config_dir does not exist!${reset}"
                      exit 1
                   fi
                fi
@@ -560,12 +560,12 @@ whonix_build_one_parse_cmd() {
                   echo "${red}${bold}ERROR: --grmlbin may not be empty.${reset}"
                   exit 1
                else
-                  export whonix_build_grml_bin="$2"
-                  true "${cyan}INFO: --grmlbin set to: $whonix_build_grml_bin${reset}"
-                  if [ -x "$whonix_build_grml_bin" ]; then
-                     true "${cyan}INFO: --grmlbin $whonix_build_grml_bin exists.${reset}"
+                  export dist_build_grml_bin="$2"
+                  true "${cyan}INFO: --grmlbin set to: $dist_build_grml_bin${reset}"
+                  if [ -x "$dist_build_grml_bin" ]; then
+                     true "${cyan}INFO: --grmlbin $dist_build_grml_bin exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --grmlbin $whonix_build_grml_bin is not executable!${reset}"
+                     echo "${red}${bold}ERROR: --grmlbin $dist_build_grml_bin is not executable!${reset}"
                      exit 1
                   fi
                fi
@@ -701,19 +701,19 @@ whonix_build_one_parse_cmd() {
    echo "${cyan}INFO: BUILD_KERNEL_PKGS       (--kernel): $BUILD_KERNEL_PKGS${reset}"
    echo "${cyan}INFO: BUILD_HEADER_PKGS      (--headers): $BUILD_HEADER_PKGS${reset}"
 
-   if [ "$whonix_build_sources_clearnet_or_onion" = "" ]; then
+   if [ "$dist_build_sources_clearnet_or_onion" = "" ]; then
       echo "${cyan}${bold}INFO: No --connection type 'clearnet' or 'onion' has been chosen. \
-Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
+Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
 (Alternative value would be 'onion'.)${reset}"
-      export whonix_build_sources_clearnet_or_onion="clearnet"
+      export dist_build_sources_clearnet_or_onion="clearnet"
    fi
 
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
 
-   if [ ! "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+   if [ ! "$dist_build_internal_run" = "1" ]; then
       if [ ! "$WHONIX_BUILD_ONE_SCRIPT_STARTED" = "1" ]; then
-         if [ ! "$WHONIX_BUILD_BUILD" = "1" ] && [ ! "$WHONIX_BUILD_CLEAN" = "1" ]; then
+         if [ ! "$dist_build_build" = "1" ] && [ ! "$dist_build_clean" = "1" ]; then
             error "${red}${bold}You must either use --build or --clean.${reset}"
          fi
       fi
@@ -724,9 +724,9 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    fi
 
    if [ "$build_machines_counter" -le "0" ]; then
-      if [ "$whonix_build_one_parsed" = "1" ]; then
+      if [ "$dist_build_one_parsed" = "1" ]; then
          true
-      elif [ "$WHONIX_BUILD_INTERNALRUN" = "1" ] ; then
+      elif [ "$dist_build_internal_run" = "1" ] ; then
          true
       else
          parse_cmd_flavor_error
@@ -735,16 +735,16 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
 
    if [ "$dist_build_install_to_root" = "1" ]; then
       true
-   elif [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+   elif [ "$dist_build_virtualbox" = "true" ]; then
       true
-   elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+   elif [ "$dist_build_qcow2" = "true" ]; then
       true
-   elif [ "$WHONIX_BUILD_RAW" = "true" ]; then
+   elif [ "$dist_build_raw" = "true" ]; then
       true
-   elif [ "$WHONIX_BUILD_ISO" = "true" ]; then
+   elif [ "$dist_build_iso" = "true" ]; then
       true
    else
-      if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+      if [ "$dist_build_internal_run" = "1" ]; then
          true "INFO: allow running without --target since this is --internalrun."
       else
          parse_cmd_target_error

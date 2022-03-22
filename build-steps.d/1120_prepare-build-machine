@@ -25,7 +25,7 @@ cd "$MYDIR"
 cd ..
 
 build_machine_setup() {
-   if [ "$WHONIX_BUILD_FAST1" = "1" ]; then
+   if [ "$dist_build_fast1" = "1" ]; then
       true "${bold}${cyan}INFO: run with '--fast 1' switch, skipping $BASH_SOURCE. ${reset}"
       exit 0
    fi
@@ -81,7 +81,7 @@ build_machine_setup() {
 
    apt-get \
       ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
       -o Dir::Etc::sourceparts="-" \
       update
 
@@ -89,7 +89,7 @@ build_machine_setup() {
       ## Update package lists and upgrade.
       apt-get \
          ${APTGETOPT[@]} \
-         -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+         -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
          -o Dir::Etc::sourceparts="-" \
          $apt_unattended_opts \
          --no-install-recommends \
@@ -101,7 +101,7 @@ build_machine_setup() {
    ## Build Dependencies for Whonix Build Script #
    ###############################################
    local packages_to_be_installed
-   packages_to_be_installed+=" $whonix_build_script_build_dependency "
+   packages_to_be_installed+=" $dist_build_script_build_dependency "
 
    if [ "$eatmydata_install" = "true" ]; then
       true "INFO: Installing eatmydata, because using '--unsafe-io true'."
@@ -118,7 +118,7 @@ build_machine_setup() {
       bare_metal_basic_package_list="$(grep -vE "^\s*#" "$source_code_folder_dist/grml_packages" | tr "\n" " ")"
       packages_to_be_installed+=" $bare_metal_basic_package_list "
    else
-      if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      if [ "$dist_build_virtualbox" = "true" ]; then
          #######################################################################
          ## Build Dependencies for creating VirtualBox Images (.vdi and .ova)  #
          #######################################################################
@@ -144,7 +144,7 @@ build_machine_setup() {
 
       fi
 
-      if [ "$WHONIX_BUILD_ISO" = "true" ]; then
+      if [ "$dist_build_iso" = "true" ]; then
          ## xorriso
          packages_to_be_installed+=" xorriso "
          ## mksquashfs
@@ -164,7 +164,7 @@ build_machine_setup() {
 
    apt-get \
       ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$whonix_build_sources_list_primary" \
+      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
       -o Dir::Etc::sourceparts="-" \
       $apt_unattended_opts \
       --no-install-recommends \
@@ -172,10 +172,10 @@ build_machine_setup() {
       install \
       $packages_to_be_installed
 
-   if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+   if [ "$dist_build_internal_run" = "1" ]; then
       true
    else
-      if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+      if [ "$dist_build_virtualbox" = "true" ]; then
          ## VirtualBox will be be installed at this point.
          "$dist_source_help_steps_folder/vm-exists-test"
       fi

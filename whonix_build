@@ -15,30 +15,30 @@ cd "$MYDIR"
 source ./help-steps/pre
 source ./help-steps/colors
 
-error_handler_whonix_build_one() {
+error_handler_dist_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
-   true "${red}${bold}whonix_build_one_build_step_current${reset}: $whonix_build_one_build_step_current"
+   true "${red}${bold}dist_build_one_build_step_current${reset}: $dist_build_one_build_step_current"
    true "${red}args: $args${reset}"
    true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
 
-trap "error_handler_whonix_build_one" ERR
+trap "error_handler_dist_build_one" ERR
 
 export WHONIX_BUILD_ONE_SCRIPT_STARTED="1"
 
-whonix_build_preparation() {
+dist_build_preparation() {
    cd help-steps
 
    source parse-cmd
-   whonix_build_one_parse_cmd "$@"
-   export whonix_build_one_parsed="1"
+   dist_build_one_parse_cmd "$@"
+   export dist_build_one_parsed="1"
 
    cd ..
 }
 
-whonix_build_machine() {
+dist_build_machine() {
    run-parts --verbose --test ./build-steps.d
 
    ## Not using:
@@ -47,25 +47,25 @@ whonix_build_machine() {
    ## "run-parts, trap INT, read error":
    ## https://lists.gnu.org/archive/html/help-bash/2015-03/msg00066.html
 
-   for whonix_build_one_build_step_current in ./build-steps.d/*; do
-      if [ -x "$whonix_build_one_build_step_current" ]; then
+   for dist_build_one_build_step_current in ./build-steps.d/*; do
+      if [ -x "$dist_build_one_build_step_current" ]; then
          ## If the last character is a ~, ignore that file,
          ## because it was created by some editor,
          ## which creates backup files.
-         if [ "${whonix_build_one_build_step_current: -1}" = "~" ]; then
+         if [ "${dist_build_one_build_step_current: -1}" = "~" ]; then
             continue
          fi
          ## Skipping files such as .dpkg-old and .dpkg-dist.
-         if ( echo "$whonix_build_one_build_step_current" | grep -q ".dpkg-" ); then
-            true "skip $whonix_build_one_build_step_current"
+         if ( echo "$dist_build_one_build_step_current" | grep -q ".dpkg-" ); then
+            true "skip $dist_build_one_build_step_current"
             continue
          fi
          true "${cyan}${bold}${under}############################################################${reset}"
          true "${cyan}${bold}${under}############################################################${reset}"
          true "${cyan}${bold}${under}############################################################${reset}"
-         true "${cyan}${bold}${under}INFO: BEGIN: whonix_build_one_build_step_current: $whonix_build_one_build_step_current${reset}"
-         "./$whonix_build_one_build_step_current"
-         true "${cyan}${bold}${under}INFO: END  : whonix_build_one_build_step_current: $whonix_build_one_build_step_current${reset}"
+         true "${cyan}${bold}${under}INFO: BEGIN: dist_build_one_build_step_current: $dist_build_one_build_step_current${reset}"
+         "./$dist_build_one_build_step_current"
+         true "${cyan}${bold}${under}INFO: END  : dist_build_one_build_step_current: $dist_build_one_build_step_current${reset}"
          true "${cyan}${bold}${under}############################################################${reset}"
          true "${cyan}${bold}${under}############################################################${reset}"
          true "${cyan}${bold}${under}############################################################${reset}"
@@ -73,21 +73,21 @@ whonix_build_machine() {
    done
 }
 
-whonix_build_clean() {
+dist_build_clean() {
    local cleaned_up
    ## Fallback
    cleaned_up="false"
 
-   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+   if [ "$dist_build_virtualbox" = "true" ]; then
       cleaned_up="true"
       ./help-steps/delete-vbox-vm
    fi
-   ## TODO: WHONIX_BUILD_RAW
-#    if [ "$WHONIX_BUILD_RAW" = "true" ]; then
+   ## TODO: dist_build_raw
+#    if [ "$dist_build_raw" = "true" ]; then
 #       cleaned_up="true"
 #       ./help-steps/delete-raw
 #    fi
-   if [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+   if [ "$dist_build_qcow2" = "true" ]; then
       cleaned_up="true"
       ./help-steps/delete-qcow
    fi
@@ -105,17 +105,17 @@ main() {
 
    args=""$@""
 
-   whonix_build_preparation "$@"
+   dist_build_preparation "$@"
 
    ## XXX
-   trap "error_handler_whonix_build_one" ERR
+   trap "error_handler_dist_build_one" ERR
    trap - INT
    trap - TERM
 
-   if [ "$WHONIX_BUILD_CLEAN" = "1" ]; then
-      whonix_build_clean
-   elif [ "$WHONIX_BUILD_BUILD" = "1" ]; then
-      whonix_build_machine
+   if [ "$dist_build_clean" = "1" ]; then
+      dist_build_clean
+   elif [ "$dist_build_build" = "1" ]; then
+      dist_build_machine
    else
       true "${bold}${red}ERROR $BASH_SOURCE: You must either use --build or --clean. ${reset}"
       exit 1

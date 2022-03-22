@@ -21,7 +21,7 @@ if [ "$script_was_sourced" = "false" ]; then
    cd ..
    cd help-steps
 
-   whonix_build_one_parsed="1"
+   dist_build_one_parsed="1"
    VMNAME="internalrun"
 
    source pre
@@ -39,7 +39,7 @@ git_sanity_test_parse_cmd() {
                   true "${cyan}INFO: Would stop if building form untagged commits.${reset}"
                elif [ "$2" = "true" ]; then
                   true "${cyan}INFO: Would build form untagged commits.${reset}"
-                  export whonix_build_ignore_untagged="true"
+                  export dist_build_ignore_untagged="true"
                else
                   echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
                   exit 1
@@ -51,7 +51,7 @@ git_sanity_test_parse_cmd() {
                   true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
                elif [ "$2" = "true" ]; then
                   true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
-                  export whonix_build_ignore_uncommitted="true"
+                  export dist_build_ignore_uncommitted="true"
                else
                   echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
                   exit 1
@@ -87,7 +87,7 @@ git_sanity_test_check_for_untagged_commits() {
    if [ "$git_tag_nearest" == "$git_tag_current" ]; then
       true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
    else
-      if [ "$whonix_build_ignore_untagged" = "true" ]; then
+      if [ "$dist_build_ignore_untagged" = "true" ]; then
          true "${bold}${cyan}$BASH_SOURCE INFO: Git reports a untagged commit! But you requested to ignore untagged commits, continuing... ${reset}"
       else
          true "${bold}${red}---------------------------------------------------------------------${reset}"
@@ -107,7 +107,7 @@ Such as in case you added custom commits.) ${reset}"
 
 git_sanity_test_check_for_uncommitted_changes() {
    if [ -n "$(git status --porcelain)" ]; then
-      if [ "$whonix_build_ignore_uncommitted" = "true" ]; then
+      if [ "$dist_build_ignore_uncommitted" = "true" ]; then
          true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
          true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
          git status

@@ -40,8 +40,8 @@ cowbuilder_setup() {
 cowbuilder_setup_do() {
    true "${bold}${green}INFO${reset}: Setting up cowbuilder..."
 
-   whonix_build_sources_list_primary_contents="$(cat "$whonix_build_sources_list_primary")"
-   export whonix_build_sources_list_primary_contents
+   dist_build_sources_list_primary_contents="$(cat "$dist_build_sources_list_primary")"
+   export dist_build_sources_list_primary_contents
 
    if [ "$dist_build_unsafe_io" = "true" ]; then
       eatmydata_maybe_install="eatmydata"
@@ -63,12 +63,12 @@ cowbuilder_setup_do() {
    ## Debugging.
    cat "$dist_build_pbuilder_config_file"
 
-   for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
-      export whonix_build_multiarch_package_item
+   for dist_build_multiarch_package_item in $make_cross_build_platform_list ; do
+      export dist_build_multiarch_package_item
 
       ## TODO: change that folder
-      cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
-      base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
+      cow_folder="/var/cache/pbuilder/cow.cow_${dist_build_multiarch_package_item}"
+      base_folder="/var/cache/pbuilder/base.cow_${dist_build_multiarch_package_item}"
 
       if [ -d "$base_folder" ]; then
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
@@ -78,20 +78,20 @@ cowbuilder_setup_do() {
       local cowbuilder_exit_code
       cowbuilder_exit_code=0
 
-      ## '--mirror "$whonix_build_apt_sources_mirror"' should be only cosmetic,
+      ## '--mirror "$dist_build_apt_sources_mirror"' should be only cosmetic,
       ## because of pbuilder-debootstrap-command-filter and hooks.
       ##
       ## Duplicate --extrapackages to prevent removal by pbuilder.
       $COWBUILDER_PREFIX \
       SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
          cowbuilder \
-            --architecture "$whonix_build_multiarch_package_item" \
+            --architecture "$dist_build_multiarch_package_item" \
             --configfile "$dist_build_pbuilder_config_file" \
             --create \
             --basepath "$base_folder" \
             --buildplace "$cow_folder" \
-            --distribution "$whonix_build_apt_stable_release" \
-            --mirror "$whonix_build_apt_sources_mirror" \
+            --distribution "$dist_build_apt_stable_release" \
+            --mirror "$dist_build_apt_sources_mirror" \
             --debootstrap "$dist_source_help_steps_folder/pbuilder-debootstrap-command-filter" \
             --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
             --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
@@ -111,9 +111,9 @@ cowbuilder_setup_do() {
       ## which uses a different sources list. This pbuilder hook script restores
       ## Whonix build APT sources list.
       true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
-      diff "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      diff "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
-      cp "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      cp "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
       mkdir -p "$base_folder/home/$user_name"
       cp "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
@@ -130,7 +130,7 @@ cowbuilder_setup_do() {
       $COWBUILDER_PREFIX \
       SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
          cowbuilder \
-            --architecture "$whonix_build_multiarch_package_item" \
+            --architecture "$dist_build_multiarch_package_item" \
             --configfile "$dist_build_pbuilder_config_file" \
             --execute "$dist_build_pbuilder_chroot_script" \
             --basepath "$base_folder" \

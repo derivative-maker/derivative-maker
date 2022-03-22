@@ -3,7 +3,7 @@
 ## Copyright (C) 2012 - 2021 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-if [ ! "$whonix_build_no_unset_xtrace" = "true" ]; then
+if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
    set +x
 fi
 #set -x
@@ -66,7 +66,7 @@ export source_code_folder_dist
 build_script_main="$source_code_folder_dist/whonix_build"
 
 [ -n "$dist_parent_folder" ] || dist_parent_folder="$(dirname "$source_code_folder_dist")"
-[ -n "$whonix_dev_meta_files_folder" ] || whonix_dev_meta_files_folder="$source_code_folder_dist/packages/Kicksecure/developer-meta-files"
+[ -n "$dist_developer_meta_files_folder" ] || dist_developer_meta_files_folder="$source_code_folder_dist/packages/Kicksecure/developer-meta-files"
 
 [ -n "$dist_source_parentdir" ] || dist_source_parentdir="$(dirname "$source_code_folder_dist")"
 export dist_source_parentdir
@@ -118,27 +118,27 @@ export DEBDEBUG
 [ -n "$tpo_downloader_debug" ] || tpo_downloader_debug="1"
 export tpo_downloader_debug
 
-if [ ! "$whonix_build_one_parsed" = "1" ]; then
+if [ ! "$dist_build_one_parsed" = "1" ]; then
    MINUS_X_SET="0"
    test -o xtrace || { MINUS_X_SET="$?" ; true; };
    if [ "$MINUS_X_SET" = "0" ]; then
       ## -x was set
       bash -n "$source_code_folder_dist/help-steps/parse-cmd"
       source "$source_code_folder_dist/help-steps/parse-cmd"
-      whonix_build_one_parse_cmd "$@"
+      dist_build_one_parse_cmd "$@"
    else
       ## -x was not set
       set -x
       bash -n "$source_code_folder_dist/help-steps/parse-cmd"
       source "$source_code_folder_dist/help-steps/parse-cmd"
-      whonix_build_one_parse_cmd "$@"
+      dist_build_one_parse_cmd "$@"
       set +x
    fi
-   whonix_build_one_parsed="1"
-   export whonix_build_one_parsed
+   dist_build_one_parsed="1"
+   export dist_build_one_parsed
 fi
 
-export whonix_build_sources_list_primary
+export dist_build_sources_list_primary
 
 if [ "$dist_build_flavor" = "whonix-gateway-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
@@ -220,7 +220,7 @@ if [ "$dist_build_flavor" = "kicksecure-host-cli" ]; then
    [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
    [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
    [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
+   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
@@ -233,7 +233,7 @@ if [ "$dist_build_flavor" = "kicksecure-host-xfce" ]; then
    [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
    [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
    [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
-   [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
+   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
@@ -246,7 +246,7 @@ if [ "$dist_build_flavor" = "whonix-host-cli" ]; then
    [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
    [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
    [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
+   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
@@ -259,11 +259,11 @@ if [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
    [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
    [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
    [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
-   [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
+   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
 
    ## XXX: '--flavor whonix-host-xfce --target iso' currently is hardcoded to KVM.
-   if [ "$WHONIX_BUILD_QCOW2" = "true" ] || [ "$WHONIX_BUILD_ISO" = "true" ]; then
+   if [ "$dist_build_qcow2" = "true" ] || [ "$dist_build_iso" = "true" ]; then
       [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom "
 
       if [ "$build_freedom_only" = "true" ]; then
@@ -320,7 +320,7 @@ export VMSIZE
 [ -n "$DISK_IDENTIFIER" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
 export DISK_IDENTIFIER
 
-if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+if [ "$dist_build_internal_run" = "1" ]; then
    if [ "$VMNAME" = "" ]; then
       VMNAME="internal"
       export VMNAME
@@ -345,7 +345,7 @@ if [ "$VMNAME" = "unknown" ]; then
    exit 1
 fi
 
-if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
+if [ "$dist_build_internal_run" = "1" ]; then
    echo "variables INFO: Internal run."
 else
    true "variables INFO: VMNAME is $VMNAME"
@@ -425,7 +425,7 @@ else
    [ -n "$git_bin" ] || git_bin="git"
 fi
 
-[ -n "$whonix_build_grml_bin" ] || whonix_build_grml_bin="grml-debootstrap"
+[ -n "$dist_build_grml_bin" ] || dist_build_grml_bin="grml-debootstrap"
 
 [ -n "$rsync_opts" ] || rsync_opts="\
    --links \
@@ -458,10 +458,10 @@ export DEB_INSTALL_FOLDER
 [ -n "$EMPTY_DIR" ] || EMPTY_DIR="/tmp/empty"
 export EMPTY_DIR
 
-[ -n "$dist_sources_list_templ_build_folder" ] || dist_sources_list_templ_build_folder="/var/lib/whonix/sources_temp_list.d"
-[ -n "$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE" ] || WHONIX_SOURCES_LIST_TEMP_BUILD_FILE="$dist_sources_list_templ_build_folder/whonix_temp_initialdeb.list"
+[ -n "$dist_sources_list_temp_build_folder" ] || dist_sources_list_temp_build_folder="/var/lib/whonix/sources_temp_list.d"
+[ -n "$dist_sources_list_temp_build_file" ] || dist_sources_list_temp_build_file="$dist_sources_list_temp_build_folder/whonix_temp_initialdeb.list"
 
-[ -n "$dist_sources_list_temp_initial_deb_sources_list" ] || dist_sources_list_temp_initial_deb_sources_list="$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE"
+[ -n "$dist_sources_list_temp_initial_deb_sources_list" ] || dist_sources_list_temp_initial_deb_sources_list="$CHROOT_FOLDER/$dist_sources_list_temp_build_file"
 
 ## {{{ dist_build_on_operating_system
 
@@ -597,8 +597,8 @@ for dist_build_config_dir in $dist_build_config_dirs; do
    dist_build_source_config_dir "$dist_build_config_dir"
 done
 
-if [ ! "$whonix_build_custom_config_dir" = "" ]; then
-   dist_build_source_config_dir "$whonix_build_custom_config_dir"
+if [ ! "$dist_build_custom_config_dir" = "" ]; then
+   dist_build_source_config_dir "$dist_build_custom_config_dir"
 fi
 
 if [ ! "$dist_build_conf_file" = "" ]; then
@@ -662,7 +662,7 @@ export dist_build_apt_codename
 
 ## {{{ reprepro variables
 
-set_whonix_build_reprepro_folder_options() {
+set_dist_build_reprepro_folder_options() {
    if [ "$reprepro_codename" = "" ]; then
       reprepro_codename="$dist_build_apt_codename"
    fi
@@ -676,13 +676,13 @@ set_whonix_build_reprepro_folder_options() {
    [ -n "$dist_apt_repository_folder" ] || dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
    export dist_apt_repository_folder
 
-   [ -n "$whonix_build_reprepro_folder_options" ] || \
-      whonix_build_reprepro_folder_options="\
+   [ -n "$dist_build_reprepro_folder_options" ] || \
+      dist_build_reprepro_folder_options="\
          --basedir $source_code_folder_dist/$apt_repo_sub_folder \
          --outdir $binary_build_folder_dist/$apt_repo_sub_folder \
          --dbdir $binary_build_folder_dist/$apt_repo_sub_folder/db \
          --logdir $binary_build_folder_dist/$apt_repo_sub_folder/log"
-   export whonix_build_reprepro_folder_options
+   export dist_build_reprepro_folder_options
 }
 
 ## }}}

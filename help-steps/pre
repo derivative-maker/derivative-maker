@@ -6,7 +6,7 @@
 ## errorhandlergeneral | errorhandlerunchrootunpreventunmount | errorhandlerunmount
 ## -> errorhandlerprocessshared -> functiontracefunction -> processbacktracefunction -> errorhandlershell -> errorhandlerretry -> errorhandlermaybeexit
 
-if [ ! "$whonix_build_no_unset_xtrace" = "true" ]; then
+if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
    set +x
 fi
 #set -x
@@ -146,17 +146,17 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 }
 
 errorhandlerretry() {
-   if [ ! "$whonix_build_dispatch_before_retry" = "" ]; then
-      $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $whonix_build_dispatch_before_retry ${reset}"
-      whonix_build_dispatch_before_retry_exit_code="0"
-      eval $whonix_build_dispatch_before_retry || { whonix_build_dispatch_before_retry_exit_code="$?" ; true; };
-      if [ "$whonix_build_dispatch_before_retry_exit_code" = "0" ]; then
+   if [ ! "$dist_build_dispatch_before_retry" = "" ]; then
+      $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $dist_build_dispatch_before_retry ${reset}"
+      dist_build_dispatch_before_retry_exit_code="0"
+      eval $dist_build_dispatch_before_retry || { dist_build_dispatch_before_retry_exit_code="$?" ; true; };
+      if [ "$dist_build_dispatch_before_retry_exit_code" = "0" ]; then
          $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         $output_cmd "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $whonix_build_dispatch_before_retry_exit_code ${reset}"
+         $output_cmd "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $dist_build_dispatch_before_retry_exit_code ${reset}"
       fi
    else
-      $output_cmd "INFO: Skipping whonix_build_dispatch_before_retry (--retry-before), because empty, ok."
+      $output_cmd "INFO: Skipping dist_build_dispatch_before_retry (--retry-before), because empty, ok."
    fi
 
    $output_cmd "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
@@ -171,17 +171,17 @@ errorhandlerretry() {
       last_failed_bash_command="$last_failed_bash_command"
    fi
 
-   if [ ! "$whonix_build_dispatch_after_retry" = "" ]; then
-      $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $whonix_build_dispatch_after_retry ${reset}"
-      whonix_build_dispatch_after_retry_exit_code="0"
-      eval $whonix_build_dispatch_after_retry || { whonix_build_dispatch_after_retry_exit_code="$?" ; true; };
-      if [ "$whonix_build_dispatch_after_retry_exit_code" = "0" ]; then
+   if [ ! "$dist_build_dispatch_after_retry" = "" ]; then
+      $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $dist_build_dispatch_after_retry ${reset}"
+      dist_build_dispatch_after_retry_exit_code="0"
+      eval $dist_build_dispatch_after_retry || { dist_build_dispatch_after_retry_exit_code="$?" ; true; };
+      if [ "$dist_build_dispatch_after_retry_exit_code" = "0" ]; then
          $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
       else
-         $output_cmd "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $whonix_build_dispatch_after_retry_exit_code ${reset}"
+         $output_cmd "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $dist_build_dispatch_after_retry_exit_code ${reset}"
       fi
    else
-      $output_cmd "INFO: Skipping whonix_build_dispatch_after_retry (--retry-after), because empty, ok."
+      $output_cmd "INFO: Skipping dist_build_dispatch_after_retry (--retry-after), because empty, ok."
    fi
 
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
@@ -199,7 +199,7 @@ errorhandlerprocessshared() {
       trap_signal_type_previous="unset"
    fi
    trap_signal_type_last="$1"
-   whonix_build_error_counter="$(( $whonix_build_error_counter + 1 ))"
+   dist_build_error_counter="$(( $dist_build_error_counter + 1 ))"
    benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
    local first
    read -r first _ <<< "$last_failed_bash_command" || true
@@ -212,7 +212,7 @@ ${cyan}${bold}############################################################${rese
 ${red}${bold}ERROR in ${under}$last_script${eunder} detected!${reset}
 
 dist_build_version${reset}: ${under}$dist_build_version${eunder}
-whonix_build_error_counter: $whonix_build_error_counter
+dist_build_error_counter: $dist_build_error_counter
 benchmark: $benchmark_took_time
 last_failed_exit_code: $last_failed_exit_code
 trap_signal_type_previous: $trap_signal_type_previous
@@ -278,7 +278,7 @@ ${cyan}${bold}############################################################${rese
       answer=""
       if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
 
-         if [ "$whonix_build_non_interactive" = "true" ]; then
+         if [ "$dist_build_non_interactive" = "true" ]; then
             $output_cmd "INFO: using non-interactive error handler."
             break
          else
@@ -330,8 +330,8 @@ Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold
    done
 }
 
-if [ "$whonix_build_error_counter" = "" ]; then
-   whonix_build_error_counter="0"
+if [ "$dist_build_error_counter" = "" ]; then
+   dist_build_error_counter="0"
 fi
 
 errorhandlermaybeexit() {
@@ -351,8 +351,8 @@ errorhandlermaybeexit() {
       rm --force "/run/package_manager_lock"
    fi
    if [ "$ignore_error" = "true" ]; then
-      $output_cmd "INFO: whonix_build_non_interactive: $whonix_build_non_interactive"
-      if [ "$whonix_build_non_interactive" = "true" ]; then
+      $output_cmd "INFO: dist_build_non_interactive: $dist_build_non_interactive"
+      if [ "$dist_build_non_interactive" = "true" ]; then
          $output_cmd "INFO: using non-interactive error handler."
       else
          $output_cmd "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
@@ -482,9 +482,9 @@ exithandler() {
    output_cmd_set
    ## XXX
    if [ "$exit_code" = "0" ]; then
-      $output_cmd "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$whonix_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
+      $output_cmd "${bold}INFO: End of: $0 | exit_code: ${under}$exit_code${eunder} | error(s) detected: ${under}$dist_build_error_counter${eunder} | benchmark: $benchmark_took_time${reset}"
    else
-      $output_cmd "${bold}${red}ERROR: Now exiting from $0 with non-zero exit code ${under}$exit_code${eunder} (error(s) detected: ${under}$whonix_build_error_counter${eunder}) (benchmark: $benchmark_took_time)${reset}${bold}${red}.${reset}"
+      $output_cmd "${bold}${red}ERROR: Now exiting from $0 with non-zero exit code ${under}$exit_code${eunder} (error(s) detected: ${under}$dist_build_error_counter${eunder}) (benchmark: $benchmark_took_time)${reset}${bold}${red}.${reset}"
    fi
    exit "$exit_code"
 }

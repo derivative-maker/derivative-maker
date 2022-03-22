@@ -41,9 +41,9 @@ cd ..
 download_tpo_packages() {
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593/2
    available_architectures_for_download_only_list="i386 amd64 arm64"
-   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="$source_code_folder_dist/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
-   repo_sources_list="$whonix_build_sources_list_torproject"
+   repo_sources_list="$dist_build_sources_list_torproject"
    temp_newer_packages="$binary_build_folder_dist/temp_packages_tpo"
    export download_source_package="true"
 
@@ -57,8 +57,8 @@ download_tpo_packages() {
 #sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_virtualbox_org
 download_virtualbox_packages_virtualbox_org() {
    ## Only when using '--target virtualbox'.
-   if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-      true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+   if [ ! "$dist_build_virtualbox" = "true" ]; then
+      true "${green}INFO: Skipping $FUNCNAME, because dist_build_virtualbox is not set to 'true'.${reset}"
       return 0
    fi
 
@@ -70,7 +70,7 @@ download_virtualbox_packages_virtualbox_org() {
    ## Creating '--target virtualbox' on platforms other than amd64 such as arm64 would fail anyhow since
    ## nobody is providing packages for these platforms. At time of writing, nobody reported trying that either.
    available_architectures_for_download_only_list="i386 amd64"
-   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="$source_code_folder_dist/build_sources/oracle_vbox_2016.asc"
    repo_sources_list="$source_code_folder_dist/build_sources/debian_buster_backport_virtualbox_org.list"
    temp_newer_packages="$binary_build_folder_dist/temp_packages_virtualbox_org"
@@ -104,15 +104,15 @@ download_virtualbox_packages_virtualbox_org() {
 ##
 #sudo -E ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function download_virtualbox_packages_from_debian_sid
 download_virtualbox_packages_from_debian_sid() {
-   if [ ! "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
-      true "${green}INFO: Skipping $FUNCNAME, because WHONIX_BUILD_VIRTUALBOX is not set to 'true'.${reset}"
+   if [ ! "$dist_build_virtualbox" = "true" ]; then
+      true "${green}INFO: Skipping $FUNCNAME, because dist_build_virtualbox is not set to 'true'.${reset}"
       return 0
    fi
 
    available_architectures_for_download_only_list="all"
-   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="none"
-   repo_sources_list="$whonix_build_sources_list_debian_sid"
+   repo_sources_list="$dist_build_sources_list_debian_sid"
    temp_newer_packages="$binary_build_folder_dist/temp_packages_virtualbox"
    export download_source_package="true"
 
@@ -145,8 +145,8 @@ get_newer_packages() {
    rm --recursive --force "$temp_newer_packages"
    sudo $SUDO_OPTS mkdir --parents "$temp_newer_packages"
 
-   for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
-      export whonix_build_multiarch_package_item
+   for dist_build_multiarch_package_item in $make_cross_build_platform_list ; do
+      export dist_build_multiarch_package_item
 
       architecture_available=""
       for available_architectures_for_download_only_item in $available_architectures_for_download_only_list ; do
@@ -155,7 +155,7 @@ get_newer_packages() {
             architecture_available="true"
             continue
          fi
-         if [ "$whonix_build_multiarch_package_item" = "$available_architectures_for_download_only_item" ]; then
+         if [ "$dist_build_multiarch_package_item" = "$available_architectures_for_download_only_item" ]; then
             true "${cyan}INFO: available_architectures_for_download_only_item: '$available_architectures_for_download_only_item'${reset}"
             architecture_available="true"
             continue
@@ -164,16 +164,16 @@ get_newer_packages() {
       if [ ! "$architecture_available" = "true" ]; then
          true "${red}${bold}INFO: Skipping,
 download newer_package_list: ${under}$newer_package_list${eunder}
-for platform: ${under}$whonix_build_multiarch_package_item${eunder}
-becuase whonix_build_multiarch_package_item: $whonix_build_multiarch_package_item
+for platform: ${under}$dist_build_multiarch_package_item${eunder}
+becuase dist_build_multiarch_package_item: $dist_build_multiarch_package_item
 is not included in available_architectures_for_download_only_list: $available_architectures_for_download_only_list${reset}"
          return 0
       fi
 
       if [ "$make_use_cowbuilder" = "true" ]; then
          ## TODO: change that folder
-         cow_folder="/var/cache/pbuilder/cow.cow_${whonix_build_multiarch_package_item}"
-         base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
+         cow_folder="/var/cache/pbuilder/cow.cow_${dist_build_multiarch_package_item}"
+         base_folder="/var/cache/pbuilder/base.cow_${dist_build_multiarch_package_item}"
 
          test -d "$base_folder"
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
@@ -204,8 +204,8 @@ is not included in available_architectures_for_download_only_list: $available_ar
 
       local benchmark_time_start benchmark_took_time
       benchmark_time_start="$(date +%s)" || true
-      local whonix_build_download_script_exit_code
-      whonix_build_download_script_exit_code=0
+      local dist_build_download_script_exit_code
+      dist_build_download_script_exit_code=0
 
       if [ "$make_use_cowbuilder" = "true" ]; then
          $COWBUILDER_PREFIX \
@@ -215,11 +215,11 @@ is not included in available_architectures_for_download_only_list: $available_ar
                --host-arch "$host_architecture" \
                --architecture "$dist_build_target_arch" \
                --configfile "$dist_build_pbuilder_config_file" \
-               --execute "$whonix_build_special_packages_chroot_script" \
+               --execute "$dist_build_special_packages_chroot_script" \
                --basepath "$base_folder" \
                --buildplace "$cow_folder" \
                --bindmounts "$temp_newer_packages" \
-               || { whonix_build_download_script_exit_code="$?" ; true; };
+               || { dist_build_download_script_exit_code="$?" ; true; };
 
             if [ -d "$base_folder" ]; then
                "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
@@ -227,7 +227,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
       else
          export newer_package_list
          export temp_newer_packages
-         "$whonix_build_special_packages_chroot_script" || { whonix_build_download_script_exit_code="$?" ; true; };
+         "$dist_build_special_packages_chroot_script" || { dist_build_download_script_exit_code="$?" ; true; };
 
          ## XXX
          ## help-steps/repo_download_chroot_script messes up APT downloaded sources
@@ -239,8 +239,8 @@ is not included in available_architectures_for_download_only_list: $available_ar
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       true "${cyan}INFO: Done with build '${FUNCNAME[1]}' (benchmark: $benchmark_took_time) ${reset}"
 
-      if [ ! "$whonix_build_download_script_exit_code" = "0" ]; then
-         return "$whonix_build_download_script_exit_code"
+      if [ ! "$dist_build_download_script_exit_code" = "0" ]; then
+         return "$dist_build_download_script_exit_code"
       fi
    done
 
@@ -259,8 +259,8 @@ reprepro_add_newer_packages() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
@@ -268,24 +268,24 @@ reprepro_add_newer_packages() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$dist_developer_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    true "${cyan}$BASH_SOURCE INFO: Got newer packages. ${reset}"
 }
 
-create_whonix_debian_packages() {
+create_derivative_distribution_debian_packages() {
    true "${cyan}$BASH_SOURCE INFO: Creating Whonix Debian Packages... ${reset}"
 
    local item number_folders_total number_folder_current benchmark_time_start benchmark_took_time
@@ -379,7 +379,7 @@ create-debian-packages() {
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593
    build_run_function download_tpo_packages "$@"
 
-   build_run_function create_whonix_debian_packages "$@"
+   build_run_function create_derivative_distribution_debian_packages "$@"
 }
 
 main() {

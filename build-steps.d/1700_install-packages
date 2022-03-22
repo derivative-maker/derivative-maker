@@ -71,16 +71,16 @@ pkg-install() {
    local pkg_install_item
    pkg_install_item="$1"
    local skip_package
-   for skip_package in $whonix_build_script_skip_package_install; do
+   for skip_package in $dist_build_script_skip_package_install; do
       if [ "$skip_package" = "$pkg_install_item" ]; then
          unset skip_package
-         true "${bold}${cyan}INFO: Skipping installation of '$pkg_install_item', because variable whonix_build_script_skip_package_install includes it.${reset}"
+         true "${bold}${cyan}INFO: Skipping installation of '$pkg_install_item', because variable dist_build_script_skip_package_install includes it.${reset}"
          return 0
       fi
    done
    unset skip_package
 
-   true "${cyan}INFO: Installing of '$@', because variable whonix_build_script_skip_package_install does not include it... \
+   true "${cyan}INFO: Installing of '$@', because variable dist_build_script_skip_package_install does not include it... \
 This may take a while...${reset}"
 
    ## apt: no way to view dpkg commandline and still run dpkg
@@ -169,10 +169,10 @@ pkg-add-to-install-list() {
    local pkg_install_item
    pkg_install_item="$1"
    local skip_package
-   for skip_package in $whonix_build_script_skip_package_install; do
+   for skip_package in $dist_build_script_skip_package_install; do
       if [ "$skip_package" = "$pkg_install_item" ]; then
          unset skip_package
-         true "${bold}${cyan}INFO: Skipping package $pkg_install_item, because whonix_build_script_skip_package_install includes it.${reset}"
+         true "${bold}${cyan}INFO: Skipping package $pkg_install_item, because dist_build_script_skip_package_install includes it.${reset}"
          return 0
       fi
    done
@@ -226,7 +226,7 @@ install-packages() {
    ##    see help-steps/chroot-raw for more information.
 
    "$dist_source_help_steps_folder/create-local-temp-apt-repo"
-   export WHONIX_CHROOT_MOUNT_RESOLV_CONF="0"
+   export dist_chroot_mount_resolv_conf="0"
    "$dist_source_help_steps_folder/chroot-raw"
 
 #    if [ "$dist_build_target_arch" = "arm64" ]; then
@@ -254,7 +254,7 @@ install-packages() {
       error "ERROR: Invalid dist_build_flavor $dist_build_flavor. Please report this bug!"
    fi
 
-   unset WHONIX_CHROOT_MOUNT_RESOLV_CONF
+   unset dist_chroot_mount_resolv_conf
    "$dist_source_help_steps_folder/unchroot-raw"
 
    ## }}
@@ -295,14 +295,14 @@ install-packages() {
    $CHROOT apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show nano || true
    $CHROOT apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show helper-scripts || true
 
-   if [ "$whonix_build_script_skip_package_install" = "" ]; then
-      true "${bold}${cyan}INFO $BASH_SOURCE: Variable whonix_build_script_skip_package_install is empty. \
+   if [ "$dist_build_script_skip_package_install" = "" ]; then
+      true "${bold}${cyan}INFO $BASH_SOURCE: Variable dist_build_script_skip_package_install is empty. \
 No packages will be excluded from installation. This information is relevant for builders using custom configurations, \
 skipping packages such as Terminal-Only.${reset}"
    else
       true "${bold}${cyan}INFO $BASH_SOURCE: List of packages to be excluded from installation. This information is relevant for \
-builders using custom configurations, skipping packages such as Terminal-Only. whonix_build_script_skip_package_install: \
-$whonix_build_script_skip_package_install${reset}"
+builders using custom configurations, skipping packages such as Terminal-Only. dist_build_script_skip_package_install: \
+$dist_build_script_skip_package_install${reset}"
    fi
 
    if [ "$dist_build_install_to_root" = "1" ]; then
@@ -348,7 +348,7 @@ $whonix_build_script_skip_package_install${reset}"
 
    ## Weak recommended packages. No other package depends on it. Can be
    ## easily uninstalled. For better usability.
-   if [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
+   if [ "$dist_build_virtualbox" = "true" ]; then
       ## See also build-steps.d/1200_create-debian-packages function
       ## download_virtualbox_packages_from_debian_sid
       pkg-add-to-install-list virtualbox-guest-utils
@@ -375,11 +375,11 @@ $whonix_build_script_skip_package_install${reset}"
    ## vm-config-dist.
    pkg-list-install
 
-   if [ "$WHONIX_BUILD_RAW" = "true" ]; then
+   if [ "$dist_build_raw" = "true" ]; then
       ## XXX: Superfluous for non-libvirt raw image builds.
       pkg-add-to-install-list spice-vdagent
       pkg-add-to-install-list serial-console-enable
-   elif [ "$WHONIX_BUILD_QCOW2" = "true" ]; then
+   elif [ "$dist_build_qcow2" = "true" ]; then
       pkg-add-to-install-list spice-vdagent
       pkg-add-to-install-list serial-console-enable
    else

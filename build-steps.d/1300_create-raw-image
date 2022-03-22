@@ -33,7 +33,7 @@ create-debian-raw-image() {
    true "${cyan}INFO: dist_build_target_arch set to: $dist_build_target_arch${reset}"
 
    mkdir --parents "/etc/debootstrap/etc/apt/"
-   cp "$whonix_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
+   cp "$dist_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
 
    ## Info.
    true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
@@ -113,7 +113,7 @@ create-debian-raw-image() {
 
    if [ "$DEBOOTSTRAP" = "$mmdebstrap_wrapper" ]; then
       ## Using a sources.list probably only with mmdebstrap.
-      [ -n "$MIRROR" ] || export MIRROR="$whonix_build_sources_list_primary"
+      [ -n "$MIRROR" ] || export MIRROR="$dist_build_sources_list_primary"
    else
       ## qemu-debootstrap:
       ## - cannot be combined with mmdebstrap.
@@ -121,11 +121,11 @@ create-debian-raw-image() {
       ##   at the same time.
       ## - does not support apt sources in a sources.list file such as for example
       ##   build_sources/debian_stable_current_clearnet.list
-      ##   (variable: whonix_build_sources_list_primary)
+      ##   (variable: dist_build_sources_list_primary)
       ##   but requires a apt URI such as for example.
       ##   http://HTTPS///deb.debian.org/debian
-      ##   (variable: whonix_build_apt_sources_mirror)
-      [ -n "$MIRROR" ] || export MIRROR="$whonix_build_apt_sources_mirror"
+      ##   (variable: dist_build_apt_sources_mirror)
+      [ -n "$MIRROR" ] || export MIRROR="$dist_build_apt_sources_mirror"
    fi
 
    ## See also /etc/debootstrap/config or
@@ -138,20 +138,20 @@ create-debian-raw-image() {
    ## (Which contains grml distribution default packages that we don't need in
    ## Whonix.)
 
-   ## whonix_build_multiarch_package_item is read by pbuilder-debootstrap-command-filter.
+   ## dist_build_multiarch_package_item is read by pbuilder-debootstrap-command-filter.
 
    $DEBOOTSTRAP_PREFIX \
    SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-   whonix_build_multiarch_package_item="$dist_build_target_arch" \
+   dist_build_multiarch_package_item="$dist_build_target_arch" \
       bash -x \
-         "$whonix_build_grml_bin" \
+         "$dist_build_grml_bin" \
             --debopt "$dist_build_debopt" \
             --arch "$dist_build_target_arch" \
             --filesystem "$dist_build_file_system" \
             --force \
             --hostname "$dist_build_hostname" \
             --nopassword \
-            --release "$whonix_build_apt_stable_release" \
+            --release "$dist_build_apt_stable_release" \
             --keep_src_list \
             --verbose \
             --vmfile \
