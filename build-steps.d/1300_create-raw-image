@@ -19,7 +19,7 @@ source colors
 source variables
 
 create-debian-raw-image() {
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/"
+   sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist/"
 
    if [ ! "$cached_binary_image_raw" = "" ]; then
       true "${cyan}$BASH_SOURCE INFO: copy and use cached_binary_image_raw '$cached_binary_image_raw'...${reset}"
@@ -30,7 +30,7 @@ create-debian-raw-image() {
 
    ARCH="$(uname --machine)"
    true "${cyan}$BASH_SOURCE INFO: Architecture $ARCH detected.${reset}"
-   true "${cyan}INFO: BUILD_TARGET_ARCH set to: $BUILD_TARGET_ARCH${reset}"
+   true "${cyan}INFO: dist_build_target_arch set to: $dist_build_target_arch${reset}"
 
    mkdir --parents "/etc/debootstrap/etc/apt/"
    cp "$whonix_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
@@ -100,9 +100,9 @@ create-debian-raw-image() {
    ## Do not use /etc/network/interfaces by grml-debootstrap.
    [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
-   mmdebstrap_wrapper="$WHONIX_SOURCE_FOLDER/help-steps/pbuilder-debootstrap-command-filter"
+   mmdebstrap_wrapper="$source_code_folder_dist/help-steps/pbuilder-debootstrap-command-filter"
 
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ] || [ "$BUILD_TARGET_ARCH" = "arm64" ]; then
+   if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
       [ -n "$GRUB_INSTALL" ] || export GRUB_INSTALL='no'
    fi
 
@@ -132,7 +132,7 @@ create-debian-raw-image() {
    ## https://github.com/grml/grml-debootstrap/blob/master/config to learn
    ## about other grml-debootstrap options and defaults.
 
-   ## Using '--packages "$WHONIX_SOURCE_FOLDER/grml_packages"' even though
+   ## Using '--packages "$source_code_folder_dist/grml_packages"' even though
    ## these packages are already passed by '--depopt "--include=,[...]" to
    ## avoid grml-debootstrap apt-get installing its default package selection.
    ## (Which contains grml distribution default packages that we don't need in
@@ -142,21 +142,21 @@ create-debian-raw-image() {
 
    $DEBOOTSTRAP_PREFIX \
    SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-   whonix_build_multiarch_package_item="$BUILD_TARGET_ARCH" \
+   whonix_build_multiarch_package_item="$dist_build_target_arch" \
       bash -x \
          "$whonix_build_grml_bin" \
-            --debopt "$whonix_build_debopt" \
-            --arch "$BUILD_TARGET_ARCH" \
-            --filesystem "$whonix_build_file_system" \
+            --debopt "$dist_build_debopt" \
+            --arch "$dist_build_target_arch" \
+            --filesystem "$dist_build_file_system" \
             --force \
-            --hostname "$whonix_build_hostname" \
+            --hostname "$dist_build_hostname" \
             --nopassword \
             --release "$whonix_build_apt_stable_release" \
             --keep_src_list \
             --verbose \
             --vmfile \
             --vmsize "$VMSIZE" \
-            --packages "$WHONIX_SOURCE_FOLDER/grml_packages" \
+            --packages "$source_code_folder_dist/grml_packages" \
             --target "$binary_image_raw"
 }
 
@@ -171,23 +171,23 @@ permission-fix-raw-image() {
 main() {
    root_check
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because ANON_BUILD_INSTALL_TO_ROOT is set to 1.${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to 1.${reset}"
       return 0
    fi
 
-   if [ "$WHONIX_BUILD_TYPE" = "custom-workstation" ]; then
+   if [ "$dist_build_type_long" = "custom-workstation" ]; then
       create-empty-raw-image
-   elif [ "$WHONIX_BUILD_TYPE" = "gateway" ]; then
+   elif [ "$dist_build_type_long" = "gateway" ]; then
       create-debian-raw-image
-   elif [ "$WHONIX_BUILD_TYPE" = "workstation" ]; then
+   elif [ "$dist_build_type_long" = "workstation" ]; then
       create-debian-raw-image
-   elif [ "$WHONIX_BUILD_TYPE" = "whonix-host" ]; then
+   elif [ "$dist_build_type_long" = "whonix-host" ]; then
       create-debian-raw-image
-   elif [ "$WHONIX_BUILD_TYPE" = "kicksecure" ]; then
+   elif [ "$dist_build_type_long" = "kicksecure" ]; then
       create-debian-raw-image
    else
-      error "ERROR: Invalid WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR (WHONIX_BUILD_TYPE: $WHONIX_BUILD_TYPE). Please report this bug!"
+      error "ERROR: Invalid dist_build_flavor $dist_build_flavor (dist_build_type_long: $dist_build_type_long). Please report this bug!"
    fi
 
    permission-fix-raw-image

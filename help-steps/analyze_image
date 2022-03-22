@@ -86,8 +86,8 @@ parse_cmd() {
    qcow="0"
    qcow2="0"
    raw="0"
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "" ]; then
-      ANON_BUILD_INSTALL_TO_ROOT="0"
+   if [ "$dist_build_install_to_root" = "" ]; then
+      dist_build_install_to_root="0"
    fi
 
    while :
@@ -137,7 +137,7 @@ parse_cmd() {
                shift 2
                ;;
            -bm | --bare-metal | --install-to-root | -itr | --root)
-               ANON_BUILD_INSTALL_TO_ROOT="1"
+               dist_build_install_to_root="1"
                mount_folder="$2"
                if [ "$mount_folder" = "" ]; then
                   echo 'Mount folder must not be empty. Use for example --root "/".'
@@ -228,8 +228,8 @@ exit_code: $exit_code"
 trap "error_handler" ERR INT TERM
 
 unmount_image() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -237,7 +237,7 @@ unmount_image() {
 
    ## WHONIX_BUILD_MOUNT_RAW_FILE us read by help-steps/mount-raw
    export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file_short_link"
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
+   "$dist_source_help_steps_folder"/unmount-raw
 
    #sync
    #sleep 1 &
@@ -312,7 +312,7 @@ preparation() {
    unset tool
    unset tools
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
    else
@@ -333,10 +333,10 @@ preparation() {
    rm --force "$report_file"
    sync
 
-   ## The WHONIX_BINARY folder should already be created. Just make sure it
+   ## The binary_build_folder_dist folder should already be created. Just make sure it
    ## really is to allow running this script in non-Whonix environments as
    ## well.
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY"
+   sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist"
 
    sudo $SUDO_OPTS touch "$report_file"
    sync
@@ -348,7 +348,7 @@ preparation() {
 
    ## Using export, because mount_folder gets read by help-steps/mount-raw and
    ## help-steps/unmount-raw.
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       ## mount_folder has been set in parse_cmd
       ## Remove trailing slash so for example "/" becomes "".
       mount_folder="${mount_folder%/}"
@@ -386,7 +386,7 @@ preparation() {
    if [ "$raw_file" = "" ]; then
       raw_file="$raw_folder/$file_type_filename_without_extension.raw"
    fi
-   raw_file_short_link="$WHONIX_BINARY/temp_short_link.raw"
+   raw_file_short_link="$binary_build_folder_dist/temp_short_link.raw"
 
    vmdk_file_basename="$(basename "$vmdk_file")"
    vdi_file_basename="$(basename "$vdi_file")"
@@ -429,8 +429,8 @@ extract_ova() {
       return 0
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -455,8 +455,8 @@ convert_vmdk_to_vdi() {
       return 0
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -488,8 +488,8 @@ convert_vmdk_to_vdi() {
 }
 
 convert_x_to_raw() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -525,9 +525,9 @@ convert_x_to_raw() {
 }
 
 mount_image() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       mount_raw_exit_code="0"
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -543,7 +543,7 @@ mount_image() {
    export WHONIX_BUILD_MOUNT_RAW_FILE="$raw_file_short_link"
 
    mount_raw_exit_code="0"
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/mount-raw || { mount_raw_exit_code="$?" ; true; };
+   "$dist_source_help_steps_folder"/mount-raw || { mount_raw_exit_code="$?" ; true; };
 
    #sync
    ## Mounting read-only so the user or script can not accidentally delete
@@ -561,8 +561,8 @@ mount_image() {
 }
 
 parse_file_system() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -583,8 +583,8 @@ parse_file_system() {
 }
 
 parse_mbr() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -612,8 +612,8 @@ parse_mbr() {
 }
 
 parse_vbr() {
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because ANON_BUILD_INSTALL_TO_ROOT is 1. ${reset}"
+   if [ "$dist_build_install_to_root" = "1" ]; then
+      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is 1. ${reset}"
       return 0
    fi
 
@@ -885,7 +885,7 @@ tail -f $report_file
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
             echo "$msg" >> "$report_file"
-            if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+            if [ "$dist_build_install_to_root" = "1" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
                continue
@@ -1082,7 +1082,7 @@ $temp12 $Type_in_hex\
       fi
 
       local maybe_timeout
-      if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+      if [ "$dist_build_install_to_root" = "1" ]; then
          if [[ "$absolute_file_name" == "/dev/"** ]]; then
             ## For example "sudo sha512sum /dev/tty1" would run forever.
             maybe_timeout="timeout --kill-after=1 1"

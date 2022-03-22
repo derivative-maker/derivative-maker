@@ -29,7 +29,7 @@ main() {
 
    sync
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       true
    else
 
@@ -89,7 +89,7 @@ main() {
       ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
       ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
       ## preference over the real /sbin/udevadm.
-      #mount --bind "$WHONIX_SOURCE_FOLDER/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
+      #mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
 
       ## }}}
    fi
@@ -179,8 +179,8 @@ main() {
    ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=0: don't mount; empty file.
    ## If WHONIX_CHROOT_MOUNT_RESOLV_CONF=1: mount host version inside chroot.
 
-   if [ ! -d "$WHONIX_BINARY/system-files-copy/etc" ]; then
-      sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/system-files-copy/etc"
+   if [ ! -d "$binary_build_folder_dist/system-files-copy/etc" ]; then
+      sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist/system-files-copy/etc"
    fi
 
    for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
@@ -189,7 +189,7 @@ main() {
       host_system_file_full_path="/$mount_base_file"
 
       host_system_file_base_name="$(basename "$host_system_file_full_path")"
-      system_file_copy_full_path="$WHONIX_BINARY/system-files-copy/etc/$host_system_file_base_name"
+      system_file_copy_full_path="$binary_build_folder_dist/system-files-copy/etc/$host_system_file_base_name"
 
       if [ -f "$host_system_file_full_path" ]; then
          ## Not using.
@@ -217,10 +217,10 @@ main() {
 
          is_ok=no
          for ok_if_match_file in \
-            "$WHONIX_SOURCE_FOLDER/packages/whonix-gw-network-conf/etc/resolv.conf.whonix" \
-            "$WHONIX_SOURCE_FOLDER/packages/whonix-ws-network-conf/etc/resolv.conf.whonix" \
-            "$WHONIX_SOURCE_FOLDER/packages/whonix-base-files/etc/hosts.whonix" \
-            "$WHONIX_SOURCE_FOLDER/packages/whonix-base-files/etc/hostname.whonix" \
+            "$source_code_folder_dist/packages/whonix-gw-network-conf/etc/resolv.conf.whonix" \
+            "$source_code_folder_dist/packages/whonix-ws-network-conf/etc/resolv.conf.whonix" \
+            "$source_code_folder_dist/packages/whonix-base-files/etc/hosts.whonix" \
+            "$source_code_folder_dist/packages/whonix-base-files/etc/hostname.whonix" \
             ; do
                if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file" >/dev/null ; then
                   true "INFO #1: But '$CHROOT_FOLDER/$mount_base_file' also matches '$ok_if_match_file', ok."
@@ -229,12 +229,12 @@ main() {
                fi
          done
          if [ "$is_ok" = "no" ]; then
-            if [ "$WHONIX_BUILD_SHORT_TYPE" = "whonix" ]; then
-               true "INFO #1: WHONIX_BUILD_SHORT_TYPE: $WHONIX_BUILD_SHORT_TYPE Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
+            if [ "$dist_build_type_short" = "whonix" ]; then
+               true "INFO #1: dist_build_type_short: $dist_build_type_short Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
                ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
                shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
             else
-               true "INFO #1: WHONIX_BUILD_SHORT_TYPE: $WHONIX_BUILD_SHORT_TYPE Therefore not touching '$CHROOT_FOLDER/$mount_base_file'."
+               true "INFO #1: dist_build_type_short: $dist_build_type_short Therefore not touching '$CHROOT_FOLDER/$mount_base_file'."
             fi
          fi
       else
@@ -249,7 +249,7 @@ main() {
          continue
       fi
 
-      mount --bind "$WHONIX_BINARY/system-files-copy/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
+      mount --bind "$binary_build_folder_dist/system-files-copy/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
    done
 
    sync

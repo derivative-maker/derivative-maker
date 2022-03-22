@@ -41,10 +41,10 @@ cd ..
 download_tpo_packages() {
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593/2
    available_architectures_for_download_only_list="i386 amd64 arm64"
-   whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
-   repo_signing_key="$WHONIX_SOURCE_FOLDER/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
+   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   repo_signing_key="$source_code_folder_dist/packages/anon-shared-build-apt-sources-tpo/usr/share/anon-shared-build-apt-sources-tpo/tpoarchive-keys.d/torprojectarchive.asc"
    repo_sources_list="$whonix_build_sources_list_torproject"
-   temp_newer_packages="$WHONIX_BINARY/temp_packages_tpo"
+   temp_newer_packages="$binary_build_folder_dist/temp_packages_tpo"
    export download_source_package="true"
 
    ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
@@ -70,10 +70,10 @@ download_virtualbox_packages_virtualbox_org() {
    ## Creating '--target virtualbox' on platforms other than amd64 such as arm64 would fail anyhow since
    ## nobody is providing packages for these platforms. At time of writing, nobody reported trying that either.
    available_architectures_for_download_only_list="i386 amd64"
-   whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
-   repo_signing_key="$WHONIX_SOURCE_FOLDER/build_sources/oracle_vbox_2016.asc"
-   repo_sources_list="$WHONIX_SOURCE_FOLDER/build_sources/debian_buster_backport_virtualbox_org.list"
-   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox_org"
+   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   repo_signing_key="$source_code_folder_dist/build_sources/oracle_vbox_2016.asc"
+   repo_sources_list="$source_code_folder_dist/build_sources/debian_buster_backport_virtualbox_org.list"
+   temp_newer_packages="$binary_build_folder_dist/temp_packages_virtualbox_org"
    ## Not available from that repository but from Debian directly.
    export download_source_package="false"
 
@@ -110,10 +110,10 @@ download_virtualbox_packages_from_debian_sid() {
    fi
 
    available_architectures_for_download_only_list="all"
-   whonix_build_special_packages_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/repo_download_chroot_script"
+   whonix_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="none"
    repo_sources_list="$whonix_build_sources_list_debian_sid"
-   temp_newer_packages="$WHONIX_BINARY/temp_packages_virtualbox"
+   temp_newer_packages="$binary_build_folder_dist/temp_packages_virtualbox"
    export download_source_package="true"
 
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
@@ -176,11 +176,11 @@ is not included in available_architectures_for_download_only_list: $available_ar
          base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
 
          test -d "$base_folder"
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
       else
-         base_folder="$WHONIX_BINARY/no-pbuilder/base"
+         base_folder="$binary_build_folder_dist/no-pbuilder/base"
          ## Not needed. For completeness sake. Just in case.
-         cow_folder="$WHONIX_BINARY/no-pbuilder/cow"
+         cow_folder="$binary_build_folder_dist/no-pbuilder/cow"
 
          if_no_pbuilder_base_folder="$base_folder"
          export if_no_pbuilder_base_folder
@@ -200,7 +200,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
          cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
       fi
 
-      cp "$whonix_build_pbuilder_config_file" "$base_folder/tmp/"
+      cp "$dist_build_pbuilder_config_file" "$base_folder/tmp/"
 
       local benchmark_time_start benchmark_took_time
       benchmark_time_start="$(date +%s)" || true
@@ -213,8 +213,8 @@ is not included in available_architectures_for_download_only_list: $available_ar
          temp_newer_packages="$temp_newer_packages" \
             cowbuilder \
                --host-arch "$host_architecture" \
-               --architecture "$BUILD_TARGET_ARCH" \
-               --configfile "$whonix_build_pbuilder_config_file" \
+               --architecture "$dist_build_target_arch" \
+               --configfile "$dist_build_pbuilder_config_file" \
                --execute "$whonix_build_special_packages_chroot_script" \
                --basepath "$base_folder" \
                --buildplace "$cow_folder" \
@@ -222,7 +222,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
                || { whonix_build_download_script_exit_code="$?" ; true; };
 
             if [ -d "$base_folder" ]; then
-               "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+               "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
             fi
       else
          export newer_package_list
@@ -259,8 +259,8 @@ reprepro_add_newer_packages() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$WHONIX_BUILD_APT_CODENAME" "$package" || true
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
@@ -268,18 +268,18 @@ reprepro_add_newer_packages() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$WHONIX_BUILD_APT_CODENAME" "$package" || true
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$WHONIX_BUILD_APT_CODENAME" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$WHONIX_BUILD_APT_CODENAME" "$package_absolute_path"
+      sudo $SUDO_OPTS -E "$whonix_dev_meta_files_folder/debug-steps/reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    true "${cyan}$BASH_SOURCE INFO: Got newer packages. ${reset}"
@@ -290,14 +290,14 @@ create_whonix_debian_packages() {
 
    local item number_folders_total number_folder_current benchmark_time_start benchmark_took_time
    ## Thanks to: l0b0 - http://unix.stackexchange.com/a/20855/49297
-   number_folders_total="$(find "$WHONIX_SOURCE_FOLDER/packages" -mindepth 1 -maxdepth 1 -type d -printf '\n' | wc -l)" || true
+   number_folders_total="$(find "$source_code_folder_dist/packages" -mindepth 1 -maxdepth 1 -type d -printf '\n' | wc -l)" || true
    number_folder_current="0"
 
    shopt -s nullglob
    shopt -s dotglob
 
    for item in $pkg_list; do
-      item="$WHONIX_SOURCE_FOLDER/packages/$item"
+      item="$source_code_folder_dist/packages/$item"
       if [ ! -d "$item" ]; then
          true "INFO: Not a folder: $item"
          continue
@@ -323,14 +323,14 @@ create_whonix_debian_packages() {
          true "DEBUG: Architecture: any"
       elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "amd64" ; then
          true "DEBUG: Architecture: amd64"
-         if [ ! "$BUILD_TARGET_ARCH" = "amd64" ]; then
+         if [ ! "$dist_build_target_arch" = "amd64" ]; then
             true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
             popd
             continue
          fi
       elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
          true "DEBUG: Architecture: linux-amd64"
-         if [ ! "$BUILD_TARGET_ARCH" = "amd64" ]; then
+         if [ ! "$dist_build_target_arch" = "amd64" ]; then
             true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
             popd
             continue
@@ -343,14 +343,14 @@ create_whonix_debian_packages() {
       true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
       benchmark_time_start="$(date +%s)" || true
       lintian_use_maybe="$make_use_lintian"
-      ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, WHONIX_BUILD_APT_CODENAME gets passed.
-      sudo $SUDO_OPTS -E "$WHONIX_SOURCE_FOLDER/packages/genmkfile/usr/bin/genmkfile" reprepro-remove
-      "$WHONIX_SOURCE_FOLDER/packages/genmkfile/usr/bin/genmkfile" deb-cleanup
+      ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
+      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/genmkfile/usr/bin/genmkfile" reprepro-remove
+      "$source_code_folder_dist/packages/genmkfile/usr/bin/genmkfile" deb-cleanup
       if [ "$make_use_cowbuilder" = "false" ]; then
-         "$WHONIX_SOURCE_FOLDER/packages/genmkfile/usr/bin/genmkfile" deb-build-dep
+         "$source_code_folder_dist/packages/genmkfile/usr/bin/genmkfile" deb-build-dep
       fi
-      sudo $SUDO_OPTS -E "$WHONIX_SOURCE_FOLDER/packages/genmkfile/usr/bin/genmkfile" deb-pkg
-      sudo $SUDO_OPTS -E "$WHONIX_SOURCE_FOLDER/packages/genmkfile/usr/bin/genmkfile" reprepro-add
+      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/genmkfile/usr/bin/genmkfile" deb-pkg
+      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/genmkfile/usr/bin/genmkfile" reprepro-add
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       popd
       true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
@@ -360,10 +360,10 @@ create_whonix_debian_packages() {
 }
 
 create-debian-packages() {
-   if [ "$WHONIX_BUILD_APT_CODENAME" = "" ]; then
-      error "Variable WHONIX_BUILD_APT_CODENAME is empty!"
+   if [ "$dist_build_apt_codename" = "" ]; then
+      error "Variable dist_build_apt_codename is empty!"
    fi
-   true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${WHONIX_BUILD_APT_CODENAME}${eunder} APT repository... ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${dist_build_apt_codename}${eunder} APT repository... ${reset}"
    true "make_cross_build_platform_list: ${under}$make_cross_build_platform_list${eunder}"
    #sleep 3
 
@@ -384,7 +384,7 @@ create-debian-packages() {
 
 main() {
    build_run_function root_check "$@"
-   if [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
+   if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
    elif [ "$build_remote_derivative_pkgs" = "true" ]; then
       true "${cyan}INFO: build_remote_derivative_pkgs is set to $build_remote_derivative_pkgs, skipping creation of packages.${reset}"

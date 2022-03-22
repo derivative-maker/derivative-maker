@@ -164,7 +164,7 @@ errorhandlerretry() {
    eval $last_failed_bash_command || { retry_last_failed_bash_command_exit_code="$?" ; true; };
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       $output_cmd "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
-      unset whonix_build_auto_retry_counter
+      unset dist_build_auto_retry_counter
    else
       $output_cmd "${red}${bold}INFO: Retry failed. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
@@ -240,22 +240,22 @@ ${cyan}${bold}############################################################${rese
 
    if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
       #$output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
-      if [ ! "$whonix_build_auto_retry" = "0" ]; then
-         if [ "$whonix_build_auto_retry_counter" = "" ]; then
-            whonix_build_auto_retry_counter="1"
+      if [ ! "$dist_build_auto_retry" = "0" ]; then
+         if [ "$dist_build_auto_retry_counter" = "" ]; then
+            dist_build_auto_retry_counter="1"
          fi
-         [ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="1"
-         [ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
+         [ -n "$dist_build_auto_retry" ] || dist_build_auto_retry="1"
+         [ -n "$dist_build_wait_auto_retry" ] || dist_build_wait_auto_retry="5"
          if [ "$first" = "error_" ]; then
             $output_cmd 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
-         elif [ "$whonix_build_auto_retry_counter" -gt "$whonix_build_auto_retry" ]; then
-            $output_cmd "${cyan}${bold}INFO: Auto retried (--retry-max) already $whonix_build_auto_retry times. No more auto retry. ${reset}"
+         elif [ "$dist_build_auto_retry_counter" -gt "$dist_build_auto_retry" ]; then
+            $output_cmd "${cyan}${bold}INFO: Auto retried (--retry-max) already $dist_build_auto_retry times. No more auto retry. ${reset}"
          else
-            $output_cmd "${cyan}${bold}INFO: Auto retry attempt number: $whonix_build_auto_retry_counter. Max retry attempts: $whonix_build_auto_retry (--retry-max). Auto retry... ${reset}"
-            whonix_build_auto_retry_counter="$(( $whonix_build_auto_retry_counter + 1 ))"
-            if [ ! "$whonix_build_wait_auto_retry" = "0" ]; then
-               $output_cmd "${cyan}${bold}INFO: Waiting (--retry-wait) $whonix_build_wait_auto_retry seconds before auto retry... ${reset}"
-               sleep "$whonix_build_wait_auto_retry" &
+            $output_cmd "${cyan}${bold}INFO: Auto retry attempt number: $dist_build_auto_retry_counter. Max retry attempts: $dist_build_auto_retry (--retry-max). Auto retry... ${reset}"
+            dist_build_auto_retry_counter="$(( $dist_build_auto_retry_counter + 1 ))"
+            if [ ! "$dist_build_wait_auto_retry" = "0" ]; then
+               $output_cmd "${cyan}${bold}INFO: Waiting (--retry-wait) $dist_build_wait_auto_retry seconds before auto retry... ${reset}"
+               sleep "$dist_build_wait_auto_retry" &
             fi
             wait "$!"
             ignore_error="$output_cmd"
@@ -264,12 +264,12 @@ ${cyan}${bold}############################################################${rese
             return 0
          fi
       else
-         $output_cmd "INFO: whonix_build_auto_retry set to $whonix_build_auto_retry (--retry-max). No auto retry."
+         $output_cmd "INFO: dist_build_auto_retry set to $dist_build_auto_retry (--retry-max). No auto retry."
       fi
    else
       $output_cmd "INFO: No auto retry for non ERR signal type: $trap_signal_type_last"
    fi
-   unset whonix_build_auto_retry_counter
+   unset dist_build_auto_retry_counter
 
    while true; do
       ## Default.
@@ -388,10 +388,10 @@ errorhandlerunchrootunpreventunmount() {
    ## $1 contains trap signal type.
    errorhandlerprocessshared "$1"
    if [ "$ignore_error" = "false" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/remove-local-temp-apt-repo
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unchroot-raw
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unprevent-daemons-from-starting
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
+      "$dist_source_help_steps_folder"/remove-local-temp-apt-repo
+      "$dist_source_help_steps_folder"/unchroot-raw
+      "$dist_source_help_steps_folder"/unprevent-daemons-from-starting
+      "$dist_source_help_steps_folder"/unmount-raw
    fi
    errorhandlermaybeexit "$1"
 }
@@ -403,7 +403,7 @@ errorhandlerunmount() {
    ## $1 contains trap signal type.
    errorhandlerprocessshared "$1"
    if [ "$ignore_error" = "false" ]; then
-      "$WHONIX_SOURCE_HELP_STEPS_FOLDER"/unmount-raw
+      "$dist_source_help_steps_folder"/unmount-raw
    fi
    errorhandlermaybeexit "$1"
 }
@@ -504,7 +504,7 @@ root_check() {
 
 signing_key() {
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "false" ]; then
+   if [ "$dist_build_sign_local_repository" = "false" ]; then
       true
    else
       if [ "$GPG_AGENT_INFO" = "" ]; then
@@ -514,7 +514,7 @@ signing_key() {
       ## pause the build process later when reprepro creates the local apt
       ## repository.
       sudo $SUDO_OPTS \
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/gpg_test_sign"
+         "$dist_source_help_steps_folder/gpg_test_sign"
    fi
 }
 

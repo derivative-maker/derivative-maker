@@ -43,7 +43,7 @@ cowbuilder_setup_do() {
    whonix_build_sources_list_primary_contents="$(cat "$whonix_build_sources_list_primary")"
    export whonix_build_sources_list_primary_contents
 
-   if [ "$whonix_build_unsafe_io" = "true" ]; then
+   if [ "$dist_build_unsafe_io" = "true" ]; then
       eatmydata_maybe_install="eatmydata"
    fi
 
@@ -52,7 +52,7 @@ cowbuilder_setup_do() {
       touch /etc/hostname
    fi
 
-   if [ "$whonix_build_unsafe_io" = "true" ]; then
+   if [ "$dist_build_unsafe_io" = "true" ]; then
       if mount | grep /var/cache/pbuilder | grep tmpfs ; then
          true "INFO: /var/cache/pbuilder already tmpfs."
       else
@@ -61,7 +61,7 @@ cowbuilder_setup_do() {
    fi
 
    ## Debugging.
-   cat "$whonix_build_pbuilder_config_file"
+   cat "$dist_build_pbuilder_config_file"
 
    for whonix_build_multiarch_package_item in $make_cross_build_platform_list ; do
       export whonix_build_multiarch_package_item
@@ -71,7 +71,7 @@ cowbuilder_setup_do() {
       base_folder="/var/cache/pbuilder/base.cow_${whonix_build_multiarch_package_item}"
 
       if [ -d "$base_folder" ]; then
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
          rm --recursive --force "$base_folder"
       fi
 
@@ -86,19 +86,19 @@ cowbuilder_setup_do() {
       SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
          cowbuilder \
             --architecture "$whonix_build_multiarch_package_item" \
-            --configfile "$whonix_build_pbuilder_config_file" \
+            --configfile "$dist_build_pbuilder_config_file" \
             --create \
             --basepath "$base_folder" \
             --buildplace "$cow_folder" \
             --distribution "$whonix_build_apt_stable_release" \
             --mirror "$whonix_build_apt_sources_mirror" \
-            --debootstrap "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-debootstrap-command-filter" \
-            --hookdir "$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-hooks" \
+            --debootstrap "$dist_source_help_steps_folder/pbuilder-debootstrap-command-filter" \
+            --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
             --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
             || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
       fi
 
       if [ ! "$cowbuilder_exit_code" = "0" ]; then
@@ -115,7 +115,7 @@ cowbuilder_setup_do() {
 
       cp "$whonix_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
       mkdir -p "$base_folder/home/$user_name"
-      cp "$whonix_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
+      cp "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
 #       mkdir -p "$base_folder/home/$user_name"
 #       if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
@@ -123,7 +123,7 @@ cowbuilder_setup_do() {
 #       else
 #          rm -r -f "$base_folder/home/$user_name/genmkfile"
 #       fi
-#       cp -r "$WHONIX_SOURCE_FOLDER/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
+#       cp -r "$source_code_folder_dist/packages/genmkfile" "$base_folder/home/$user_name/genmkfile"
 #       chown --recursive $user_name:$user_name "$base_folder/home/$user_name"
 
       cowbuilder_exit_code=0
@@ -131,15 +131,15 @@ cowbuilder_setup_do() {
       SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
          cowbuilder \
             --architecture "$whonix_build_multiarch_package_item" \
-            --configfile "$whonix_build_pbuilder_config_file" \
-            --execute "$whonix_build_pbuilder_chroot_script" \
+            --configfile "$dist_build_pbuilder_config_file" \
+            --execute "$dist_build_pbuilder_chroot_script" \
             --basepath "$base_folder" \
             --buildplace "$cow_folder" \
             --save-after-login \
             || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then
-         "$WHONIX_SOURCE_HELP_STEPS_FOLDER/umount_kill.sh" "$base_folder/"
+         "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
       fi
 
       if [ ! "$cowbuilder_exit_code" = "0" ]; then

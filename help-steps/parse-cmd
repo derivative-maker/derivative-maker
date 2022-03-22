@@ -178,7 +178,7 @@ Example: --initramfs initramfs-tools
 
 --confdir /path/to/config/dir
 Will get sourced after
-\$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d
+\$source_code_folder_dist/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d
 Files need to have the '.conf' file extension.
 and before --conffile.
 
@@ -234,27 +234,27 @@ whonix_build_one_parse_cmd() {
                ;;
            --flavor)
                true "${cyan}INFO: --flavor $2 chosen.${reset}"
-               WHONIX_BUILD_FLAVOR="$2"
-               export WHONIX_BUILD_FLAVOR
-               if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-xfce" ]; then
+               dist_build_flavor="$2"
+               export dist_build_flavor
+               if [ "$dist_build_flavor" = "whonix-gateway-xfce" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
+               elif [ "$dist_build_flavor" = "whonix-gateway-rpi" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
+               elif [ "$dist_build_flavor" = "whonix-gateway-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-xfce" ]; then
+               elif [ "$dist_build_flavor" = "whonix-workstation-xfce" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-cli" ]; then
+               elif [ "$dist_build_flavor" = "whonix-workstation-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
+               elif [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-host-cli" ]; then
+               elif [ "$dist_build_flavor" = "whonix-host-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "whonix-host-xfce" ]; then
+               elif [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-cli" ]; then
+               elif [ "$dist_build_flavor" = "kicksecure-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-xfce" ]; then
+               elif [ "$dist_build_flavor" = "kicksecure-xfce" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                else
                   parse_cmd_flavor_error
@@ -268,7 +268,7 @@ whonix_build_one_parse_cmd() {
                   export WHONIX_BUILD_VIRTUALBOX="true"
                elif [ "$2" = "root" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
-                  export ANON_BUILD_INSTALL_TO_ROOT="1"
+                  export dist_build_install_to_root="1"
                elif [ "$2" = "qcow2" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export WHONIX_BUILD_QCOW2="true"
@@ -388,8 +388,8 @@ whonix_build_one_parse_cmd() {
                   echo "${red}${bold}ERROR: --arch must not be empty.${reset}"
                   exit 1
                else
-                  export BUILD_TARGET_ARCH="$2"
-                  true "${cyan}BUILD_TARGET_ARCH set to $BUILD_TARGET_ARCH.${reset}"
+                  export dist_build_target_arch="$2"
+                  true "${cyan}dist_build_target_arch set to $dist_build_target_arch.${reset}"
                fi
                shift 2
                ;;
@@ -472,23 +472,23 @@ whonix_build_one_parse_cmd() {
                shift 2
                ;;
            --file-system)
-               export whonix_build_file_system="$2"
+               export dist_build_file_system="$2"
                shift 2
                ;;
            --hostname)
-               export whonix_build_hostname="$2"
+               export dist_build_hostname="$2"
                shift 2
                ;;
            --debopt)
-               export whonix_build_debopt="$2"
+               export dist_build_debopt="$2"
                shift 2
                ;;
            --retry-max)
-               export whonix_build_auto_retry="$2"
+               export dist_build_auto_retry="$2"
                shift 2
                ;;
            --retry-wait)
-               export whonix_build_wait_auto_retry="$2"
+               export dist_build_wait_auto_retry="$2"
                shift 2
                ;;
            --retry-before)
@@ -544,12 +544,12 @@ whonix_build_one_parse_cmd() {
                   echo "${red}${bold}ERROR: --conffile may not be empty.${reset}"
                   exit 1
                else
-                  export whonix_build_conf_file="$2"
-                  true "${cyan}INFO: --conffile set to: $whonix_build_conf_file${reset}"
-                  if [ -f "$whonix_build_conf_file" ]; then
-                     true "${cyan}INFO: --conffile $whonix_build_conf_file exists.${reset}"
+                  export dist_build_conf_file="$2"
+                  true "${cyan}INFO: --conffile set to: $dist_build_conf_file${reset}"
+                  if [ -f "$dist_build_conf_file" ]; then
+                     true "${cyan}INFO: --conffile $dist_build_conf_file exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --conffile $whonix_build_conf_file does not exist!${reset}"
+                     echo "${red}${bold}ERROR: --conffile $dist_build_conf_file does not exist!${reset}"
                      exit 1
                   fi
                fi
@@ -585,8 +585,8 @@ whonix_build_one_parse_cmd() {
                if [ "$2" = "false" ]; then
                   true "${cyan}INFO: Not using unsafe io.${reset}"
                elif [ "$2" = "true" ]; then
-                  whonix_build_unsafe_io="true"
-                  export whonix_build_unsafe_io
+                  dist_build_unsafe_io="true"
+                  export dist_build_unsafe_io
                   true "${cyan}INFO: Using unsafe io.${reset}"
                else
                   echo "${red}${bold}ERROR: supported options for --unsafe-io are 'true' or 'false'.${reset}"
@@ -674,30 +674,30 @@ whonix_build_one_parse_cmd() {
    #[ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="dracut dracut-config-generic dracut-config-rescue binutils dmsetup pigz"
    [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="initramfs-tools"
 
-   if [ "$BUILD_TARGET_ARCH" = "i386" ]; then
+   if [ "$dist_build_target_arch" = "i386" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-686"
       [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-686"
       [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="i386"
-   elif [ "$BUILD_TARGET_ARCH" = "arm64" ]; then
+   elif [ "$dist_build_target_arch" = "arm64" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-arm64"
       [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-arm64"
       [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="arm64"
    fi
 
-   [ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="amd64"
+   [ -n "$dist_build_target_arch" ] || dist_build_target_arch="amd64"
    [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-amd64"
    [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-amd64"
    ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
    [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
 
    export BUILD_INITRAMFS_PKGS
-   export BUILD_TARGET_ARCH
+   export dist_build_target_arch
    export BUILD_KERNEL_PKGS
    export BUILD_HEADER_PKGS
    export target_architecture_pretty_name
 
    echo "${cyan}INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
-   echo "${cyan}INFO: BUILD_TARGET_ARCH         (--arch): $BUILD_TARGET_ARCH${reset}"
+   echo "${cyan}INFO: dist_build_target_arch         (--arch): $dist_build_target_arch${reset}"
    echo "${cyan}INFO: BUILD_KERNEL_PKGS       (--kernel): $BUILD_KERNEL_PKGS${reset}"
    echo "${cyan}INFO: BUILD_HEADER_PKGS      (--headers): $BUILD_HEADER_PKGS${reset}"
 
@@ -733,7 +733,7 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
       fi
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       true
    elif [ "$WHONIX_BUILD_VIRTUALBOX" = "true" ]; then
       true
@@ -751,7 +751,7 @@ Defaulting whonix_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
       fi
    fi
 
-   if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+   if [ "$dist_build_install_to_root" = "1" ]; then
       if [ "$build_target_counter" -gt "1" ]; then
          echo "${red}${bold}You can not combine --target root with other targets.${reset}"
          exit 1

@@ -8,7 +8,7 @@
 ## - `cowbuilder` hardcodes setting '--buildplace'.
 ##
 ## - `pbuilder` sets by default '--force-check-gpg'.
-##   (This could also be sorted in `whonix_build_pbuilder_config_file`.)
+##   (This could also be sorted in `dist_build_pbuilder_config_file`.)
 ## - `pbuilder` `/usr/lib/pbuilder/pbuilder-createbuildenv` hardcodes calling `${DEBOOTSTRAP}`.
 ##
 ## - `mmdebstrap` does not support '--force-check-gpg'.
@@ -30,7 +30,7 @@ true "whonix_build_sources_list_primary: $whonix_build_sources_list_primary"
 true "http_proxy: $http_proxy"
 true "REPO_PROXY: ${REPO_PROXY}"
 true "APTGETOPT: $APTGETOPT"
-true "BUILD_TARGET_ARCH: $BUILD_TARGET_ARCH"
+true "dist_build_target_arch: $dist_build_target_arch"
 
 ## filter out default mirror by cowbuilder or pbuilder (if we were not using --mirror)
 args="${args//"http://ftp.us.debian.org/debian"}"
@@ -68,12 +68,12 @@ true "args: $args"
 if [ "$BUILDPLACE" = "" ]; then
    true "$0: probably called by called by grml-debootstrap"
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mmdebstrap" \
+   "$dist_source_help_steps_folder/mmdebstrap" \
       --verbose \
       --debug \
       --variant=required \
       --architectures="$whonix_build_multiarch_package_item" \
-      --aptopt="$whonix_aptgetop_file" \
+      --aptopt="$dist_aptgetopt_file" \
       $args
 
    ## example:
@@ -84,14 +84,14 @@ else
    ## build dependencies
    include_opt="--include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring"
 
-   cat "$whonix_aptgetop_file"
+   cat "$dist_aptgetopt_file"
 
-   "$WHONIX_SOURCE_HELP_STEPS_FOLDER/mmdebstrap" \
+   "$dist_source_help_steps_folder/mmdebstrap" \
       --verbose \
       --debug \
       --variant=required \
       --architectures="$whonix_build_multiarch_package_item" \
-      --aptopt="$whonix_aptgetop_file" \
+      --aptopt="$dist_aptgetopt_file" \
       $include_opt \
       $args \
       "$BUILDPLACE"

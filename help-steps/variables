@@ -56,29 +56,29 @@ export user_name
 
 [ -n "$HOMEVAR" ] || HOMEVAR="/home/$user_name"
 export HOMEVAR
-[ -n "$WHONIX_BINARY" ] || WHONIX_BINARY="$HOMEVAR/whonix_binary"
-export WHONIX_BINARY
+[ -n "$binary_build_folder_dist" ] || binary_build_folder_dist="$HOMEVAR/whonix_binary"
+export binary_build_folder_dist
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-[ -n "$WHONIX_SOURCE_FOLDER" ] || WHONIX_SOURCE_FOLDER="$(dirname "$MYDIR")"
-export WHONIX_SOURCE_FOLDER
+[ -n "$source_code_folder_dist" ] || source_code_folder_dist="$(dirname "$MYDIR")"
+export source_code_folder_dist
 
-build_script_main="$WHONIX_SOURCE_FOLDER/whonix_build"
+build_script_main="$source_code_folder_dist/whonix_build"
 
-[ -n "$whonix_parent_folder" ] || whonix_parent_folder="$(dirname "$WHONIX_SOURCE_FOLDER")"
-[ -n "$whonix_dev_meta_files_folder" ] || whonix_dev_meta_files_folder="$WHONIX_SOURCE_FOLDER/packages/developer-meta-files"
+[ -n "$dist_parent_folder" ] || dist_parent_folder="$(dirname "$source_code_folder_dist")"
+[ -n "$whonix_dev_meta_files_folder" ] || whonix_dev_meta_files_folder="$source_code_folder_dist/packages/Kicksecure/developer-meta-files"
 
-[ -n "$WHONIX_SOURCE_PARENTDIR" ] || WHONIX_SOURCE_PARENTDIR="$(dirname "$WHONIX_SOURCE_FOLDER")"
-export WHONIX_SOURCE_PARENTDIR
+[ -n "$dist_source_parentdir" ] || dist_source_parentdir="$(dirname "$source_code_folder_dist")"
+export dist_source_parentdir
 
-[ -n "$WHONIX_SOURCE_HELP_STEPS_FOLDER" ] || WHONIX_SOURCE_HELP_STEPS_FOLDER="$WHONIX_SOURCE_FOLDER/help-steps"
-export WHONIX_SOURCE_HELP_STEPS_FOLDER
+[ -n "$dist_source_help_steps_folder" ] || dist_source_help_steps_folder="$source_code_folder_dist/help-steps"
+export dist_source_help_steps_folder
 
-cd "$WHONIX_SOURCE_FOLDER"
+cd "$source_code_folder_dist"
 
-[ -n "$whonix_aptgetop_file" ] || whonix_aptgetop_file="$WHONIX_BINARY/aptgetopt.conf"
-export whonix_aptgetop_file
-rm -f "$whonix_aptgetop_file"
+[ -n "$dist_aptgetopt_file" ] || dist_aptgetopt_file="$binary_build_folder_dist/aptgetopt.conf"
+export dist_aptgetopt_file
+rm -f "$dist_aptgetopt_file"
 
 aptgetopt_add() {
    APTGETOPT[${#APTGETOPT[@]}]="$1"
@@ -86,8 +86,8 @@ aptgetopt_add() {
 }
 
 aptgetopt_conf_add () {
-   sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/"
-   echo "$1" | sudo $SUDO_OPTS tee --append "$whonix_aptgetop_file" >/dev/null
+   sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist/"
+   echo "$1" | sudo $SUDO_OPTS tee --append "$dist_aptgetopt_file" >/dev/null
 }
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
@@ -123,14 +123,14 @@ if [ ! "$whonix_build_one_parsed" = "1" ]; then
    test -o xtrace || { MINUS_X_SET="$?" ; true; };
    if [ "$MINUS_X_SET" = "0" ]; then
       ## -x was set
-      bash -n "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
-      source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
+      bash -n "$source_code_folder_dist/help-steps/parse-cmd"
+      source "$source_code_folder_dist/help-steps/parse-cmd"
       whonix_build_one_parse_cmd "$@"
    else
       ## -x was not set
       set -x
-      bash -n "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
-      source "$WHONIX_SOURCE_FOLDER/help-steps/parse-cmd"
+      bash -n "$source_code_folder_dist/help-steps/parse-cmd"
+      source "$source_code_folder_dist/help-steps/parse-cmd"
       whonix_build_one_parse_cmd "$@"
       set +x
    fi
@@ -140,127 +140,127 @@ fi
 
 export whonix_build_sources_list_primary
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-xfce" ]; then
+if [ "$dist_build_flavor" = "whonix-gateway-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-XFCE"
    [ -n "$VMRAM" ] || VMRAM="1280"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="gateway"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="XFCE"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" non-qubes-whonix-gateway-xfce "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-rpi" ]; then
+if [ "$dist_build_flavor" = "whonix-gateway-rpi" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-RPi"
    [ -n "$VMRAM" ] || VMRAM="768"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="gateway"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="RPi"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="RPi"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-gateway-rpi "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-gateway-cli" ]; then
+if [ "$dist_build_flavor" = "whonix-gateway-cli" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-CLI"
    [ -n "$VMRAM" ] || VMRAM="512"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="gateway"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CLI"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" non-qubes-whonix-gateway-cli "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-xfce" ]; then
+if [ "$dist_build_flavor" = "whonix-workstation-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Workstation"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation-XFCE"
    [ -n "$VMRAM" ] || VMRAM="2048"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="workstation"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="XFCE"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="workstation"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" non-qubes-whonix-workstation-xfce "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-workstation-cli" ]; then
+if [ "$dist_build_flavor" = "whonix-workstation-cli" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Workstation"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation-CLI"
    [ -n "$VMRAM" ] || VMRAM="512"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="workstation"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CLI"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="workstation"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" non-qubes-whonix-workstation-cli "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-custom-workstation" ]; then
+if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Workstation-CUSTOM"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation-CUSTOM"
    [ -n "$VMRAM" ] || VMRAM="2048"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="custom-workstation"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CUSTOM"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="custom-workstation"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CUSTOM"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
    #[ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" none "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-host-cli" ]; then
+if [ "$dist_build_flavor" = "kicksecure-host-cli" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure-Host"
    [ -n "$VMNAME" ] || VMNAME="Kicksecure-Host-CLI"
    [ -n "$VMRAM" ] || VMRAM="512"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="kicksecure-host"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CLI"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
    [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
-   error "${red}${bold}WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR is not implemented.${reset}"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
+   error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-host-xfce" ]; then
+if [ "$dist_build_flavor" = "kicksecure-host-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure-Host"
    [ -n "$VMNAME" ] || VMNAME="Kicksecure-Host-XFCE"
    [ -n "$VMRAM" ] || VMRAM="2048"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="kicksecure-host"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="XFCE"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
    [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
-   error "${red}${bold}WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR is not implemented.${reset}"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
+   error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-host-cli" ]; then
+if [ "$dist_build_flavor" = "whonix-host-cli" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Host"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Host-CLI"
    [ -n "$VMRAM" ] || VMRAM="512"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="whonix-host"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CLI"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
    [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
-   error "${red}${bold}WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR is not implemented.${reset}"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
+   error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "whonix-host-xfce" ]; then
+if [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Host"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Host-XFCE"
    [ -n "$VMRAM" ] || VMRAM="2048"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="whonix-host"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="whonix"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="XFCE"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
    [ -n "$WHONIX_BUILD_HOST" ] || WHONIX_BUILD_HOST="true"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="host"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
 
    ## XXX: '--flavor whonix-host-xfce --target iso' currently is hardcoded to KVM.
    if [ "$WHONIX_BUILD_QCOW2" = "true" ] || [ "$WHONIX_BUILD_ISO" = "true" ]; then
@@ -277,36 +277,36 @@ if [ "$WHONIX_BUILD_FLAVOR" = "whonix-host-xfce" ]; then
    else
       ## This would break:
       ## sudo ./help-steps/mount-raw --target raw --build --flavor whonix-host-xfce --freedom false
-      #error "${red}${bold}Only 'target --qcow2' is supported for WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR for now.${reset}"
-      echo "${red}${bold}NOTE: Only 'target --qcow2' is supported for WHONIX_BUILD_FLAVOR $WHONIX_BUILD_FLAVOR for now.${reset}"
+      #error "${red}${bold}Only 'target --qcow2' is supported for dist_build_flavor $dist_build_flavor for now.${reset}"
+      echo "${red}${bold}NOTE: Only 'target --qcow2' is supported for dist_build_flavor $dist_build_flavor for now.${reset}"
    fi
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-cli" ]; then
+if [ "$dist_build_flavor" = "kicksecure-cli" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure"
    [ -n "$VMNAME" ] || VMNAME="Kicksecure-CLI"
    [ -n "$VMRAM" ] || VMRAM="512"
    [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="CLI"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="localhost"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-cli-vm "
 fi
 
-if [ "$WHONIX_BUILD_FLAVOR" = "kicksecure-xfce" ]; then
+if [ "$dist_build_flavor" = "kicksecure-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure"
    [ -n "$VMNAME" ] || VMNAME="Kicksecure-XFCE"
    [ -n "$VMRAM" ] || VMRAM="2048"
    [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$WHONIX_BUILD_TYPE" ] || WHONIX_BUILD_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_SHORT_TYPE" ] || WHONIX_BUILD_SHORT_TYPE="kicksecure"
-   [ -n "$WHONIX_BUILD_DESKTOP" ] || WHONIX_BUILD_DESKTOP="XFCE"
-   [ -n "$whonix_build_hostname" ] || whonix_build_hostname="localhost"
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
+   [ -n "$dist_build_desktop" ] || dist_build_desktop="XFCE"
+   [ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-xfce-vm "
 fi
 
-export WHONIX_BUILD_TYPE
+export dist_build_type_long
 
 export VMNAME VMRAM VRAM
 
@@ -327,14 +327,14 @@ if [ "$WHONIX_BUILD_INTERNALRUN" = "1" ]; then
    fi
 fi
 
-if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+if [ "$dist_build_install_to_root" = "1" ]; then
    if [ "$CHROOT_FOLDER" = "" ]; then
       CHROOT_FOLDER=""
    fi
 else
-   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$WHONIX_BINARY/${VMNAME}_image"
-   ANON_BUILD_INSTALL_TO_ROOT="0"
-   export ANON_BUILD_INSTALL_TO_ROOT
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
+   dist_build_install_to_root="0"
+   export dist_build_install_to_root
 fi
 export CHROOT_FOLDER
 
@@ -360,7 +360,7 @@ fi
 [ -n "$XZ_OPT" ] || XZ_OPT="--threads=8"
 export XZ_OPT
 
-if [ "$whonix_build_unsafe_io" = "true" ]; then
+if [ "$dist_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
    aptgetopt_add "-o Dpkg::Options::=--force-unsafe-io"
    aptgetopt_conf_add "Dpkg::Options:: \"--force-unsafe-io\";"
@@ -411,7 +411,7 @@ fi
 ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
 export COWBUILDER_PREFIX
 
-if [ "$ANON_BUILD_INSTALL_TO_ROOT" = "1" ]; then
+if [ "$dist_build_install_to_root" = "1" ]; then
    if [ "$CHROOT" = "" ]; then
       CHROOT=""
    fi
@@ -445,9 +445,9 @@ fi
 ## such as variable APTGETOPT.
 ## Would miss out on security related APT configuration options:
 ## apt-get --error-on=any / -o APT::Update::Error-Mode=any
-[ -n "$whonix_build_auto_retry" ] || whonix_build_auto_retry="0"
+[ -n "$dist_build_auto_retry" ] || dist_build_auto_retry="0"
 
-[ -n "$whonix_build_wait_auto_retry" ] || whonix_build_wait_auto_retry="5"
+[ -n "$dist_build_wait_auto_retry" ] || dist_build_wait_auto_retry="5"
 
 ## Sanity Test.
 command -v "$git_bin" >/dev/null
@@ -458,35 +458,35 @@ export DEB_INSTALL_FOLDER
 [ -n "$EMPTY_DIR" ] || EMPTY_DIR="/tmp/empty"
 export EMPTY_DIR
 
-[ -n "$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER" ] || WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER="/var/lib/whonix/sources_temp_list.d"
-[ -n "$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE" ] || WHONIX_SOURCES_LIST_TEMP_BUILD_FILE="$WHONIX_SOURCES_LIST_TEMP_BUILD_FOLDER/whonix_temp_initialdeb.list"
+[ -n "$dist_sources_list_templ_build_folder" ] || dist_sources_list_templ_build_folder="/var/lib/whonix/sources_temp_list.d"
+[ -n "$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE" ] || WHONIX_SOURCES_LIST_TEMP_BUILD_FILE="$dist_sources_list_templ_build_folder/whonix_temp_initialdeb.list"
 
-[ -n "$WHONIX_SOURCES_LIST_TEMP_INITIAL_DEB_SOURCES_LIST" ] || WHONIX_SOURCES_LIST_TEMP_INITIAL_DEB_SOURCES_LIST="$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE"
+[ -n "$dist_sources_list_temp_initial_deb_sources_list" ] || dist_sources_list_temp_initial_deb_sources_list="$CHROOT_FOLDER/$WHONIX_SOURCES_LIST_TEMP_BUILD_FILE"
 
-## {{{ whonix_build_on_operating_system
+## {{{ dist_build_on_operating_system
 
-if [ "$whonix_build_on_operating_system_detect_skip" = "1" ]; then
-   true "Probably run by prepare-build-machine script. lsb_release may not yet installed. Skipping setting whonix_build_on_operating_system."
+if [ "$dist_build_on_operating_system_detect_skip" = "1" ]; then
+   true "Probably run by prepare-build-machine script. lsb_release may not yet installed. Skipping setting dist_build_on_operating_system."
 else
    ## Let's find out on which host operating system the build script is running.
-   [ -n "$whonix_build_on_operating_system" ] || whonix_build_on_operating_system="$(lsb_release --short --i)"
-   ## Converting whonix_build_on_operating_system to lower case to make later if comparison easier.
-   whonix_build_on_operating_system="${whonix_build_on_operating_system,,}"
-   ## Example whonix_build_on_operating_system: debian
-   ## Example whonix_build_on_operating_system: ubuntu
+   [ -n "$dist_build_on_operating_system" ] || dist_build_on_operating_system="$(lsb_release --short --i)"
+   ## Converting dist_build_on_operating_system to lower case to make later if comparison easier.
+   dist_build_on_operating_system="${dist_build_on_operating_system,,}"
+   ## Example dist_build_on_operating_system: debian
+   ## Example dist_build_on_operating_system: ubuntu
    ## XXX
-   if [ "$whonix_build_on_operating_system" = "whonix" ]; then
-      whonix_build_on_operating_system="debian"
+   if [ "$dist_build_on_operating_system" = "whonix" ]; then
+      dist_build_on_operating_system="debian"
    fi
 fi
 
 ## }}}
 
-## {{{ whonix_build_current_git_head
+## {{{ dist_build_current_git_head
 
-[ -n "$whonix_build_current_git_head" ] || whonix_build_current_git_head="$($git_bin rev-parse HEAD)"
+[ -n "$dist_build_current_git_head" ] || dist_build_current_git_head="$($git_bin rev-parse HEAD)"
 
-#echo "whonix_build_current_git_head: $whonix_build_current_git_head"
+#echo "dist_build_current_git_head: $dist_build_current_git_head"
 
 ## }}}
 
@@ -517,13 +517,13 @@ export dist_build_version
 
 ## }}}
 
-if [ "$WHONIX_BUILD_TYPE" = "kicksecure" ]; then
-   [ -n "$whonix_unified_name" ] || whonix_unified_name="Kicksecure-${WHONIX_BUILD_DESKTOP}-${dist_build_version}"
+if [ "$dist_build_type_long" = "kicksecure" ]; then
+   [ -n "$dist_unified_name" ] || dist_unified_name="Kicksecure-${dist_build_desktop}-${dist_build_version}"
 else
-   [ -n "$whonix_unified_name" ] || whonix_unified_name="Whonix-${WHONIX_BUILD_DESKTOP}-${dist_build_version}"
+   [ -n "$dist_unified_name" ] || dist_unified_name="Whonix-${dist_build_desktop}-${dist_build_version}"
 fi
 
-[ -n "$dist_binary_build_folder" ] || dist_binary_build_folder="$WHONIX_BINARY/${dist_build_version}"
+[ -n "$dist_binary_build_folder" ] || dist_binary_build_folder="$binary_build_folder_dist/${dist_build_version}"
 
 [ -n "$binary_image_raw" ] || binary_image_raw="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.${target_architecture_pretty_name}.raw"
 
@@ -531,55 +531,55 @@ fi
 
 [ -n "$binary_image_text" ] || binary_image_text="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.text"
 
-[ -n "$binary_image_ova" ] || binary_image_ova="${dist_binary_build_folder}/${whonix_unified_name}.ova"
-[ -n "$binary_image_ova_signature" ] || binary_image_ova_signature="${dist_binary_build_folder}/${whonix_unified_name}.ova.asc"
-[ -n "$binary_image_ova_torrent" ] || binary_image_ova_torrent="${dist_binary_build_folder}/${whonix_unified_name}.ova.torrent"
-[ -n "$binary_image_ova_torrent_signature" ] || binary_image_ova_torrent_signature="${dist_binary_build_folder}/${whonix_unified_name}.ova.torrent.asc"
+[ -n "$binary_image_ova" ] || binary_image_ova="${dist_binary_build_folder}/${dist_unified_name}.ova"
+[ -n "$binary_image_ova_signature" ] || binary_image_ova_signature="${dist_binary_build_folder}/${dist_unified_name}.ova.asc"
+[ -n "$binary_image_ova_torrent" ] || binary_image_ova_torrent="${dist_binary_build_folder}/${dist_unified_name}.ova.torrent"
+[ -n "$binary_image_ova_torrent_signature" ] || binary_image_ova_torrent_signature="${dist_binary_build_folder}/${dist_unified_name}.ova.torrent.asc"
 
 [ -n "$binary_image_iso" ] || binary_image_iso="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso"
 [ -n "$binary_image_iso_signature" ] || binary_image_iso_signature="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso.asc"
 [ -n "$binary_image_iso_torrent" ] || binary_image_iso_torrent="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso.torrent"
 [ -n "$binary_image_iso_torrent_signature" ] || binary_image_iso_torrent_signature="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso.torrent.asc"
 
-[ -n "$libvirt_source_kvm_file" ] || libvirt_source_kvm_file="$WHONIX_SOURCE_FOLDER/packages/libvirt-dist/usr/share/libvirt-dist/xml/${SHORT_VMNAME}.xml"
+[ -n "$libvirt_source_kvm_file" ] || libvirt_source_kvm_file="$source_code_folder_dist/packages/libvirt-dist/usr/share/libvirt-dist/xml/${SHORT_VMNAME}.xml"
 [ -n "$libvirt_target_kvm_file" ] || libvirt_target_kvm_file="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.xml"
 
-[ -n "$source_utm_file" ] || source_utm_file="$WHONIX_SOURCE_FOLDER/packages/libvirt-dist/usr/share/whonix-utm/${SHORT_VMNAME}.plist"
+[ -n "$source_utm_file" ] || source_utm_file="$source_code_folder_dist/packages/libvirt-dist/usr/share/whonix-utm/${SHORT_VMNAME}.plist"
 
-[ -n "$libvirt_source_network_file_external" ] || libvirt_source_network_file_external="$WHONIX_SOURCE_FOLDER/packages/libvirt-dist/usr/share/libvirt-dist/xml/Whonix-External.xml"
+[ -n "$libvirt_source_network_file_external" ] || libvirt_source_network_file_external="$source_code_folder_dist/packages/libvirt-dist/usr/share/libvirt-dist/xml/Whonix-External.xml"
 [ -n "$libvirt_target_network_file_external" ] || libvirt_target_network_file_external="${dist_binary_build_folder}/Whonix_external_network-${dist_build_version}.xml"
 
-[ -n "$libvirt_source_network_file_internal" ] || libvirt_source_network_file_internal="$WHONIX_SOURCE_FOLDER/packages/libvirt-dist/usr/share/libvirt-dist/xml/Whonix-Internal.xml"
+[ -n "$libvirt_source_network_file_internal" ] || libvirt_source_network_file_internal="$source_code_folder_dist/packages/libvirt-dist/usr/share/libvirt-dist/xml/Whonix-Internal.xml"
 [ -n "$libvirt_target_network_file_internal" ] || libvirt_target_network_file_internal="${dist_binary_build_folder}/Whonix_internal_network-${dist_build_version}.xml"
 
-[ -n "$libvirt_target_raw_xz_archive" ] || libvirt_target_raw_xz_archive="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz"
-[ -n "$libvirt_target_raw_xz_archive_signature" ] || libvirt_target_raw_xz_archive_signature="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.asc"
-[ -n "$libvirt_target_raw_xz_archive_torrent" ] || libvirt_target_raw_xz_archive_torrent="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.torrent"
-[ -n "$libvirt_target_raw_xz_archive_torrent_signature" ] || libvirt_target_raw_xz_archive_torrent_signature="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.torrent.asc"
+[ -n "$libvirt_target_raw_xz_archive" ] || libvirt_target_raw_xz_archive="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz"
+[ -n "$libvirt_target_raw_xz_archive_signature" ] || libvirt_target_raw_xz_archive_signature="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.asc"
+[ -n "$libvirt_target_raw_xz_archive_torrent" ] || libvirt_target_raw_xz_archive_torrent="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.torrent"
+[ -n "$libvirt_target_raw_xz_archive_torrent_signature" ] || libvirt_target_raw_xz_archive_torrent_signature="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz.torrent.asc"
 
-[ -n "$libvirt_target_qcow2_xz_archive" ] || libvirt_target_qcow2_xz_archive="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz"
-[ -n "$libvirt_target_qcow2_xz_archive_signature" ] || libvirt_target_qcow2_xz_archive_signature="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.asc"
-[ -n "$libvirt_target_qcow2_xz_archive_torrent" ] || libvirt_target_qcow2_xz_archive_torrent="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.torrent"
-[ -n "$libvirt_target_qcow2_xz_archive_torrent_signature" ] || libvirt_target_qcow2_xz_archive_torrent_signature="${dist_binary_build_folder}/${whonix_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.torrent.asc"
+[ -n "$libvirt_target_qcow2_xz_archive" ] || libvirt_target_qcow2_xz_archive="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz"
+[ -n "$libvirt_target_qcow2_xz_archive_signature" ] || libvirt_target_qcow2_xz_archive_signature="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.asc"
+[ -n "$libvirt_target_qcow2_xz_archive_torrent" ] || libvirt_target_qcow2_xz_archive_torrent="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.torrent"
+[ -n "$libvirt_target_qcow2_xz_archive_torrent_signature" ] || libvirt_target_qcow2_xz_archive_torrent_signature="${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz.torrent.asc"
 
-[ -n "$sha_two_hundredth_fifty_six_hash_file" ] || sha_two_hundredth_fifty_six_hash_file="${dist_binary_build_folder}/${whonix_unified_name}.sha256sums"
-[ -n "$sha_two_hundredth_fifty_six_hash_file_signature" ] || sha_two_hundredth_fifty_six_hash_file_signature="${dist_binary_build_folder}/${whonix_unified_name}.sha256sums.asc"
+[ -n "$sha_two_hundredth_fifty_six_hash_file" ] || sha_two_hundredth_fifty_six_hash_file="${dist_binary_build_folder}/${dist_unified_name}.sha256sums"
+[ -n "$sha_two_hundredth_fifty_six_hash_file_signature" ] || sha_two_hundredth_fifty_six_hash_file_signature="${dist_binary_build_folder}/${dist_unified_name}.sha256sums.asc"
 
-[ -n "$sha_five_hundredth_twelve_hash_file" ] || sha_five_hundredth_twelve_hash_file="${dist_binary_build_folder}/${whonix_unified_name}.sha512sums"
-[ -n "$sha_five_hundredth_twelve_hash_file_signature" ] || sha_five_hundredth_twelve_hash_file_signature="${dist_binary_build_folder}/${whonix_unified_name}.sha512sums.asc"
+[ -n "$sha_five_hundredth_twelve_hash_file" ] || sha_five_hundredth_twelve_hash_file="${dist_binary_build_folder}/${dist_unified_name}.sha512sums"
+[ -n "$sha_five_hundredth_twelve_hash_file_signature" ] || sha_five_hundredth_twelve_hash_file_signature="${dist_binary_build_folder}/${dist_unified_name}.sha512sums.asc"
 
 ## TODO: broken
-[ -n "$copy_vms_into_raw_file_one" ] || copy_vms_into_raw_file_one="${dist_binary_build_folder}/Whonix-Gateway-${WHONIX_BUILD_DESKTOP}-${dist_build_version}.qcow2"
-[ -n "$copy_vms_into_raw_file_two" ] || copy_vms_into_raw_file_two="${dist_binary_build_folder}/Whonix-Workstation-${WHONIX_BUILD_DESKTOP}-${dist_build_version}.qcow2"
+[ -n "$copy_vms_into_raw_file_one" ] || copy_vms_into_raw_file_one="${dist_binary_build_folder}/Whonix-Gateway-${dist_build_desktop}-${dist_build_version}.qcow2"
+[ -n "$copy_vms_into_raw_file_two" ] || copy_vms_into_raw_file_two="${dist_binary_build_folder}/Whonix-Workstation-${dist_build_desktop}-${dist_build_version}.qcow2"
 
 sudo $SUDO_OPTS mkdir --parents "${dist_binary_build_folder}"
 
 ## {{{ buildconfig.d
 
-[ -n "$whonix_build_config_dirs" ] || whonix_build_config_dirs="$WHONIX_SOURCE_FOLDER/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d"
+[ -n "$dist_build_config_dirs" ] || dist_build_config_dirs="$source_code_folder_dist/buildconfig.d /etc/whonix_buildconfig.d ../buildconfig.d"
 
-whonix_build_source_config_dir() {
-   true "${cyan}INFO: Checking if whonix_build_config_dir $whonix_build_config_dir exists...${reset}"
+dist_build_source_config_dir() {
+   true "${cyan}INFO: Checking if dist_build_config_dir $dist_build_config_dir exists...${reset}"
    if [ -d "$1" ]; then
       true "${cyan}INFO: Parsing $1...${reset}"
       shopt -s nullglob
@@ -593,18 +593,18 @@ whonix_build_source_config_dir() {
    fi
 }
 
-for whonix_build_config_dir in $whonix_build_config_dirs; do
-   whonix_build_source_config_dir "$whonix_build_config_dir"
+for dist_build_config_dir in $dist_build_config_dirs; do
+   dist_build_source_config_dir "$dist_build_config_dir"
 done
 
 if [ ! "$whonix_build_custom_config_dir" = "" ]; then
-   whonix_build_source_config_dir "$whonix_build_custom_config_dir"
+   dist_build_source_config_dir "$whonix_build_custom_config_dir"
 fi
 
-if [ ! "$whonix_build_conf_file" = "" ]; then
-   if [ -f "$whonix_build_conf_file" ]; then
-      bash -n "$whonix_build_conf_file"
-      source "$whonix_build_conf_file"
+if [ ! "$dist_build_conf_file" = "" ]; then
+   if [ -f "$dist_build_conf_file" ]; then
+      bash -n "$dist_build_conf_file"
+      source "$dist_build_conf_file"
    fi
 fi
 
@@ -630,17 +630,17 @@ export DEBFULLNAME
 [ -n "$DEBEMAIL" ] || DEBEMAIL="derivative-distribution@local-signing.key"
 export DEBEMAIL
 
-[ -n "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" ] || WHONIX_BUILD_SIGN_LOCAL_REPOSITORY=false
+[ -n "$dist_build_sign_local_repository" ] || dist_build_sign_local_repository=false
 
-if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "true" ]; then
-   if [ "$WHONIX_LOCAL_SIGNING_KEY_FOLDER" = "" ]; then
-      error_ "WHONIX_BUILD_SIGN_LOCAL_REPOSITORY is true, but WHONIX_LOCAL_SIGNING_KEY_FOLDER is empty!"
+if [ "$dist_build_sign_local_repository" = "true" ]; then
+   if [ "$dist_local_signing_key_folder" = "" ]; then
+      error_ "dist_build_sign_local_repository is true, but dist_local_signing_key_folder is empty!"
    else
-      [ -n "$WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS" ] || WHONIX_BUILD_REPREPRO_SIGNING_OPTIONS="--gnupghome $WHONIX_LOCAL_SIGNING_KEY_FOLDER"
+      [ -n "$dist_build_reprepro_signing_options" ] || dist_build_reprepro_signing_options="--gnupghome $dist_local_signing_key_folder"
    fi
 fi
 
-if [ "$WHONIX_BUILD_SIGN_LOCAL_REPOSITORY" = "true" ]; then
+if [ "$dist_build_sign_local_repository" = "true" ]; then
    ## For whatever it may be worth.
    ## https://forums.whonix.org/t/end-to-end-signed-debs-debsign-debsig-and-dpkg-sig
    [ -n "$make_use_debsign" ] || make_use_debsign="true"
@@ -653,18 +653,18 @@ fi
 
 ## {{{ apt repository variables
 
-[ -n "$WHONIX_BUILD_APT_CODENAME" ] || WHONIX_BUILD_APT_CODENAME="local"
-export WHONIX_BUILD_APT_CODENAME
+[ -n "$dist_build_apt_codename" ] || dist_build_apt_codename="local"
+export dist_build_apt_codename
 ## developer local setting in buildconfig.d folder:
-## export WHONIX_BUILD_APT_CODENAME="bullseye-developers"
+## export dist_build_apt_codename="bullseye-developers"
 
 ## }}}
 
 ## {{{ reprepro variables
 
-set_WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS() {
+set_whonix_build_reprepro_folder_options() {
    if [ "$reprepro_codename" = "" ]; then
-      reprepro_codename="$WHONIX_BUILD_APT_CODENAME"
+      reprepro_codename="$dist_build_apt_codename"
    fi
 
    if [ "$reprepro_codename" = "local" ]; then
@@ -673,71 +673,71 @@ set_WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS() {
       apt_repo_sub_folder="aptrepo_remote"
    fi
 
-   [ -n "$WHONIX_APT_REPOSITORY_FOLDER" ] || WHONIX_APT_REPOSITORY_FOLDER="$WHONIX_BINARY/$apt_repo_sub_folder"
-   export WHONIX_APT_REPOSITORY_FOLDER
+   [ -n "$dist_apt_repository_folder" ] || dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
+   export dist_apt_repository_folder
 
-   [ -n "$WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS" ] || \
-      WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS="\
-         --basedir $WHONIX_SOURCE_FOLDER/$apt_repo_sub_folder \
-         --outdir $WHONIX_BINARY/$apt_repo_sub_folder \
-         --dbdir $WHONIX_BINARY/$apt_repo_sub_folder/db \
-         --logdir $WHONIX_BINARY/$apt_repo_sub_folder/log"
-   export WHONIX_BUILD_REPREPRO_FOLDER_OPTIONS
+   [ -n "$whonix_build_reprepro_folder_options" ] || \
+      whonix_build_reprepro_folder_options="\
+         --basedir $source_code_folder_dist/$apt_repo_sub_folder \
+         --outdir $binary_build_folder_dist/$apt_repo_sub_folder \
+         --dbdir $binary_build_folder_dist/$apt_repo_sub_folder/db \
+         --logdir $binary_build_folder_dist/$apt_repo_sub_folder/log"
+   export whonix_build_reprepro_folder_options
 }
 
 ## }}}
 
-## {{{ BUILD_TARGET_ARCH
+## {{{ dist_build_target_arch
 
 ## Default architecture.
 ## Using export, so it can be read by chroot-post.d scripts.
-[ -n "$BUILD_TARGET_ARCH" ] || BUILD_TARGET_ARCH="amd64"
-export BUILD_TARGET_ARCH
+[ -n "$dist_build_target_arch" ] || dist_build_target_arch="amd64"
+export dist_build_target_arch
 
 ## }}}
 
 [ -n "$host_architecture" ] || host_architecture="$(dpkg --print-architecture)"
 export host_architecture
 
-[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="$BUILD_TARGET_ARCH"
+[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="$dist_build_target_arch"
 #[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="i386 amd64"
 export make_cross_build_platform_list
 
-[ -n "$whonix_build_file_system" ] || whonix_build_file_system="ext4"
+[ -n "$dist_build_file_system" ] || dist_build_file_system="ext4"
 
-whonix_build_debopt+=" --verbose "
+dist_build_debopt+=" --verbose "
 
-whonix_build_debopt+=" --include="
-for grml_package in $(grep --invert-match "#" "$WHONIX_SOURCE_FOLDER/grml_packages") ; do
+dist_build_debopt+=" --include="
+for grml_package in $(grep --invert-match "#" "$source_code_folder_dist/grml_packages") ; do
    if [ "locales" = "$grml_package" ]; then
       ## XXX: Workaround for:
       ## https://github.com/grml/grml-debootstrap/issues/48
       continue
    fi
-   whonix_build_debopt+="$grml_package"
-   whonix_build_debopt+=","
+   dist_build_debopt+="$grml_package"
+   dist_build_debopt+=","
 done
 ## Remove trailing ','.
-whonix_build_debopt="${whonix_build_debopt::-1}"
+dist_build_debopt="${dist_build_debopt::-1}"
 
 ## cowbuilder (which internally uses pbuilder).
-whonix_build_pbuilder_chroot_script="$WHONIX_SOURCE_HELP_STEPS_FOLDER/pbuilder-chroot-script"
+dist_build_pbuilder_chroot_script="$dist_source_help_steps_folder/pbuilder-chroot-script"
 
-whonix_build_pbuilder_config_name="pbuilder.conf"
-whonix_build_pbuilder_config_file="$WHONIX_BINARY/$whonix_build_pbuilder_config_name"
-export whonix_build_pbuilder_config_name
+dist_build_pbuilder_config_name="pbuilder.conf"
+dist_build_pbuilder_config_file="$binary_build_folder_dist/$dist_build_pbuilder_config_name"
+export dist_build_pbuilder_config_name
 ## export so it can be read by genmkfile
-export whonix_build_pbuilder_config_file
+export dist_build_pbuilder_config_file
 
-make_cowbuilder_dist_folder="$WHONIX_BINARY/genmkfile-packages-result"
+make_cowbuilder_dist_folder="$binary_build_folder_dist/genmkfile-packages-result"
 
-rm --force "$whonix_build_pbuilder_config_file"
-sudo $SUDO_OPTS mkdir --parents "$WHONIX_BINARY/"
+rm --force "$dist_build_pbuilder_config_file"
+sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist/"
 sudo $SUDO_OPTS mkdir --parents "$make_cowbuilder_dist_folder"
 
 echo "\
 ## This is an auto generated file.
-## Auto generated by $WHONIX_SOURCE_HELP_STEPS_FOLDER/$BASH_SOURCE.
+## Auto generated by $dist_source_help_steps_folder/$BASH_SOURCE.
 ## Edits will be lost!
 
 ## Debugging.
@@ -747,7 +747,7 @@ APTGETOPT[\${#APTGETOPT[@]}]=\"${APTGETOPT[@]}\"
 
 APTGETOPT[\${#APTGETOPT[@]}]=\"-o Acquire::BlockDotOnion=false\"
 
-export whonix_aptgetop_file
+export dist_aptgetopt_file
 
 ## making pbuilder /usr/lib/pbuilder/pbuilder-createbuildenv work with mmdebstrap.
 ## so it can be read by help-steps/pbuilder-debootstrap-command-filter
@@ -756,18 +756,18 @@ export BUILDPLACE
 ## Debugging.
 true \"APTGETOPT: \${APTGETOPT[@]}\"
 true \"BUILDPLACE: \$BUILDPLACE\"
-true \"whonix_aptgetop_file: \$whonix_aptgetop_file\"
+true \"dist_aptgetopt_file: \$dist_aptgetopt_file\"
 
 APTCACHEHARDLINK=no
 
 ## E: Cross building is possible only with the APT dependency resolver
 PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
 
-## End of $whonix_build_pbuilder_config_file.
+## End of $dist_build_pbuilder_config_file.
 " | \
-   sudo $SUDO_OPTS tee "$whonix_build_pbuilder_config_file" >/dev/null
+   sudo $SUDO_OPTS tee "$dist_build_pbuilder_config_file" >/dev/null
 
-#sudo $SUDO_OPTS cat "$whonix_build_pbuilder_config_file"
+#sudo $SUDO_OPTS cat "$dist_build_pbuilder_config_file"
 
 ## Cannot export bash array.
 export APTGETOPT
