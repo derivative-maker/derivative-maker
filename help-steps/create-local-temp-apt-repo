@@ -27,43 +27,59 @@ main() {
    ## EMPTY_DIR Example:
    ## "/tmp/empty"
 
-   ## dist_apt_repository_folder Example:
-   ## /home/user/derivative-binary/aptrepo_local
+   ## dist_apt_repository_folder Examples:
+   ## /home/user/derivative-binary/aptrepo_local/Kicksecure
+   ## /home/user/derivative-binary/aptrepo_local/Whonix
 
-   mkdir --parents "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
-   mkdir --parents "$CHROOT_FOLDER/$EMPTY_DIR"
-   mkdir --parents "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
+   for derivative_name_item in $derivative_name_list ; do
+      ## sets: dist_apt_repository_folder
+      set_dist_build_reprepro_folder_options
 
-   ## sets: dist_apt_repository_folder
-   set_dist_build_reprepro_folder_options
+      mkdir --parents "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
+      mkdir --parents "$CHROOT_FOLDER/$EMPTY_DIR"
+      mkdir --parents "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
 
-   if [ "$build_remote_derivative_pkgs" = "true" ]; then
-      cp "$source_code_folder_dist/packages/usability-misc/usr/bin/repo-add-dist" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/repo-add-dist"
+      if [ "$build_remote_derivative_pkgs" = "true" ]; then
+         cp "$source_code_folder_dist/packages/Kicksecure/usability-misc/usr/bin/repo-add-dist" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/repo-add-dist"
 
-      ## creates $dist_sources_list_temp_initial_deb_sources_list
-      $CHROOT bash -x "$DEB_INSTALL_FOLDER/repo-add-dist"
-   else
-      ## Mount our local apt repository inside the image (or machine).
-      mount --bind "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
+         [ -n "$codename" ] || codename="bullseye"
+         if echo $derivative_name_list | grep -q -i Whonix ; then
+            [ -n "$sources_list_build_remote_derivative" ] || sources_list_build_remote_derivative="
+            deb [signed-by=/usr/share/keyrings/derivative.asc] https://deb.kicksecure.com $codename main contrib non-free
+            deb [signed-by=/usr/share/keyrings/derivative.asc] https://deb.whonix.org $codename main contrib non-free
+            "
+         else
+            [ -n "$sources_list_build_remote_derivative" ] || sources_list_build_remote_derivative="
+            deb [signed-by=/usr/share/keyrings/derivative.asc] https://deb.kicksecure.com $codename main contrib non-free
+            "
+         fi
+         export sources_list_build_remote_derivative
 
-      ## Create a sources.list file for our local apt repository.
-      echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/ $dist_build_apt_codename main contrib non-free" > "$dist_sources_list_temp_initial_deb_sources_list"
-   fi
+         ## creates $dist_sources_list_temp_initial_deb_sources_list
+         $CHROOT bash -x "$DEB_INSTALL_FOLDER/repo-add-dist"
+      else
+         ## Mount our local apt repository inside the image (or machine).
+         mount --bind "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
 
-   ## For debugging / Info.
-   cat "$dist_sources_list_temp_initial_deb_sources_list"
+         ## Create a sources.list file for our local apt repository.
+         echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/$derivative_name_item $dist_build_apt_codename main contrib non-free" > "$dist_sources_list_temp_initial_deb_sources_list"
+      fi
 
-   ## Copy which (frozen) sources.list will be used for building Whonix into the image (or machine).
-   cp "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
+      ## For debugging / Info.
+      cat "$dist_sources_list_temp_initial_deb_sources_list"
 
-   ## For debugging / Info.
-   cat "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
+      ## Copy which (frozen) sources.list will be used for building Whonix into the image (or machine).
+      cp "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
-   sync
+      ## For debugging / Info.
+      cat "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
-   ## For debugging / Info.
-   ls -la "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
-   ls -la "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
+      sync
+
+      ## For debugging / Info.
+      ls -la "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
+      ls -la "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
+   done
 }
 
 main "$@"

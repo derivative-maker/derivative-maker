@@ -310,6 +310,12 @@ export dist_build_type_long
 
 export VMNAME VMRAM VRAM
 
+if [ "$dist_build_type_short" = "kicksecure" ]; then
+   [ -n "$derivative_name_list" ] || derivative_name_list="Kicksecure"
+else
+   [ -n "$derivative_name_list" ] || derivative_name_list="Kicksecure Whonix"
+fi
+
 ## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
 ## i.e. only space, which gets actually filled up, will take disk space.
 [ -n "$VMSIZE" ] || VMSIZE="100G"
@@ -457,11 +463,6 @@ export DEB_INSTALL_FOLDER
 
 [ -n "$EMPTY_DIR" ] || EMPTY_DIR="/tmp/empty"
 export EMPTY_DIR
-
-[ -n "$dist_sources_list_temp_build_folder" ] || dist_sources_list_temp_build_folder="/var/lib/whonix/sources_temp_list.d"
-[ -n "$dist_sources_list_temp_build_file" ] || dist_sources_list_temp_build_file="$dist_sources_list_temp_build_folder/whonix_temp_initialdeb.list"
-
-[ -n "$dist_sources_list_temp_initial_deb_sources_list" ] || dist_sources_list_temp_initial_deb_sources_list="$CHROOT_FOLDER/$dist_sources_list_temp_build_file"
 
 ## {{{ dist_build_on_operating_system
 
@@ -663,25 +664,32 @@ export dist_build_apt_codename
 ## {{{ reprepro variables
 
 set_dist_build_reprepro_folder_options() {
+   if [ "$derivative_name_item" = "" ]; then
+      error "derivative_name_item is empty!"
+   fi
+
    if [ "$reprepro_codename" = "" ]; then
       reprepro_codename="$dist_build_apt_codename"
    fi
 
+   dist_sources_list_temp_build_folder="/var/lib/derivative-maker/sources-temp-list.d"
+   dist_sources_list_temp_build_file="$dist_sources_list_temp_build_folder/${derivative_name_item}-temp-initialdeb.list"
+   dist_sources_list_temp_initial_deb_sources_list="$CHROOT_FOLDER/$dist_sources_list_temp_build_file"
+
    if [ "$reprepro_codename" = "local" ]; then
-      apt_repo_sub_folder="aptrepo_local"
+      apt_repo_sub_folder="aptrepo_local/$derivative_name_item"
    else
-      apt_repo_sub_folder="aptrepo_remote"
+      apt_repo_sub_folder="aptrepo_remote/$derivative_name_item"
    fi
 
-   [ -n "$dist_apt_repository_folder" ] || dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
+   dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
    export dist_apt_repository_folder
 
-   [ -n "$dist_build_reprepro_folder_options" ] || \
-      dist_build_reprepro_folder_options="\
-         --basedir $source_code_folder_dist/$apt_repo_sub_folder \
-         --outdir $binary_build_folder_dist/$apt_repo_sub_folder \
-         --dbdir $binary_build_folder_dist/$apt_repo_sub_folder/db \
-         --logdir $binary_build_folder_dist/$apt_repo_sub_folder/log"
+   dist_build_reprepro_folder_options="\
+      --basedir $source_code_folder_dist/$apt_repo_sub_folder \
+      --outdir $binary_build_folder_dist/$apt_repo_sub_folder \
+      --dbdir $binary_build_folder_dist/$apt_repo_sub_folder/db \
+      --logdir $binary_build_folder_dist/$apt_repo_sub_folder/log"
    export dist_build_reprepro_folder_options
 }
 
