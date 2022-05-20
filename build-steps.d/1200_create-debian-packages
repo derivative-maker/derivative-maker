@@ -288,73 +288,75 @@ reprepro_add_newer_packages() {
 create_derivative_distribution_debian_packages() {
    true "${cyan}$BASH_SOURCE INFO: Creating Derivative Debian Packages... ${reset}"
 
-   local item number_folders_total number_folder_current benchmark_time_start benchmark_took_time
+   local item number_folders_total number_folder_current benchmark_time_start benchmark_took_time derivative_name_item
    ## Thanks to: l0b0 - http://unix.stackexchange.com/a/20855/49297
-   number_folders_total="$(find "$source_code_folder_dist/packages" -mindepth 1 -maxdepth 1 -type d -printf '\n' | wc -l)" || true
+   number_folders_total="$(find "$source_code_folder_dist/packages" -mindepth 2 -maxdepth 2 -type d -printf '\n' | wc -l)" || true
    number_folder_current="0"
 
    shopt -s nullglob
    shopt -s dotglob
 
-   for item in $pkg_list; do
-      ## TODO
-      item="$source_code_folder_dist/packages/$item"
-      if [ ! -d "$item" ]; then
-         true "INFO: Not a folder: $item"
-         continue
-      fi
-      pushd "$item"
-      number_folder_current="$(( number_folder_current + 1 ))"
-      local base_name
-      base_name="${item##*/}"
-      if [ "$base_name" = "developer-meta-files" ]; then
-         true "${cyan}INFO: Skipping $base_name as expected.${reset}"
+   for derivative_name_item in $derivative_name_list ; do
+      for item in $pkg_list ; do
+         ## TODO
+         item="$source_code_folder_dist/packages/$derivative_name_item/$item"
+         if [ ! -d "$item" ]; then
+            true "INFO: Not a folder: $item"
+            continue
+         fi
+         pushd "$item"
+         number_folder_current="$(( number_folder_current + 1 ))"
+         local base_name
+         base_name="${item##*/}"
+         if [ "$base_name" = "developer-meta-files" ]; then
+            true "${cyan}INFO: Skipping $base_name as expected.${reset}"
+            popd
+            continue
+         fi
+
+         ## 'Architecture:' currently in ./packages/$derivative_name_item/ folder:
+         ## all
+         ## any
+         ## amd64
+         ## linux-amd64
+         if cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "all" ; then
+            true "DEBUG: Architecture: all"
+         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "any" ; then
+            true "DEBUG: Architecture: any"
+         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "amd64" ; then
+            true "DEBUG: Architecture: amd64"
+            if [ ! "$dist_build_target_arch" = "amd64" ]; then
+               true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
+               popd
+               continue
+            fi
+         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
+            true "DEBUG: Architecture: linux-amd64"
+            if [ ! "$dist_build_target_arch" = "amd64" ]; then
+               true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
+               popd
+               continue
+            fi
+         else
+            cat "debian/control" | grep "Architecture:" || true
+            error "unknown Architecture:"
+         fi
+
+         true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
+         benchmark_time_start="$(date +%s)" || true
+         lintian_use_maybe="$make_use_lintian"
+         ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
+         sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
+         "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
+         if [ "$make_use_cowbuilder" = "false" ]; then
+            "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
+         fi
+         sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
+         sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
+         benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
          popd
-         continue
-      fi
-
-      ## 'Architecture:' currently in ./packages/ folder:
-      ## all
-      ## any
-      ## amd64
-      ## linux-amd64
-      if cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "all" ; then
-         true "DEBUG: Architecture: all"
-      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "any" ; then
-         true "DEBUG: Architecture: any"
-      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "amd64" ; then
-         true "DEBUG: Architecture: amd64"
-         if [ ! "$dist_build_target_arch" = "amd64" ]; then
-            true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
-            popd
-            continue
-         fi
-      elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
-         true "DEBUG: Architecture: linux-amd64"
-         if [ ! "$dist_build_target_arch" = "amd64" ]; then
-            true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
-            popd
-            continue
-         fi
-      else
-         cat "debian/control" | grep "Architecture:" || true
-         error "unknown Architecture:"
-      fi
-
-      true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
-      benchmark_time_start="$(date +%s)" || true
-      lintian_use_maybe="$make_use_lintian"
-      ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
-      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
-      "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
-      if [ "$make_use_cowbuilder" = "false" ]; then
-         "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
-      fi
-      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
-      sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
-      benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
-      popd
-      true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
+         true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
+      done
    done
 
    true "${cyan}$BASH_SOURCE INFO: Created Derivative Debian Packages. ${reset}"
