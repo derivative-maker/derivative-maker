@@ -16,7 +16,7 @@
 
 #sudo -E make_cross_build_platform_list="i386 amd64 arm64" ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target root --function download_tpo_packages
 
-#sudo -E temp_newer_packages= ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function reprepro_add_newer_packages
+#sudo -E temp_newer_packages= ./build-steps.d/1200_create-debian-packages --build --allow-untagged true --allow-uncommitted true --internalrun --target virtualbox --function reprepro_add_newer_packages_from_third_party_repositories
 
 set -x
 set -e
@@ -50,7 +50,7 @@ download_tpo_packages() {
    ## Selected packages we want to mirror from deb.torproject.org to Whonix local/remote repository.
    newer_package_list="tor tor-geoipdb deb.torproject.org-keyring"
 
-   build_run_function get_newer_packages "$@"
+   build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
 ## https://forums.whonix.org/t/missing-dependencies-on-buster-for-virtualbox-6-1-6/9634
@@ -80,7 +80,7 @@ download_virtualbox_packages_virtualbox_org() {
    ## Selected packages we want to mirror from repo_sources_list to Whonix local/remote repository.
    newer_package_list="virtualbox-6.1"
 
-   build_run_function get_newer_packages "$@"
+   build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
 ## See:
@@ -136,10 +136,10 @@ download_virtualbox_packages_from_debian_sid() {
    newer_package_list+=" virtualbox-source "
    newer_package_list+=" virtualbox-guest-additions-iso "
 
-   build_run_function get_newer_packages "$@"
+   build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
-get_newer_packages() {
+get_newer_packages_from_third_party_repositories() {
    true "${cyan}$BASH_SOURCE INFO: Downloading newer packages from third-party repository... ${reset}"
 
    local cow_folder base_folder
@@ -248,10 +248,10 @@ is not included in available_architectures_for_download_only_list: $available_ar
 
    true "${cyan}$BASH_SOURCE INFO: Completed downloading newer packages from third-party repository. ${reset}"
 
-   reprepro_add_newer_packages
+   reprepro_add_newer_packages_from_third_party_repositories
 }
 
-reprepro_add_newer_packages() {
+reprepro_add_newer_packages_from_third_party_repositories() {
    true "${cyan}$BASH_SOURCE INFO: Adding newer packages from third-party repository to reprepro... ${reset}"
    if [ "$temp_newer_packages" = "" ]; then
       error "Variable temp_newer_packages is empty!"
