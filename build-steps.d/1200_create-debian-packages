@@ -237,7 +237,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
       chown --recursive "$user_name:$user_name" "$temp_newer_packages"
 
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
-      true "${cyan}INFO: Done with build '${FUNCNAME[1]}' (benchmark: $benchmark_took_time) ${reset}"
+      true "${cyan}INFO: Done with function '$FUNCNAME' (benchmark: $benchmark_took_time) ${reset}"
 
       if [ ! "$dist_build_download_script_exit_code" = "0" ]; then
          return "$dist_build_download_script_exit_code"
@@ -298,13 +298,12 @@ create_derivative_distribution_debian_packages() {
 
    for derivative_name_item in $derivative_name_list ; do
       for item in $pkg_list ; do
-         ## TODO
          item="$source_code_folder_dist/packages/$derivative_name_item/$item"
          if [ ! -d "$item" ]; then
             true "INFO: Not a folder: $item"
             continue
          fi
-         pushd "$item"
+         pushd "$item" >/dev/null
          number_folder_current="$(( number_folder_current + 1 ))"
          local base_name
          base_name="${item##*/}"
@@ -327,14 +326,14 @@ create_derivative_distribution_debian_packages() {
             true "DEBUG: Architecture: amd64"
             if [ ! "$dist_build_target_arch" = "amd64" ]; then
                true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
-               popd
+               popd >/dev/null
                continue
             fi
          elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
             true "DEBUG: Architecture: linux-amd64"
             if [ ! "$dist_build_target_arch" = "amd64" ]; then
                true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
-               popd
+               popd >/dev/null
                continue
             fi
          else
@@ -343,9 +342,6 @@ create_derivative_distribution_debian_packages() {
          fi
 
          true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
-## TODO
-         continue
-
          benchmark_time_start="$(date +%s)" || true
          lintian_use_maybe="$make_use_lintian"
          ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
@@ -357,7 +353,7 @@ create_derivative_distribution_debian_packages() {
          sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
          sudo $SUDO_OPTS -E "$source_code_folder_dist/packages/Kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
          benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
-         popd
+         popd >/dev/null
          true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
       done
    done
