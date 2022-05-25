@@ -12,12 +12,26 @@ fi
 
 ## {{ Sanity Tests.
 
-dist_build_programs_to_check_installed="logname whoami dirname basename awk grep dpkg-parsechangelog"
+dist_build_missing_dependency() {
+   error "dist_build_missing_dependency
+programs_to_check_installed_item: $1
 
-for programs_to_check_installed_item in dist_build_programs_to_check_installed ; do
-   command -v $programs_to_check_installed_item >/dev/null
-done
+Did you install dependencies as mentioned in build documentation chapter
+Host Preparation
+?"
+   true
+}
 
+variables_script_sanity_test() {
+   local dist_build_programs_to_check_installed programs_to_check_installed_item
+   dist_build_programs_to_check_installed="logname whoami dirname basename awk grep dpkg-parsechangelog"
+
+   for programs_to_check_installed_item in dist_build_programs_to_check_installed ; do
+      command -v $programs_to_check_installed_item >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
+   done
+}
+
+variables_script_sanity_test
 bash -n "$BASH_SOURCE"
 
 ## }}
