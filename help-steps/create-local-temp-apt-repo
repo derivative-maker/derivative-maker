@@ -56,13 +56,15 @@ main() {
          export sources_list_build_remote_derivative
 
          ## creates $dist_sources_list_temp_initial_deb_sources_list
+         true "INFO: running repo-add-dist..."
          $CHROOT bash -x "$DEB_INSTALL_FOLDER/repo-add-dist"
+         true "INFO: done with repo-add-dist."
       else
          ## Mount our local apt repository inside the image (or machine).
          mount --bind "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
 
          ## Create a sources.list file for our local apt repository.
-         echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/$derivative_name_item $dist_build_apt_codename main contrib non-free" > "$dist_sources_list_temp_initial_deb_sources_list"
+         echo "deb [trusted=yes] file:$DEB_INSTALL_FOLDER/$derivative_name_item $dist_build_apt_codename main contrib non-free" | tee "$dist_sources_list_temp_initial_deb_sources_list" >/dev/null
       fi
 
       ## For debugging / Info.
