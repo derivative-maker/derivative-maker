@@ -325,8 +325,10 @@ export VMNAME VMRAM VRAM
 
 if [ "$dist_build_type_short" = "kicksecure" ]; then
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure"
+   [ -n "$dist_upload_destination_site" ] || dist_upload_destination_site="kicksecure.com"
 else
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
+   [ -n "$dist_upload_destination_site" ] || dist_upload_destination_site="whonix.org"
 fi
 
 if [ "$dist_build_internal_run" = "1" ]; then
@@ -604,6 +606,9 @@ unset dist_build_files_to_upload
 declare -a dist_build_files_to_upload
 
 if [ "$dist_build_virtualbox" = "true" ]; then
+   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
+   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/ova"
+
    dist_build_files_to_upload+=("$binary_image_ova")
    dist_build_files_to_upload+=("$binary_image_ova_signature")
    dist_build_files_to_upload+=("$binary_image_ova_torrent")
@@ -612,6 +617,9 @@ if [ "$dist_build_virtualbox" = "true" ]; then
 fi
 
 if [ "$dist_build_iso" = "true" ]; then
+   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
+   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/iso"
+
    dist_build_files_to_upload+=("$binary_image_iso")
    dist_build_files_to_upload+=("$binary_image_iso_signature")
    dist_build_files_to_upload+=("$binary_image_iso_torrent")
@@ -620,6 +628,9 @@ if [ "$dist_build_iso" = "true" ]; then
 fi
 
 if [ "$dist_build_qcow2" = "true" ]; then
+   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="hulahoop"
+   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/libvirt"
+
    dist_build_files_to_upload+=("$libvirt_target_raw_xz_archive")
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_signature")
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_torrent")
