@@ -264,8 +264,8 @@ reprepro_add_newer_packages_from_third_party_repositories() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
@@ -273,18 +273,18 @@ reprepro_add_newer_packages_from_third_party_repositories() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      $SUDO_TO_USER -E "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
+      $SUDO_TO_USER --preserve-env "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    true "${cyan}$BASH_SOURCE INFO: Added newer packages from third-party repository to reprepro. ${reset}"
@@ -351,13 +351,13 @@ create_derivative_distribution_debian_packages() {
          benchmark_time_start="$(date +%s)" || true
          lintian_use_maybe="$make_use_lintian"
          ## Using -E so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
-         $SUDO_TO_USER -E "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
+         $SUDO_TO_USER --preserve-env "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
          if [ "$make_use_cowbuilder" = "false" ]; then
             "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
          fi
-         $SUDO_TO_USER -E "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
-         $SUDO_TO_USER -E "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
+         $SUDO_TO_USER --preserve-env "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
+         $SUDO_TO_USER --preserve-env "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
          benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
          popd >/dev/null
          true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
