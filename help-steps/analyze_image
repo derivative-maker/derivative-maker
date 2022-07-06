@@ -277,7 +277,7 @@ preparation() {
 
    true "${cyan}INFO: user_name is set to $user_name ${reset}"
    true "${cyan}INFO: Benchmarking \"sudo -u \"$user_name\" echo \"This is a test echo.\"\" using \"time\"... ${reset}"
-   time sudo $SUDO_OPTS echo "This is a test echo."
+   time $SUDO_TO_USER echo "This is a test echo."
 
    ## {{ Sanity Tests.
 
@@ -336,9 +336,9 @@ preparation() {
    ## The binary_build_folder_dist folder should already be created. Just make sure it
    ## really is to allow running this script in non-Whonix environments as
    ## well.
-   sudo $SUDO_OPTS mkdir --parents "$binary_build_folder_dist"
+   $SUDO_TO_USER mkdir --parents "$binary_build_folder_dist"
 
-   sudo $SUDO_OPTS touch "$report_file"
+   $SUDO_TO_USER touch "$report_file"
    sync
 
    if [ ! "$nodeltempfolder" = "1" ]; then
@@ -394,21 +394,21 @@ preparation() {
    qcow2_file_basename="$(basename "$qcow2_file")"
    raw_file_basename="$(basename "$raw_file")"
 
-   sudo $SUDO_OPTS mkdir --parents "$extracted_ova_folder"
-   sudo $SUDO_OPTS mkdir --parents "$mount_folder" || true
-   sudo $SUDO_OPTS mkdir --parents "$vdi_folder"
-   sudo $SUDO_OPTS mkdir --parents "$qcow_folder"
-   sudo $SUDO_OPTS mkdir --parents "$qcow2_folder"
-   sudo $SUDO_OPTS mkdir --parents "$raw_folder"
-   sudo $SUDO_OPTS mkdir --parents "$auto_hash_folder"
-   sudo $SUDO_OPTS mkdir --parents "$initrd_folder"
-   sudo $SUDO_OPTS mkdir --parents "$extracted_initrd_folder"
-   sudo $SUDO_OPTS mkdir --parents "$debug_folder"
-   sudo $SUDO_OPTS mkdir --parents "$manual_analysis_folder"
+   $SUDO_TO_USER mkdir --parents "$extracted_ova_folder"
+   $SUDO_TO_USER mkdir --parents "$mount_folder" || true
+   $SUDO_TO_USER mkdir --parents "$vdi_folder"
+   $SUDO_TO_USER mkdir --parents "$qcow_folder"
+   $SUDO_TO_USER mkdir --parents "$qcow2_folder"
+   $SUDO_TO_USER mkdir --parents "$raw_folder"
+   $SUDO_TO_USER mkdir --parents "$auto_hash_folder"
+   $SUDO_TO_USER mkdir --parents "$initrd_folder"
+   $SUDO_TO_USER mkdir --parents "$extracted_initrd_folder"
+   $SUDO_TO_USER mkdir --parents "$debug_folder"
+   $SUDO_TO_USER mkdir --parents "$manual_analysis_folder"
 
    file_list_file="$auto_hash_folder/file_list"
    rm --force "$file_list_file"
-   sudo $SUDO_OPTS touch "$file_list_file"
+   $SUDO_TO_USER touch "$file_list_file"
 
    sync
 }
@@ -443,7 +443,7 @@ extract_ova() {
          error "${red}${bold}ERROR: $ova_file does not exist. ${reset}"
       else
          true "${bold}${cyan}INFO: Unpacking ova: $ova_file... (This can take a while.) ${reset}"
-         sudo $SUDO_OPTS tar -xvf "$ova_file"
+         $SUDO_TO_USER tar -xvf "$ova_file"
          true "${bold}${cyan}INFO: Unpacked ova_file. ${reset}"
       fi
    fi
@@ -473,15 +473,15 @@ convert_vmdk_to_vdi() {
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
       ## https://bugs.launchpad.net/qemu/+bug/1253465
-      #sudo $SUDO_OPTS qemu-img convert "$vmdk_file" -O raw "$vdi_file"
+      #$SUDO_TO_USER qemu-img convert "$vmdk_file" -O raw "$vdi_file"
 
       ## Debugging.
-      sudo $SUDO_OPTS qemu-img info "$vmdk_file"
+      $SUDO_TO_USER qemu-img info "$vmdk_file"
 
-      sudo $SUDO_OPTS VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
+      $SUDO_TO_USER VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
 
       ## Debugging.
-      sudo $SUDO_OPTS qemu-img info "$vdi_file"
+      $SUDO_TO_USER qemu-img info "$vdi_file"
 
       true "${bold}${cyan}INFO: Converted vmdk to vdi. ${reset}"
    fi
@@ -513,12 +513,12 @@ convert_x_to_raw() {
       true "${bold}${cyan}INFO: Converting $image_type to raw... (This can take a while.) ${reset}"
 
       ## Debugging.
-      sudo $SUDO_OPTS qemu-img info "$image_file"
+      $SUDO_TO_USER qemu-img info "$image_file"
 
-      sudo $SUDO_OPTS qemu-img convert -p -O raw "$image_file" "$raw_file"
+      $SUDO_TO_USER qemu-img convert -p -O raw "$image_file" "$raw_file"
 
       ## Debugging.
-      sudo $SUDO_OPTS qemu-img info "$raw_file"
+      $SUDO_TO_USER qemu-img info "$raw_file"
 
       true "${bold}${cyan}INFO: Converted $image_type to raw. ${reset}"
    fi
@@ -537,7 +537,7 @@ mount_image() {
    ## when using very long file names:
    ## https://www.redhat.com/archives/dm-devel/2014-July/msg00053.html
    unlink "$raw_file_short_link" || true
-   sudo $SUDO_OPTS ln -s "$raw_file" "$raw_file_short_link"
+   $SUDO_TO_USER ln -s "$raw_file" "$raw_file_short_link"
 
    ## dist_build_mount_raw_file us read by help-steps/mount-raw
    export dist_build_mount_raw_file="$raw_file_short_link"
@@ -655,7 +655,7 @@ parse_special_files() {
 
    ## {{{ /var/lib/initramfs-tools/
 
-   sudo $SUDO_OPTS mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
+   $SUDO_TO_USER mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
    local file_name
    shopt -s nullglob dotglob
@@ -688,7 +688,7 @@ parse_special_files() {
    if [ -e "$mount_folder/var/lib/dist-base-files/build_version" ]; then
       cp_to_user "$mount_folder/var/lib/dist-base-files/build_version" "$debug_folder/usr_lib_dist-base-files_build_version"
       echo "$debug_folder/usr_lib_dist-base-files_build_version BEGIN..."
-      sudo $SUDO_OPTS cat "$debug_folder/usr_lib_dist-base-files_build_version"
+      $SUDO_TO_USER cat "$debug_folder/usr_lib_dist-base-files_build_version"
       echo "END $debug_folder/usr_lib_dist-base-files_build_version"
    else
       msg="Strange, $mount_folder/var/lib/dist-base-files/build_version does not exist. Perhaps not running in Whonix."
@@ -700,10 +700,10 @@ parse_special_files() {
 
    ## {{{ /usr/share/doc/whonix-*/changelog.Debian.gz
 
-   sudo $SUDO_OPTS mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
+   $SUDO_TO_USER mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
    rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
-   sudo $SUDO_OPTS touch "$debug_folder/usr_share_doc_whonix-x/file_list"
+   $SUDO_TO_USER touch "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
    i="0"
    local file_name
@@ -720,7 +720,7 @@ parse_special_files() {
 
    ## }}}
 
-   sudo $SUDO_OPTS mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
+   $SUDO_TO_USER mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
 
    ## {{{ /var/lib/dpkg/info/whonix-*.md5sums
 
@@ -738,7 +738,7 @@ parse_special_files() {
 
    ## {{{ /var/cache/debconf/*
 
-   sudo $SUDO_OPTS mkdir --parents "$debug_folder/var_cache_debconf"
+   $SUDO_TO_USER mkdir --parents "$debug_folder/var_cache_debconf"
 
    local file_name
    shopt -s nullglob dotglob
@@ -754,7 +754,7 @@ parse_special_files() {
 
    ## {{{ /var/lib/anon-dist/grub-backup/*
 
-   sudo $SUDO_OPTS mkdir --parents "$debug_folder/var_lib_anon-dist_grub-backup"
+   $SUDO_TO_USER mkdir --parents "$debug_folder/var_lib_anon-dist_grub-backup"
 
    local file_name
    shopt -s nullglob dotglob
@@ -807,9 +807,9 @@ parse_initrd() {
       true "file_name: $file_name"
       local basename_file
       basename_file="$(basename "$file_name")"
-      sudo $SUDO_OPTS mkdir --parents "$basename_file"
+      $SUDO_TO_USER mkdir --parents "$basename_file"
       cd "$basename_file"
-      sudo $SUDO_OPTS gzip -dc < "$file_name" | sudo $SUDO_OPTS cpio -i
+      $SUDO_TO_USER gzip -dc < "$file_name" | $SUDO_TO_USER cpio -i
    done
 
    unset file_name

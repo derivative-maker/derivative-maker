@@ -20,12 +20,12 @@ source variables
 
 general_setup() {
    ## Create a new VM. Name: $VMNAME
-   sudo $SUDO_OPTS VBoxManage createvm --name "$VMNAME" --register
+   $SUDO_TO_USER VBoxManage createvm --name "$VMNAME" --register
 
    if ! echo "$dist_build_target_arch" | grep "64" ; then
-      sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ostype Debian
+      $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --ostype Debian
    else
-      sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ostype Debian_64
+      $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --ostype Debian_64
    fi
 
    ## SATA AHCI is VirtualBox's default for VMs created using the VirtualBox
@@ -42,40 +42,40 @@ general_setup() {
    ## `--name "controller"` is arbitrary. VirtualBox default for VMs created
    ## by VirtualBox GUI would be "Controller: SATA". Keeping it generic to
    ## simplify maybe required later manual user changes.
-   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --add sata --name "controller"
+   $SUDO_TO_USER VBoxManage storagectl "$VMNAME" --add sata --name "controller"
 
    ## Only 4 sata ports instead of 30. Speeds up booting.
-   sudo $SUDO_OPTS VBoxManage storagectl "$VMNAME" --name "controller" --portcount 4
+   $SUDO_TO_USER VBoxManage storagectl "$VMNAME" --name "controller" --portcount 4
 
    ## HDD gets added in the gateway / workstation specific functions below.
 
    ## Attach the HDD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "controller" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   $SUDO_TO_USER VBoxManage storageattach "$VMNAME" --storagectl "controller" --type hdd --port 0 --medium "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## RAM
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
 
    ## Settings->Display->Video Memory
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
 
    ## Enable PAE.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --pae on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --pae on
 
    ## 3 virtual CPU cores by default.
    ## No longer 4 virtual CPU cores by default.
    ## https://www.virtualbox.org/ticket/19500
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cpus 3
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cpus 3
 
    ## Restrict Boot devices
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --boot4 none
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --boot3 none
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --boot2 none
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --boot1 disk
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --boot4 none
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --boot3 none
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --boot2 none
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --boot1 disk
 
    ## Hide hosts CPU info. This does not have a GUI option.
    ## Was removed from VirtualBox.
    ## https://phabricator.whonix.org/T408
-   #sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --synthcpu on
+   #$SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --synthcpu on
 
    ## Quote VirtualBox documentation:
    ##
@@ -88,7 +88,7 @@ general_setup() {
    ##
    ## Conclusion: The linux kernel is better tested with ACPI enabled
    ## rather than ACPI disabled.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --acpi on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --acpi on
 
    ## VirtualBox documentation can be found on:
    ## https://www.virtualbox.org/manual/ch03.html
@@ -101,30 +101,30 @@ general_setup() {
    ## Conclusion: it is better to leave it enabled to avoid support requests by
    ## users who wish to use more than one virtual CPU, or create their own
    ## Custom-Whonix-Workstation.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ioapic on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --ioapic on
 
    ## Set system clock of VM to UTC.
    ## When VirtualBox starts it looks up date and time of the host, i.e. "JAN 15 2012 00:00:00"
    ## and sets the VM clock to that date and time. The following option translates the date
    ## and time to UTC, thus hiding the hosts timezone from the guest.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --rtcuseutc on
 
    ## Deactivate time synchronization between host and VMs.
    ## This is documented in Whonix Design on TimeSync page
    ## Thanks to
    ## http://www.braingia.org/webnotes/2011/06/22/disable-time-sync-with-virtualbox/
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
 
    ## Clipboard sharing.
    ## https://www.whonix.org/wiki/VirtualBox_Guest_Additions#Clipboard_Sharing
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --clipboard-mode bidirectional
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --clipboard-mode bidirectional
 
    ## Drag'n'Drop
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --draganddrop hosttoguest
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --draganddrop hosttoguest
 
    ## Disable microphones.
    ## https://www.whonix.org/wiki/Hardware_Threat_Minimization#Microphones
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audioin off
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --audioin off
 
    ## equivalent to:
    ## VirtualBox -> click a VM -> Settings -> Display -> Graphics Controller -> VMSVGA -> OK
@@ -139,10 +139,10 @@ general_setup() {
    ##
    ## Broken for some users?
    ## https://forums.whonix.org/t/black-screen-on-15-0-0-6-6-and-15-0-0-7-1/8554
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --graphicscontroller vmsvga
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --graphicscontroller vmsvga
 
    ## Debugging.
-   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
+   $SUDO_TO_USER VBoxManage getextradata "$VMNAME"
 
    ## Quote https://www.virtualbox.org/manual/ch09.html#max-resolution-guests
    ##
@@ -153,10 +153,10 @@ general_setup() {
    ## In conclusion, by VirtualBox default the VM screen resolution will not be higher than the
    ## host's screen size. Therefore set to "standard screen resolution 1920x1080".
    ## https://forums.whonix.org/t/consider-making-screen-resolution-1920x1080-by-default-for-all-vms/9143
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" GUI/LastGuestSizeHint "1920, 1080"
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" GUI/LastGuestSizeHint "1920, 1080"
 
    ## Debugging.
-   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
+   $SUDO_TO_USER VBoxManage getextradata "$VMNAME"
 }
 
 spectre_meltdown_defenses() {
@@ -167,14 +167,14 @@ spectre_meltdown_defenses() {
    ## > "--ibpb-on-vm-[enter|exit] on|off: Enables flushing of the indirect branch prediction buffers on every VM enter or exit respectively. This could be enabled by users overly worried about possible spectre attacks by the VM. Please note that these options may have sever impact on performance."
    ##
    ## There is a mistake in VirtualBox manual saying 'enter' which does not work. It's 'entry'.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-entry on
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-exit on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-entry on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --ibpb-on-vm-exit on
 
    ## https://www.virtualbox.org/manual/ch08.html
    ## > "--l1d-flush-on-vm-enter on|off: Enables flushing of the level 1 data cache on VM enter. See Section 13.4.1, "CVE-2018-3646"."
    ##
    ## There is a mistake in VirtualBox manual saying 'enter' which does not work. It's 'entry'.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --l1d-flush-on-vm-entry on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --l1d-flush-on-vm-entry on
 
    ## https://www.virtualbox.org/manual/ch08.html
    ## > "--l1d-flush-on-sched on|off: Enables flushing of the level 1 data cache on scheduling EMT for guest execution. See Section 13.4.1, "[https://www.virtualbox.org/manual/ch13.html#sec-rec-cve-2018-3646 CVE-2018-3646]"."
@@ -182,12 +182,12 @@ spectre_meltdown_defenses() {
    ## > "For users not concerned by this security issue, the default mitigation can be disabled using
    ##    VBoxManage modifyvm "$VMNAME" --l1d-flush-on-sched off"
    ## Since we want to enable the security feature we set '--l1d-flush-on-sched on'.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --l1d-flush-on-sched on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --l1d-flush-on-sched on
 
    ## https://www.virtualbox.org/manual/ch08.html
    ## > "--spec-ctrl on|off: This setting enables/disables exposing speculation control interfaces to the guest, provided they are available on the host. Depending on the host CPU and workload, enabling speculation control may significantly reduce performance."
    ## According to https://www.virtualbox.org/ticket/17987 '--spec-ctrl' should be set to 'on'.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --spec-ctrl on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --spec-ctrl on
 
    ## https://www.virtualbox.org/manual/ch08.html
    ## > "--nestedpaging on|off: If hardware virtualization is enabled, this additional setting enables or disables the use of the nested paging feature in the processor of your host system; see Section 10.7, "Nested paging and VPIDs" and Section 13.4.1, "CVE-2018-3646"."
@@ -204,7 +204,7 @@ spectre_meltdown_defenses() {
    ## > "By disabling nested paging (EPT), the VMM will construct page tables shadowing the ones in the guest. It is no possible for the guest to insert anything fishy into the page tables, since the VMM carefully validates each entry before shadowing it."
    ##
    ## > "As a side effect of disabling nested paging, several CPU features will not be made available to the guest. Among these features are AVX, AVX2, XSAVE, AESNI, and POPCNT. Not all guests may be able to cope with dropping these features after installation. Also, for some guests, especially in SMP configurations, there could be stability issues arising from disabling nested paging. Finally, some workloads may experience a performance degradation."
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nestedpaging off
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --nestedpaging off
 }
 
 hardware_obfuscation() {
@@ -217,61 +217,61 @@ hardware_obfuscation() {
    # https://phabricator.whonix.org/T408#11595
 
    # Clear existing (not necessary for initial install)
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cpuidremoveall
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cpuidremoveall
 
    # GenuineIntel
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ebx 0x756e6547
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ecx 0x6c65746e
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/edx 0x49656e69
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ebx 0x756e6547
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ecx 0x6c65746e
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/edx 0x49656e69
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ebx 0x756e6547
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/ecx 0x6c65746e
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000000/edx 0x49656e69
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ebx 0x756e6547
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/ecx 0x6c65746e
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000000/edx 0x49656e69
 
    # Model/Family/Stepping
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000001/eax 0x00000f43
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000001/eax 0x00000f43
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/00000001/eax 0x00000f43
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000001/eax 0x00000f43
 
    # Pentium model name
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/eax 0x20202020
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ebx 0x20202020
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ecx 0x20202020
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/edx 0x6e492020
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/eax 0x286c6574
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ebx 0x50202952
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ecx 0x69746e65
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/edx 0x52286d75
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/eax 0x20342029
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ebx 0x20555043
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ecx 0x30302e33
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/edx 0x007a4847
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/eax 0x20202020
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ebx 0x20202020
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/ecx 0x20202020
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000002/edx 0x6e492020
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/eax 0x286c6574
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ebx 0x50202952
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/ecx 0x69746e65
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000003/edx 0x52286d75
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/eax 0x20342029
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ebx 0x20555043
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/ecx 0x30302e33
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" VBoxInternal/CPUM/HostCPUID/80000004/edx 0x007a4847
 }
 
 whonix-gateway_specific() {
    ## Disable Audio
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audio none
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --audio none
 
    ## Leave Adapter 1 as NAT.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 nat
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --nic1 nat
 
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
    ## Enable Adapter 2, set to "Internal Network".
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic2 intnet
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --nic2 intnet
 
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected2 on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cableconnected2 on
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
 }
 
 whonix-workstation_specific() {
    ## Add Adapter 1, an internal network, IMPORTANT!
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 intnet
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --nic1 intnet
 
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 
    ## Change the internal network to "Whonix", IMPORTANT!
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
 }
 
 whonix-custom-workstation_specific() {
@@ -281,31 +281,31 @@ whonix-custom-workstation_specific() {
    ## https://forums.whonix.org/t/no-longer-add-virtual-dvd-drive-to-vm-by-default/9337
 
    ## Add DVD.
-   sudo $SUDO_OPTS VBoxManage storageattach "$VMNAME" --storagectl "controller" --type dvddrive --port 1 --medium emptydrive
+   $SUDO_TO_USER VBoxManage storageattach "$VMNAME" --storagectl "controller" --type dvddrive --port 1 --medium emptydrive
 
-   sudo $SUDO_OPTS VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
+   $SUDO_TO_USER VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
 }
 
 debian_specific() {
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --nic1 nat
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --nic1 nat
 
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --cableconnected1 on
 }
 
 audio_enable() {
    ## Enable audio controller ac97.
    ## sb16 should be obsolete.
    ## ac97 is hopefully better supported than intel hda.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --audiocontroller ac97
 
    ## Host audio driver can be oss, alsa or pulse.
    ## Unfortunately, no auto detection available.
    ## Depends on host driver.
    ## Ubuntu host uses pulse audio.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audio pulse
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --audio pulse
 
    ## Activate audio output.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --audioout on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --audioout on
 }
 
 dns_specific() {
@@ -322,20 +322,20 @@ dns_specific() {
    ##
    ## Both enabled at the same time causes an error in VirtualBox VM log:
    ## 00:00:00.933430 NAT: Host Resolver conflicts with DNS proxy, the last one was forcely ignored
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnsproxy1 off
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --natdnsproxy1 off
 
    ## Prevents leaking DNS info from the host into the guest.
    ## Also useful in other cases.
    ## https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
 
    ## Do not pass the domain name for network name resolution to the VM.
-   sudo $SUDO_OPTS VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+   $SUDO_TO_USER VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 }
 
 debugging() {
-   sudo $SUDO_OPTS VBoxManage showvminfo "$VMNAME"
-   sudo $SUDO_OPTS VBoxManage getextradata "$VMNAME"
+   $SUDO_TO_USER VBoxManage showvminfo "$VMNAME"
+   $SUDO_TO_USER VBoxManage getextradata "$VMNAME"
 }
 
 main() {
