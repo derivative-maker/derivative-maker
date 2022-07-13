@@ -21,6 +21,8 @@ source variables
 copy-vm-files(){
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
+   root_check
+
    "$dist_source_help_steps_folder/mount-raw"
 
    ## here we copy the Gateway and Workstation .qcow2 files into the host VM
@@ -35,11 +37,11 @@ copy-vm-files(){
    #cp --sparse=always "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
 
    ## Therefore using qemu-img.
-   qemu-img convert -f qcow2 -O qcow2 "$copy_vms_into_raw_file_one" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   qemu-img convert -f qcow2 -O qcow2 "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   $SUDO_TO_ROOT qemu-img convert -f qcow2 -O qcow2 "$copy_vms_into_raw_file_one" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   $SUDO_TO_ROOT qemu-img convert -f qcow2 -O qcow2 "$copy_vms_into_raw_file_two" "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
 
    ## TODO: qemu-img parameters?
-#    qemu-img \
+#    $SUDO_TO_ROOT qemu-img \
 #       convert \
 #          -p \
 #          -O qcow2 \
@@ -50,17 +52,17 @@ copy-vm-files(){
 #          "$binary_image_qcow2"
 
    ## Debugging.
-   qemu-img info "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   qemu-img info "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   $SUDO_TO_ROOT qemu-img info "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   $SUDO_TO_ROOT qemu-img info "$CHROOT_FOLDER/var/lib/libvirt/images/Whonix-Workstation.qcow2"
 
    ## https://forums.whonix.org/t/whonix-host-operating-system/3931/180
-   $CHROOT chmod --verbose --recursive o-r   "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   $CHROOT chmod --verbose --recursive o-r   "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
-   $CHROOT chmod --verbose --recursive ugo-w "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   $CHROOT chmod --verbose --recursive ugo-w "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   $SUDO_TO_ROOT $CHROOT chmod --verbose --recursive o-r   "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   $SUDO_TO_ROOT $CHROOT chmod --verbose --recursive o-r   "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   $SUDO_TO_ROOT $CHROOT chmod --verbose --recursive ugo-w "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   $SUDO_TO_ROOT $CHROOT chmod --verbose --recursive ugo-w "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
 
-   $CHROOT chown --verbose --recursive libvirt-qemu:libvirt-qemu "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
-   $CHROOT chown --verbose --recursive libvirt-qemu:libvirt-qemu "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
+   $SUDO_TO_ROOT $CHROOT chown --verbose --recursive libvirt-qemu:libvirt-qemu "/var/lib/libvirt/images/Whonix-Gateway.qcow2"
+   $SUDO_TO_ROOT $CHROOT chown --verbose --recursive libvirt-qemu:libvirt-qemu "/var/lib/libvirt/images/Whonix-Workstation.qcow2"
 
    "$dist_source_help_steps_folder/unmount-raw"
 

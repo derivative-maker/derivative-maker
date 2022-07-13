@@ -494,13 +494,22 @@ export -f exithandler
 
 trap "exithandler" EXIT
 
-root_check() {
-   if [ "$(id -u)" != "0" ]; then
-       echo "${red}${bold}ERROR: This must be run as root (sudo)!${reset}"
+do_not_run_as_root_simple_test() {
+   if [ "$(id -u)" = "0" ]; then
+       echo "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
        exit 1
-   else
-       $output_cmd "INFO: Script running as root."
    fi
+   $output_cmd "INFO: Script running as as non-root, ok."
+}
+
+root_check() {
+   do_not_run_as_root_simple_test
+   $output_cmd "INFO: Running 'sudo sync' to prompt for sudo password..."
+   $output_cmd "INFO: Please enter sudo password."
+   sudo sync
+   $output_cmd "INFO: Running '$SUDO_TO_ROOT sync' to test non-interactive sudo."
+   $SUDO_TO_ROOT sync
+   $output_cmd "INFO: root_check ok."
 }
 
 signing_key() {

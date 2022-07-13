@@ -220,7 +220,7 @@ $errorcomment
 bash_command: $bash_command
 exit_code: $exit_code"
 
-   echo "$errorcomment" >> "$report_file"
+   echo "$errorcomment" | tee -a "$report_file" >/dev/null
 
    exit 1
 }
@@ -269,15 +269,15 @@ preparation() {
    if [ "$minimal_report" = "true" ]; then
       true "${cyan}INFO: Only creating minimal report file because minimal_report is true.${reset}"
       rm --force "$report_file"
-      echo "$topcomment" >> "$report_file"
-      echo "Only creating minimal report file because minimal_report is true." >> "$report_file"
-      echo "$endcomment" >> "$report_file"
+      echo "$topcomment" | tee -a "$report_file" >/dev/null
+      echo "Only creating minimal report file because minimal_report is true." | tee -a "$report_file" >/dev/null
+      echo "$endcomment" | tee -a "$report_file" >/dev/null
       exit 0
    fi
 
    true "${cyan}INFO: user_name is set to $user_name ${reset}"
-   true "${cyan}INFO: Benchmarking \"sudo -u \"$user_name\" echo \"This is a test echo.\"\" using \"time\"... ${reset}"
-   time $SUDO_TO_USER echo "This is a test echo."
+   true "${cyan}INFO: Benchmarking '$SUDO_TO_ROOT time echo \"This is a test echo.\"' using \"time\"... ${reset}"
+   $SUDO_TO_ROOT time echo "This is a test echo."
 
    ## {{ Sanity Tests.
 
@@ -336,9 +336,9 @@ preparation() {
    ## The binary_build_folder_dist folder should already be created. Just make sure it
    ## really is to allow running this script in non-Whonix environments as
    ## well.
-   $SUDO_TO_USER mkdir --parents "$binary_build_folder_dist"
+   mkdir --parents "$binary_build_folder_dist"
 
-   $SUDO_TO_USER touch "$report_file"
+   touch "$report_file"
    sync
 
    if [ ! "$nodeltempfolder" = "1" ]; then
@@ -394,21 +394,21 @@ preparation() {
    qcow2_file_basename="$(basename "$qcow2_file")"
    raw_file_basename="$(basename "$raw_file")"
 
-   $SUDO_TO_USER mkdir --parents "$extracted_ova_folder"
-   $SUDO_TO_USER mkdir --parents "$mount_folder" || true
-   $SUDO_TO_USER mkdir --parents "$vdi_folder"
-   $SUDO_TO_USER mkdir --parents "$qcow_folder"
-   $SUDO_TO_USER mkdir --parents "$qcow2_folder"
-   $SUDO_TO_USER mkdir --parents "$raw_folder"
-   $SUDO_TO_USER mkdir --parents "$auto_hash_folder"
-   $SUDO_TO_USER mkdir --parents "$initrd_folder"
-   $SUDO_TO_USER mkdir --parents "$extracted_initrd_folder"
-   $SUDO_TO_USER mkdir --parents "$debug_folder"
-   $SUDO_TO_USER mkdir --parents "$manual_analysis_folder"
+   mkdir --parents "$extracted_ova_folder"
+   mkdir --parents "$mount_folder" || true
+   mkdir --parents "$vdi_folder"
+   mkdir --parents "$qcow_folder"
+   mkdir --parents "$qcow2_folder"
+   mkdir --parents "$raw_folder"
+   mkdir --parents "$auto_hash_folder"
+   mkdir --parents "$initrd_folder"
+   mkdir --parents "$extracted_initrd_folder"
+   mkdir --parents "$debug_folder"
+   mkdir --parents "$manual_analysis_folder"
 
    file_list_file="$auto_hash_folder/file_list"
    rm --force "$file_list_file"
-   $SUDO_TO_USER touch "$file_list_file"
+   touch "$file_list_file"
 
    sync
 }
@@ -420,7 +420,7 @@ parse_topcomment() {
    topcomment="\
 $topcomment
 ################################################################################"
-   echo "$topcomment" >> "$report_file"
+   echo "$topcomment" | tee -a "$report_file" >/dev/null
 }
 
 extract_ova() {
@@ -443,7 +443,7 @@ extract_ova() {
          error "${red}${bold}ERROR: $ova_file does not exist. ${reset}"
       else
          true "${bold}${cyan}INFO: Unpacking ova: $ova_file... (This can take a while.) ${reset}"
-         $SUDO_TO_USER tar -xvf "$ova_file"
+         tar -xvf "$ova_file"
          true "${bold}${cyan}INFO: Unpacked ova_file. ${reset}"
       fi
    fi
@@ -473,15 +473,15 @@ convert_vmdk_to_vdi() {
       ## qemu-img version 1.6.1 fails with:
       ## qemu-img: 'image' uses a vmdk feature which is not supported by this qemu version: VMDK version 3
       ## https://bugs.launchpad.net/qemu/+bug/1253465
-      #$SUDO_TO_USER qemu-img convert "$vmdk_file" -O raw "$vdi_file"
+      #qemu-img convert "$vmdk_file" -O raw "$vdi_file"
 
       ## Debugging.
-      $SUDO_TO_USER qemu-img info "$vmdk_file"
+      qemu-img info "$vmdk_file"
 
-      $SUDO_TO_USER VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
+      VBoxManage clonehd --format VDI "$vmdk_file" "$vdi_file"
 
       ## Debugging.
-      $SUDO_TO_USER qemu-img info "$vdi_file"
+      qemu-img info "$vdi_file"
 
       true "${bold}${cyan}INFO: Converted vmdk to vdi. ${reset}"
    fi
@@ -513,12 +513,12 @@ convert_x_to_raw() {
       true "${bold}${cyan}INFO: Converting $image_type to raw... (This can take a while.) ${reset}"
 
       ## Debugging.
-      $SUDO_TO_USER qemu-img info "$image_file"
+      qemu-img info "$image_file"
 
-      $SUDO_TO_USER qemu-img convert -p -O raw "$image_file" "$raw_file"
+      qemu-img convert -p -O raw "$image_file" "$raw_file"
 
       ## Debugging.
-      $SUDO_TO_USER qemu-img info "$raw_file"
+      qemu-img info "$raw_file"
 
       true "${bold}${cyan}INFO: Converted $image_type to raw. ${reset}"
    fi
@@ -537,7 +537,7 @@ mount_image() {
    ## when using very long file names:
    ## https://www.redhat.com/archives/dm-devel/2014-July/msg00053.html
    unlink "$raw_file_short_link" || true
-   $SUDO_TO_USER ln -s "$raw_file" "$raw_file_short_link"
+   ln -s "$raw_file" "$raw_file_short_link"
 
    ## dist_build_mount_raw_file us read by help-steps/mount-raw
    export dist_build_mount_raw_file="$raw_file_short_link"
@@ -556,7 +556,7 @@ mount_image() {
    else
       msg="WARNING: Mounting of raw image failed. This is expected for Whonix-Custom-Workstation."
       true "${bold}${red}${msg}${reset}"
-      echo "${msg}" >> "$report_file"
+      echo "${msg}" | tee -a "$report_file" >/dev/null
    fi
 }
 
@@ -569,15 +569,15 @@ parse_file_system() {
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
    if [ "$vdi" = "1" ]; then
-      virt-filesystems -a "$vdi_file" > "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a" 2>&1
+      $SUDO_TO_ROOT virt-filesystems -a "$vdi_file" 2>&1 | tee -a "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a" >/dev/null
    fi
    if [ "$qcow" = "1" ]; then
-      virt-filesystems -a "$qcow_file" > "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a" 2>&1
+      $SUDO_TO_ROOT virt-filesystems -a "$qcow_file" 2>&1 | tee -a "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a" >/dev/null
    fi
    if [ "$qcow2" = "1" ]; then
-      virt-filesystems -a "$qcow2_file" > "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a" 2>&1
+      $SUDO_TO_ROOT virt-filesystems -a "$qcow2_file" 2>&1 | tee -a "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a" >/dev/null
    fi
-   virt-filesystems -a "$raw_file" > "$auto_hash_folder/$raw_file_basename.virt-filesystems-a" 2>&1
+   $SUDO_TO_ROOT virt-filesystems -a "$raw_file" 2>&1 | tee -a "$auto_hash_folder/$raw_file_basename.virt-filesystems-a" >/dev/null
 
    true "${bold}${cyan}INFO: Parsed file systems. ${reset}"
 }
@@ -620,22 +620,22 @@ parse_vbr() {
    true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
 
    if [ "$vdi" = "1" ]; then
-      guestfish --ro -a "$vdi_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$vdi_file_basename.sda1_pread-device.512" 2>&1 || true
+      $SUDO_TO_ROOT guestfish --ro -a "$vdi_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$vdi_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
    if [ "$qcow" = "1" ]; then
-      guestfish --ro -a "$qcow_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$qcow_file_basename.sda1_pread-device.512" 2>&1 || true
+      $SUDO_TO_ROOT guestfish --ro -a "$qcow_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$qcow_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
    if [ "$qcow2" = "1" ]; then
-      guestfish --ro -a "$qcow2_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$qcow2_file_basename.sda1_pread-device.512" 2>&1 || true
+      $SUDO_TO_ROOT guestfish --ro -a "$qcow2_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$qcow2_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
-   guestfish --ro -a "$raw_file" run : pread-device /dev/sda1 512 0 > "$auto_hash_folder/$raw_file_basename.sda1_pread-device.512" 2>&1 || true
+   $SUDO_TO_ROOT guestfish --ro -a "$raw_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$raw_file_basename.sda1_pread-device.512" >/dev/null || true
 
    true "${bold}${cyan}INFO: Parsed VBR. ${reset}"
 }
 
 cp_to_user() {
-   cp "$1" "$2"
-   chown --recursive "$user_name:$user_name" "$2"
+   $SUDO_TO_ROOT cp "$1" "$2"
+   $SUDO_TO_ROOT chown --recursive "$user_name:$user_name" "$2"
 }
 
 parse_special_files() {
@@ -655,7 +655,7 @@ parse_special_files() {
 
    ## {{{ /var/lib/initramfs-tools/
 
-   $SUDO_TO_USER mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
+   mkdir --parents "$manual_analysis_folder/var_lib_initramfs-tools"
 
    local file_name
    shopt -s nullglob dotglob
@@ -688,10 +688,10 @@ parse_special_files() {
    if [ -e "$mount_folder/var/lib/dist-base-files/build_version" ]; then
       cp_to_user "$mount_folder/var/lib/dist-base-files/build_version" "$debug_folder/usr_lib_dist-base-files_build_version"
       echo "$debug_folder/usr_lib_dist-base-files_build_version BEGIN..."
-      $SUDO_TO_USER cat "$debug_folder/usr_lib_dist-base-files_build_version"
+      cat "$debug_folder/usr_lib_dist-base-files_build_version"
       echo "END $debug_folder/usr_lib_dist-base-files_build_version"
    else
-      msg="Strange, $mount_folder/var/lib/dist-base-files/build_version does not exist. Perhaps not running in Whonix."
+      msg="Strange, $mount_folder/var/lib/dist-base-files/build_version does not exist. Perhaps not running in Kicksecure or a derivative such as Whonix."
       echo "$msg" > "$debug_folder/usr_lib_dist-base-files_build_version"
    fi
 
@@ -700,10 +700,10 @@ parse_special_files() {
 
    ## {{{ /usr/share/doc/whonix-*/changelog.Debian.gz
 
-   $SUDO_TO_USER mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
+   mkdir --parents "$debug_folder/usr_share_doc_whonix-x"
 
    rm --force "$debug_folder/usr_share_doc_whonix-x/file_list"
-   $SUDO_TO_USER touch "$debug_folder/usr_share_doc_whonix-x/file_list"
+   touch "$debug_folder/usr_share_doc_whonix-x/file_list"
    local i
    i="0"
    local file_name
@@ -711,7 +711,7 @@ parse_special_files() {
 
    for file_name in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
       i="$(( $i + 1 ))"
-      echo "file_name number: $i | file_name: $file_name" >> "$debug_folder/usr_share_doc_whonix-x/file_list"
+      echo "file_name number: $i | file_name: $file_name" | tee -a "$debug_folder/usr_share_doc_whonix-x/file_list" >/dev/null
       cp_to_user "$file_name" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
@@ -720,7 +720,7 @@ parse_special_files() {
 
    ## }}}
 
-   $SUDO_TO_USER mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
+   mkdir --parents "$debug_folder/var_lib_dpkg_info_whonix-x"
 
    ## {{{ /var/lib/dpkg/info/whonix-*.md5sums
 
@@ -738,7 +738,7 @@ parse_special_files() {
 
    ## {{{ /var/cache/debconf/*
 
-   $SUDO_TO_USER mkdir --parents "$debug_folder/var_cache_debconf"
+   mkdir --parents "$debug_folder/var_cache_debconf"
 
    local file_name
    shopt -s nullglob dotglob
@@ -754,7 +754,7 @@ parse_special_files() {
 
    ## {{{ /var/lib/anon-dist/grub-backup/*
 
-   $SUDO_TO_USER mkdir --parents "$debug_folder/var_lib_anon-dist_grub-backup"
+   mkdir --parents "$debug_folder/var_lib_anon-dist_grub-backup"
 
    local file_name
    shopt -s nullglob dotglob
@@ -802,14 +802,15 @@ parse_initrd() {
    shopt -s nullglob dotglob
    local file_name
 
+   ## TODO: requires root? $SUDO_TO_ROOT
    for file_name in "$initrd_folder/"*; do
       cd "$extracted_initrd_folder"
       true "file_name: $file_name"
       local basename_file
       basename_file="$(basename "$file_name")"
-      $SUDO_TO_USER mkdir --parents "$basename_file"
+      mkdir --parents "$basename_file"
       cd "$basename_file"
-      $SUDO_TO_USER gzip -dc < "$file_name" | $SUDO_TO_USER cpio -i
+      gzip -dc < "$file_name" | cpio -i
    done
 
    unset file_name
@@ -858,7 +859,7 @@ tail -f $report_file
       ## Too verbose.
       #echo "$absolute_file_name: $file_name"
 
-      echo "$absolute_file_name" >> "$file_list_file"
+      echo "$absolute_file_name" | tee -a "$file_list_file"
 
       local skip_hash="0"
       local dir_name
@@ -884,7 +885,7 @@ tail -f $report_file
          else
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
             echo "${cyan} $msg ${reset}"
-            echo "$msg" >> "$report_file"
+            echo "$msg" | tee -a "$report_file" >/dev/null
             if [ "$dist_build_install_to_root" = "1" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
@@ -1026,7 +1027,7 @@ $temp12 $Type_in_hex\
          read_link_exit_code="0"
          file_link="$(readlink "$file_name" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
-         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | symlinks_to $file_link" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | symlinks_to $file_link" | tee -a "$report_file" >/dev/null
 
          continue
       fi
@@ -1075,7 +1076,7 @@ $temp12 $Type_in_hex\
                ## "sudo sha512sum /dev/xconsole",
                ## "sudo sha512sum /dev/initctl" or
                ## "sudo sha512sum /dev/full" would run forever.
-               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code" >> "$report_file"
+               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code" | tee -a "$report_file" >/dev/null
                continue
             fi
          fi
@@ -1119,15 +1120,15 @@ $temp12 $Type_in_hex\
             checksum_output="sha512sum_echoed_nothing"
          fi
          if [ "$skip_hash" = "directory" ]; then
-            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_directory: $stat_output_log_directory | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" >> "$report_file"
+            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_directory: $stat_output_log_directory | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
          else
-            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" >> "$report_file"
+            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
          fi
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_output"
-         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum: $checksum" >> "$report_file"
+         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum: $checksum" | tee -a "$report_file" >/dev/null
          continue
       fi
 
@@ -1135,6 +1136,7 @@ $temp12 $Type_in_hex\
    ## therefore piping it through "sort".
    ## find: using "-print0" for NUL-delimited output.
    ## sort: using "-z" for NUL-delimited output.
+   ## TODO: Requires root? $SUDO_TO_ROOT
    done < <(find "$folder/" -print0 | sort -z)
 
    set -x
@@ -1143,7 +1145,7 @@ $temp12 $Type_in_hex\
 }
 
 parse_file_list_file() {
-   sha512sum "$file_list_file" >> "$report_file"
+   sha512sum "$file_list_file" | tee -a "$report_file" >/dev/null
 }
 
 parse_endcomment() {
@@ -1155,7 +1157,7 @@ parse_endcomment() {
 ################################################################################
 $endcomment"
 
-   echo "$endcomment" >> "$report_file"
+   echo "$endcomment" | tee -a "$report_file" >/dev/null
 }
 
 end() {

@@ -21,7 +21,7 @@ source variables
 run-chroot-scripts-post-d() {
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   sync
+   $SUDO_TO_ROOT sync
 
    "$dist_source_help_steps_folder"/mount-raw
 
@@ -29,23 +29,23 @@ run-chroot-scripts-post-d() {
 
    "$dist_source_help_steps_folder"/chroot-raw
 
-   sync
+   $SUDO_TO_ROOT sync
 
    ## Sanity tests.
-   $CHROOT dir
-   $CHROOT mount
-   $CHROOT sync
+   $SUDO_TO_ROOT $CHROOT dir
+   $SUDO_TO_ROOT $CHROOT mount
+   $SUDO_TO_ROOT $CHROOT sync
 
    "$dist_source_help_steps_folder"/create-local-temp-apt-repo
 
-   sync
+   $SUDO_TO_ROOT sync
 
    if [ -d "$CHROOT_FOLDER/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
-      $CHROOT run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      $SUDO_TO_ROOT $CHROOT run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
 
       ## Run the chroot scripts.
-      $CHROOT run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      $SUDO_TO_ROOT $CHROOT run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
 
       sync
    else

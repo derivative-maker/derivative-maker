@@ -32,6 +32,7 @@ build_machine_setup() {
 
    ## {{ users and groups
 
+   ## TODO: Still needed?
    ## Check if user "$user_name" already exist.
    local id_exit_code
    id_exit_code="0"
@@ -50,7 +51,7 @@ build_machine_setup() {
          ## Resulted in: aTayYxVyw5kDo
          password="aTayYxVyw5kDo"
       fi
-      useradd --password "$password" --user-group --create-home --shell /bin/bash "$user_name"
+      $SUDO_TO_ROOT useradd --password "$password" --user-group --create-home --shell /bin/bash "$user_name"
    elif [ "$id_exit_code" = "0" ]; then
       true "${cyan}INFO: Not creating user \"$user_name\" with password \"changeme\", because it already exists.${reset}"
    else
@@ -59,7 +60,8 @@ build_machine_setup() {
    fi
 
    ## Add user to sudo group.
-   addgroup "$user_name" sudo
+   ## TODO: Still needed?
+   $SUDO_TO_ROOT addgroup "$user_name" sudo
 
    ## }}
 
@@ -69,32 +71,34 @@ build_machine_setup() {
    fi
 
    ## Debugging.
-   true 'INFO: Benchmarking "$SUDO_TO_USER echo "This is a test echo." using "time"...'
-   time $SUDO_TO_USER echo "This is a test echo."
+   true 'INFO: Benchmarking "$SUDO_TO_ROOT echo "This is a test echo." using "time"...'
+   time $SUDO_TO_ROOT echo "This is a test echo."
 
    true "INFO: Updating git sub modules..."
 
-   $SUDO_TO_USER git submodule sync --recursive
-   $SUDO_TO_USER git submodule update --init --recursive --jobs=200
+   git submodule sync --recursive
+   git submodule update --init --recursive --jobs=200
 
    true "INFO: Updated git sub modules."
 
-   apt-get \
-      ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
-      -o Dir::Etc::sourceparts="-" \
-      update
-
-   if [ ! "$dist_build_upgrade_build_machine" = "0" ]; then
-      ## Update package lists and upgrade.
+   $SUDO_TO_ROOT \
       apt-get \
          ${APTGETOPT[@]} \
          -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
          -o Dir::Etc::sourceparts="-" \
-         $apt_unattended_opts \
-         --no-install-recommends \
-         --yes \
-            dist-upgrade
+         update
+
+   if [ ! "$dist_build_upgrade_build_machine" = "0" ]; then
+      ## Update package lists and upgrade.
+      $SUDO_TO_ROOT \
+         apt-get \
+            ${APTGETOPT[@]} \
+            -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
+            -o Dir::Etc::sourceparts="-" \
+            $apt_unattended_opts \
+            --no-install-recommends \
+            --yes \
+               dist-upgrade
    fi
 
    ###############################################
@@ -162,15 +166,16 @@ build_machine_setup() {
       fi
    fi
 
-   apt-get \
-      ${APTGETOPT[@]} \
-      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
-      -o Dir::Etc::sourceparts="-" \
-      $apt_unattended_opts \
-      --no-install-recommends \
-      --yes \
-      install \
-      $packages_to_be_installed
+   $SUDO_TO_ROOT \
+      apt-get \
+         ${APTGETOPT[@]} \
+         -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
+         -o Dir::Etc::sourceparts="-" \
+         $apt_unattended_opts \
+         --no-install-recommends \
+         --yes \
+         install \
+         $packages_to_be_installed
 
    if [ "$dist_build_internal_run" = "1" ]; then
       true
@@ -182,10 +187,10 @@ build_machine_setup() {
    fi
 
    ## Debugging.
-   cat /usr/sbin/policy-rc.d || true
+   $SUDO_TO_ROOT cat /usr/sbin/policy-rc.d || true
 
    ## Debugging.
-   #cat /proc/devices
+   #$SUDO_TO_ROOT cat /proc/devices
 }
 
 repo_proxy_test() {

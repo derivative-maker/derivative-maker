@@ -35,59 +35,59 @@ build_arm64_fs() {
    mount_raw
 
    ## creating the image
-   $SUDO_TO_USER truncate -s "$VMSIZE" "$binary_image_raw"
-   $SUDO_TO_USER mkdir --parents "$mpoint_os"
+   $SUDO_TO_ROOT truncate -s "$VMSIZE" "$binary_image_raw"
+   mkdir --parents "$mpoint_os"
 
    ## partitioning
-   dev=$(losetup -f)
-   losetup "$dev" "$binary_image_raw"
-   parted -s "$dev" mklabel gpt
-   parted -s "$dev" mkpart EFI fat32 1MiB 10MiB
-   parted -s "$dev" set 1 boot on
-   parted -s "$dev" mkpart LINUX ext4 10MiB 100%
-   mkfs.vfat -n EFI "${dev}p1"
-   mkfs.ext4 -F -L LINUX "${dev}p2"
-   parted -s "$dev" print
+   dev=$($SUDO_TO_ROOT losetup -f)
+   $SUDO_TO_ROOT losetup "$dev" "$binary_image_raw"
+   $SUDO_TO_ROOT parted -s "$dev" mklabel gpt
+   $SUDO_TO_ROOT parted -s "$dev" mkpart EFI fat32 1MiB 10MiB
+   $SUDO_TO_ROOT parted -s "$dev" set 1 boot on
+   $SUDO_TO_ROOT parted -s "$dev" mkpart LINUX ext4 10MiB 100%
+   $SUDO_TO_ROOT mkfs.vfat -n EFI "${dev}p1"
+   $SUDO_TO_ROOT mkfs.ext4 -F -L LINUX "${dev}p2"
+   $SUDO_TO_ROOT parted -s "$dev" print
 
    ## copying OS files
-   mount "${dev}p2" "${mpoint_os}"
-   cp -a "$CHROOT_FOLDER"/* "${mpoint_os}"
-   sync
+   $SUDO_TO_ROOT mount "${dev}p2" "${mpoint_os}"
+   $SUDO_TO_ROOT cp -a "$CHROOT_FOLDER"/* "${mpoint_os}"
+   $SUDO_TO_ROOT sync
 
    ## setup arm64 grub on EFI partition
-   mkdir --parents "$mpoint_efi"
-   mount "${dev}p1" "${mpoint_efi}"
+   $SUDO_TO_ROOT mkdir --parents "$mpoint_efi"
+   $SUDO_TO_ROOT mount "${dev}p1" "${mpoint_efi}"
 
-   mount -t devtmpfs udev "${mpoint_os}/dev"
-   mount -t devpts devpts "${mpoint_os}/dev/pts"
-   mount -t proc proc "${mpoint_os}/proc"
-   mount -t sysfs sysfs "${mpoint_os}/sys"
-   mount -t tmpfs tmpfs "${mpoint_os}/tmp"
+   $SUDO_TO_ROOT mount -t devtmpfs udev "${mpoint_os}/dev"
+   $SUDO_TO_ROOT mount -t devpts devpts "${mpoint_os}/dev/pts"
+   $SUDO_TO_ROOT mount -t proc proc "${mpoint_os}/proc"
+   $SUDO_TO_ROOT mount -t sysfs sysfs "${mpoint_os}/sys"
+   $SUDO_TO_ROOT mount -t tmpfs tmpfs "${mpoint_os}/tmp"
 
-   chroot "$mpoint_os" grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
-   chroot "$mpoint_os" update-grub
-   chroot "$mpoint_os" sync
-   sync
+   $SUDO_TO_ROOT chroot "$mpoint_os" grub-install --target=arm64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-nvram --removable
+   $SUDO_TO_ROOT chroot "$mpoint_os" update-grub
+   $SUDO_TO_ROOT chroot "$mpoint_os" sync
+   $SUDO_TO_ROOT sync
    sleep 2
 
    ## unmount all the things
-   umount "${mpoint_os}/dev/pts"
-   umount "${mpoint_os}/dev"
-   umount "${mpoint_os}/proc"
-   umount "${mpoint_os}/sys"
-   umount "${mpoint_os}/tmp"
-   umount "${mpoint_efi}"
-   umount "${mpoint_os}"
+   $SUDO_TO_ROOT umount "${mpoint_os}/dev/pts"
+   $SUDO_TO_ROOT umount "${mpoint_os}/dev"
+   $SUDO_TO_ROOT umount "${mpoint_os}/proc"
+   $SUDO_TO_ROOT umount "${mpoint_os}/sys"
+   $SUDO_TO_ROOT umount "${mpoint_os}/tmp"
+   $SUDO_TO_ROOT umount "${mpoint_efi}"
+   $SUDO_TO_ROOT umount "${mpoint_os}"
 
-   losetup -d "$dev"
+   $SUDO_TO_ROOT losetup -d "$dev"
 
-   rmdir "${mpoint_os}"
+   $SUDO_TO_ROOT rmdir "${mpoint_os}"
 
    export dist_build_mount_raw_file="$orig_img"
    "$dist_source_help_steps_folder"/unmount-raw
 
    ## remove the original image which did not have GRUB nor EFI partitions
-   rm "$orig_img"
+   $SUDO_TO_ROOT rm "$orig_img"
 }
 
 main() {

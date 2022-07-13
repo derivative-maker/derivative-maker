@@ -19,10 +19,12 @@ source colors
 source variables
 
 create-debian-raw-image() {
-   $SUDO_TO_USER mkdir --parents "$binary_build_folder_dist/"
+   mkdir --parents "$binary_build_folder_dist/"
 
    if [ ! "$cached_binary_image_raw" = "" ]; then
       true "${cyan}$BASH_SOURCE INFO: copy and use cached_binary_image_raw '$cached_binary_image_raw'...${reset}"
+      $SUDO_TO_ROOT chown "$user_name:$user_name" "$cached_binary_image_raw"
+      $SUDO_TO_ROOT rm -f "$binary_image_raw"
       cp "$cached_binary_image_raw" "$binary_image_raw"
       true "${cyan}$BASH_SOURCE INFO: copying cached_binary_image_raw done.${reset}"
       return 0
@@ -32,12 +34,12 @@ create-debian-raw-image() {
    true "${cyan}$BASH_SOURCE INFO: Architecture $ARCH detected.${reset}"
    true "${cyan}INFO: dist_build_target_arch set to: $dist_build_target_arch${reset}"
 
-   mkdir --parents "/etc/debootstrap/etc/apt/"
-   cp "$dist_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
+   $SUDO_TO_ROOT mkdir --parents "/etc/debootstrap/etc/apt/"
+   $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
 
    ## Info.
    true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
-   cat "/etc/debootstrap/etc/apt/sources.list"
+   $SUDO_TO_ROOT cat "/etc/debootstrap/etc/apt/sources.list"
 
    ## TODO
    ## /etc/resolv.conf of host leaks into image.
@@ -140,24 +142,25 @@ create-debian-raw-image() {
 
    ## dist_build_multiarch_package_item is read by pbuilder-debootstrap-command-filter.
 
-   $DEBOOTSTRAP_PREFIX \
-   SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-   dist_build_multiarch_package_item="$dist_build_target_arch" \
-      bash -x \
-         "$dist_build_grml_bin" \
-            --debopt "$dist_build_debopt" \
-            --arch "$dist_build_target_arch" \
-            --filesystem "$dist_build_file_system" \
-            --force \
-            --hostname "$dist_build_hostname" \
-            --nopassword \
-            --release "$dist_build_apt_stable_release" \
-            --keep_src_list \
-            --verbose \
-            --vmfile \
-            --vmsize "$VMSIZE" \
-            --packages "$source_code_folder_dist/grml_packages" \
-            --target "$binary_image_raw"
+   $SUDO_TO_ROOT --preserve-env \
+      $DEBOOTSTRAP_PREFIX \
+      SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+      dist_build_multiarch_package_item="$dist_build_target_arch" \
+         bash -x \
+            "$dist_build_grml_bin" \
+               --debopt "$dist_build_debopt" \
+               --arch "$dist_build_target_arch" \
+               --filesystem "$dist_build_file_system" \
+               --force \
+               --hostname "$dist_build_hostname" \
+               --nopassword \
+               --release "$dist_build_apt_stable_release" \
+               --keep_src_list \
+               --verbose \
+               --vmfile \
+               --vmsize "$VMSIZE" \
+               --packages "$source_code_folder_dist/grml_packages" \
+               --target "$binary_image_raw"
 }
 
 create-empty-raw-image() {
@@ -165,7 +168,7 @@ create-empty-raw-image() {
 }
 
 permission-fix-raw-image() {
-   chown "$user_name:$user_name" "$binary_image_raw"
+   $SUDO_TO_ROOT chown "$user_name:$user_name" "$binary_image_raw"
 }
 
 main() {

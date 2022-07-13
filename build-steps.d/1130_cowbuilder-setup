@@ -49,19 +49,19 @@ cowbuilder_setup_do() {
 
    if ! test -f /etc/hostname ; then
       ## mmdebstrap requires /etc/hostname to exist.
-      touch /etc/hostname
+      $SUDO_TO_ROOT touch /etc/hostname
    fi
 
    if [ "$dist_build_unsafe_io" = "true" ]; then
-      if mount | grep /var/cache/pbuilder | grep tmpfs ; then
+      if $SUDO_TO_ROOT mount | grep /var/cache/pbuilder | grep tmpfs ; then
          true "INFO: /var/cache/pbuilder already tmpfs."
       else
-         mount -t tmpfs -o size=2G none /var/cache/pbuilder
+         $SUDO_TO_ROOT mount -t tmpfs -o size=2G none /var/cache/pbuilder
       fi
    fi
 
    ## Debugging.
-   cat "$dist_build_pbuilder_config_file"
+   $SUDO_TO_ROOT cat "$dist_build_pbuilder_config_file"
 
    for dist_build_multiarch_package_item in $make_cross_build_platform_list ; do
       export dist_build_multiarch_package_item
@@ -72,7 +72,7 @@ cowbuilder_setup_do() {
 
       if [ -d "$base_folder" ]; then
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
-         rm --recursive --force "$base_folder"
+         $SUDO_TO_ROOT rm --recursive --force "$base_folder"
       fi
 
       local cowbuilder_exit_code
@@ -82,20 +82,21 @@ cowbuilder_setup_do() {
       ## because of pbuilder-debootstrap-command-filter and hooks.
       ##
       ## Duplicate --extrapackages to prevent removal by pbuilder.
-      $COWBUILDER_PREFIX \
-      SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-         cowbuilder \
-            --architecture "$dist_build_multiarch_package_item" \
-            --configfile "$dist_build_pbuilder_config_file" \
-            --create \
-            --basepath "$base_folder" \
-            --buildplace "$cow_folder" \
-            --distribution "$dist_build_apt_stable_release" \
-            --mirror "$dist_build_apt_sources_mirror" \
-            --debootstrap "$dist_source_help_steps_folder/pbuilder-debootstrap-command-filter" \
-            --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
-            --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
-            || { cowbuilder_exit_code="$?" ; true; };
+      $SUDO_TO_ROOT --preserve-env \
+         $COWBUILDER_PREFIX \
+         SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+            cowbuilder \
+               --architecture "$dist_build_multiarch_package_item" \
+               --configfile "$dist_build_pbuilder_config_file" \
+               --create \
+               --basepath "$base_folder" \
+               --buildplace "$cow_folder" \
+               --distribution "$dist_build_apt_stable_release" \
+               --mirror "$dist_build_apt_sources_mirror" \
+               --debootstrap "$dist_source_help_steps_folder/pbuilder-debootstrap-command-filter" \
+               --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
+               --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
+               || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
@@ -111,11 +112,11 @@ cowbuilder_setup_do() {
       ## which uses a different sources list. This pbuilder hook script restores
       ## Whonix build APT sources list.
       true "Sanity test. Security critical. Comparing Whonix build sources list with chroot sources list."
-      diff "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      $SUDO_TO_ROOT diff "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
-      cp "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
-      mkdir -p "$base_folder/home/$user_name"
-      cp "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
+      $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      $SUDO_TO_ROOT mkdir -p "$base_folder/home/$user_name"
+      $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
 #       mkdir -p "$base_folder/home/$user_name"
 #       if [ "$base_folder/home/$user_name/genmkfile" = "/home/$user_name/genmkfile" ]; then
@@ -127,16 +128,17 @@ cowbuilder_setup_do() {
 #       chown --recursive $user_name:$user_name "$base_folder/home/$user_name"
 
       cowbuilder_exit_code=0
-      $COWBUILDER_PREFIX \
-      SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
-         cowbuilder \
-            --architecture "$dist_build_multiarch_package_item" \
-            --configfile "$dist_build_pbuilder_config_file" \
-            --execute "$dist_build_pbuilder_chroot_script" \
-            --basepath "$base_folder" \
-            --buildplace "$cow_folder" \
-            --save-after-login \
-            || { cowbuilder_exit_code="$?" ; true; };
+      $SUDO_TO_ROOT --preserve-env \
+         $COWBUILDER_PREFIX \
+         SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+            cowbuilder \
+               --architecture "$dist_build_multiarch_package_item" \
+               --configfile "$dist_build_pbuilder_config_file" \
+               --execute "$dist_build_pbuilder_chroot_script" \
+               --basepath "$base_folder" \
+               --buildplace "$cow_folder" \
+               --save-after-login \
+               || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"

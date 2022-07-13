@@ -25,29 +25,31 @@ cd "$MYDIR"
 cd ..
 
 check-unicode() {
-   $SUDO_TO_USER "${dist_developer_meta_files_folder}/usr/bin/dm-check-unicode"
+   "${dist_developer_meta_files_folder}/usr/bin/dm-check-unicode"
 
-   return 0
+   true
 }
 
 check-source-folder-permissions() {
    ## Debugging.
    true "${bold}${cyan}INFO: PWD: $PWD ${reset}"
 
-   ## Checking if Whonix's source folder has been obtained (git cloned) as user or root.
+   ## Checking if derivative-maker source folder has been obtained (git cloned) as user or root.
 
    stat_output_owner="$(stat -c %U "$BASH_SOURCE")"
    stat_output_group="$(stat -c %G "$BASH_SOURCE")"
 
    if [ "$stat_output_owner" = "root" ]; then
-      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root user! Instructions say you should get Whonix's source code as user, not root! \
-Please delete Whonix's source code folder and get it again as user, not root!${reset}"
+      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root user! Instructions say you should get derivative-maker source code as user, not root! \
+Please delete derivative-maker source code folder and get it again as user, not root!${reset}"
    fi
 
    if [ "$stat_output_group" = "root" ]; then
-      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root group! Instructions say you should get Whonix's source code as user, not root! \
-Please delete Whonix's source code folder and get it again as user, not root!${reset}"
+      error "${bold}${red}ERROR $BASH_SOURCE: Is owned by root group! Instructions say you should get derivative-maker source code as user, not root! \
+Please delete derivative-maker source code folder and get it again as user, not root!${reset}"
    fi
+
+   true
 }
 
 check-copy-vms-into-raw() {
@@ -92,6 +94,8 @@ copy_vms_into_raw_file_two '$copy_vms_into_raw_file_two' does not exist!
 
 $help_text"
    fi
+
+   true
 }
 
 check-virtualbox-vm-exists() {
@@ -132,10 +136,12 @@ sudo apt-get update
 sudo apt-get install $required_packages_list${reset}"
       fi
    done
+
+   true
 }
 
 main() {
-   check-unicode
+   check-unicode "$@"
    root_check "$@"
    check-source-folder-permissions "$@"
    check-copy-vms-into-raw "$@"
@@ -148,6 +154,8 @@ main() {
    source "$dist_source_help_steps_folder/git_sanity_test"
 
    git_sanity_test_main "$@"
+
+   true
 }
 
 main "$@"

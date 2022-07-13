@@ -21,11 +21,11 @@ source variables
 create_environment(){
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
-   rm --recursive --force "$binary_build_folder_dist/image"
+   $SUDO_TO_ROOT rm --recursive --force "$binary_build_folder_dist/image"
 
-   mkdir -p "$binary_build_folder_dist/image/"{live,isolinux}
-   mkdir -p "$binary_build_folder_dist/image/"{boot/isolinux,EFI/boot}
-   mkdir -p "$binary_build_folder_dist/image/boot/grub"
+   mkdir --parents "$binary_build_folder_dist/image/"{live,isolinux}
+   mkdir --parents "$binary_build_folder_dist/image/"{boot/isolinux,EFI/boot}
+   mkdir --parents "$binary_build_folder_dist/image/boot/grub"
 
    cp /usr/lib/ISOLINUX/isolinux.bin "$binary_build_folder_dist/image/boot/isolinux/"
    cp /usr/lib/syslinux/modules/bios/* "$binary_build_folder_dist/image/boot/isolinux/"
@@ -35,10 +35,19 @@ create_squashfs_ok(){
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
    cd "$binary_build_folder_dist"
-   sudo mksquashfs \
+
+   $SUDO_TO_ROOT rm -f "${binary_build_folder_dist}/image/live/filesystem.squashfs"
+
+   $SUDO_TO_ROOT \
+      mksquashfs \
       "$CHROOT_FOLDER" \
       image/live/filesystem.squashfs \
       -comp xz
+
+   $SUDO_TO_ROOT "$user_name:$user_name" "${binary_build_folder_dist}/image/live/filesystem.squashfs"
+   test -r "${binary_build_folder_dist}/image/live/filesystem.squashfs"
+
+   true
 }
 
 copy_files(){
@@ -47,8 +56,8 @@ copy_files(){
    ## we copy the kernel and the initrd
    ## better to use variables than '*'!
 
-   cp "$CHROOT_FOLDER"/boot/vmlinuz-* "$binary_build_folder_dist/image/live/vmlinuz"
-   cp "$CHROOT_FOLDER"/boot/initrd.img-* "$binary_build_folder_dist/image/live/initrd"
+   $SUDO_TO_ROOT cp "$CHROOT_FOLDER"/boot/vmlinuz-* "$binary_build_folder_dist/image/live/vmlinuz"
+   $SUDO_TO_ROOT cp "$CHROOT_FOLDER"/boot/initrd.img-* "$binary_build_folder_dist/image/live/initrd"
 
    cp /usr/lib/ISOLINUX/isolinux.bin "$binary_build_folder_dist/image/isolinux/"
    cp /usr/lib/syslinux/modules/bios/menu.c32 "$binary_build_folder_dist/image/isolinux/"
@@ -59,11 +68,13 @@ copy_files(){
    cp /usr/lib/syslinux/modules/bios/libcom32.c32 "$binary_build_folder_dist/image/isolinux/"
    cp /usr/lib/syslinux/modules/bios/libgpl.c32 "$binary_build_folder_dist/image/isolinux/"
    cp /usr/share/misc/pci.ids "$binary_build_folder_dist/image/isolinux/"
-   cp /boot/memtest86+.bin "$binary_build_folder_dist/image/live/memtest"
+   ## User might not have read access in /boot folder due to security hardening.
+   $SUDO_TO_ROOT cp /boot/memtest86+.bin "$binary_build_folder_dist/image/live/memtest"
 
    cp "$source_code_folder_dist/iso/grub-embedded.cfg" "$binary_build_folder_dist/image/grub-embedded.cfg"
 
    cd /usr/lib/grub
+   ## TODO: Possible without root?
    grub-mkimage \
       --config "$binary_build_folder_dist/image/grub-embedded.cfg" \
       --format=x86_64-efi \
@@ -91,6 +102,7 @@ copy_files(){
       boot
 
    cd "$binary_build_folder_dist/image/EFI"
+   ## TODO: Possible without root?
    dd if=/dev/zero of="$binary_build_folder_dist/image/EFI/efiboot.img" bs=1M count=100
    mkfs.vfat "$binary_build_folder_dist/image/EFI/efiboot.img"
    mmd -i "$binary_build_folder_dist/image/EFI/efiboot.img" efi efi/boot efi/boot/grub
@@ -111,11 +123,12 @@ copy_files(){
 create_iso(){
    errorhandlersetup "errorhandlerunchrootunpreventunmount" ERR INT TERM
 
+   ## TODO: Possible without root?
    xorriso \
       -as mkisofs \
       -iso-level 3 \
       -full-iso9660-filenames \
-      -volid "Whonix Desktop Live" \
+      -volid "$dist_build_type_short_pretty ISO Live" \
       -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
       -eltorito-boot \
          boot/isolinux/isolinux.bin \

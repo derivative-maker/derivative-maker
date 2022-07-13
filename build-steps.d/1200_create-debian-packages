@@ -144,8 +144,8 @@ get_newer_packages_from_third_party_repositories() {
 
    local cow_folder base_folder
 
-   rm --recursive --force "$temp_newer_packages"
-   $SUDO_TO_USER mkdir --parents "$temp_newer_packages"
+   $SUDO_TO_ROOT rm --recursive --force "$temp_newer_packages"
+   mkdir --parents "$temp_newer_packages"
 
    for dist_build_multiarch_package_item in $make_cross_build_platform_list ; do
       export dist_build_multiarch_package_item
@@ -177,7 +177,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
          cow_folder="/var/cache/pbuilder/cow.cow_${dist_build_multiarch_package_item}"
          base_folder="/var/cache/pbuilder/base.cow_${dist_build_multiarch_package_item}"
 
-         test -d "$base_folder"
+         $SUDO_TO_ROOT test -d "$base_folder"
          "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
       else
          base_folder="$binary_build_folder_dist/no-pbuilder/base"
@@ -188,21 +188,21 @@ is not included in available_architectures_for_download_only_list: $available_ar
          export if_no_pbuilder_base_folder
       fi
 
-      $SUDO_TO_USER mkdir -p "$base_folder/tmp/temporary-repository"
+      $SUDO_TO_ROOT mkdir -p "$base_folder/tmp/temporary-repository"
 
       if [ "$repo_signing_key" = "none" ]; then
-         rm -f "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
+         $SUDO_TO_ROOT rm -f "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
       else
-         cp "$repo_signing_key" "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
+         $SUDO_TO_ROOT cp "$repo_signing_key" "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
       fi
 
       if [ "$repo_sources_list" = "none" ]; then
-         rm -f "$base_folder/tmp/temporary-repository/newer.list"
+         $SUDO_TO_ROOT rm -f "$base_folder/tmp/temporary-repository/newer.list"
       else
-         cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
+         $SUDO_TO_ROOT cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
       fi
 
-      cp "$dist_build_pbuilder_config_file" "$base_folder/tmp/"
+      $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "$base_folder/tmp/"
 
       local benchmark_time_start benchmark_took_time
       benchmark_time_start="$(date +%s)" || true
@@ -210,18 +210,19 @@ is not included in available_architectures_for_download_only_list: $available_ar
       dist_build_download_script_exit_code=0
 
       if [ "$make_use_cowbuilder" = "true" ]; then
-         $COWBUILDER_PREFIX \
-         newer_package_list="$newer_package_list" \
-         temp_newer_packages="$temp_newer_packages" \
-            cowbuilder \
-               --host-arch "$host_architecture" \
-               --architecture "$dist_build_target_arch" \
-               --configfile "$dist_build_pbuilder_config_file" \
-               --execute "$dist_build_special_packages_chroot_script" \
-               --basepath "$base_folder" \
-               --buildplace "$cow_folder" \
-               --bindmounts "$temp_newer_packages" \
-               || { dist_build_download_script_exit_code="$?" ; true; };
+         $SUDO_TO_ROOT --preserve-env \
+            $COWBUILDER_PREFIX \
+            newer_package_list="$newer_package_list" \
+            temp_newer_packages="$temp_newer_packages" \
+               cowbuilder \
+                  --host-arch "$host_architecture" \
+                  --architecture "$dist_build_target_arch" \
+                  --configfile "$dist_build_pbuilder_config_file" \
+                  --execute "$dist_build_special_packages_chroot_script" \
+                  --basepath "$base_folder" \
+                  --buildplace "$cow_folder" \
+                  --bindmounts "$temp_newer_packages" \
+                  || { dist_build_download_script_exit_code="$?" ; true; };
 
             if [ -d "$base_folder" ]; then
                "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
@@ -229,14 +230,14 @@ is not included in available_architectures_for_download_only_list: $available_ar
       else
          export newer_package_list
          export temp_newer_packages
-         "$dist_build_special_packages_chroot_script" || { dist_build_download_script_exit_code="$?" ; true; };
+         $SUDO_TO_ROOT "$dist_build_special_packages_chroot_script" || { dist_build_download_script_exit_code="$?" ; true; };
 
          ## XXX
          ## help-steps/repo_download_chroot_script messes up APT downloaded sources
-         apt-get ${APTGETOPT[@]} update
+         $SUDO_TO_ROOT apt-get ${APTGETOPT[@]} update
       fi
 
-      chown --recursive "$user_name:$user_name" "$temp_newer_packages"
+      $SUDO_TO_ROOT chown --recursive "$user_name:$user_name" "$temp_newer_packages"
 
       benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
       true "${cyan}INFO: Done with function ${under}$FUNCNAME${eunder} (benchmark: $benchmark_took_time) ${reset}"
@@ -264,8 +265,8 @@ reprepro_add_newer_packages_from_third_party_repositories() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
@@ -273,18 +274,18 @@ reprepro_add_newer_packages_from_third_party_repositories() {
       file_name_only="${package_absolute_path##*/}"
       package=${file_name_only%%_*}
 
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" remove "$dist_build_apt_codename" "$package" || true
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" removesrc "$dist_build_apt_codename" "$package" || true
    done
 
    for file_name in "$temp_newer_packages/"*".deb" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedeb "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    for file_name in "$temp_newer_packages/"*".dsc" ; do
       package_absolute_path="$(readlink -f "$file_name")"
-      $SUDO_TO_USER "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
+      "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
    done
 
    true "${cyan}$BASH_SOURCE INFO: Added newer packages from third-party repository to reprepro. ${reset}"
@@ -350,15 +351,15 @@ create_derivative_distribution_debian_packages() {
          true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
          benchmark_time_start="$(date +%s)" || true
          lintian_use_maybe="$make_use_lintian"
-         $SUDO_TO_USER --preserve-env "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
+         "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
          if [ "$make_use_cowbuilder" = "false" ]; then
             "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
          fi
-         ## Using --preserve-env so environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename gets passed.
-         $SUDO_TO_USER --preserve-env "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
+         ## Environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename if set are expected to be passed.
+         "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
 
-         $SUDO_TO_USER "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
+         "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
          benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
          popd >/dev/null
          true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
