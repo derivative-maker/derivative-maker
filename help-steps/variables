@@ -27,7 +27,7 @@ variables_script_sanity_test() {
    dist_build_programs_to_check_installed_list="logname whoami dirname basename awk grep dpkg-parsechangelog"
 
    for programs_to_check_installed_item in $dist_build_programs_to_check_installed_list ; do
-      command -v "$programs_to_check_installed_item" >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
+      $SUDO_TO_ROOT command -v "$programs_to_check_installed_item" >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
    done
 }
 
@@ -38,31 +38,13 @@ bash -n "$BASH_SOURCE"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-user_name_detection() {
-   ## Since the script runs as root, we can not use $USER or whoami (that would be set to root).
-   if [ ! "$user_name" = "" ]; then
-      return 0
-   fi
-   if [ ! "$SUDO_USER" = "" ]; then
-      true "INFO $BASH_SOURCE: Setting user_name to SUDO_USER $SUDO_USER..."
-      user_name="$SUDO_USER"
-   fi
-   if [ "$user_name" = "" ] || [ "$user_name" = "root" ]; then
-      true "INFO $BASH_SOURCE: Trying to set user_name by using \`logname\`."
-      user_name="$(logname)" || true
-   fi
-   if [ "$user_name" = "" ] || [ "$user_name" = "root" ]; then
-      echo "INFO $BASH_SOURCE: SUDO_USER: $SUDO_USER"
-      true "INFO $BASH_SOURCE: Trying to set user_name by using \`whoami\`."
-      user_name="$(whoami)"
-      echo "INFO $BASH_SOURCE: Set user_name to $user_name using whoami."
-   fi
-   if [ "$user_name" = "" ]; then
-      error "Variable user_name is empty."
-   fi
-}
-
-user_name_detection
+[ -n "$user_name" ] || user_name=$(whoami) || true
+[ -n "$user_name" ] || user_name="$USER"
+[ -n "$user_name" ] || user_name="$(logname)" || true
+[ -n "$user_name" ] || user_name="$SUDO_USER"
+if [ "$user_name" = "" ]; then
+   error "Variable user_name is empty."
+fi
 export user_name
 
 [ -n "$SUDO_TO_ROOT" ] || SUDO_TO_ROOT="sudo --non-interactive"
@@ -91,7 +73,7 @@ cd "$source_code_folder_dist"
 
 [ -n "$dist_aptgetopt_file" ] || dist_aptgetopt_file="$binary_build_folder_dist/aptgetopt.conf"
 export dist_aptgetopt_file
-rm -f "$dist_aptgetopt_file"
+$SUDO_TO_ROOT rm -f "$dist_aptgetopt_file"
 
 aptgetopt_add() {
    APTGETOPT[${#APTGETOPT[@]}]="$1"
@@ -99,8 +81,8 @@ aptgetopt_add() {
 }
 
 aptgetopt_conf_add () {
-   $SUDO_TO_USER mkdir --parents "$binary_build_folder_dist/"
-   echo "$1" | $SUDO_TO_USER tee --append "$dist_aptgetopt_file" >/dev/null
+   mkdir --parents "$binary_build_folder_dist/"
+   echo "$1" | tee --append "$dist_aptgetopt_file" >/dev/null
 }
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
@@ -399,7 +381,7 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
          LD_PRELOAD="${LD_PRELOAD}:${libeatmydata_file}"
       fi
       export LD_PRELOAD
-      SUDO_TO_USER="$SUDO_TO_USER LD_PRELOAD=$LD_PRELOAD"
+      SUDO_TO_ROOT="$SUDO_TO_ROOT LD_PRELOAD=$LD_PRELOAD"
    else
       true "INFO: eatmydata not yet installed, not yet preloading."
    fi
@@ -600,7 +582,7 @@ fi
 [ -n "$copy_vms_into_raw_file_one" ] || copy_vms_into_raw_file_one="${dist_binary_build_folder}/Whonix-Gateway-${dist_build_desktop}-${dist_build_version}.qcow2"
 [ -n "$copy_vms_into_raw_file_two" ] || copy_vms_into_raw_file_two="${dist_binary_build_folder}/Whonix-Workstation-${dist_build_desktop}-${dist_build_version}.qcow2"
 
-$SUDO_TO_USER mkdir --parents "${dist_binary_build_folder}"
+mkdir --parents "${dist_binary_build_folder}"
 
 ## {{{
 
@@ -815,9 +797,9 @@ export dist_build_pbuilder_config_file
 
 make_cowbuilder_dist_folder="$binary_build_folder_dist/genmkfile-packages-result"
 
-rm --force "$dist_build_pbuilder_config_file"
-$SUDO_TO_USER mkdir --parents "$binary_build_folder_dist/"
-$SUDO_TO_USER mkdir --parents "$make_cowbuilder_dist_folder"
+$SUDO_TO_ROOT rm --force "$dist_build_pbuilder_config_file"
+mkdir --parents "$binary_build_folder_dist"
+mkdir --parents "$make_cowbuilder_dist_folder"
 
 echo "\
 ## This is an auto generated file.
@@ -849,9 +831,9 @@ PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
 
 ## End of $dist_build_pbuilder_config_file.
 " | \
-   $SUDO_TO_USER tee "$dist_build_pbuilder_config_file" >/dev/null
+   tee "$dist_build_pbuilder_config_file" >/dev/null
 
-#$SUDO_TO_USER cat "$dist_build_pbuilder_config_file"
+#cat "$dist_build_pbuilder_config_file"
 
 ## Cannot export bash array.
 export APTGETOPT

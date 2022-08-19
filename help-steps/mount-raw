@@ -51,7 +51,7 @@ mount_raw() {
    fi
 
    ## Debugging.
-   losetup --all
+   $SUDO_TO_ROOT losetup --all
    sync
 
    sleep 2 &
@@ -61,11 +61,11 @@ mount_raw() {
    ## "ioctl: LOOP_CLR_FD: Device or resource busy"
    ## Difficult to reproduce.
    ## Debugging.
-   #kpartx -l -s -v "$img"
+   #$SUDO_TO_ROOT kpartx -l -s -v "$img"
    #sync
 
    local kpartx_output a b device
-   kpartx_output="$(kpartx -a -s -v "$img" 2>&1)"
+   kpartx_output="$($SUDO_TO_ROOT kpartx -a -s -v "$img" 2>&1)"
    sync
 
    if [ "$kpartx_output" = "" ]; then
@@ -74,7 +74,7 @@ mount_raw() {
    fi
 
    ## Debugging.
-   losetup --all
+   $SUDO_TO_ROOT losetup --all
    sync
 
    read a b device _ <<< "$kpartx_output"
@@ -85,10 +85,10 @@ mount_raw() {
       return 0
    fi
 
-   $SUDO_TO_USER mkdir --parents "$CHROOT_FOLDER"
+   mkdir --parents "$CHROOT_FOLDER"
    sync
 
-   mount "$dev_mapper_device" "$CHROOT_FOLDER"
+   $SUDO_TO_ROOT mount "$dev_mapper_device" "$CHROOT_FOLDER"
    sync
 }
 

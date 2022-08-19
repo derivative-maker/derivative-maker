@@ -32,26 +32,26 @@ main() {
    if [ "$dist_build_install_to_root" = "1" ]; then
       true
    else
-      umount "$CHROOT_FOLDER"/dev/pts || true
-      umount "$CHROOT_FOLDER"/dev || true
-      umount "$CHROOT_FOLDER"/proc || true
-      umount "$CHROOT_FOLDER"/sys || true
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/dev/pts || true
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/dev || true
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/proc || true
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/sys || true
 
       ## {{{
-      umount "$CHROOT_FOLDER/usr/bin/udevadm" || true
-      rm --force "$CHROOT_FOLDER/usr/bin/udevadm" || true
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER/usr/bin/udevadm" || true
+      $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/usr/bin/udevadm" || true
       ## }}}
    fi
 
-   umount "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
+   $SUDO_TO_ROOT umount "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
 
-   rmdir --ignore-fail-on-non-empty "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
+   $SUDO_TO_ROOT rmdir --ignore-fail-on-non-empty "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER" || true
 
    ## Also possibly unmount .backup file for bare metal builds.
-   umount "$CHROOT_FOLDER"/etc/resolv.conf || true
-   umount "$CHROOT_FOLDER"/etc/hosts || true
-   umount "$CHROOT_FOLDER"/etc/hostname || true
-   umount "$CHROOT_FOLDER"/etc/network/interfaces || true
+   $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/etc/resolv.conf || true
+   $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/etc/hosts || true
+   $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/etc/hostname || true
+   $SUDO_TO_ROOT umount "$CHROOT_FOLDER"/etc/network/interfaces || true
 
    if [ "$dist_build_install_to_root" = "1" ]; then
       ## $CHROOT_FOLDER would be /, not wise to kill all
@@ -59,7 +59,7 @@ main() {
    else
       ## kill dbus-launch when building Non-Qubes-Whonix inside a Qubes Debian template
       ## The leading '/' is important to prevent umounting $CHROOT_FOLDER itself.
-      "$MYDIR/umount_kill.sh" "$CHROOT_FOLDER/"
+      $SUDO_TO_ROOT "$MYDIR/umount_kill.sh" "$CHROOT_FOLDER/"
    fi
 
    sync || true

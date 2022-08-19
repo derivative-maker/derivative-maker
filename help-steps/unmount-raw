@@ -34,7 +34,7 @@ unmount_raw() {
 
    ## kill gpg-agent
    ## The leading '/' is important to prevent umounting $CHROOT_FOLDER itself.
-   "$MYDIR/umount_kill.sh" "$CHROOT_FOLDER/"
+   $SUDO_TO_ROOT "$MYDIR/umount_kill.sh" "$CHROOT_FOLDER/"
 
    sync
    ## Sleep to work around some obscure bug.
@@ -49,7 +49,7 @@ unmount_raw() {
    if [ "$kpartx_only" = "true" ]; then
       true "INFO: kpartx_only=$kpartx_only, skipping unmount $CHROOT_FOLDER"
    else
-      umount "$CHROOT_FOLDER"
+      $SUDO_TO_ROOT umount "$CHROOT_FOLDER"
       sync
    fi
 
@@ -66,14 +66,14 @@ unmount_raw() {
    sync
 
    ## Debugging.
-   losetup --all
+   $SUDO_TO_ROOT losetup --all
    sync
 
-   kpartx -d -s -v "$img"
+   $SUDO_TO_ROOT kpartx -d -s -v "$img"
    sync
 
    ## Debugging.
-   losetup --all
+   $SUDO_TO_ROOT losetup --all
    sync
 
    if [ "$kpartx_only" = "true" ]; then
@@ -87,7 +87,7 @@ unmount_raw() {
    else
       ## Delete temporary folder.
       ## It did not contain anything. It was only a mount point.
-      rmdir "$CHROOT_FOLDER" || true
+      $SUDO_TO_ROOT rmdir "$CHROOT_FOLDER" || true
       sync
    fi
 }

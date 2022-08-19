@@ -45,15 +45,15 @@ main() {
       ##
       ## In past we needed /dev to create a swapfile.
       ## dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
-      #mount --bind "/dev" "$CHROOT_FOLDER/dev"
-      mount -t devtmpfs udev "$CHROOT_FOLDER/dev"
+      #$SUDO_TO_ROOT mount --bind "/dev" "$CHROOT_FOLDER/dev"
+      $SUDO_TO_ROOT mount -t devtmpfs udev "$CHROOT_FOLDER/dev"
 
       ##########
       ## /proc #
       ##########
 
-      #mount --bind "/proc" "$CHROOT_FOLDER/proc"
-      mount -t proc none "$CHROOT_FOLDER/proc"
+      #$SUDO_TO_ROOT mount --bind "/proc" "$CHROOT_FOLDER/proc"
+      $SUDO_TO_ROOT mount -t proc none "$CHROOT_FOLDER/proc"
 
       #########
       ## /sys #
@@ -69,8 +69,8 @@ main() {
 
       ## required by unbuffer
       ## (required by apt-get-wrapper)
-      #mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
-      mount -t devpts devpts "$CHROOT_FOLDER/dev/pts"
+      #$SUDO_TO_ROOT mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
+      $SUDO_TO_ROOT mount -t devpts devpts "$CHROOT_FOLDER/dev/pts"
 
       ## {{{
 
@@ -82,20 +82,20 @@ main() {
       ## Content of the PATH environment variable during fuse postinst:
       #/usr/sbin:/usr/bin:/sbin:/bin
 
-      #mkdir --parents "$CHROOT_FOLDER/usr/bin"
+      #$SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/usr/bin"
       ## File needs to exist before we can use mount.
-      #touch "$CHROOT_FOLDER/usr/bin/udevadm"
+      #$SUDO_TO_ROOT touch "$CHROOT_FOLDER/usr/bin/udevadm"
       ## Workaround to install fuse.
       ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
       ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
       ## preference over the real /sbin/udevadm.
-      #mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
+      #$SUDO_TO_ROOT mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
 
       ## }}}
    fi
 
    ## Leftover from build process using mmdebstrap.
-   rm --force "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
+   $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
 
    ##########################
    ## /etc/apt/sources.list #
@@ -114,7 +114,7 @@ main() {
    if test -f "$CHROOT_FOLDER/etc/apt/sources.list" ; then
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
-         rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
+         $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
       else
          error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/etc/apt/sources.list"
       fi
@@ -131,7 +131,7 @@ main() {
    if test -f "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
-         rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
+         $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
       else
          error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/$file_to_delete_maybe"
       fi
@@ -180,7 +180,7 @@ main() {
    ## If dist_chroot_mount_resolv_conf=1: mount host version inside chroot.
 
    if [ ! -d "$binary_build_folder_dist/system-files-copy/etc" ]; then
-      $SUDO_TO_USER mkdir --parents "$binary_build_folder_dist/system-files-copy/etc"
+      mkdir --parents "$binary_build_folder_dist/system-files-copy/etc"
    fi
 
    for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
@@ -195,20 +195,19 @@ main() {
          ## Not using.
          ## Otherwise /etc/apt/sources.list.backup leaks Whonix build sources inside VM.
          ## Otherwise host /etc/resolv.conf ends up inside VM.
-         #cp --no-clobber --preserve "$1" "$1.backup"
+         #$SUDO_TO_ROOT cp --no-clobber --preserve "$1" "$1.backup"
 
-         ## Not using '$SUDO_TO_USER' since that would fail if file is not accessible by user "user".
-         cp --preserve "$host_system_file_full_path" "$system_file_copy_full_path"
+         $SUDO_TO_ROOT cp --preserve "$host_system_file_full_path" "$system_file_copy_full_path"
       else
          true "INFO: file '$host_system_file_full_path' does not exist, skipping copy, ok."
          if [ -f "$system_file_copy_full_path" ]; then
             true "INFO: Deleting stale version from previous run..."
-            rm --verbose "$system_file_copy_full_path"
+            $SUDO_TO_ROOT rm --verbose "$system_file_copy_full_path"
          fi
          ## Create empty file to make sure it exists.
-         touch "$system_file_copy_full_path"
+         $SUDO_TO_ROOT touch "$system_file_copy_full_path"
       fi
-      chown "$user_name:$user_name" "$system_file_copy_full_path"
+      $SUDO_TO_ROOT chown "$user_name:$user_name" "$system_file_copy_full_path"
 
       ## Delete inside chroot if host version leaked into it previously through
       ## another process such as perhaps mmdebstrap.
@@ -232,7 +231,7 @@ main() {
             if [ "$dist_build_type_short" = "whonix" ]; then
                true "INFO #1: dist_build_type_short: $dist_build_type_short Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
                ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
-               shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
+               $SUDO_TO_ROOT shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
             else
                true "INFO #1: dist_build_type_short: $dist_build_type_short Therefore not touching '$CHROOT_FOLDER/$mount_base_file'."
             fi
@@ -242,14 +241,14 @@ main() {
       fi
 
       ## File needs to exist to be able to mount in next step.
-      touch "$CHROOT_FOLDER/$mount_base_file"
+      $SUDO_TO_ROOT touch "$CHROOT_FOLDER/$mount_base_file"
 
       if [ "$dist_chroot_mount_resolv_conf" = "0" ]; then
          true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, because dist_chroot_mount_resolv_conf is 0.${reset}"
          continue
       fi
 
-      mount --bind "$binary_build_folder_dist/system-files-copy/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
+      $SUDO_TO_ROOT mount --bind "$binary_build_folder_dist/system-files-copy/$mount_base_file" "$CHROOT_FOLDER/$mount_base_file"
    done
 
    sync
