@@ -504,11 +504,16 @@ do_not_run_as_root_simple_test() {
 
 root_check() {
    do_not_run_as_root_simple_test
-   $output_cmd "INFO: Running 'sudo sync' to prompt for sudo password..."
-   $output_cmd "INFO: Please enter sudo password."
-   sudo sync
-   $output_cmd "INFO: Running '$SUDO_TO_ROOT sync' to test non-interactive sudo."
-   $SUDO_TO_ROOT sync
+   $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password entry prompt is needed..."
+   if sudo --non-interactive --validate ; then
+      $output_cmd "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
+   else
+      $output_cmd "INFO: Please enter sudo password."
+      ## sudo password prompt
+      sudo --validate
+      $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password prompt succeeded."
+      sudo --non-interactive --validate
+   fi
    $output_cmd "INFO: root_check ok."
 }
 
