@@ -7,6 +7,7 @@
 ## -> errorhandlerprocessshared -> functiontracefunction -> processbacktracefunction -> errorhandlershell -> errorhandlerretry -> errorhandlermaybeexit
 
 if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
+   true "INFO: dist_build_no_unset_xtrace is not yet to true. Therefore set +x."
    set +x
 fi
 #set -x
@@ -495,8 +496,9 @@ export -f exithandler
 trap "exithandler" EXIT
 
 do_not_run_as_root_simple_test() {
+   output_cmd_set
    if [ "$(id -u)" = "0" ]; then
-       echo "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
+       $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
        exit 1
    fi
    $output_cmd "INFO: Script running as as non-root, ok."
@@ -532,4 +534,7 @@ signing_key() {
    fi
 }
 
-#echo "${bold}Currently running script: $BASH_SOURCE${reset}"
+echo "$BASH_SOURCE: set -x"
+set -x
+echo "${bold}End of script: $BASH_SOURCE${reset}"
+
