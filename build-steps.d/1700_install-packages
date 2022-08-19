@@ -88,7 +88,7 @@ This may take a while...${reset}"
    local apt_get_exit_code="0"
    $SUDO_TO_ROOT \
       $CHROOT \
-         apt-get \
+         apt-get-noninteractive \
             ${APTGETOPT[@]} \
             $apt_sourcelist_empty \
             $apt_sourceparts \
@@ -102,7 +102,7 @@ This may take a while...${reset}"
    local apt_get_exit_code="0"
    $SUDO_TO_ROOT \
       $CHROOT \
-         apt-get \
+         apt-get-noninteractive \
             ${APTGETOPT[@]} \
             $apt_sourcelist_empty \
             $apt_sourceparts \
@@ -124,7 +124,7 @@ This may take a while...${reset}"
    true "${bold}${red}ERROR: Failed to install '$@'. (apt_get_exit_code: $apt_get_exit_code) \
 Attempting to gather debug output to diagnose the problem...${reset}"
 
-   true "${bold}${cyan}INFO: Read output of apt-get trying to install '$@' into a \
+   true "${bold}${cyan}INFO: Read output of apt-get-noninteractive trying to install '$@' into a \
 variable for debugging. This may take a while...${reset}"
 
    local apt_get_exit_code="0"
@@ -132,7 +132,7 @@ variable for debugging. This may take a while...${reset}"
          $( \
             $SUDO_TO_ROOT \
                $CHROOT \
-                  apt-get \
+                  apt-get-noninteractive \
                      ${APTGETOPT[@]} \
                      $apt_sourcelist_empty \
                      $apt_sourceparts \
@@ -221,7 +221,9 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
 
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
+   cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
+
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
    "$dist_source_help_steps_folder/unchroot-raw"
 
@@ -283,17 +285,17 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT ls -la /run/udev/data || true
 
    ## Reading Debian apt repository and local repository containing Whonix's packages.
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
    ## Debugging.
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts clean
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts autoclean
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --yes install
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-missing --yes install
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts clean
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts autoclean
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --yes install
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-missing --yes install
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
    $SUDO_TO_ROOT $CHROOT dpkg --configure -a
    $SUDO_TO_ROOT $CHROOT dpkg --audit
-   $SUDO_TO_ROOT $CHROOT apt-get ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
 
    ## Debugging.
    $SUDO_TO_ROOT $CHROOT apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show nano || true
@@ -475,7 +477,7 @@ $dist_build_script_skip_package_install${reset}"
    "$dist_source_help_steps_folder/unprevent-daemons-from-starting"
 
    ## Forget about local repository containing Whonix's packages.
-   #$SUDO_TO_ROOT $CHROOT apt-get --no-download --list-cleanup update
+   #$SUDO_TO_ROOT $CHROOT apt-get-noninteractive --no-download --list-cleanup update
 
    $SUDO_TO_ROOT $CHROOT sync
    sync
