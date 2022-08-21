@@ -1,0 +1,52 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2022 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## example usage:
+
+#sudo --preserve-env make_cross_build_platform_list="armel armhf i386 amd64 arm64" ./build-steps.d/1130_cowbuilder-setup --build --allow-untagged true --allow-uncommitted true --internalrun --target root
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+## TODO
+#VMNAME="internalrun"
+
+source pre
+source colors
+source variables
+
+cd "$MYDIR"
+cd ..
+
+local_dependencies() {
+   ## developer-meta-files provides dm-reprepro-wrapper
+
+   pushd "$source_code_folder_dist/packages/kicksecure/developer-meta-files/" #>/dev/null
+
+   "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
+   if [ "$make_use_cowbuilder" = "false" ]; then
+      "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
+   fi
+   ## Environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename if set are expected to be passed.
+   "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
+
+   "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-install
+
+   popd
+}
+
+main() {
+   local_dependencies "$@"
+}
+
+main "$@"
