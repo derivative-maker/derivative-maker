@@ -30,7 +30,13 @@ main() {
    if [ "$dist_build_install_to_root" = "1" ]; then
       true
    else
+      devices_mount
+      chroot_files_cleanup
+      chroot_mount_files
+   fi
+}
 
+devices_mount() {
       #########
       ## /dev #
       #########
@@ -90,8 +96,9 @@ main() {
       #$SUDO_TO_ROOT mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
 
       ## }}}
-   fi
+}
 
+chroot_files_cleanup() {
    ## Leftover from build process using mmdebstrap.
    $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
 
@@ -136,11 +143,9 @@ main() {
    else
       true "INFO: chroot $CHROOT_FOLDER/$file_to_delete_maybe, does not exist, ok."
    fi
+}
 
-   ################
-   ## mount files #
-   ################
-
+chroot_mount_files() {
    ## controversy of:
    ## /etc/resolv.conf /etc/hosts /etc/hostname
 
