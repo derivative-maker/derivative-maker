@@ -37,65 +37,65 @@ main() {
 }
 
 devices_mount() {
-      #########
-      ## /dev #
-      #########
-      ## update-grub
-      ## W: Couldn't identify type of root file system for fsck hook
-      ##
-      ## setupcon: None of /etc/default/keyboard, /etc/default/console-setup, /home/user/.console-setup, /home/user/.keyboard exists.
-      ##
-      ## /usr/share/initramfs-tools/hooks/keymap: 35: /usr/share/initramfs-tools/hooks/keymap: cannot open /var/tmp/mkinitramfs_2xz9rK/morefiles: No such file
-      ##
-      ## In past we needed /dev to create a swapfile.
-      ## dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
-      #$SUDO_TO_ROOT mount --bind "/dev" "$CHROOT_FOLDER/dev"
-      $SUDO_TO_ROOT mount -t devtmpfs udev "$CHROOT_FOLDER/dev"
+   #########
+   ## /dev #
+   #########
+   ## update-grub
+   ## W: Couldn't identify type of root file system for fsck hook
+   ##
+   ## setupcon: None of /etc/default/keyboard, /etc/default/console-setup, /home/user/.console-setup, /home/user/.keyboard exists.
+   ##
+   ## /usr/share/initramfs-tools/hooks/keymap: 35: /usr/share/initramfs-tools/hooks/keymap: cannot open /var/tmp/mkinitramfs_2xz9rK/morefiles: No such file
+   ##
+   ## In past we needed /dev to create a swapfile.
+   ## dd if=/dev/zero of=/swapfile1 bs=1024 count=524288
+   #$SUDO_TO_ROOT mount --bind "/dev" "$CHROOT_FOLDER/dev"
+   $SUDO_TO_ROOT mount -t devtmpfs udev "$CHROOT_FOLDER/dev"
 
-      ##########
-      ## /proc #
-      ##########
+   ##########
+   ## /proc #
+   ##########
 
-      #$SUDO_TO_ROOT mount --bind "/proc" "$CHROOT_FOLDER/proc"
-      $SUDO_TO_ROOT mount -t proc none "$CHROOT_FOLDER/proc"
+   #$SUDO_TO_ROOT mount --bind "/proc" "$CHROOT_FOLDER/proc"
+   $SUDO_TO_ROOT mount -t proc none "$CHROOT_FOLDER/proc"
 
-      #########
-      ## /sys #
-      #########
+   #########
+   ## /sys #
+   #########
 
-      ## required by dracut
-      #mount --bind "/sys" "$CHROOT_FOLDER/sys"
-      $SUDO_TO_ROOT mount -t sysfs none "$CHROOT_FOLDER/sys"
+   ## required by dracut
+   #mount --bind "/sys" "$CHROOT_FOLDER/sys"
+   $SUDO_TO_ROOT mount -t sysfs none "$CHROOT_FOLDER/sys"
 
-      #############
-      ## /dev/pts #
-      #############
+   #############
+   ## /dev/pts #
+   #############
 
-      ## required by unbuffer
-      ## (required by apt-get-wrapper)
-      #$SUDO_TO_ROOT mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
-      $SUDO_TO_ROOT mount -t devpts devpts "$CHROOT_FOLDER/dev/pts"
+   ## required by unbuffer
+   ## (required by apt-get-wrapper)
+   #$SUDO_TO_ROOT mount --bind "/dev/pts" "$CHROOT_FOLDER/dev/pts"
+   $SUDO_TO_ROOT mount -t devpts devpts "$CHROOT_FOLDER/dev/pts"
 
-      ## {{{
+   ## {{{
 
-      ## fuse postinst uses udevadm without hardcoding the path fortunately.
-      ## default search path of /sbin/udevadm:
-      ## `which udevadm`
-      ## /sbin/udevadm
-      ##
-      ## Content of the PATH environment variable during fuse postinst:
-      #/usr/sbin:/usr/bin:/sbin:/bin
+   ## fuse postinst uses udevadm without hardcoding the path fortunately.
+   ## default search path of /sbin/udevadm:
+   ## `which udevadm`
+   ## /sbin/udevadm
+   ##
+   ## Content of the PATH environment variable during fuse postinst:
+   #/usr/sbin:/usr/bin:/sbin:/bin
 
-      #$SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/usr/bin"
-      ## File needs to exist before we can use mount.
-      #$SUDO_TO_ROOT touch "$CHROOT_FOLDER/usr/bin/udevadm"
-      ## Workaround to install fuse.
-      ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
-      ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
-      ## preference over the real /sbin/udevadm.
-      #$SUDO_TO_ROOT mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
+   #$SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/usr/bin"
+   ## File needs to exist before we can use mount.
+   #$SUDO_TO_ROOT touch "$CHROOT_FOLDER/usr/bin/udevadm"
+   ## Workaround to install fuse.
+   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=934457
+   ## Bind mount dummy udevadm to /usr/bin/udevadm in chroot so it will take
+   ## preference over the real /sbin/udevadm.
+   #$SUDO_TO_ROOT mount --bind "$source_code_folder_dist/help-steps/udevadm" "$CHROOT_FOLDER/usr/bin/udevadm"
 
-      ## }}}
+   ## }}}
 }
 
 chroot_files_cleanup() {
