@@ -509,12 +509,15 @@ root_check() {
       $output_cmd "INFO: Going to run 'sudo --validate' to prompt for password..."
       $output_cmd "INFO: Please enter sudo password."
       ## sudo password prompt
-      sudo --validate
+      ## overwrite with '|| true' so sudo prompts only once (with the sudo default allowed retires).
+      ## Avoiding the built-in auto retry in this script. Validation happens below.
+      sudo --validate || true
       $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password prompt succeeded..."
       if sudo --non-interactive --validate ; then
          $output_cmd "INFO: sudo password prompt success."
       else
          $output_cmd "${red}${bold}ERROR: sudo password prompt entry failure!${reset}"
+         error "sudo password prompt entry failure"
       fi
    fi
    $output_cmd "INFO: root_check ok."
