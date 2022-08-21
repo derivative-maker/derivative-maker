@@ -496,17 +496,12 @@ export -f exithandler
 
 trap "exithandler" EXIT
 
-do_not_run_as_root_simple_test() {
-   output_cmd_set
+root_check() {
    if [ "$(id -u)" = "0" ]; then
        $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
        exit 1
    fi
    $output_cmd "INFO: Script running as as non-root, ok."
-}
-
-root_check() {
-   do_not_run_as_root_simple_test
    $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password entry prompt is needed..."
    if sudo --non-interactive --validate ; then
       $output_cmd "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
