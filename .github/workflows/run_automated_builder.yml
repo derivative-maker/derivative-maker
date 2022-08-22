@@ -1,0 +1,46 @@
+name: Build Commit VMs
+
+on:
+  push:
+    tags:
+      - '*'
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env: 
+      ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+      REPO_URL: ${{ github.repository }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ansible
+
+    - name: Run automated builder
+      run: |
+        ./automated_builder/scripts/run_automated_builder.sh $ANSIBLE_VAULT_PASSWORD
+
+    - name: Handle artifacts
+      if: always()
+      run: |
+        ./automated_builder/scripts/handle_artifacts.sh $ANSIBLE_VAULT_PASSWORD
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: logs
+        path: ./automated_builder/logs/
