@@ -502,8 +502,11 @@ root_check() {
        exit 1
    fi
    $output_cmd "INFO: Script running as as non-root, ok."
-   $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password entry prompt is needed..."
-   if sudo --non-interactive --validate ; then
+   ## Not using 'sudo --non-interactive --validate' because that caused an
+   ## error on an ansible server "sudo: a password is required". Potential bug in sudo?
+   ## https://forums.whonix.org/t/derivative-maker-automated-ci-builder/14468/14
+   $output_cmd "INFO: Running 'sudo --non-interactive test -d /usr' to test if sudo password entry prompt is needed..."
+   if sudo --non-interactive test -d /usr ; then
       $output_cmd "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
    else
       $output_cmd "INFO: Going to run 'sudo --validate' to prompt for password..."
@@ -512,8 +515,8 @@ root_check() {
       ## overwrite with '|| true' so sudo prompts only once (with the sudo default allowed retires).
       ## Avoiding the built-in auto retry in this script. Validation happens below.
       sudo --validate || true
-      $output_cmd "INFO: Running 'sudo --non-interactive --validate' to test if sudo password prompt succeeded..."
-      if sudo --non-interactive --validate ; then
+      $output_cmd "INFO: Running 'sudo --non-interactive test -d /usr' to test if sudo password prompt succeeded..."
+      if sudo --non-interactive test -d /usr ; then
          $output_cmd "INFO: sudo password prompt success."
       else
          $output_cmd "${red}${bold}ERROR: sudo password prompt entry failure!${reset}"
