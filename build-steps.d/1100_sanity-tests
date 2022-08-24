@@ -25,7 +25,25 @@ cd "$MYDIR"
 cd ..
 
 check-unicode() {
-   "${dist_developer_meta_files_folder}/usr/bin/dm-check-unicode"
+   ## overwrite with '|| true' because `grep` exits non-zero if no match was found.
+   grep_find_unicode_wrapper_output="$(\
+      "${dist_developer_meta_files_folder}/usr/bin/dm-check-unicode" \
+      --recursive \
+      --exclude=control.authcookie \
+      "$binary_build_folder_dist" \
+      )" \
+      || true
+
+   if [ "$grep_find_unicode_wrapper_output" = "" ]; then
+      true "INFO: grep_find_unicode_wrapper_output empty, good, OK."
+   else
+      error "\
+   $0: ERROR: Unicode found!
+
+   See also:
+   https://forums.whonix.org/t/detecting-malicious-unicode-in-source-code-and-pull-requests/13754
+   "
+   fi
 
    true
 }
