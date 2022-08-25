@@ -100,7 +100,9 @@ devices_mount() {
 
 chroot_files_cleanup() {
    ## Leftover from build process using mmdebstrap.
-   $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
+   if test -f "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap" ; then
+      $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
+   fi
 
    ##########################
    ## /etc/apt/sources.list #
@@ -119,7 +121,7 @@ chroot_files_cleanup() {
    if test -f "$CHROOT_FOLDER/etc/apt/sources.list" ; then
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting, ok."
-         $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/etc/apt/sources.list"
+         $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/etc/apt/sources.list"
       else
          error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/etc/apt/sources.list"
       fi
@@ -136,7 +138,7 @@ chroot_files_cleanup() {
    if test -f "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$file_to_delete_maybe" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/$file_to_delete_maybe, deleting, ok."
-         $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/$file_to_delete_maybe"
+         $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/$file_to_delete_maybe"
       else
          error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/$file_to_delete_maybe"
       fi
