@@ -37,13 +37,20 @@ umount_kill() {
     # since we are doing an exact string match on the path
     MOUNTDIR=$(echo "$MOUNTDIR" | sed s#//*#/#g)
 
+    dir="$MOUNTDIR"
+
     echo "-> Attempting to kill any processes still running in '$MOUNTDIR' before un-mounting"
-    for dir in $(grep "$MOUNTDIR" /proc/mounts | cut -f2 -d" " | sort -r | grep "^$MOUNTDIR")
-    do
-        pids=$(lsof "$dir" 2> /dev/null | \
-            grep "$dir" | \
-            tail -n +2 | \
-            awk '{print $2}')
+#     for dir in $(grep "$MOUNTDIR" /proc/mounts | cut -f2 -d" " | sort -r | grep "^$MOUNTDIR")
+#     do
+        ## Debugging.
+        true "--------------------------------------------------------------------------------"
+        lsof "$dir"
+        true "--------------------------------------------------------------------------------"
+
+        pids=$(lsof "$dir" 2> /dev/null)
+        pids=$(echo "$pids" | grep "$dir")
+        pids=$(echo "$pids" | tail -n +2)
+        pids=$(echo "$pids" | awk '{print $2}')
 
         if [ "$pids" = "" ]; then
            echo "Okay, no pids still running in '$MOUNTDIR', no need to kill any."
@@ -69,7 +76,7 @@ umount_kill() {
                 umount -v -f -n -l "$dir" 2> /dev/null || \
                 echo "umount $dir unsuccessful!"
         fi
-    done
+#     done
 }
 
 kill_processes_in_mount() {
