@@ -76,6 +76,11 @@ kill_processes_in_mount() {
     umount_kill $1 "false" || :
 }
 
+if [ ! "$(id -u)" = "0" ]; then
+   echo "$0: ERROR: This MUST be run as root (sudo)!" >&2
+   exit 1
+fi
+
 if [ $(basename "$0") == "umount_kill.sh" -a "$1" ]; then
     umount_kill "$1"
 fi
