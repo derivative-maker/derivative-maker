@@ -42,9 +42,12 @@ if [ "$pids" = "" ]; then
    true "INFO: Okay, no pids still running in '$directory', no need to kill any."
 else
    true "INFO: Okay, the following pids are still running inside '$directory', which will now be killed."
+
+   ## Debugging.
    ## Overwrite with '|| true' to avoid race condition if these processes already
    ## terminated themselves.
    ps -p $pids || true "WARNING: Command 'ps -p $pids' exited non-zero."
+
    kill -9 $pids || true "WARNING: Command 'kill -9 $pids' exited non-zero."
    ## Killing processes is not instant and a check to wait for the process to be gone isn't implemented.
    sleep 3
