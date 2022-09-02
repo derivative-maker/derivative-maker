@@ -33,10 +33,10 @@ true "--------------------------------------------------------------------------
 lsof "$directory" || true
 true "--------------------------------------------------------------------------------"
 
-pids=$(lsof "$directory" 2> /dev/null) || true
-pids=$(echo "$pids" | grep "$directory") || true
-pids=$(echo "$pids" | tail -n +2) || true
-pids=$(echo "$pids" | awk '{print $2}') || true
+temp1=$(lsof "$directory" 2> /dev/null) || true
+temp2=$(echo "$temp1" | grep "$directory") || true
+temp3=$(echo "$temp2" | tail -n +2) || true
+pids=$(echo "$temp3" | awk '{print $2}') || true
 
 if [ "$pids" = "" ]; then
    true "INFO: Okay, no pids still running in '$directory', no need to kill any."
