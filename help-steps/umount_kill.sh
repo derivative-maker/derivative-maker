@@ -1,4 +1,7 @@
-#!/bin/bash -e
+#!/bin/bash
+
+set -x
+set -e
 
 #
 # Written by Jason Mehring (nrgaway@gmail.com)
