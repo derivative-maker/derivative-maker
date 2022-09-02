@@ -47,10 +47,11 @@ umount_kill() {
 #     do
         ## Debugging.
         true "--------------------------------------------------------------------------------"
-        lsof "$dir"
+        ## Overwrite with '|| true' because if no processes are running, lsof exists non-zero.
+        lsof "$dir" || true
         true "--------------------------------------------------------------------------------"
 
-        pids=$(lsof "$dir" 2> /dev/null)
+        pids=$(lsof "$dir" 2> /dev/null) || true
         pids=$(echo "$pids" | grep "$dir")
         pids=$(echo "$pids" | tail -n +2)
         pids=$(echo "$pids" | awk '{print $2}')
