@@ -52,9 +52,9 @@ umount_kill() {
         true "--------------------------------------------------------------------------------"
 
         pids=$(lsof "$dir" 2> /dev/null) || true
-        pids=$(echo "$pids" | grep "$dir")
-        pids=$(echo "$pids" | tail -n +2)
-        pids=$(echo "$pids" | awk '{print $2}')
+        pids=$(echo "$pids" | grep "$dir") || true
+        pids=$(echo "$pids" | tail -n +2) || true
+        pids=$(echo "$pids" | awk '{print $2}') || true
 
         if [ "$pids" = "" ]; then
            echo "Okay, no pids still running in '$MOUNTDIR', no need to kill any."
