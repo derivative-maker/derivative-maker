@@ -60,8 +60,10 @@ umount_kill() {
            echo "Okay, no pids still running in '$MOUNTDIR', no need to kill any."
         else
            echo "Okay, the following pids are still running inside '$MOUNTDIR', which will now be killed."
-           ps -p $pids
-           kill -9 $pids
+           ## Overwrite with '|| true' to avoid race condition if these processes already
+           ## terminated themselves.
+           ps -p $pids || true
+           kill -9 $pids || true
         fi
 
         if ! [ "$2" ] && $(mountpoint -q "$dir"); then
