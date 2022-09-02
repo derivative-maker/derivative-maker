@@ -25,6 +25,14 @@ if [ "$directory" = "/" ]; then
    exit 1
 fi
 
+real_path=$(realpath "$directory")
+
+if [ "$directory" = "$real_path" ]; then
+   true "INFO: directory = real_path, ok."
+else
+   true "WARNING: directory is different from real_path!"
+fi
+
 echo "INFO: Checking if there are any processes still running in directory: '$directory'"
 
 ## Debugging.
