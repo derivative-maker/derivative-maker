@@ -46,6 +46,8 @@ else
    ## terminated themselves.
    ps -p $pids || true "INFO: Command 'ps -p $pids' exited non-zero."
    kill -9 $pids || true "INFO: Command 'kill -9 $pids' exited non-zero."
+   ## Killing processes is not instant and a check to wait for the process to be gone isn't implemented.
+   sleep 3
 fi
 
 true "$0 INFO: end"
