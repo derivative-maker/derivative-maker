@@ -70,6 +70,25 @@ Please delete derivative-maker source code folder and get it again as user, not 
    true
 }
 
+check-stray-loop-devices() {
+   true "INFO: Checking for stray loop devices..."
+
+   losetup_output=$($SUDO_TO_ROOT losetup --all)
+
+   if [ "$losetup_output" = "" ]; then
+      true "INFO: Output of losetup_output is empty. No stray loop devices, OK."
+      return 0
+   fi
+
+   error "stray loop devices!
+
+losetup_output: $losetup_output
+
+$help_text"
+
+   true
+}
+
 check-copy-vms-into-raw() {
    if [ "$dist_build_internal_run" = "1" ]; then
       return 0
@@ -176,6 +195,7 @@ signing_key() {
 main() {
    check-unicode "$@"
    check-source-folder-permissions "$@"
+   check-stray-loop-devices "$@"
    check-copy-vms-into-raw "$@"
    check-virtualbox-vm-exists "$@"
    check_required_packages_installed "$@"
