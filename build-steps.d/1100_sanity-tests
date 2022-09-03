@@ -73,6 +73,7 @@ Please delete derivative-maker source code folder and get it again as user, not 
 check-stray-loop-devices() {
    true "INFO: Checking for stray loop devices..."
 
+   local losetup_output
    losetup_output=$($SUDO_TO_ROOT losetup --all)
 
    if [ "$losetup_output" = "" ]; then
@@ -101,6 +102,37 @@ Potential causes:
 
 Recommendation:
 - Reboot. Often a reboot is required to get rid of the stray loop device."
+
+   true
+}
+
+check-stray-mounts() {
+   true "INFO: Checking for mounts..."
+
+   local proc_mounts_grep_result
+   proc_mounts_grep_result=$($SUDO_TO_ROOT cat /proc/mounts | grep "$CHROOT_FOLDER") || true
+
+   if [ "$proc_mounts_grep_result" = "" ]; then
+      true "INFO: Output of proc_mounts_grep_result is empty. No stray mounts, OK."
+      return 0
+   fi
+
+   error "Stray mounts detected!
+
+proc_mounts_grep_result: '$proc_mounts_grep_result'
+
+This has been detected by the following command... To reproduce this manually, run...
+
+sudo cat /proc/mounts | grep '$CHROOT_FOLDER' ; echo $?
+
+expected result:
+1
+
+Potential causes:
+- A previously broken or aborted build might result in a stray mount.
+
+Recommendation:
+- Reboot. Often a reboot is required to get rid of the stray mount."
 
    true
 }
@@ -212,6 +244,7 @@ main() {
    check-unicode "$@"
    check-source-folder-permissions "$@"
    check-stray-loop-devices "$@"
+   check-stray-mounts "$@"
    check-copy-vms-into-raw "$@"
    check-virtualbox-vm-exists "$@"
    check_required_packages_installed "$@"
