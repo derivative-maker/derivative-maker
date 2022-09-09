@@ -25,7 +25,10 @@ if [ "$directory" = "/" ]; then
    exit 1
 fi
 
-real_path=$(realpath "$directory")
+## XXX: Should check if file or folder exists?
+## XXX: Any other file system objects such as symlinks?
+
+real_path=$(realpath "$directory") || true
 
 if [ "$directory" = "$real_path" ]; then
    true "INFO: directory = real_path, ok."
