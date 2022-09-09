@@ -36,6 +36,20 @@ else
    true "WARNING: directory is different from real_path!"
 fi
 
+skip_name_list="proc dev sys"
+
+base_name="${directory##*/}"
+
+for skip_name_item in $skip_name_list ; do
+   if [ "$base_name" = "$skip_name_item" ]; then
+      ## Most likely just mounted host /dev in chroot can be ignored.
+      ## Would otherwise show a long, confusing lsof.
+      true "INFO: base_name: $skip_name_item Skip checking if processes are running there, ok."
+      true "$0 INFO: end"
+      exit 0
+   fi
+done
+
 echo "INFO: Checking if there are any processes still running in directory: '$directory'"
 
 ## Debugging.
