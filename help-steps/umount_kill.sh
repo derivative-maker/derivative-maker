@@ -39,7 +39,7 @@ else
    true "WARNING: directory is different from real_path!"
 fi
 
-skip_name_list="proc dev sys"
+skip_name_list="pts dev proc sys hostname resolv.conf hosts hostname"
 
 base_name="${directory##*/}"
 
