@@ -25,8 +25,11 @@ if [ "$directory" = "/" ]; then
    exit 1
 fi
 
-## XXX: Should check if file or folder exists?
-## XXX: Any other file system objects such as symlinks?
+if ! test -e "$directory" ; then
+   true "INFO: directory does not exist. Skip checking if processes are running there, ok."
+   true "$0 INFO: end"
+   exit 0
+fi
 
 real_path=$(realpath "$directory") || true
 
