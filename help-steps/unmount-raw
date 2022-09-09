@@ -32,28 +32,13 @@ unmount_raw() {
 
    sync
 
-   ## kill gpg-agent
-   ## The leading '/' is important to prevent umounting $CHROOT_FOLDER itself.
-   $SUDO_TO_ROOT "$MYDIR/umount_kill.sh" "$CHROOT_FOLDER/"
-
-   sync
-   ## Sleep to work around some obscure bug.
-   ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734794
-   ## Could also try as a workaround:
-   ## dmsetup ls
-   ## dmsetup remove $device
-   sleep 6 &
-   wait "$!"
-   sync
-
    ## Debugging.
    $SUDO_TO_ROOT losetup --all
 
    if [ "$kpartx_only" = "true" ]; then
       true "INFO: kpartx_only=$kpartx_only, skipping unmount $CHROOT_FOLDER"
    else
-      $SUDO_TO_ROOT umount --verbose "$CHROOT_FOLDER"
-      sync
+      "$dist_source_help_steps_folder/unmount-helper" "$CHROOT_FOLDER"
    fi
 
    if [ "$dist_build_mount_raw_file" = "" ]; then

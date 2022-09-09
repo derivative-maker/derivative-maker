@@ -137,6 +137,36 @@ Recommendation:
    true
 }
 
+mount-test() {
+   ## TODO
+   return 0
+
+   ## Debugging.
+
+   $SUDO_TO_ROOT mount
+
+   mkdir --parents /home/user/whonix_binary
+
+   $SUDO_TO_ROOT kpartx -av /home/user/whonix_binary/Whonix-Gateway.img
+
+   $SUDO_TO_ROOT mkdir --parents /home/user/whonix_binary/Whonix-Gateway_image
+
+   $SUDO_TO_ROOT mount --verbose /dev/mapper/loop0p1 /home/user/whonix_binary/Whonix-Gateway_image
+
+   ## TODO
+   $SUDO_TO_ROOT umount --verbose /home/user/whonix_binary/Whonix-Gateway_image/etc/resolv.conf || true
+
+   $SUDO_TO_ROOT umount --verbose /home/user/whonix_binary/Whonix-Gateway_image
+
+   $SUDO_TO_ROOT kpartx -dv /home/user/whonix_binary/Whonix-Gateway.img
+
+   $SUDO_TO_ROOT rm -r /home/user/whonix_binary/Whonix-Gateway_image
+
+   $SUDO_TO_ROOT mount
+
+   true
+}
+
 check-copy-vms-into-raw() {
    if [ "$dist_build_internal_run" = "1" ]; then
       return 0
@@ -245,6 +275,7 @@ main() {
    check-source-folder-permissions "$@"
    check-stray-loop-devices "$@"
    check-stray-mounts "$@"
+   mount-test "$@"
    check-copy-vms-into-raw "$@"
    check-virtualbox-vm-exists "$@"
    check_required_packages_installed "$@"
