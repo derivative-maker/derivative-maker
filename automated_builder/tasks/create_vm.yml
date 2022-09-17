@@ -1,0 +1,17 @@
+---
+- name: Clean existing gateway VM
+  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --clean > /home/ansible/build.log 2>&1"
+
+- name: Clean existing workstation VM
+  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-workstation-xfce --target virtualbox --clean >> /home/ansible/build.log 2>&1"
+  
+- name: Reboot VPS for stray loop devices
+  reboot:
+    reboot_timeout: 60
+  become: true
+
+- name: Build new gateway VM
+  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --build >> /home/ansible/build.log 2>&1"
+
+- name: Build new workstation VM
+  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-workstation-xfce --target virtualbox --build >> /home/ansible/build.log 2>&1"
