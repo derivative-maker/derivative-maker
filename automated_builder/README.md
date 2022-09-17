@@ -23,5 +23,3 @@ SSH_PUBLIC_KEY: |
 ```
 
 then run `ansible-vault decrypt automated_builder/vars/main.yml` and enter a password to use in your fork. Enter it as your `ANSIBLE_VAULT_PASSWORD` as mentioned above
-
-
