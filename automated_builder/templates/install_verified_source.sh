@@ -1,18 +1,18 @@
 #!/bin/bash
 
-VERSION_TAG=$1
-REPO_URL=$2
+REPO_URL=$1
+COMMIT_BRANCH=$2
+VERSION_TAG=$3
 
 main() {
   echo "Running source code installation script..."
-  echo "Current repository URL: $REPO_URL"
-  echo "Current Tag: $VERSION_TAG"
+  echo "CI repository URL: $REPO_URL"
+  echo "CI Branch: $COMMIT_BRANCH"
 
   clean_old_source
   install_source_code
-  verify_source
+  checkout_code
 }
-
 clean_old_source() {
   if [ -d "/home/ansible/derivative-maker" ]; then
     rm -rf /home/ansible/derivative-maker
@@ -27,13 +27,16 @@ install_source_code() {
   cd /home/ansible
   git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 https://github.com/$REPO_URL
   cd /home/ansible/derivative-maker
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
 }
 
-verify_source() {
-  # TODO: Set up commit verification with upstream keys
-  # git verify-tag $VERSION_TAG
-  git checkout --recurse-submodules $VERSION_TAG
+checkout_code(){
+  if [ -z "$VERSION_TAG" ]; then
+    git checkout --recurse-submodules $COMMIT_BRANCH
+  else
+    git checkout --recurse-submodules $VERSION_TAG
+  fi
 }
 
 main

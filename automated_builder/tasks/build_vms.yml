@@ -1,8 +1,9 @@
 ---
-- name: Build tagged VMs
+- name: Build VMs
   hosts: vps_runner
   gather_facts: true
   vars_files:
+    - ../vars/secrets.yml
     - ../vars/main.yml
 
   tasks:
@@ -22,10 +23,17 @@
         - name: Clean existing vbox VMs
           include_tasks: clean_existing_vbox_vms.yml
 
-    - name: Create VM from tag
+    - name: Create VMs from tag
       block:
-        - name: Create VM
-          include_tasks: create_vm.yml
+        - name: Create VMs from tag
+          include_tasks: create_vms_from_tag.yml
+      when: REF_TYPE == 'tag'
+
+    - name: Create VMs from commit
+      block:
+        - name: Create VMs from commit
+          include_tasks: create_vms_from_commit.yml
+      when: REF_TYPE != 'tag'
 
     - name: Start new VirtualBox VMs
       block:
