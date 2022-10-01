@@ -5,5 +5,10 @@
     dest: /home/ansible/install_verified_source.sh
     mode: 0744
 
-- name: Run install_verified_source script
-  shell: "/home/ansible/install_verified_source.sh {{ lookup('env', 'GITHUB_REF_NAME') }} {{ lookup('env', 'REPO_URL') }} >> /home/ansible/install_verified_source.log 2>&1"
+- name: Run install_verified_source script for tag
+  shell: "/home/ansible/install_verified_source.sh {{ GIT_REPO }} {{ REF_NAME }} {{ REF_NAME }} > /home/ansible/install_verified_source.log 2>&1"
+  when: REF_TYPE == 'tag'
+
+- name: Run install_verified_source script for commit
+  shell: "/home/ansible/install_verified_source.sh {{ GIT_REPO }} {{ REF_NAME }} > /home/ansible/install_verified_source.log 2>&1"
+  when: REF_TYPE != 'tag'
