@@ -867,6 +867,26 @@ unset skip_script
 ## }}}
 
 true "INFO: LD_PRELOAD: $LD_PRELOAD"
+
+env_vars_keep_list="
+   tbb_version
+"
+
+echo "INFO: Environment variables that will be passed..."
+
+for env_vars_var_keep_item in $env_vars_keep_list ; do
+   #echo "env_vars_var_keep_item    : '$env_vars_var_keep_item'"
+   env_vars_content_keep_item="${!env_vars_var_keep_item}"
+   #echo "env_vars_content_keep_item: '$env_vars_content_keep_item'"
+   if [ "$env_vars_content_keep_item" = "" ]; then
+      continue
+   fi
+   SUDO_TO_ROOT="$SUDO_TO_ROOT $env_vars_var_keep_item='$env_vars_content_keep_item'"
+done
+
+echo "INFO: SUDO_TO_ROOT:"
+echo "${cyan}$SUDO_TO_ROOT${reset}"
+
 echo "$BASH_SOURCE INFO: set -x"
 set -x
 true "$BASH_SOURCE INFO: End of script, ok."
