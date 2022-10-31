@@ -873,9 +873,9 @@ env_vars_keep_list="
    tb_onion
    anon_shared_inst_tb
    dist_build_unsafe_io
+   SKIP_SCRIPTS
 "
 ## TODO:
-## SKIP_SCRIPTS
 ## UWT_DEV_PASSTHROUGH
 
 echo "INFO: Environment variables that will be passed..."
@@ -887,8 +887,19 @@ for env_vars_var_keep_item in $env_vars_keep_list ; do
    if [ "$env_vars_content_keep_item" = "" ]; then
       continue
    fi
-   SUDO_TO_ROOT="$SUDO_TO_ROOT $env_vars_var_keep_item='$env_vars_content_keep_item'"
+   if [ "$sudo_preserve_env_list" = "" ]; then
+      sudo_preserve_env_list="$env_vars_var_keep_item"
+   else
+      sudo_preserve_env_list+=",$env_vars_var_keep_item"
+   fi
 done
+
+if [ "$sudo_preserve_env_list" = "" ]; then
+   true "INFO: not passing --preserve-env."
+else
+   SUDO_TO_ROOT+=" "
+   SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
+fi
 
 echo "INFO: SUDO_TO_ROOT:"
 echo "${cyan}$SUDO_TO_ROOT${reset}"
