@@ -7,7 +7,8 @@ The `automated_builder` folder contains ansible plays in order to streamline Who
 ### VM Setup
 1. A Digital Ocean (or similar) Debian VPS must exist with the following configurations
   a) A user named `ansible` must exist
-  c) SSH must be set up and ports open, with a key for `ansible` in `/home/users/ansible/.ssh/authorized_keys`
+  b) SSH must be set up and ports open, with a key for `ansible` in `/home/users/ansible/.ssh/authorized_keys`.
+  c) XFCE Desktop must be setup and running (use a VNC viewer such as tightvnc for inspecting and troubleshooting). See https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-debian-11 for reference. Note: A VNC passord is required for this, and should be stored securely.
 
 ### Environment variables
 In the github repository settings, the variable `ANSIBLE_VAULT_PASSWORD` must be set to encrypt `automated_builder/vars/main.yml`
