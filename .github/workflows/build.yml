@@ -1,5 +1,4 @@
-name: Build VMs
-
+name: Build VMs from Commits
 on: push
 
 concurrency:
@@ -26,11 +25,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install ansible
 
+    # TODO: Check for existing VPS, create new Virtual Private Server(s) for tag push or commit push
+    # - name: Manage DigitalOcean assets
+    #   run: |
+    #     ./automated_builder/scripts/create_vps.sh $ANSIBLE_VAULT_PASSWORD
+
+    # TODO: create seperate roles for tag push and commit push
     - name: Run automated builder
       run: |
         ./automated_builder/scripts/run_automated_builder.sh $ANSIBLE_VAULT_PASSWORD
 
-    - name: Handle artifacts
+    - name: Run automated test suite
+      run: |
+        ./automated_builder/scripts/run_automated_test_suite.sh $ANSIBLE_VAULT_PASSWORD
+      if: startsWith(github.ref, 'refs/tags/v')
+
+    # TODO: Handle aggregation of logs from multiple VMs when commit push occurs. Rename logs and create more clear folder structures
+    - name: Gather artifacts
       if: always()
       run: |
         ./automated_builder/scripts/handle_artifacts.sh $ANSIBLE_VAULT_PASSWORD
@@ -41,3 +52,5 @@ jobs:
       with:
         name: logs
         path: ./automated_builder/logs/
+
+    # TODO: Teardown VPS job
