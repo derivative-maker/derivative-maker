@@ -21,7 +21,7 @@ install_source() {
 
 run_tests() {
   cd whonix_automated_test_suite
-  behave ./features
+  NO_AT_BRIDGE=1 behave ./features
 }
 
 main
