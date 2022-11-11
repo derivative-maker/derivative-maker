@@ -2,6 +2,8 @@
 
 main() {
   prepare_environment
+  install_source
+  run_tests
 }
 
 prepare_environment() {
