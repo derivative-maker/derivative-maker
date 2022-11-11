@@ -11,7 +11,7 @@ main() {
   encrypt_vault
 }
 
-run_builder() {
+run_automated_test_suite() {
   ansible-playbook -i automated_builder/inventory automated_builder/tasks/run_wats.yml
 }
 
