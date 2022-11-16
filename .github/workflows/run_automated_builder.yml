@@ -1,4 +1,4 @@
-name: Build VMs
+name: Run automated builder
 
 on: push
 
@@ -9,7 +9,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env: 
+    env:
       ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
       REPO_URL: ${{ github.repository }}
     steps:
@@ -30,14 +30,14 @@ jobs:
       run: |
         ./automated_builder/scripts/run_automated_builder.sh $ANSIBLE_VAULT_PASSWORD
 
-    - name: Handle artifacts
-      if: always()
-      run: |
-        ./automated_builder/scripts/handle_artifacts.sh $ANSIBLE_VAULT_PASSWORD
+    # - name: Handle artifacts
+    #   if: always()
+    #   run: |
+    #     ./automated_builder/scripts/handle_artifacts.sh $ANSIBLE_VAULT_PASSWORD
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: logs
-        path: ./automated_builder/logs/
+    # - name: Upload artifacts
+    #   uses: actions/upload-artifact@v3
+    #   if: always()
+    #   with:
+    #     name: logs
+    #     path: ./automated_builder/logs/

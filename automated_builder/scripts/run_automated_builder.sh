@@ -12,8 +12,10 @@ main() {
 }
 
 run_builder() {
-  ansible-playbook -i automated_builder/inventory automated_builder/tasks/configure_local_environment.yml
-  ansible-playbook -i automated_builder/inventory automated_builder/tasks/build_vms.yml
+  ansible-playbook automated_builder/tasks/configure_local_environment.yml
+  ansible-galaxy collection install community.digitalocean
+  ansible-playbook automated_builder/tasks/generate_inventory.yml
+  # ansible-playbook -i automated_builder/inventory automated_builder/tasks/build_vms.yml
 }
 
 main
