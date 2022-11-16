@@ -7,26 +7,8 @@
     - ../vars/secrets.yml
 
   tasks:
-    - name: Check for existing inventory
-      community.digitalocean.digital_ocean_droplet_info:
-        oauth_token: "{{ DO_API_TOKEN }}"
-      register: droplets
-
-    - name: Inspect Droplets
-      debug:
-        var: droplets
-
-    - name: Count existing droplets
-      set_fact:
-        droplet_count: "{{ droplets.data | length }}"
-
-    - name: Delete lingering droplets
-      community.digitalocean.digital_ocean_droplet:
-        state: absent
-        oauth_token: "{{ DO_API_TOKEN }}"
-        id: "{{ item.id }}"
-      loop: "{{ droplets.data }}"
-      when: droplet_count != "0"
+    - name: Delete lingering inventory
+      include_tasks: delete_inventory.yml
 
     - name: Create SSH key
       community.digitalocean.digital_ocean_sshkey:
@@ -45,6 +27,6 @@
         region: nyc3
         image: debian-11-x64
         wait_timeout: 500
-        ssh_keys: ["{{ public_key.data.id }}"]
+        ssh_keys: ["{{ public_key.data.ssh_key.id }}"]
         project: "Automated Builder"
       register: automated_builder_vps
