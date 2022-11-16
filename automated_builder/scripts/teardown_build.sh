@@ -12,7 +12,7 @@ main() {
 }
 
 run_builder() {
-  ansible-playbook -i automated_builder/inventory automated_builder/tasks/build_vms.yml
+  ansible-playbook -i automated_builder/inventory automated_builder/tasks/build_vms.yml --connection=local
 }
 
 main
