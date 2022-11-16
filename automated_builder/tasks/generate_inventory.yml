@@ -20,14 +20,13 @@
       set_fact:
         droplet_count: "{{ droplets.data | length }}"
 
-    - name: Inspect droplet length
-      debug:
-        var: droplet_count
-
     - name: Delete lingering droplets
-      debug:
-        msg: We should def delete droplets
-      when: droplet_count != 0
+      community.digitalocean.digital_ocean_droplet:
+        state: absent
+        oauth_token: "{{ DO_API_TOKEN }}"
+        id: "{{ item.id }}"
+      loop: "{{ droplets.data }}"
+      when: droplet_count != "0"
 
     # - name: Create a automated builder VPS
     #   community.digitalocean.digital_ocean_droplet:
