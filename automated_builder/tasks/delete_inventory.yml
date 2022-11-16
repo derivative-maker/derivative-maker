@@ -1,17 +1,25 @@
 ---
-- name: Check for existing inventory
-  community.digitalocean.digital_ocean_droplet_info:
-    oauth_token: "{{ DO_API_TOKEN }}"
-  register: droplets
+- name: Generate DigitalOcean inventory
+  hosts: 127.0.0.1
+  connection: local
+  vars_files:
+    - ../vars/main.yml
+    - ../vars/secrets.yml
 
-- name: Count existing droplets
-  set_fact:
-    droplet_count: "{{ droplets.data | length }}"
+  tasks:
+    - name: Check for existing inventory
+      community.digitalocean.digital_ocean_droplet_info:
+        oauth_token: "{{ DO_API_TOKEN }}"
+      register: droplets
 
-- name: Delete lingering droplets
-  community.digitalocean.digital_ocean_droplet:
-    state: absent
-    oauth_token: "{{ DO_API_TOKEN }}"
-    id: "{{ item.id }}"
-  loop: "{{ droplets.data }}"
-  when: droplet_count != "0"
+    - name: Count existing droplets
+      set_fact:
+        droplet_count: "{{ droplets.data | length }}"
+
+    - name: Delete lingering droplets
+      community.digitalocean.digital_ocean_droplet:
+        state: absent
+        oauth_token: "{{ DO_API_TOKEN }}"
+        id: "{{ item.id }}"
+      loop: "{{ droplets.data }}"
+      when: droplet_count != "0"
