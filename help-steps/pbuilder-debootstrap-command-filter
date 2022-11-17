@@ -65,12 +65,20 @@ args="${args//"--variant=buildd"}"
 
 true "args: $args"
 
+true "dist_aptgetopt_file: $dist_aptgetopt_file"
+true "Now running: cat \$dist_aptgetopt_file"
+cat "$dist_aptgetopt_file"
+
+true "dist_build_sources_list_primary: $dist_build_sources_list_primary"
+cat "$dist_build_sources_list_primary"
+
 if [ "$BUILDPLACE" = "" ]; then
    true "$0: probably called by called by grml-debootstrap"
 
    "$dist_source_help_steps_folder/mmdebstrap" \
       --verbose \
       --debug \
+      --format directory \
       --variant=required \
       --architectures="$dist_build_multiarch_package_item" \
       --aptopt="$dist_aptgetopt_file" \
@@ -84,21 +92,17 @@ else
    ## build dependencies
    include_opt="--include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring"
 
-   true "dist_aptgetopt_file: $dist_aptgetopt_file"
-   true "Now running: cat \$dist_aptgetopt_file"
-   cat "$dist_aptgetopt_file"
-
    "$dist_source_help_steps_folder/mmdebstrap" \
       --verbose \
       --debug \
+      --format directory \
       --variant=required \
       --architectures="$dist_build_multiarch_package_item" \
       --aptopt="$dist_aptgetopt_file" \
       $include_opt \
       $args \
-      "$BUILDPLACE"
-
-      #"$dist_build_sources_list_primary"
+      "$BUILDPLACE" \
+      "$dist_build_sources_list_primary"
 fi
 
 ## example:
