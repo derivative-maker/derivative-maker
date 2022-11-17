@@ -19,7 +19,7 @@ set -e
 
 true "${bold}INFO: Currently running $0.${reset}"
 
-args="$@"
+args_original="$@"
 
 ## Example $@ when called by cowbuilder:
 ## --arch=amd64 --include=apt --variant=buildd --force-check-gpg bullseye /var/cache/pbuilder/base.cow_amd64 http://HTTPS///deb.debian.org/debian
@@ -31,42 +31,48 @@ true "http_proxy: $http_proxy"
 true "REPO_PROXY: ${REPO_PROXY}"
 true "APTGETOPT: $APTGETOPT"
 true "dist_build_target_arch: $dist_build_target_arch"
+true "dist_build_apt_stable_release: $dist_build_apt_stable_release"
 
-## filter out default mirror by cowbuilder or pbuilder (if we were not using --mirror)
-args="${args//"http://ftp.us.debian.org/debian"}"
-args="${args//"https://ftp.us.debian.org/debian"}"
+args_filtered="$args_original"
 
-## filter out default mirror by grml-debootstrap
-args="${args//"http://httpredir.debian.org/debian"}"
-args="${args//"https://httpredir.debian.org/debian"}"
-args="${args//"http://deb.debian.org/debian"}"
-args="${args//"https://deb.debian.org/debian"}"
+true "INFO: filter out default mirror by cowbuilder or pbuilder (if we were not using --mirror)"
+args_filtered="${args_filtered//"http://ftp.us.debian.org/debian"}"
+args_filtered="${args_filtered//"https://ftp.us.debian.org/debian"}"
 
-## filter out --mirror
-args="${args//"$dist_build_apt_sources_mirror"}"
+true "INFO: filter out default mirror by grml-debootstrap"
+args_filtered="${args_filtered//"http://httpredir.debian.org/debian"}"
+args_filtered="${args_filtered//"https://httpredir.debian.org/debian"}"
+args_filtered="${args_filtered//"http://deb.debian.org/debian"}"
+args_filtered="${args_filtered//"https://deb.debian.org/debian"}"
 
-## filter out variable BUILDPLACE (set by pbuilder) because we need to adjust the order of arguments
-args="${args//"$BUILDPLACE"}"
+true "INFO: filter out --mirror"
+args_filtered="${args_filtered//"$dist_build_apt_sources_mirror"}"
 
-## filter out --force-check-gpg (set by cowbuilder or pbuilder) since mmdebstrap does this by default and therefore does not support that command
-args="${args//"--force-check-gpg"}"
+true "INFO: filter out variable BUILDPLACE (set by pbuilder) because we need to adjust the order of arguments"
+args_filtered="${args_filtered//"$BUILDPLACE"}"
 
-## filter out --verbose (set by grml-debootstrap) since we add it by ourselves.
-args="${args//"--verbose"}"
+true "INFO: filter out --force-check-gpg (set by cowbuilder or pbuilder) since mmdebstrap does this by default and therefore does not support that command"
+args_filtered="${args_filtered//"--force-check-gpg"}"
 
-## filter out --include=apt (set by cowbuilder or pbuilder) since we will use our own --include switch.
-args="${args//"--include=apt"}"
+true "INFO: filter out --verbose (set by grml-debootstrap) since we add it by ourselves."
+args_filtered="${args_filtered//"--verbose"}"
 
-## Default to default --variant. Decide which packages are to be installed using --include.
-args="${args//"--variant=buildd"}"
+true "INFO: filter out --include=apt (set by cowbuilder or pbuilder) since we will use our own --include switch."
+args_filtered="${args_filtered//"--include=apt"}"
 
-## filter out --arch=amd64 since we will use our own.
-args="${args//"--arch=$dist_build_target_arch"}"
+true "INFO: Default to default --variant. Decide which packages are to be installed using --include."
+args_filtered="${args_filtered//"--variant=buildd"}"
 
-## example args:
-## bullseye
+true "INFO: filter out --arch=amd64 since we will use our own."
+args_filtered="${args_filtered//"--arch=$dist_build_target_arch"}"
 
-true "args: $args"
+true "INFO: filter out suite since we will use our own."
+args_filtered="${args_filtered//"$dist_build_apt_stable_release"}"
+
+## example args_filtered:
+##
+
+true "args_filtered: $args_filtered"
 
 true "dist_aptgetopt_file: $dist_aptgetopt_file"
 true "Now running: cat \$dist_aptgetopt_file"
@@ -87,15 +93,11 @@ true "BUILDPLACE: $BUILDPLACE"
 if [ "$BUILDPLACE" = "" ]; then
    true "$0: Variable BUILDPLACE is unset."
    true "$0: This means this script was probably called by grml-debootstrap."
+   true "$0: Setting BUILDPLACE to: $args_filtered"
+   BUILDPLACE="$args_filtered"
 
-   "$dist_source_help_steps_folder/mmdebstrap" \
-      --verbose \
-      --debug \
-      --format directory \
-      --variant=required \
-      --architectures="$dist_build_multiarch_package_item" \
-      --aptopt="$dist_aptgetopt_file" \
-      $args
+   true "$0: Keeping include_opt empty since not needed, ok."
+   include_opt=""
 
    ## example:
    ## mmdebstrap --verbose --debug --architectures=amd64 --aptopt=/home/user/derivative-binary/aptgetopt.conf --arch amd64 --include=eatmydata,apt-transport-tor,gnupg2 bullseye /mnt/debootstrap.15557 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
@@ -106,20 +108,25 @@ else
    ## build dependencies
    include_opt="--include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring"
 
-   "$dist_source_help_steps_folder/mmdebstrap" \
-      --verbose \
-      --debug \
-      --format directory \
-      --variant=required \
-      --architectures="$dist_build_multiarch_package_item" \
-      --aptopt="$dist_aptgetopt_file" \
-      $include_opt \
-      $args \
-      "$BUILDPLACE" \
-      "$dist_build_sources_list_primary"
-
    ## example:
    ## /home/user/derivative-maker/help-steps/mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/user/derivative-binary/aptgetopt.conf --include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring --arch=amd64 bullseye /var/cache/pbuilder/base.cow_amd64 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
 fi
+
+## Sanity tests.
+[ -n "$dist_build_apt_stable_release" ] || error "dist_build_apt_stable_release is unset!"
+[ -n "$BUILDPLACE" ] || error "BUILDPLACE is unset!"
+[ -n "$dist_build_sources_list_primary" ] || error "dist_build_sources_list_primary is unset!"
+
+"$dist_source_help_steps_folder/mmdebstrap" \
+   --verbose \
+   --debug \
+   --format directory \
+   --variant=required \
+   --architectures="$dist_build_multiarch_package_item" \
+   --aptopt="$dist_aptgetopt_file" \
+   $include_opt \
+   "$dist_build_apt_stable_release" \
+   "$BUILDPLACE" \
+   "$dist_build_sources_list_primary"
 
 true "${bold}INFO: End of script $0.${reset}"
