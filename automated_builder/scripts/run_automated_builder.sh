@@ -13,7 +13,7 @@ main() {
 
 run_builder() {
   ansible-galaxy collection install community.digitalocean community.general
-  ansible-playbook automated_builder/delete_inventory.yml
+  ansible-playbook automated_builder/roles/common/tasks/delete_inventory.yml
   ansible-playbook -i automated_builder/inventory automated_builder/main.yml
 }
 
