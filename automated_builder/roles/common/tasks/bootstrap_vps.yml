@@ -3,27 +3,33 @@
   become: true
   vars:
     ansible_ssh_user: root
+
   block:
     - name: Create ansible user
       user:
         name: ansible
-        group: sudo
 
-    - name: register ssh directory
-      shell: "ls -la /root/.ssh"
-      register: ssh_contents
-
-    - name: inspect ssh contents
-      debug:
-        var: ssh_contents
-    - name: Copy authorized_keys
-      copy:
-        remote_src: /root/.ssh/authorized_keys
-        dest: /home/ansible/authorized_keys
+    - name: Create ansible user ssh directory
+      file:
+        path: /home/ansible/.ssh
+        state: directory
         owner: ansible
         group: ansible
+        mode: 0700
+
+    - name: Copy authorized_keys
+      copy:
+        src: /root/.ssh/authorized_keys
+        dest: /home/ansible/.ssh/authorized_keys
+        owner: ansible
+        group: ansible
+        mode: 0600
+        remote_src: true
 
     - name: Allow passwordless sudo commands
       community.general.sudoers:
-        name: ansible
+        name: ansible-passwordless-sudo
+        state: present
+        user: ansible
         commands: ALL
+        nopassword: true
