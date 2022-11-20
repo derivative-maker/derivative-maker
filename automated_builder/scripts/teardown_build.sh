@@ -12,7 +12,7 @@ main() {
 }
 
 run_builder() {
-  ansible-playbook automated_builder/tasks/delete_inventory.yml
+  ansible-playbook automated_builder/delete_inventory.yml
 }
 
 main
