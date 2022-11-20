@@ -12,7 +12,7 @@ main() {
 }
 
 gather_logs() {
-  ansible-playbook -i automated_builder/inventory automated_builder/tasks/gather_build_logs.yml
+  ansible-playbook -i automated_builder/inventory automated_builder/roles/common/tasks/gather_build_logs.yml
 }
 
 main
