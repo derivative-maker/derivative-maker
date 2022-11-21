@@ -10,8 +10,11 @@
     reboot_timeout: 60
   become: true
 
-- name: Build new gateway VM
-  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --build --remote-derivative-packages true --allow-untagged true >> /home/ansible/build.log 2>&1"
+- name: Install build_small_resource_vms script
+  template:
+    src: ../templates/build_small_resource_vms.sh
+    dest: /home/ansible/build_small_resource_vms.sh
+    mode: 0744
 
-- name: Build new workstation VM
-  shell: "dist_build_non_interactive=true /home/ansible/derivative-maker/derivative-maker --flavor whonix-workstation-xfce --target virtualbox --build --remote-derivative-packages true --allow-untagged true >> /home/ansible/build.log 2>&1"
+- name: Run build_small_resource_vms scripts
+  shell: "/home/ansible/build_small_resource_vms.sh"
