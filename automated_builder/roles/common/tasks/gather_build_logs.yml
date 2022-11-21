@@ -16,9 +16,13 @@
       delegate_to: localhost
       register: automated_builder_vps
 
+    - name: Debug VPS_IP setting
+      debug:
+        var: automated_builder_vps
+
     - name: Set VPS_IP
       set_fact:
-        VPS_IP: "{{ automated_builder_vps.data.networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
+        VPS_IP: "{{ automated_builder_vps.data[0].networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
 
     - name: Gather facts
       setup:
