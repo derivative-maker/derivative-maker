@@ -24,3 +24,5 @@ build_workstation_vm() {
     --allow-untagged true \
     --build
 }
+
+main
