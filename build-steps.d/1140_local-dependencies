@@ -34,9 +34,22 @@ local_dependencies() {
    pushd "$source_code_folder_dist/packages/kicksecure/developer-meta-files/" #>/dev/null
 
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
+
    if [ "$make_use_cowbuilder" = "false" ]; then
       "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
    fi
+
+   if [ "$make_use_cowbuilder" = "true" ]; then
+      cow_folder="/var/cache/pbuilder/cow.cow_${host_architecture}"
+      base_folder="/var/cache/pbuilder/base.cow_${host_architecture}"
+      if ! test -d "$cow_folder" ; then
+         error "cow_folder does not exist. Did you run 1130_cowbuilder-setup?"
+      fi
+      if ! test -d "$base_folder" ; then
+         error "base_folder does not exist. Did you run 1130_cowbuilder-setup?"
+      fi
+   fi
+
    ## Environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename if set are expected to be passed.
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
 
