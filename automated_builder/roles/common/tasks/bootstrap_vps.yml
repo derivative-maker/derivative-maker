@@ -1,0 +1,35 @@
+---
+- name: Bootstrap VPS
+  become: true
+  vars:
+    ansible_ssh_user: root
+
+  block:
+    - name: Create ansible user
+      user:
+        name: ansible
+
+    - name: Create ansible user ssh directory
+      file:
+        path: /home/ansible/.ssh
+        state: directory
+        owner: ansible
+        group: ansible
+        mode: 0700
+
+    - name: Copy authorized_keys
+      copy:
+        src: /root/.ssh/authorized_keys
+        dest: /home/ansible/.ssh/authorized_keys
+        owner: ansible
+        group: ansible
+        mode: 0600
+        remote_src: true
+
+    - name: Allow passwordless sudo commands
+      community.general.sudoers:
+        name: ansible-passwordless-sudo
+        state: present
+        user: ansible
+        commands: ALL
+        nopassword: true
