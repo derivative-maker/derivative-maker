@@ -1,0 +1,36 @@
+---
+- name: Install dependencies
+  become: true
+  block:
+    - name: Install apt packages
+      apt:
+        pkg:
+          - git
+          - time
+          - curl
+          - lsof
+          - apt-cacher-ng
+          - lsb-release
+          - fakeroot
+          - dpkg-dev
+          - fasttrack-archive-keyring
+          - dnsutils
+          - software-properties-common
+        update_cache: true
+
+    - name: Install VirtualBox
+      include_tasks: install_virtualbox.yml
+
+    - name: Register LSB release
+      shell: "lsb_release -cs"
+      register: lsb_release
+
+    - name: Add VirtualBox apt repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/{{ VBOX_ASC_KEY.name }}.asc.gpg] http://download.virtualbox.org/virtualbox/debian {{ lsb_release.stdout }} contrib"
+        state: present
+
+    - name: Install VirtualBox apt repository
+      apt:
+        name: "virtualbox-6.1"
+        update_cache: true

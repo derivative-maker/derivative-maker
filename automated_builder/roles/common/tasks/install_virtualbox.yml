@@ -1,0 +1,18 @@
+---
+- name: Install VirtualBox
+  become: true
+
+  block:
+    - name: Import VirtualBox GPG key
+      get_url:
+        dest: "/root/{{ VBOX_ASC_KEY.name }}.asc"
+        url: "{{ VBOX_ASC_KEY.url }}"
+
+    - name: Create gpg file
+      shell: "gpg --dearmor /root/{{ VBOX_ASC_KEY.name }}.asc > {{ VBOX_ASC_KEY.name }}.gpg"
+
+    - name: Move gpg key to shared keyrings
+      copy:
+        src: "/root/{{ VBOX_ASC_KEY.name }}.asc.gpg"
+        dest: "/usr/share/keyrings/{{ VBOX_ASC_KEY.name }}.asc.gpg"
+        remote_src: true

@@ -1,0 +1,43 @@
+---
+- name: Gather build logs
+  hosts: vps_runner
+  gather_facts: false
+  vars_files:
+    - ./roles/common/vars/main.yml
+    - ./roles/common/vars/secrets.yml
+
+  tasks:
+    - name: Get droplet IP
+      community.digitalocean.digital_ocean_droplet_info:
+        oauth_token: "{{ DO_API_TOKEN }}"
+        name: "automated-builder-vps"
+      delegate_to: localhost
+      register: automated_builder_vps
+
+    - name: Set VPS_IP
+      set_fact:
+        VPS_IP: "{{ automated_builder_vps.data[0].networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
+      delegate_to: localhost
+
+    - name: Gather facts
+      setup:
+
+    - name: Copy install_source log
+      fetch:
+        src: "/home/ansible/install_source.log"
+        dest: "./logs/install_source.log"
+
+    - name: Check logs
+      shell: "ls"
+      register: pwd
+      delegate_to: 127.0.0.1
+
+    - name: Copy gateway_build log
+      fetch:
+        src: "/home/ansible/gateway_build.log"
+        dest: "./logs/gateway_build.log"
+
+    - name: Copy workstation_build log
+      fetch:
+        src: "/home/ansible/workstation_build.log"
+        dest: "./logs/workstation_build.log"
