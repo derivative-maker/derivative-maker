@@ -74,9 +74,9 @@ else
    ## Debugging.
    ## Overwrite with '|| true' to avoid race condition if these processes already
    ## terminated themselves.
-   ps -p $pids || echo "WARNING: Command 'ps -p $pids' exited non-zero."
+   ps -p $pids || echo "WARNING: Command 'ps -p $pids' exited non-zero." >&2
 
-   kill -9 $pids || echo "WARNING: Command 'kill -9 $pids' exited non-zero."
+   kill -9 $pids || echo "WARNING: Command 'kill -9 $pids' exited non-zero." >&2
    ## Killing processes is not instant and a check to wait for the process to be gone isn't implemented.
    sleep 3
 fi
