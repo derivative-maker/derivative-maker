@@ -550,6 +550,12 @@ fi
 [ -n "$binary_image_iso_torrent_signature" ] || binary_image_iso_torrent_signature="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso.torrent.asc"
 [ -n "$binary_image_iso_torrent_signify" ] || binary_image_iso_torrent_signify="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.iso.torrent.sig"
 
+[ -n "$binary_image_installer_dist_image" ] || binary_image_installer_dist_image="${binary_build_folder_dist}/installer-dist"
+[ -n "$binary_image_installer_dist_signature" ] || binary_image_installer_dist_signature="${binary_build_folder_dist}/installer-dist.asc"
+[ -n "$binary_image_installer_dist_torrent" ] || binary_image_installer_dist_torrent="${binary_build_folder_dist}/installer-dist.torrent"
+[ -n "$binary_image_installer_dist_torrent_signature" ] || binary_image_installer_dist_torrent_signature="${binary_build_folder_dist}/installer-dist.torrent.asc"
+[ -n "$binary_image_installer_dist_torrent_signify" ] || binary_image_installer_dist_torrent_signify="${binary_build_folder_dist}/installer-dist.torrent.sig"
+
 [ -n "$libvirt_source_kvm_file" ] || libvirt_source_kvm_file="$source_code_folder_dist/packages/kicksecure/libvirt-dist/usr/share/libvirt-dist/xml/${SHORT_VMNAME}.xml"
 [ -n "$libvirt_target_kvm_file" ] || libvirt_target_kvm_file="${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.xml"
 
@@ -626,6 +632,17 @@ if [ "$dist_build_qcow2" = "true" ]; then
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_torrent")
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_torrent_signature")
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_torrent_signify")
+fi
+
+if [ "$dist_build_installer_dist" = "true" ]; then
+   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
+   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/installer-dist"
+
+   dist_build_files_to_upload+=("$binary_image_installer_dist_image")
+   dist_build_files_to_upload+=("$binary_image_installer_dist_signature")
+   dist_build_files_to_upload+=("$binary_image_installer_dist_torrent")
+   dist_build_files_to_upload+=("$binary_image_installer_dist_torrent_signature")
+   dist_build_files_to_upload+=("$binary_image_installer_dist_torrent_signify")
 fi
 
 if [ "$dist_build_image_upload_supported" = "true" ]; then
