@@ -3,8 +3,8 @@
 ## Copyright (C) 2012 - 2022 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-## errorhandlergeneral | exception_handler_unchroot_unmount | errorhandlerunmount
-## -> errorhandlerprocessshared -> functiontracefunction -> processbacktracefunction -> errorhandlershell -> errorhandlerretry -> errorhandlermaybeexit
+## exception_handler_general | exception_handler_unchroot_unmount | exception_handler_unmount
+## -> exception_handler_process_shared -> functiontracefunction -> processbacktracefunction -> exception_handler_shell -> exception_handler_retry -> exception_handler_maybe_exit
 
 true "$BASH_SOURCE INFO: begin"
 if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
@@ -131,7 +131,7 @@ processbacktracefunction() {
 
 ## }}} processbacktracefunction - GPL v2.0 (only)
 
-errorhandlershell() {
+exception_handler_shell() {
    $output_cmd "${cyan}${bold}INFO: Opening interactive shell...${reset}"
    $output_cmd "${cyan}${bold}INFO: When you have finished, please enter \"exit 0\" to \
 continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
@@ -148,7 +148,7 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
    fi
 }
 
-errorhandlerretry() {
+exception_handler_retry() {
    if [ ! "$dist_build_dispatch_before_retry" = "" ]; then
       $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $dist_build_dispatch_before_retry ${reset}"
       dist_build_dispatch_before_retry_exit_code="0"
@@ -190,11 +190,11 @@ errorhandlerretry() {
    if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
       return 0
    else
-      errorhandlerprocessshared "NONE_(called_by_errorhandlerretry)"
+      exception_handler_process_shared "NONE_(called_by_exception_handler_retry)"
    fi
 }
 
-errorhandlerprocessshared() {
+exception_handler_process_shared() {
    last_script="$0"
    ## $1 contains trap signal type.
    trap_signal_type_previous="$trap_signal_type_last"
@@ -236,12 +236,12 @@ ${cyan}${bold}############################################################${rese
 
    if [ "$trap_signal_type_last" = "INT" ] || [ "$trap_signal_type_last" = "TERM" ]; then
       $output_cmd "${red}${bold}INFO: signal $trap_signal_type_last received.${reset}"
-      errorhandlerprocessshared "NONE_(called_because_int_or_term)"
+      exception_handler_process_shared "NONE_(called_because_int_or_term)"
       ## Can return here, because next that will happen is receiving signal ERR.
       return 0
    fi
 
-   if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] ; then
+   if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_exception_handler_retry)" ] ; then
       #$output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
       if [ ! "$dist_build_auto_retry" = "0" ]; then
          if [ "$dist_build_auto_retry_counter" = "" ]; then
@@ -263,7 +263,7 @@ ${cyan}${bold}############################################################${rese
             wait "$!"
             ignore_error="$output_cmd"
             error_handler_do_retry="$output_cmd"
-            errorhandlerretry
+            exception_handler_retry
             return 0
          fi
       else
@@ -279,7 +279,7 @@ ${cyan}${bold}############################################################${rese
       ignore_error="false"
 
       answer=""
-      if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_errorhandlerretry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
+      if [ "$trap_signal_type_last" = "ERR" ] || [ "$trap_signal_type_last" = "NONE_(called_by_exception_handler_retry)" ] || [ "$trap_signal_type_last" = "NONE_(called_because_int_or_term)" ] ; then
 
          if [ "$dist_build_non_interactive" = "true" ]; then
             $output_cmd "INFO: using non-interactive error handler."
@@ -314,13 +314,13 @@ Please have a look above (the block within ${cyan}${bold}###${reset}${red}${bold
          break
       elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
          interactive_chroot_shell="true"
-         errorhandlershell
+         exception_handler_shell
          break
       elif [ "$answer" = "r" ] || [ "$answer" = "retry" ]; then
          ignore_error="true"
          interactive_chroot_shell="false"
          error_handler_do_retry="true"
-         errorhandlerretry
+         exception_handler_retry
          break
       elif [ "$answer" = "a" ]; then
          ignore_error="false"
@@ -337,7 +337,7 @@ if [ "$dist_build_error_counter" = "" ]; then
    dist_build_error_counter="0"
 fi
 
-errorhandlermaybeexit() {
+exception_handler_maybe_exit() {
    if [ "$error_handler_do_retry" = "true" ]; then
       if [ "$last_failed_bash_command" = "0" ]; then
          true "INFO ($FUNCNAME): auto retry succeeded. Will not exit. Continue."
@@ -373,14 +373,14 @@ bugs, that are a result of this! Please press enter to continue. ${reset}"
    fi
 }
 
-errorhandlergeneral() {
+exception_handler_general() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
    output_cmd_set
    $output_cmd "${cyan}INFO: Middle of function $FUNCNAME of $0.${reset}"
    ## $1 contains trap signal type.
-   errorhandlerprocessshared "$1"
-   errorhandlermaybeexit "$1"
+   exception_handler_process_shared "$1"
+   exception_handler_maybe_exit "$1"
    $output_cmd "${cyan}INFO: End of function $FUNCNAME of $0.${reset}"
 }
 
@@ -389,26 +389,26 @@ exception_handler_unchroot_unmount() {
    last_failed_bash_command="$BASH_COMMAND"
    output_cmd_set
    ## $1 contains trap signal type.
-   errorhandlerprocessshared "$1"
+   exception_handler_process_shared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$dist_source_help_steps_folder"/remove-local-temp-apt-repo
       "$dist_source_help_steps_folder"/unchroot-raw
       "$dist_source_help_steps_folder"/unprevent-daemons-from-starting
       "$dist_source_help_steps_folder"/unmount-raw
    fi
-   errorhandlermaybeexit "$1"
+   exception_handler_maybe_exit "$1"
 }
 
-errorhandlerunmount() {
+exception_handler_unmount() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
    output_cmd_set
    ## $1 contains trap signal type.
-   errorhandlerprocessshared "$1"
+   exception_handler_process_shared "$1"
    if [ "$ignore_error" = "false" ]; then
       "$dist_source_help_steps_folder"/unmount-raw
    fi
-   errorhandlermaybeexit "$1"
+   exception_handler_maybe_exit "$1"
 }
 
 ## Thanks to:
@@ -425,22 +425,22 @@ exception_handler_setup() {
 
 output_cmd_set
 
-exception_handler_setup "errorhandlergeneral" ERR INT TERM
+exception_handler_setup "exception_handler_general" ERR INT TERM
 set +e
 
 export -f output_cmd_set
-export -f errorhandlershell
-export -f errorhandlerretry
-export -f errorhandlerprocessshared
-export -f errorhandlermaybeexit
-export -f errorhandlergeneral
+export -f exception_handler_shell
+export -f exception_handler_retry
+export -f exception_handler_process_shared
+export -f exception_handler_maybe_exit
+export -f exception_handler_general
 export -f exception_handler_unchroot_unmount
-export -f errorhandlerunmount
+export -f exception_handler_unmount
 export -f exception_handler_setup
 export -f functiontracefunction
 export -f processbacktracefunction
 
-exception_handler_setup "errorhandlergeneral" ERR INT TERM
+exception_handler_setup "exception_handler_general" ERR INT TERM
 
 bash -n "$BASH_SOURCE"
 
