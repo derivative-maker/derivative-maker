@@ -4,7 +4,7 @@
 ## See the file COPYING for copying conditions.
 
 ## exception_handler_general | exception_handler_unchroot_unmount | exception_handler_unmount
-## -> exception_handler_process_shared -> functiontracefunction -> processbacktracefunction -> exception_handler_shell -> exception_handler_retry -> exception_handler_maybe_exit
+## -> exception_handler_process_shared -> function_trace_function -> process_backtrace_function -> exception_handler_shell -> exception_handler_retry -> exception_handler_maybe_exit
 
 true "$BASH_SOURCE INFO: begin"
 if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
@@ -47,7 +47,7 @@ error() {
    true
 }
 
-functiontracefunction() {
+function_trace_function() {
    $output_cmd "INFO: BEGIN: $FUNCNAME"
    if [ -o xtrace ]; then
       set +x
@@ -73,10 +73,10 @@ $two (line number: $one)"
    $output_cmd "INFO: END  : $FUNCNAME"
 }
 
-## {{{ processbacktracefunction - GPL v2.0 (only)
+## {{{ process_backtrace_function - GPL v2.0 (only)
 
-processbacktracefunction() {
-   ## function    : processbacktracefunction
+process_backtrace_function() {
+   ## function    : process_backtrace_function
    ## Copyright   : Gian Paolo Ghilardi
    ## LICENSE     : GPL v2.0 (only)
    ## Source      : http://stackoverflow.com/a/1438241/2605155
@@ -129,7 +129,7 @@ processbacktracefunction() {
    $output_cmd "INFO: END  : $FUNCNAME"
 }
 
-## }}} processbacktracefunction - GPL v2.0 (only)
+## }}} process_backtrace_function - GPL v2.0 (only)
 
 exception_handler_shell() {
    $output_cmd "${cyan}${bold}INFO: Opening interactive shell...${reset}"
@@ -207,8 +207,8 @@ exception_handler_process_shared() {
    local first
    read -r first _ <<< "$last_failed_bash_command" || true
 
-   processbacktracefunction ## sets process_backtrace_result
-   functiontracefunction ## sets function_trace_result
+   process_backtrace_function ## sets process_backtrace_result
+   function_trace_function ## sets function_trace_result
    output_cmd_set
    $output_cmd "
 ${cyan}${bold}############################################################${reset}
@@ -437,8 +437,8 @@ export -f exception_handler_general
 export -f exception_handler_unchroot_unmount
 export -f exception_handler_unmount
 export -f exception_handler_setup
-export -f functiontracefunction
-export -f processbacktracefunction
+export -f function_trace_function
+export -f process_backtrace_function
 
 exception_handler_setup "exception_handler_general" ERR INT TERM
 
