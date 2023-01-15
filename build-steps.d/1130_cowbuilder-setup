@@ -114,8 +114,14 @@ cowbuilder_setup_do() {
       ## derivative-maker build APT sources list.
       true "Sanity test. Security critical. Comparing derivative-maker build sources list with chroot sources list."
       $SUDO_TO_ROOT diff "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
-
       $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+
+      ## Delete extraneous, duplicate /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list by mmdebstrap.
+      ## Use --force in case the file does not exist.
+      ## - mmdebstrap might start to delete this file itself in a future version.
+      ## - A different bootstrap utility is being used such as debootstrap (such as in case for other architecture builds).
+      $SUDO_TO_ROOT rm --force --verbose "$base_folder/$dist_mmdebstrap_build_sources_list_primary"
+
       $SUDO_TO_ROOT mkdir --parents "$base_folder/home/$user_name"
       $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
