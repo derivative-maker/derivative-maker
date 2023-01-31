@@ -25,7 +25,7 @@ clean_old_source() {
 
 install_source_code() {
   cd /home/ansible
-  git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 https://github.com/mycobee/derivative-maker
+  git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 https://github.com/$REPO_URL
   cd /home/ansible/derivative-maker
   git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
@@ -33,7 +33,7 @@ install_source_code() {
 
 checkout_code(){
   if [ -z "$VERSION_TAG" ]; then
-    git checkout --recurse-submodules install-wats-vps-gui
+    git checkout --recurse-submodules $COMMIT_BRANCH
   else
     git checkout --recurse-submodules $VERSION_TAG
   fi
