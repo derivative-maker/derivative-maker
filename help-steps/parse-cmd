@@ -4,7 +4,7 @@
 ## See the file COPYING for copying conditions.
 
 parse_cmd_target_error() {
-   echo "${red}${bold}ERROR: --target must be either virtualbox, qcow2, utm, iso, raw, installer-dist or root and can be used multiple times.${reset}"
+   echo "${red}${bold}ERROR: --target must be either virtualbox, qcow2, utm, iso, raw, installer-dist, windows or root and can be used multiple times.${reset}"
    exit 1
 }
 
@@ -57,13 +57,14 @@ whonix-host-xfce: Builds Whonix-Host XFCE
 kicksecure-cli: Builds Kicksecure CLI
 kicksecure-xfce: Builds Kicksecure XFCE
 
---target virtualbox|qcow2|utm|iso|raw|installer-dist|root
+--target virtualbox|qcow2|utm|iso|raw|installer-dist|windows|root
 virtualbox: Use this to build VirtualBox .ovas.
 qcow2: Use this to build qcow2 images.
 utm: Use this to build utm images.
 iso: Use this to build iso images.
 raw: Use this to build raw images.
 installer-dist: Use this to sign installer-dist.
+windows: Use this to build the Windows Installer.
 root: Use this for Whonix with physical or install to root installations.
 
 vmram, vram, vmsize examples.
@@ -262,6 +263,10 @@ dist_build_one_parse_cmd() {
                elif [ "$2" = "installer-dist" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_installer_dist="true"
+                  dist_build_image_upload_supported="true"
+               elif [ "$2" = "windows" ]; then
+                  build_target_counter="$(( $build_target_counter + 1 ))"
+                  export dist_build_windows_installer="true"
                   dist_build_image_upload_supported="true"
                else
                   parse_cmd_flavor_error
@@ -757,6 +762,8 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    elif [ "$dist_build_raw" = "true" ]; then
       true
    elif [ "$dist_build_installer_dist" = "true" ]; then
+      true
+   elif [ "$dist_build_windows_installer" = "true" ]; then
       true
    elif [ "$dist_build_iso" = "true" ]; then
       true
