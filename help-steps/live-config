@@ -1,0 +1,90 @@
+#!/bin/bash
+
+## Copyright (C) 2023 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+dist_build_one_parsed="1"
+VMNAME="internalrun"
+
+source pre
+source colors
+source variables
+
+main() {
+   cd live-build
+
+   ## TODO: research
+   #--apt-indices false
+   #--apt-options OPTION|"OPTIONS"
+   #--backports true|false
+   #--bootappend-live PARAMETER|"PARAMETERS"
+   #--checksums md5|sha1|sha224|sha256|sha384|sha512|none
+   ## calamares
+   #--debian-installer cdrom|netinst|netboot|businesscard|live|none
+   ## --freedom true|false
+   #--firmware-binary true|false
+   #--firmware-chroot true|false
+   ## fasttrack?
+   #--keyring-packages PACKAGE|"PACKAGES"
+   #--cache-stages "bootstrap rootfs"
+
+   ## TODO: apt --error-on=any
+   ## TODO: mmdebstrap
+   ## TODO: onion
+
+   ## TODO: lb config --clean
+
+   ## TODO:
+   ## --architecture ARCHITECTURE
+   ## --distribution CODENAME
+   ## --hdd-label LABEL
+   ## --hdd-size SIZE
+   ## --image-name NAME
+   ## --iso-application NAME
+   ## --iso-publisher NAME
+   ## --iso-volume NAME
+   ## --source
+
+   ## TODO: live
+   ## --initramfs none|live-boot
+   ## --system live
+   ## --chroot-filesystem ext4
+   ## --binary-image hdd
+   ## --bootloaders grub-efi
+
+   ## TODO: kernel headers
+   ## --linux-packages PACKAGE|"PACKAGES"
+
+   lb config \
+      --mirror-binary "https://deb.debian.org/debian/" \
+      --mirror-binary-security "https://security.debian.org/" \
+      --mirror-bootstrap "http://deb.debian.org/debian/" \
+      --mirror-chroot-security "http://security.debian.org/" \
+      --apt-recommends false \
+      --apt-source-archives false \
+      --archive-areas "main contrib non-free" \
+      --binary-filesystem ext4 \
+      --chroot-filesystem ext4 \
+      --binary-image hdd \
+      --color \
+      --debootstrap-options "--variant=minbase" \
+      --source false \
+      --system normal
+
+   lb config --dump
+
+   lb config --validate
+}
+
+main "$@"
