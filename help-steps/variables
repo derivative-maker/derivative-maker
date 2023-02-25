@@ -818,18 +818,25 @@ set_cowbuilder_folders() {
 
 dist_build_debopt+=" --verbose "
 
-dist_build_debopt+=" --include="
-for grml_package in $(grep --invert-match "#" "$source_code_folder_dist/grml_packages") ; do
+for grml_package_item in $(grep --invert-match "#" "$source_code_folder_dist/grml_packages") ; do
    if [ "locales" = "$grml_package" ]; then
       ## XXX: Workaround for:
       ## https://github.com/grml/grml-debootstrap/issues/48
       continue
    fi
-   dist_build_debopt+="$grml_package"
-   dist_build_debopt+=","
+   grim_package_list+="$grml_package_item"
+   grim_package_list+=","
 done
-## Remove trailing ','.
-dist_build_debopt="${dist_build_debopt::-1}"
+
+if [ "$grim_package_list" = "" ]; then
+   true "INFO: grml_package_list is empty, ok."
+else
+   dist_build_debopt+=" --include=$grim_package_list"
+   ## Remove trailing ','.
+   dist_build_debopt="${dist_build_debopt::-1}"
+fi
+
+true "INFO: dist_build_debopt: $dist_build_debopt"
 
 ## cowbuilder (which internally uses pbuilder).
 dist_build_pbuilder_chroot_script="$dist_source_help_steps_folder/pbuilder-chroot-script"
@@ -940,6 +947,8 @@ env_vars_keep_list="
    APTGETOPT
    apt_unattended_opts
    DERIVATIVE_APT_REPOSITORY_OPTS
+   DEBOOTSTRAP
+   http_proxy
 "
 ## TODO:
 ## UWT_DEV_PASSTHROUGH
