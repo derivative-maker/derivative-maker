@@ -29,7 +29,7 @@ main() {
    ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1031929
    $SUDO_TO_ROOT cp --verbose "$dist_source_help_steps_folder/pbuilder-debootstrap-command-filter" /usr/sbin/debootstrap
 
-   ## The word 'chroot' is set in live-build.
+   ## The word 'chroot' is set in live-build 'lb'.
    ## It is the folder name where live-build expects "$DEBOOTSTRAP" to bootstrap Debian to.
    dist_grml_mount_point="chroot"
 
@@ -40,6 +40,22 @@ main() {
       dist_build_multiarch_package_item="$dist_build_target_arch" \
       dist_grml_mount_point="$dist_grml_mount_point" \
       lb build
+
+   CHROOT_FOLDER="$source_code_folder_dist/live-boot/chroot"
+   #CHROOT_FOLDER="$binary_build_folder_dist/live-boot/chroot"
+
+   ## XXX: Duplicate code in help-steps/chroot-raw
+   ## Delete extraneous, duplicate /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list by mmdebstrap.
+   if test -f "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary" ; then
+      if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary" ; then
+         true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary, deleting, ok."
+         $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary"
+      else
+         error "ERROR: Host $dist_build_sources_list_primary does not match chroot $CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary"
+      fi
+   else
+      true "INFO: chroot $CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary, does not exist, ok."
+   fi
 
    true
 }
