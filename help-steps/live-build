@@ -44,6 +44,8 @@ main() {
    CHROOT_FOLDER="$source_code_folder_dist/live-boot/chroot"
    #CHROOT_FOLDER="$binary_build_folder_dist/live-boot/chroot"
 
+   ## TODO: This is too late. Needs to be done using live-build hooks.
+
    ## XXX: Duplicate code in help-steps/chroot-raw
    ## Delete extraneous, duplicate /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list by mmdebstrap.
    if test -f "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary" ; then
@@ -55,6 +57,12 @@ main() {
       fi
    else
       true "INFO: chroot $CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary, does not exist, ok."
+   fi
+
+   ## XXX: Duplicate code in help-steps/chroot-raw
+   ## Leftover from build process using mmdebstrap.
+   if test -f "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap" ; then
+      $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/etc/apt/apt.conf.d/99mmdebstrap"
    fi
 
    true
