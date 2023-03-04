@@ -265,16 +265,13 @@ if [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
 
    ## XXX: '--flavor whonix-host-xfce --target iso' currently is hardcoded to KVM.
    if [ "$dist_build_qcow2" = "true" ] || [ "$dist_build_iso" = "true" ]; then
-      [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom "
-
       if [ "$build_freedom_only" = "true" ]; then
-         true
+         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom "
       elif [ "$build_freedom_only" = "false" ]; then
          [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom whonix-host-xfce-kvm-nonfreedom "
       else
          error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
       fi
-
    else
       ## This would break:
       ## sudo ./help-steps/mount-raw --target raw --build --flavor whonix-host-xfce --freedom false
@@ -341,6 +338,8 @@ export DISK_IDENTIFIER
 
 if [ "$dist_build_install_to_root" = "true" ]; then
    [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER=""
+elif [ "$dist_build_iso" = "true" ]; then
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/live-build/chroot"
 else
    [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
 fi
