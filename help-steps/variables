@@ -263,8 +263,15 @@ if [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
    [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    [ -n "$dist_build_hostname" ] || dist_build_hostname="host"
 
-   ## XXX: '--flavor whonix-host-xfce --target iso' currently is hardcoded to KVM.
-   if [ "$dist_build_qcow2" = "true" ] || [ "$dist_build_iso" = "true" ]; then
+   if [ "$dist_build_virtualbox" = "true" ] || [ "$dist_build_iso" = "true" ]; then
+      if [ "$build_freedom_only" = "true" ]; then
+         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-vbox-freedom "
+      elif [ "$build_freedom_only" = "false" ]; then
+         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-vbox-freedom whonix-host-xfce-vbox-nonfreedom "
+      else
+         error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
+      fi
+   elif [ "$dist_build_qcow2" = "true" ] || [ "$dist_build_iso" = "true" ]; then
       if [ "$build_freedom_only" = "true" ]; then
          [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom "
       elif [ "$build_freedom_only" = "false" ]; then
