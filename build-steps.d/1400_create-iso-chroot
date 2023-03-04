@@ -18,9 +18,7 @@ source pre
 source colors
 source variables
 
-main() {
-   cd live-build
-
+create-debian-iso-chroot() {
    $SUDO_TO_ROOT cp --no-clobber --verbose /usr/sbin/debootstrap /usr/sbin/debootstrap-backup
    ## live-build: support configuration of debootstrap binary
    ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1031929
@@ -34,12 +32,26 @@ main() {
    ## Debugging.
    ls -la /usr/sbin/debootstrap
 
+   ## Folder live-build in the derivative-maker source folder's root serves as a
+   ## textual template for Debian's live-build 'lb' tool.
+   ## The live-build template folder is copied from the derivative-maker source
+   ## folder to the derivative-maker binary folder.
+   ## This is done because live-build creates binaries in the folder from where
+   ## it is being run.
+   ## This has nothing to do with Qubes Templates.
+   mkdir --parents "$binary_build_folder_dist/"
+   $SUDO_TO_ROOT rm --recursive --force "$binary_build_folder_live_build"
+   cp --recursive "$source_code_folder_dist/live-build" "$binary_build_folder_live_build"
+   cd "$binary_build_folder_live_build"
+
+   ## Might be optional but cleaner/safer to run first.
+   ## Optional during development.
+   $SUDO_TO_ROOT lb clean
+
+   ## 'lb build' internally runs 'debootstrap'.
    ## The word 'chroot' is set in live-build 'lb'.
    ## It is the folder name where live-build expects "$DEBOOTSTRAP" to bootstrap Debian to.
    dist_grml_mount_point="chroot"
-
-   ## 'lb build' internally runs 'debootstrap'.
-
    ## Create the ISO chroot and initial ISO.
    ## Slightly wasteful because in the overnext step the ISO will be deleted
    ## but the ISO chroot will be kept.
@@ -53,20 +65,30 @@ main() {
    $SUDO_TO_ROOT \
       $LIVEBUILD_PREFIX \
       dist_build_multiarch_package_item="$dist_build_target_arch" \
-      dist_grml_mount_point="$dist_grml_mount_point" \
       lb clean --binary
 
-   ## TODO: run other derivative-maker build steps
-
-   ## Remaster the ISO.
-   ## This does not re-create the ISO chroot thanks to live-build's stage files.
-   $SUDO_TO_ROOT \
-      $LIVEBUILD_PREFIX \
-      dist_build_multiarch_package_item="$dist_build_target_arch" \
-      dist_grml_mount_point="$dist_grml_mount_point" \
-      lb build
-
    true
+}
+
+main() {
+   if [ "$dist_build_install_to_root" = "true" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to true.${reset}"
+      return 0
+   fi
+
+   if [ "$dist_build_type_long" = "custom-workstation" ]; then
+      true
+   elif [ "$dist_build_type_long" = "gateway" ]; then
+      true
+   elif [ "$dist_build_type_long" = "workstation" ]; then
+      true
+   elif [ "$dist_build_type_long" = "whonix-host" ]; then
+      create-debian-iso-chroot
+   elif [ "$dist_build_type_long" = "kicksecure" ]; then
+      create-debian-iso-chroot
+   else
+      error "ERROR: Invalid dist_build_flavor $dist_build_flavor (dist_build_type_long: $dist_build_type_long). Please report this bug!"
+   fi
 }
 
 main "$@"
