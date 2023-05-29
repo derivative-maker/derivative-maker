@@ -36,9 +36,13 @@ real_path=$(realpath "$directory") || true
 if [ "$directory" = "$real_path" ]; then
    true "INFO: directory = real_path, ok."
 else
-   echo "real_path: '$real_path'"
-   echo "directory: '$directory'"
-   echo "WARNING: directory is different from real_path!" >&2
+   if test -L "$directory" ; then
+      true "INFO: symlink"
+   else
+      echo "INFO: real_path: '$real_path'"
+      echo "INFO: directory: '$directory'"
+      echo "WARNING: directory is different from real_path!" >&2
+   fi
 fi
 
 skip_name_list="pts dev proc sys hostname resolv.conf hosts hostname"
