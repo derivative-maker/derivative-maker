@@ -13,41 +13,41 @@ if [ ! "$(id -u)" = "0" ]; then
    exit 1
 fi
 
-directory="$1"
+file_system_object="$1"
 
-if [ "$directory" = "" ]; then
+if [ "$file_system_object" = "" ]; then
    echo "$0: ERROR: no parameter given!" >&2
    exit 1
 fi
 
-if [ "$directory" = "/" ]; then
-   echo "$0: ERROR: directory is set to / which is probably wrong (would kill all processes including this script)!" >&2
+if [ "$file_system_object" = "/" ]; then
+   echo "$0: ERROR: file_system_object is set to / which is probably wrong (would kill all processes including this script)!" >&2
    exit 1
 fi
 
-if ! test -e "$directory" ; then
-   true "$0: INFO: directory does not exist. Skip checking if processes are running there, ok."
+if ! test -e "$file_system_object" ; then
+   true "$0: INFO: file_system_object does not exist. Skip checking if processes are running there, ok."
    true "$0: INFO: end"
    exit 0
 fi
 
-real_path=$(realpath "$directory") || true
+real_path=$(realpath "$file_system_object") || true
 
-if [ "$directory" = "$real_path" ]; then
-   true "INFO: directory = real_path, ok."
+if [ "$file_system_object" = "$real_path" ]; then
+   true "INFO: file_system_object = real_path, ok."
 else
-   if test -L "$directory" ; then
+   if test -L "$file_system_object" ; then
       true "INFO: symlink"
    else
       echo "INFO: real_path: '$real_path'"
-      echo "INFO: directory: '$directory'"
-      echo "WARNING: directory is different from real_path!" >&2
+      echo "INFO: file_system_object: '$file_system_object'"
+      echo "WARNING: file_system_object is different from real_path!" >&2
    fi
 fi
 
 skip_name_list="pts dev proc sys hostname resolv.conf hosts hostname"
 
-base_name="${directory##*/}"
+base_name="${file_system_object##*/}"
 
 for skip_name_item in $skip_name_list ; do
    if [ "$base_name" = "$skip_name_item" ]; then
@@ -59,23 +59,23 @@ for skip_name_item in $skip_name_list ; do
    fi
 done
 
-true "INFO: Checking if there are any processes still running in directory: '$directory'"
+true "INFO: Checking if there are any processes still running in file_system_object: '$file_system_object'"
 
 ## Debugging.
 # true "--------------------------------------------------------------------------------"
 # ## Overwrite with '|| true' because if no processes are running, lsof exists non-zero.
-# lsof "$directory" || true
+# lsof "$file_system_object" || true
 # true "--------------------------------------------------------------------------------"
 
-temp1=$(lsof "$directory" 2> /dev/null) || true
-temp2=$(echo "$temp1" | grep "$directory") || true
+temp1=$(lsof "$file_system_object" 2> /dev/null) || true
+temp2=$(echo "$temp1" | grep "$file_system_object") || true
 temp3=$(echo "$temp2" | tail -n +2) || true
 pids=$(echo "$temp3" | awk '{print $2}') || true
 
 if [ "$pids" = "" ]; then
-   echo "INFO: Okay, no pids still running in '$directory', no need to kill any."
+   echo "INFO: Okay, no pids still running in '$file_system_object', no need to kill any."
 else
-   echo "INFO: Okay, the following pids are still running inside '$directory', which will now be killed."
+   echo "INFO: Okay, the following pids are still running inside '$file_system_object', which will now be killed."
 
    ## Debugging.
    ## Overwrite with '|| true' to avoid race condition if these processes already
