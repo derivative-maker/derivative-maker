@@ -523,8 +523,9 @@ root_check() {
          error "sudo password prompt entry failure"
       fi
    fi
-   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
-   sudo_test_output="$($SUDO_TO_ROOT test -d /usr 2>&1)" || true
+   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr 2>&1' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
+   ## SUDO_TO_ROOT unavailable here because set in file: help-steps/variables
+   sudo_test_output="$(sudo --non-interactive -- test -d /usr 2>&1)" || true
    if [ ! "$sudo_test_output" = "" ]; then
       $output_cmd "${red}${bold}ERROR: Unexpected non-empty sudo command output!${reset}"
       $output_cmd "${red}${bold}ERROR: General system sudo issue. Most likely unrelated to this derivative-maker. Please manually run 'sudo --non-interactive -- test -d /usr' and fix your system issue.${reset}"
