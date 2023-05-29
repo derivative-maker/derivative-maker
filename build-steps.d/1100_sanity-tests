@@ -48,6 +48,24 @@ check-unicode() {
    true
 }
 
+check-hostname() {
+   if ! test -f /etc/hostname ; then
+      ## mmdebstrap requires /etc/hostname to exist.
+      error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname does not exist on the build system!${reset}"
+   fi
+   if ! test -r /etc/hostname ; then
+      error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname unreadable on the build system!${reset}"
+   fi
+   local build_system_hostname
+   if ! build_system_hostname=$(cat /etc/hostname) ; then
+      error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname reading failed the build system!${reset}"
+   fi
+   if [ "$build_system_hostname" = "" ]; then
+      error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname file is empty on build system!${reset}"
+   fi
+   true "INFO: /etc/hostname check ok."
+}
+
 check-source-folder-permissions() {
    ## Debugging.
    true "${bold}${cyan}INFO: PWD: $PWD ${reset}"
@@ -272,6 +290,7 @@ signing_key() {
 
 main() {
    check-unicode "$@"
+   check-hostname "$Q"
    check-source-folder-permissions "$@"
    check-stray-loop-devices "$@"
    check-stray-mounts "$@"
