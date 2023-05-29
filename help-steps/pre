@@ -505,8 +505,8 @@ root_check() {
    ## Not using 'sudo --non-interactive --validate' because that caused an
    ## error on an ansible server "sudo: a password is required". Potential bug in sudo?
    ## https://forums.whonix.org/t/derivative-maker-automated-ci-builder/14468/14
-   $output_cmd "INFO: Running 'sudo --non-interactive test -d /usr' to test if sudo password entry prompt is needed..."
-   if sudo --non-interactive test -d /usr ; then
+   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr' to test if sudo password entry prompt is needed..."
+   if sudo --non-interactive -- test -d /usr ; then
       $output_cmd "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
    else
       $output_cmd "INFO: Going to run 'sudo --validate' to prompt for password..."
@@ -516,18 +516,18 @@ root_check() {
       ## Avoiding the built-in auto retry in this script. Validation happens below.
       sudo --validate || true
       $output_cmd "INFO: Running 'sudo --non-interactive test -d /usr' to test if sudo password prompt succeeded..."
-      if sudo --non-interactive test -d /usr ; then
+      if sudo --non-interactive -- test -d /usr ; then
          $output_cmd "INFO: sudo password prompt success."
       else
          $output_cmd "${red}${bold}ERROR: sudo password prompt entry failure!${reset}"
          error "sudo password prompt entry failure"
       fi
    fi
-   $output_cmd "INFO: Running 'sudo --non-interactive test -d /usr' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
+   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
    sudo_test_output="$($SUDO_TO_ROOT test -d /usr 2>&1)" || true
    if [ ! "$sudo_test_output" = "" ]; then
       $output_cmd "${red}${bold}ERROR: Unexpected non-empty sudo command output!${reset}"
-      $output_cmd "${red}${bold}ERROR: General system sudo issue. Most likely unrelated to this derivative-maker. Please manually run 'sudo --non-interactive test -d /usr' and fix your system issue.${reset}"
+      $output_cmd "${red}${bold}ERROR: General system sudo issue. Most likely unrelated to this derivative-maker. Please manually run 'sudo --non-interactive -- test -d /usr' and fix your system issue.${reset}"
       $output_cmd "${red}${bold}sudo_test_output:${reset}"
       $output_cmd "${red}${bold}$sudo_test_output${reset}"
       error "sudo command output is non-empty!"
