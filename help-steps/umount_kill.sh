@@ -36,6 +36,8 @@ real_path=$(realpath "$directory") || true
 if [ "$directory" = "$real_path" ]; then
    true "INFO: directory = real_path, ok."
 else
+   echo "real_path: '$real_path'"
+   echo "directory: '$directory'"
    echo "WARNING: directory is different from real_path!" >&2
 fi
 
