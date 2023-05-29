@@ -213,19 +213,20 @@ is not included in available_architectures_for_download_only_list: $available_ar
       dist_build_download_script_exit_code=0
 
       if [ "$make_use_cowbuilder" = "true" ]; then
-         $SUDO_TO_ROOT --preserve-env \
-            $COWBUILDER_PREFIX \
-            newer_package_list="$newer_package_list" \
-            temp_newer_packages="$temp_newer_packages" \
-               cowbuilder \
-                  --host-arch "$host_architecture" \
-                  --architecture "$dist_build_target_arch" \
-                  --configfile "$dist_build_pbuilder_config_file" \
-                  --execute "$dist_build_special_packages_chroot_script" \
-                  --basepath "$base_folder" \
-                  --buildplace "$cow_folder" \
-                  --bindmounts "$temp_newer_packages" \
-                  || { dist_build_download_script_exit_code="$?" ; true; };
+         $SUDO_TO_ROOT \
+            --preserve-env \
+               $COWBUILDER_PREFIX \
+               newer_package_list="$newer_package_list" \
+               temp_newer_packages="$temp_newer_packages" \
+                  cowbuilder \
+                     --host-arch "$host_architecture" \
+                     --architecture "$dist_build_target_arch" \
+                     --configfile "$dist_build_pbuilder_config_file" \
+                     --execute "$dist_build_special_packages_chroot_script" \
+                     --basepath "$base_folder" \
+                     --buildplace "$cow_folder" \
+                     --bindmounts "$temp_newer_packages" \
+                     || { dist_build_download_script_exit_code="$?" ; true; };
 
             if [ -d "$base_folder" ]; then
                $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder/"
