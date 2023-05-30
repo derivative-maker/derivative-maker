@@ -26,7 +26,7 @@ main() {
    ## kill gpg-agent
    $SUDO_TO_ROOT "$MYDIR/umount_kill.sh" "$unmount_folder"
 
-   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet -- "$unmount_folder" ; then
       true "INFO: Not mounted, no need to unmount, ok."
       return 0
    fi
@@ -59,16 +59,16 @@ main() {
    sync
    sleep 6
 
-   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet -- "$unmount_folder" ; then
       true "INFO: Already unmounted after second attempt using normal mount, ok."
       return 0
    fi
 
-   $SUDO_TO_ROOT umount --verbose --force "$unmount_folder" || { exit_code="$?" ; true "INFO: umount '--verbose --force $unmount_folder' non-zero exit code." ;};
+   $SUDO_TO_ROOT umount --verbose --force -- "$unmount_folder" || { exit_code="$?" ; true "INFO: umount '--verbose --force $unmount_folder' non-zero exit code." ;};
    sync
    sleep 6
 
-   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet -- "$unmount_folder" ; then
       true "INFO: Already unmounted after third attempt using --force, ok."
       return 0
    fi
