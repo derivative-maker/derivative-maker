@@ -3,7 +3,7 @@
 ## Copyright (C) 2012 - 2022 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-#set -x
+set -x
 set -e
 
 true "INFO: Currently running script: $BASH_SOURCE $@"
@@ -26,7 +26,7 @@ main() {
    ## kill gpg-agent
    $SUDO_TO_ROOT "$MYDIR/umount_kill.sh" "$unmount_folder"
 
-   if ! $SUDO_TO_ROOT cat /proc/mounts | grep "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
       true "INFO: Not mounted, no need to unmount, ok."
       return 0
    fi
@@ -59,7 +59,7 @@ main() {
    sync
    sleep 6
 
-   if ! $SUDO_TO_ROOT cat /proc/mounts | grep --quiet "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
       true "INFO: Already unmounted after second attempt using normal mount, ok."
       return 0
    fi
@@ -68,7 +68,7 @@ main() {
    sync
    sleep 6
 
-   if ! $SUDO_TO_ROOT cat /proc/mounts | grep --quiet "$unmount_folder" ; then
+   if ! $SUDO_TO_ROOT mountpoint --quiet "$unmount_folder" ; then
       true "INFO: Already unmounted after third attempt using --force, ok."
       return 0
    fi
