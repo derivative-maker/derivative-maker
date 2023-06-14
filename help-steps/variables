@@ -771,9 +771,20 @@ export dist_build_apt_codename
 ## {{{ reprepro variables
 
 set_dist_build_reprepro_folder_options() {
-   true "derivative_name_item: $derivative_name_item"
-   if [ "$derivative_name_item" = "" ]; then
-      error "derivative_name_item is empty!"
+   true "derivative_repository_name: $derivative_repository_name"
+   if [ "$derivative_repository_name" = "" ]; then
+      error "derivative_repository_name is empty!"
+   fi
+
+   for derivative_name_item in $derivative_name_list ; do
+      if [ "$derivative_repository_name" = "$derivative_name_item" ]; then
+         valid_repository_name=true
+         break
+      fi
+   done
+
+   if [ ! "$valid_repository_name" = "true" ]; then
+      error "derivative_repository_name $derivative_repository_name is invalid! (not in derivative_name_list)"
    fi
 
    if [ "$reprepro_codename" = "" ]; then
@@ -781,9 +792,9 @@ set_dist_build_reprepro_folder_options() {
    fi
 
    if [ "$reprepro_codename" = "local" ]; then
-      apt_repo_sub_folder="aptrepo_local/$derivative_name_item"
+      apt_repo_sub_folder="aptrepo_local/$derivative_repository_name"
    else
-      apt_repo_sub_folder="aptrepo_remote/$derivative_name_item"
+      apt_repo_sub_folder="aptrepo_remote/$derivative_repository_name"
    fi
 
    dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
