@@ -45,6 +45,7 @@ main() {
 
       true "dist_sources_list_temp_initial_deb_sources_list: $dist_sources_list_temp_initial_deb_sources_list"
       true "sources_list_target_build_remote_derivative: $sources_list_target_build_remote_derivative"
+      $SUDO_TO_ROOT rm -f "$dist_sources_list_temp_initial_deb_sources_list"
 
       if [ "$build_remote_derivative_pkgs" = "true" ]; then
          $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/repo-add-dist" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/repo-add-dist"
@@ -68,18 +69,18 @@ main() {
 
          ## Create a sources.list file for our local apt repository.
          echo "deb [trusted=yes] file:/$DEB_INSTALL_FOLDER/$derivative_name_item $dist_build_apt_codename main contrib non-free" | \
-         $SUDO_TO_ROOT tee "$dist_sources_list_temp_initial_deb_sources_list" >/dev/null
+         $SUDO_TO_ROOT tee --append "$dist_sources_list_temp_initial_deb_sources_list" >/dev/null
       fi
 
       ## For debugging / Info.
-      true "dist_sources_list_temp_initial_deb_sources_list: $dist_sources_list_temp_initial_deb_sources_list"
+      true "(1/2) ${cyan}dist_sources_list_temp_initial_deb_sources_list:${reset} $dist_sources_list_temp_initial_deb_sources_list"
       cat "$dist_sources_list_temp_initial_deb_sources_list"
 
       ## Copy which (frozen) sources.list will be used for building Kicksecure / Whonix into the image (or machine).
       $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
       ## For debugging / Info.
-      true "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list:"
+      true "(2/2) ${cyan}$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list:${reset}"
       cat "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
       sync
