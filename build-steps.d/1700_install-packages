@@ -189,6 +189,8 @@ install-packages() {
    sync
 
    "$dist_source_help_steps_folder/mount-raw"
+   $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
+
    "$dist_source_help_steps_folder/prevent-daemons-from-starting"
 
    sync
@@ -206,10 +208,6 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
 
-   $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
-
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
-
    "$dist_source_help_steps_folder/unchroot-raw"
 
    ## {{ controversy of: /etc/resolv.conf /etc/hosts /etc/hostname,
@@ -217,6 +215,8 @@ install-packages() {
 
    "$dist_source_help_steps_folder/create-local-temp-apt-repo"
    dist_chroot_mount_resolv_conf="0" "$dist_source_help_steps_folder/chroot-raw"
+
+   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
 #    if [ "$dist_build_target_arch" = "arm64" ]; then
 #       ## Install package helper-scripts first so pre.bsh and initramfs-debug-enable is available.
