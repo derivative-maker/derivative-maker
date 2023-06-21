@@ -180,6 +180,29 @@ build_machine_setup() {
    #$SUDO_TO_ROOT cat /proc/devices
 }
 
+repo_proxy_setup() {
+   if [ "$REPO_PROXY" = "" ]; then
+      return 0
+   fi
+   if [ "$REPO_PROXY" = "none" ]; then
+      return 0
+   fi
+   if [ ! "$REPO_PROXY" = "http://127.0.0.1:3142" ]; then
+      return 0
+   fi
+
+   if grep -q "AllowUserPorts: 0\$" /etc/apt-cacher-ng/acng.conf ; then
+      true "INFO: 'AllowUserPorts: 0' already in /etc/apt-cacher-ng/acng.conf, ok."
+      return 0
+   fi
+
+   true "INFO: Adding 'AllowUserPorts: 0' to /etc/apt-cacher-ng/acng.conf"
+   echo "AllowUserPorts: 0" | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
+   $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
+
+   true
+}
+
 repo_proxy_test() {
    if [ "$REPO_PROXY" = "" ]; then
       return 0
@@ -202,6 +225,7 @@ repo_proxy_test() {
 
 main() {
    build_machine_setup "$@"
+   repo_proxy_setup
    repo_proxy_test "$@"
 }
 
