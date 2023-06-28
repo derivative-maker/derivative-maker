@@ -143,6 +143,11 @@ fi
 
 export dist_build_sources_list_primary
 
+if [ "$dist_build_flavor" = "installer-dist" ]; then
+   [ -n "$dist_build_type_long" ] || dist_build_type_long="installer-dist"
+   [ -n "$dist_build_type_short" ] || dist_build_type_short="installer-dist"
+fi
+
 if [ "$dist_build_flavor" = "whonix-gateway-xfce" ]; then
    [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
    [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-Xfce"
@@ -320,11 +325,18 @@ export VMNAME VMRAM VRAM
 if [ "$dist_build_type_short" = "kicksecure" ]; then
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure"
    [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Kicksecure"
-   [ -n "$dist_upload_destination_site" ] || dist_upload_destination_site="kicksecure.com"
-else
-   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
+   [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com"
+elif [ "$dist_build_type_short" = "whonix" ]; then
+   [ -n "$derivative_name_list" ] || derivative_name_list="whonix"
    [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Whonix"
-   [ -n "$dist_upload_destination_site" ] || dist_upload_destination_site="whonix.org"
+   [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="whonix.org"
+elif [ "$dist_build_type_short" = "installer-dist" ]; then
+   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
+   [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="installer-dist"
+   ## XXX: Does not support lists.
+   # -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com whonix.org"
+else
+   error "missing dist_build_type_short!"
 fi
 
 if [ "$dist_build_internal_run" = "1" ]; then
@@ -618,7 +630,7 @@ declare -a dist_build_files_to_upload
 
 if [ "$dist_build_virtualbox" = "true" ]; then
    [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/ova"
+   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/ova"
 
    dist_build_files_to_upload+=("$binary_image_ova")
    dist_build_files_to_upload+=("$binary_image_ova_signature")
@@ -629,7 +641,7 @@ fi
 
 if [ "$dist_build_iso" = "true" ]; then
    [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/iso"
+   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/iso"
 
    dist_build_files_to_upload+=("$binary_image_iso")
    dist_build_files_to_upload+=("$binary_image_iso_signature")
@@ -640,7 +652,7 @@ fi
 
 if [ "$dist_build_qcow2" = "true" ]; then
    [ -n "$ssh_uploader_account" ] || ssh_uploader_account="hulahoop"
-   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/libvirt"
+   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/libvirt"
 
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive")
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_signature")
@@ -651,7 +663,10 @@ fi
 
 if [ "$dist_build_installer_dist" = "true" ]; then
    [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/installer-dist"
+   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="
+${ssh_uploader_account}@kicksecure.com:/var/rsync/installer-dist
+${ssh_uploader_account}@whonix.org:/var/rsync/installer-dist
+"
 
    dist_build_files_to_upload+=("$binary_image_installer_dist_image")
    dist_build_files_to_upload+=("$binary_image_installer_dist_signature")
@@ -660,7 +675,7 @@ fi
 
 if [ "$dist_build_windows_installer" = "true" ]; then
    [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location" ] || dist_server_with_upload_location="${ssh_uploader_account}@${dist_upload_destination_site}:/var/rsync/windows"
+   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/windows"
 
    dist_build_files_to_upload+=("$binary_image_windows_installer_exe")
    dist_build_files_to_upload+=("$binary_image_windows_installer_signature")
