@@ -221,7 +221,7 @@ dist_build_one_parse_cmd() {
    ## Thanks to:
    ## http://mywiki.wooledge.org/BashFAQ/035
 
-   if [ ! "$dist_build_internal_run" = "1" ]; then
+   if [ ! "$dist_build_internal_run" = "true" ]; then
       if [ "$*" = "" ]; then
          error "${red}${bold}no option chosen. Use --help.${reset}"
       fi
@@ -268,10 +268,12 @@ dist_build_one_parse_cmd() {
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                elif [ "$dist_build_flavor" = "kicksecure-host-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$2" = "installer-dist" ]; then
+               elif [ "$dist_build_flavor" = "installer-dist" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_installer_dist="true"
                   dist_build_image_upload_supported="true"
+               elif [ "$dist_build_flavor" = "internalrun" ]; then
+                  export dist_build_internal_run="true"
                else
                   parse_cmd_flavor_error
                fi
@@ -335,10 +337,7 @@ dist_build_one_parse_cmd() {
                shift
                ;;
            -i  | --internalrun)
-               export dist_build_internal_run="1"
-               build_machines_counter="$(( $build_machines_counter + 1 ))"
-               dist_build_flavor="internalrun"
-               export dist_build_flavor
+               export dist_build_internal_run="true"
                shift
                ;;
            --vmram)
@@ -739,7 +738,15 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
 
-   if [ ! "$dist_build_internal_run" = "1" ]; then
+   if [ "$dist_build_internal_run" = "true" ]; then
+      build_machines_counter="$(( $build_machines_counter + 1 ))"
+      dist_build_flavor="internalrun"
+      ## XXX
+      dist_build_build="1"
+      export dist_build_flavor
+   fi
+
+   if [ ! "$dist_build_internal_run" = "true" ]; then
       if [ ! "$WHONIX_BUILD_ONE_SCRIPT_STARTED" = "1" ]; then
          if [ ! "$dist_build_build" = "1" ] && [ ! "$dist_build_clean" = "1" ]; then
             error "${red}${bold}You must either use --build or --clean.${reset}"
@@ -754,7 +761,7 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    if [ "$build_machines_counter" -le "0" ]; then
       if [ "$dist_build_one_parsed" = "1" ]; then
          true
-      elif [ "$dist_build_internal_run" = "1" ] ; then
+      elif [ "$dist_build_internal_run" = "true" ] ; then
          true
       else
          parse_cmd_flavor_error
@@ -778,7 +785,7 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    elif [ "$dist_build_iso" = "true" ]; then
       true
    else
-      if [ "$dist_build_internal_run" = "1" ]; then
+      if [ "$dist_build_internal_run" = "true" ]; then
          true "INFO: allow running without --target since this is --internalrun."
       else
          parse_cmd_target_error
