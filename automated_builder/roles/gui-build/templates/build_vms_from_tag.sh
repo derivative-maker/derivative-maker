@@ -10,15 +10,13 @@ main() {
 build_gateway_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
-    --target virtualbox \
-    --build
+    --target virtualbox
 }
 
 build_workstation_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-workstation-xfce \
-    --target virtualbox \
-    --build
+    --target virtualbox
 }
 
 main
