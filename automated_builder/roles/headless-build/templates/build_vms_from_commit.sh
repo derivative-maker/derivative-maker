@@ -28,6 +28,9 @@ build_workstation_vm() {
 }
 
 prepare_release() {
+  echo "TODO: Needs test keys for gpg and signify."
+  return 0
+
   dm-prepare-release \
     --flavor whonix-workstation-xfce \
     --target virtualbox
