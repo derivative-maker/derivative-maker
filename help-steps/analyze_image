@@ -231,7 +231,7 @@ unmount_image() {
 
    ## dist_build_mount_raw_file us read by help-steps/mount-raw
    export dist_build_mount_raw_file="$raw_file_short_link"
-   "$dist_source_help_steps_folder"/unmount-raw
+   "$dist_source_help_steps_folder"/unmount-raw "$@"
 
    #sync
    #sleep 1 &
@@ -535,7 +535,7 @@ mount_image() {
    export dist_build_mount_raw_file="$raw_file_short_link"
 
    mount_raw_exit_code="0"
-   "$dist_source_help_steps_folder"/mount-raw || { mount_raw_exit_code="$?" ; true; };
+   "$dist_source_help_steps_folder"/mount-raw "$@" || { mount_raw_exit_code="$?" ; true; };
 
    #sync
    ## Mounting read-only so the user or script can not accidentally delete
@@ -1173,7 +1173,7 @@ main() {
    parse_mbr
 
    ## sets: mount_raw_exit_code
-   mount_image
+   mount_image "$@"
 
    if [ "$mount_raw_exit_code" = "0" ]; then
       parse_special_files
@@ -1257,7 +1257,7 @@ main() {
    fi
 
    if [ "$mount_raw_exit_code" = "0" ]; then
-      unmount_image
+      unmount_image "$@"
    fi
 
    parse_file_list_file

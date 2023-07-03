@@ -188,10 +188,10 @@ install-packages() {
 
    sync
 
-   "$dist_source_help_steps_folder/mount-raw"
+   "$dist_source_help_steps_folder/mount-raw" "$@"
    $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
 
-   "$dist_source_help_steps_folder/prevent-daemons-from-starting"
+   "$dist_source_help_steps_folder/prevent-daemons-from-starting" "$@"
 
    sync
 
@@ -201,20 +201,20 @@ install-packages() {
 
    sync
 
-   "$dist_source_help_steps_folder/create-local-temp-apt-repo"
-   "$dist_source_help_steps_folder/chroot-raw"
+   "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
+   "$dist_source_help_steps_folder/chroot-raw" "$@"
 
    ## Debugging.
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
    $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
 
-   "$dist_source_help_steps_folder/unchroot-raw"
+   "$dist_source_help_steps_folder/unchroot-raw" "$@"
 
    ## {{ controversy of: /etc/resolv.conf /etc/hosts /etc/hostname,
    ##    see help-steps/chroot-raw for more information.
 
-   "$dist_source_help_steps_folder/create-local-temp-apt-repo"
-   dist_chroot_mount_resolv_conf="0" "$dist_source_help_steps_folder/chroot-raw"
+   "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
+   dist_chroot_mount_resolv_conf="0" "$dist_source_help_steps_folder/chroot-raw" "$@"
 
    $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
@@ -243,12 +243,12 @@ install-packages() {
       error "ERROR: Invalid dist_build_flavor $dist_build_flavor. Please report this bug!"
    fi
 
-   "$dist_source_help_steps_folder/unchroot-raw"
+   "$dist_source_help_steps_folder/unchroot-raw" "$@"
 
    ## }}
 
-   "$dist_source_help_steps_folder/create-local-temp-apt-repo"
-   "$dist_source_help_steps_folder/chroot-raw"
+   "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
+   "$dist_source_help_steps_folder/chroot-raw" "$@"
 
    ## Not using this for simplification until basic dracut support is functional.
 #    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
@@ -456,8 +456,8 @@ $dist_build_script_skip_package_install${reset}"
 #             tee "$dist_binary_build_folder/${VMNAME}-dracut-debug.txt" >/dev/null
    fi
 
-   "$dist_source_help_steps_folder/remove-local-temp-apt-repo"
-   "$dist_source_help_steps_folder/unprevent-daemons-from-starting"
+   "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"
+   "$dist_source_help_steps_folder/unprevent-daemons-from-starting" "$@"
 
    ## Forget about local repository containing derivative packages.
    #$SUDO_TO_ROOT $CHROOT apt-get-noninteractive --no-download --list-cleanup update
@@ -465,8 +465,8 @@ $dist_build_script_skip_package_install${reset}"
    $SUDO_TO_ROOT $CHROOT sync
    sync
 
-   "$dist_source_help_steps_folder/unchroot-raw"
-   "$dist_source_help_steps_folder/unmount-raw"
+   "$dist_source_help_steps_folder/unchroot-raw" "$@"
+   "$dist_source_help_steps_folder/unmount-raw" "$@"
 
    sync
 }
@@ -475,7 +475,7 @@ main() {
    if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping installing packages for $VMNAME.${reset}"
    else
-      install-packages
+      install-packages "$@"
    fi
 }
 
