@@ -268,6 +268,7 @@ dist_build_one_parse_cmd() {
                   export dist_build_installer_dist="true"
                   dist_build_image_upload_supported="true"
                elif [ "$dist_build_flavor" = "internalrun" ]; then
+                  build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_internal_run="true"
                else
                   parse_cmd_flavor_error
@@ -322,10 +323,6 @@ dist_build_one_parse_cmd() {
                   exit 1
                fi
                shift 2
-               ;;
-           -i  | --internalrun)
-               export dist_build_internal_run="true"
-               shift
                ;;
            --vmram)
                export VMRAM="$2"
@@ -726,12 +723,11 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
    ## will remain in the "$@" positional parameters.
 
    if [ "$dist_build_internal_run" = "true" ]; then
-      build_machines_counter="$(( $build_machines_counter + 1 ))"
-      dist_build_flavor="internalrun"
-   fi
-
-   if [ "$build_machines_counter" -gt "1" ]; then
-      error "${red}${bold}You cannot use --flavor multiples times!${reset}"
+      true
+   else
+      if [ "$build_machines_counter" -gt "1" ]; then
+         error "${red}${bold}You cannot use --flavor multiples times!${reset}"
+      fi
    fi
 
    if [ "$build_machines_counter" -le "0" ]; then
@@ -760,12 +756,10 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
       true
    elif [ "$dist_build_iso" = "true" ]; then
       true
+   elif [ "$dist_build_internal_run" = "true" ]; then
+      true
    else
-      if [ "$dist_build_internal_run" = "true" ]; then
-         true "INFO: allow running without --target since this is --internalrun."
-      else
-         parse_cmd_target_error
-      fi
+      parse_cmd_target_error
    fi
 
    if [ "$dist_build_install_to_root" = "true" ]; then
