@@ -8,6 +8,8 @@ main() {
 }
 
 build_gateway_vm() {
+  export dist_build_no_unset_xtrace=false
+
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
@@ -17,6 +19,8 @@ build_gateway_vm() {
 }
 
 build_workstation_vm() {
+  export dist_build_no_unset_xtrace=false
+
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
