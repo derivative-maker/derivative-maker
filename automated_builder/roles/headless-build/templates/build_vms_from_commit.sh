@@ -3,7 +3,7 @@
 export dist_build_non_interactive=true
 
 ## Debugging.
-export dist_build_no_unset_xtrace=false
+export dist_build_no_unset_xtrace=true
 
 main() {
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
