@@ -2,13 +2,15 @@
 
 export dist_build_non_interactive=true
 
+## Debugging.
+export dist_build_no_unset_xtrace=false
+
 main() {
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
   build_workstation_vm >> /home/ansible/workstation_build.log 2>&1
 }
 
 build_gateway_vm() {
-  export dist_build_no_unset_xtrace=false
 
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
@@ -19,8 +21,6 @@ build_gateway_vm() {
 }
 
 build_workstation_vm() {
-  export dist_build_no_unset_xtrace=false
-
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
