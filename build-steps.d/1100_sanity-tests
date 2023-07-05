@@ -45,6 +45,31 @@ check-unicode() {
    true
 }
 
+check-dpkg() {
+   ## dpkg --audit does not exit with a non-zero exit code if something is wrong.
+   ## dpkg --audit does not return anything, if everything is fine.
+   ## Therefore we see if dpkg has to say something, and if yes, the system is
+   ## broken and we abort.
+   dpkg_audit_output="$(dpkg --audit 2>&1)"
+   if [ "$dpkg_audit_output" = "" ]; then
+      return 0
+   fi
+   error "\
+dpkg_audit_output not empty! In other words, the output of command
+
+sudo dpkg --audit
+
+is expected to be empty but was non-empty. Meaning that dpkg found a system configuration issue.
+
+modified quote of the dpkg man page:
+
+> Performs database sanity and consistency checks for [...] all packages. For example, searches for packages that have been installed only partially on your system or that have missing, wrong or obsolete control data or files. dpkg will suggest what to do with them to get them fixed.
+
+The user must fix this issue before proceeding. These issue is most likely not caused by derivative-issue. This is most likely a general system configuration issue."
+   fi
+   true
+}
+
 check-hostname() {
    if ! test -f /etc/hostname ; then
       ## mmdebstrap requires /etc/hostname to exist.
@@ -287,6 +312,7 @@ signing_key() {
 
 main() {
    check-unicode "$@"
+   check-dpkg "$@"
    check-hostname "$@"
    check-source-folder-permissions "$@"
    check-stray-loop-devices "$@"
