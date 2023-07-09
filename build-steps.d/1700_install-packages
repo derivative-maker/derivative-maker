@@ -427,15 +427,22 @@ $dist_build_script_skip_package_install${reset}"
 
       ## Debugging.
       $SUDO_TO_ROOT $CHROOT find /usr/lib/modules -type f -name ext4.ko || true
-      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab
-      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab 2>&1 | tee "$dist_binary_build_folder/${VMNAME}-dracut-cmdline.txt" >/dev/null
+      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab || true
+      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab 2>&1 | tee "$dist_binary_build_folder/${VMNAME}-dracut-cmdline.txt" >/dev/null || true
 
       ## For documentation on how to install dracut in a chroot, see:
       ## https://github.com/dracutdevs/dracut/issues/1596
 
-      KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 /boot/vmlinuz-*)"
+      KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 "/boot/")"
+      KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
+
       KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
-      KERNELVER="${KERNELIMG#/boot/vmlinuz-}"
+      ## example KERNELIMG:
+      ## vmlinuz-6.1.0-9-amd64
+
+      KERNELVER="${KERNELIMG#vmlinuz-}"
+      ## example KERNELVER:
+      ## 6.1.0-9-amd64
 
       ## Add dracut support to grml-debootstrap:
       ## https://github.com/grml/grml-debootstrap/pull/196
@@ -448,9 +455,8 @@ $dist_build_script_skip_package_install${reset}"
                --reproducible \
                --fstab \
                --add-fstab /etc/fstab \
-               $INITRD_GENERATOR_OPTS \
-               2>&1 | \
-                  tee "$dist_binary_build_folder/${VMNAME}-dracut-debug.txt" >/dev/null
+               --verbose \
+               $INITRD_GENERATOR_OPTS
    fi
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"
