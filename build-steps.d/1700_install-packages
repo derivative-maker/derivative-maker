@@ -417,9 +417,9 @@ $dist_build_script_skip_package_install${reset}"
    pkg-list-install
 
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-      ## TODO: dracut automatically run during above package installation through the usual
-      ##       Debian package triggers might break the boot process. Re-running dracut with
-      ##       the correct command line parameters might be required in order to fix that.
+      ## dracut is automatically run during above package installation through the usual
+      ## Debian package triggers might break the boot process. Re-running dracut with
+      ## the correct command line parameters is required in order to fix that.
 
       ## Not using this for simplification until basic dracut support is functional.
       #true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
@@ -433,27 +433,24 @@ $dist_build_script_skip_package_install${reset}"
       ## For documentation on how to install dracut in a chroot, see:
       ## https://github.com/dracutdevs/dracut/issues/1596
 
-      ## Hopefully no longer required dracut command line parameter:
-      ## --add-drivers "$dist_build_file_system"
-      ## Hopefully replaced by '--no-hostonly'.
+      KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 /boot/vmlinuz-*)"
+      KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
+      KERNELVER="${KERNELIMG#/boot/vmlinuz-}"
 
-      ## Not using this for simplification until basic dracut support is functional.
       ## Add dracut support to grml-debootstrap:
       ## https://github.com/grml/grml-debootstrap/pull/196
-      ## As per above pull request, above dracut parameters might be required:
-      ## * --add-fstab /etc/fstab
-      ## * --kver "$KERNELVER"
-      ## * Variable KERNELVER would need to be set.
-#       $SUDO_TO_ROOT \
-#          $CHROOT dracut \
-#             --no-hostonly \
-#             --force \
-#             --reproducible \
-#             --fstab \
-#             --verbose \
-#             --debug \
-#             2>&1 | \
-#             tee "$dist_binary_build_folder/${VMNAME}-dracut-debug.txt" >/dev/null
+      $SUDO_TO_ROOT \
+         $CHROOT \
+            dracut \
+               --no-hostonly \
+               --kver "$KERNELVER" \
+               --force \
+               --reproducible \
+               --fstab \
+               --add-fstab /etc/fstab \
+               $INITRD_GENERATOR_OPTS \
+               2>&1 | \
+                  tee "$dist_binary_build_folder/${VMNAME}-dracut-debug.txt" >/dev/null
    fi
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"
