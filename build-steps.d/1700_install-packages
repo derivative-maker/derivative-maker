@@ -250,11 +250,10 @@ install-packages() {
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
    "$dist_source_help_steps_folder/chroot-raw" "$@"
 
-   ## Not using this for simplification until basic dracut support is functional.
-#    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-#       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
-#       export INITRD=No
-#    fi
+   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+      true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
+      export INITRD=No
+   fi
 
    ## Debugging.
    $SUDO_TO_ROOT $CHROOT mount | grep /run || true
@@ -421,9 +420,8 @@ $dist_build_script_skip_package_install${reset}"
       ## Debian package triggers might break the boot process. Re-running dracut with
       ## the correct command line parameters is required in order to fix that.
 
-      ## Not using this for simplification until basic dracut support is functional.
-      #true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
-      #unset INITRD
+      true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
+      unset INITRD
 
       ## Debugging.
       $SUDO_TO_ROOT $CHROOT find /usr/lib/modules -type f -name ext4.ko || true
