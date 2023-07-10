@@ -18,7 +18,7 @@ source pre
 source colors
 source variables
 
-main() {
+create-debian-iso-config() {
    mkdir --parents "$binary_build_folder_live_build"
    cd "$binary_build_folder_live_build"
 
@@ -109,6 +109,27 @@ main() {
    lb config --dump
 
    lb config --validate
+}
+
+main() {
+   if [ ! "$dist_build_iso" = "true" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because $dist_build_iso is not set to true.${reset}"
+      return 0
+   fi
+
+   if [ "$dist_build_type_long" = "custom-workstation" ]; then
+      true
+   elif [ "$dist_build_type_long" = "gateway" ]; then
+      true
+   elif [ "$dist_build_type_long" = "workstation" ]; then
+      true
+   elif [ "$dist_build_type_long" = "whonix-host" ]; then
+      create-debian-iso-config
+   elif [ "$dist_build_type_long" = "kicksecure" ]; then
+      create-debian-iso-config
+   else
+      error "ERROR: Invalid dist_build_flavor $dist_build_flavor (dist_build_type_long: $dist_build_type_long). Please report this bug!"
+   fi
 }
 
 main "$@"
