@@ -25,14 +25,19 @@ create-debian-iso-image() {
 
    cd "$binary_build_folder_live_build"
 
-   ## Remaster the ISO.
-   ## This does not re-create the ISO chroot thanks to live-build's stage files.
+   ## Delete the ISO.
    $SUDO_TO_ROOT \
       $LIVEBUILD_PREFIX \
       dist_build_multiarch_package_item="$dist_build_target_arch" \
-      lb build
+      lb clean --binary
 
-   ## TODO: check if ISO size is not too small (only containing debootstraped Debian without packages)
+   ## Remaster the ISO.
+   $SUDO_TO_ROOT \
+      $LIVEBUILD_PREFIX \
+      dist_build_multiarch_package_item="$dist_build_target_arch" \
+      lb binary
+
+   ## TODO: check if ISO size is not too small (only containing debootstraped Debian without derivative packages)
 
    true
 }
