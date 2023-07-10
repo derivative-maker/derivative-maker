@@ -190,10 +190,6 @@ install-packages() {
 
    "$dist_source_help_steps_folder/mount-raw" "$@"
 
-   ## Debugging.
-   true "/boot/grub/grub.cfg root= (1):"
-   $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
-
    $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
 
    "$dist_source_help_steps_folder/prevent-daemons-from-starting" "$@"
@@ -265,10 +261,6 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT ls -la /run || true
    $SUDO_TO_ROOT $CHROOT ls -la /run/udev || true
    $SUDO_TO_ROOT $CHROOT ls -la /run/udev/data || true
-
-   ## Debugging.
-   true "/boot/grub/grub.cfg root= (2):"
-   $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
 
    ## Test
    ## https://piiis.blogspot.com/2013/07/fedora-dracut-in-chroot-environment.html
@@ -424,10 +416,6 @@ $dist_build_script_skip_package_install${reset}"
 
    pkg-list-install
 
-   ## Debugging.
-   true "/boot/grub/grub.cfg root= (3):"
-   $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
-
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
       ## Debian package triggers might break the boot process. Re-running dracut with
@@ -468,8 +456,19 @@ $dist_build_script_skip_package_install${reset}"
                $INITRD_GENERATOR_OPTS
    fi
 
-   true "/boot/grub/grub.cfg root= (4):"
+   ## Since dracut was not run except before, grub config is still incomplete.
+   ## Therefore creating functional /boot/grub/grub.cfg here.
+   ## grub needs existing initrd for grub.cfg creation.
+   $SUDO_TO_ROOT $CHROOT update-grub
+
+   ## Debugging.
+   true "/boot/grub/grub.cfg root= :"
    $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
+
+   ## Sanity test.
+   if $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
+      error "chroot /boot/grub/grub.cfg contains /dev/mapper - image most likely unbootable!"
+   fi
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"
    "$dist_source_help_steps_folder/unprevent-daemons-from-starting" "$@"
