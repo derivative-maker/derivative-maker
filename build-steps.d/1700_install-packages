@@ -261,6 +261,10 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT ls -la /run/udev || true
    $SUDO_TO_ROOT $CHROOT ls -la /run/udev/data || true
 
+   ## Debugging.
+   true "/boot/grub/grub.cfg root= (1):"
+   $SUDO_TO_ROOT cat /boot/grub/grub.cfg | grep --color "root="
+
    ## Test
    ## https://piiis.blogspot.com/2013/07/fedora-dracut-in-chroot-environment.html
    $SUDO_TO_ROOT $CHROOT mkdir --parents /run/udev/data || true
@@ -415,6 +419,10 @@ $dist_build_script_skip_package_install${reset}"
 
    pkg-list-install
 
+   ## Debugging.
+   true "/boot/grub/grub.cfg root= (2):"
+   $SUDO_TO_ROOT cat /boot/grub/grub.cfg | grep --color "root="
+
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
       ## Debian package triggers might break the boot process. Re-running dracut with
@@ -456,6 +464,9 @@ $dist_build_script_skip_package_install${reset}"
                --verbose \
                $INITRD_GENERATOR_OPTS
    fi
+
+   true "/boot/grub/grub.cfg root= (3):"
+   $SUDO_TO_ROOT cat /boot/grub/grub.cfg | grep --color "root="
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"
    "$dist_source_help_steps_folder/unprevent-daemons-from-starting" "$@"
