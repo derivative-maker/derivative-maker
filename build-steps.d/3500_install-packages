@@ -335,6 +335,15 @@ $dist_build_script_skip_package_install${reset}"
       pkg-add-to-install-list grub-efi-arm64
    fi
 
+#    if [ "$dist_build_iso" = "true" ]; then
+#       if [ -n "$EFI" ] ; then
+#          GRUB_PACKAGE=grub-efi-amd64
+#       else
+#          GRUB_PACKAGE=grub-pc
+#       fi
+#       pkg-add-to-install-list "$GRUB_PACKAGE"
+#    fi
+
    ## Weak recommended packages. No other package depends on it. Can be
    ## easily uninstalled. For better usability.
    if [ "$dist_build_virtualbox" = "true" ]; then
@@ -459,15 +468,24 @@ $dist_build_script_skip_package_install${reset}"
    ## Since dracut was not run except before, grub config is still incomplete.
    ## Therefore creating functional /boot/grub/grub.cfg here.
    ## grub needs existing initrd for grub.cfg creation.
-   $SUDO_TO_ROOT $CHROOT update-grub
+   ## Maybe unnecessary for ISO. Up to live-boot. Useful as a sanity test.
+   if [ "$dist_build_iso" = "true" ]; then
+      true "INFO: Bootloder configuration is up to live-build."
+   else
+      $SUDO_TO_ROOT $CHROOT update-grub
+   fi
 
    ## Debugging.
    true "/boot/grub/grub.cfg root= :"
    $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
 
-   ## Sanity test.
-   if $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
-      error "chroot /boot/grub/grub.cfg contains /dev/mapper - image most likely unbootable!"
+   if [ "$dist_build_iso" = "true" ]; then
+      true "INFO: Skipping /boot/grub/grub.cfg containing root=/dev/mapper test, ok."
+   else
+      ## Sanity test.
+      if $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
+         error "chroot /boot/grub/grub.cfg contains /dev/mapper - image most likely unbootable!"
+      fi
    fi
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"

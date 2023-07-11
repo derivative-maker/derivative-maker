@@ -25,6 +25,18 @@ create-debian-iso-image() {
 
    cd "$binary_build_folder_live_build"
 
+   ## XXX
+   ## live-build bug?
+   # P: Begin building root filesystem image...
+   # 0+0 records in
+   # 0+0 records out
+   # 0 bytes copied, 2.8103e-05 s, 0.0 kB/s
+   # ln: failed to create symbolic link '/etc/mtab': File exists
+   # E: An unexpected failure occurred, exiting...
+   if $SUDO_TO_ROOT test -L "$CHROOT_FOLDER/etc/mtab" ; then
+      $SUDO_TO_ROOT unlink "$CHROOT_FOLDER/etc/mtab"
+   fi
+
    ## Delete the ISO.
    $SUDO_TO_ROOT \
       $LIVEBUILD_PREFIX \
