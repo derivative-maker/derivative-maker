@@ -35,8 +35,10 @@ create-debian-iso-chroot() {
    ## Debugging.
    ls -la /usr/sbin/debootstrap
 
-   ## Required in Qubes and other operating systems that configure nosuid, nodev mount options.
-   $SUDO_TO_ROOT mount -o remount,suid,dev /home
+   if $SUDO_TO_ROOT mount | grep home | grep nosuid | grep nodev ; then
+      ## Required in Qubes and other operating systems that configure nosuid, nodev mount options.
+      $SUDO_TO_ROOT mount -o remount,suid,dev /home
+   fi
 
    ## Folder live-build in the derivative-maker source folder's root serves as a
    ## textual template for Debian's live-build 'lb' tool.
