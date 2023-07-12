@@ -18,6 +18,109 @@ source pre
 source colors
 source variables
 
+create-debian-iso-config() {
+   $SUDO_TO_ROOT rm --recursive --force "$binary_build_folder_live_build"
+   mkdir --parents "$binary_build_folder_live_build"
+   cd "$binary_build_folder_live_build"
+
+   ## folder derivative-maker/live-build can be re-created using:
+   ## 1. lb config
+   ## 2. help-steps/live-config
+
+   ## TODO: research
+   #--apt-indices false
+   #--apt-options OPTION|"OPTIONS"
+   #--backports true|false
+   #--bootappend-live PARAMETER|"PARAMETERS"
+   #--checksums md5|sha1|sha224|sha256|sha384|sha512|none
+   ## calamares
+   #--debian-installer cdrom|netinst|netboot|businesscard|live|none
+   ## --freedom true|false
+   #--firmware-binary true|false
+   #--firmware-chroot true|false
+   ## fasttrack?
+   #--keyring-packages PACKAGE|"PACKAGES"
+   #--cache-stages "bootstrap rootfs"
+
+   ## TODO: apt --error-on=any
+   ## TODO: mmdebstrap
+   ## TODO: onion
+
+   ## TODO: lb config --clean
+
+   ## TODO:
+   ## --architecture ARCHITECTURE
+   ## --distribution CODENAME
+   ## --hdd-label LABEL
+   ## --hdd-size SIZE
+   ## --image-name NAME
+   ## --iso-application NAME
+   ## --iso-publisher NAME
+   ## --iso-volume NAME
+   ## --source
+
+   ## TODO: live
+   ## --initramfs none|live-boot
+   ## --system live
+   ## --chroot-filesystem ext4
+   ## --binary-image hdd
+   ## --bootloaders grub-efi
+
+   ## TODO: kernel headers
+   ## --linux-packages PACKAGE|"PACKAGES"
+
+   ## '--variant=required' is only supported by 'mmdebstrap'. It might not be supported by 'debootstrap'.
+
+   ## --cache-packages false
+   ## mmdebstrap: fix debootstrap, live-boot compatibility / support --download-only, --foreign, --second-stage, --no-check-gpg
+   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1031932
+
+   ## TODO
+   ## --apt-ftp-proxy "${REPO_PROXY}"
+   ## --apt-http-proxy "${REPO_PROXY}"
+
+#          --apt-recommends false \
+#          --apt-source-archives false \
+#          --debootstrap-options "--variant=minbase" \
+#         --binary-image iso-hybrid \
+
+   ## --binary-filesystem ext4 \ ## Not useful for ISO.
+   ## --chroot-filesystem ext4 \ ## testing
+
+   $SUDO_TO_ROOT \
+      lb config \
+         --distribution "$dist_build_apt_stable_release" \
+         --mirror-binary "$dist_build_apt_sources_mirror" \
+         --mirror-binary-security "$dist_build_apt_sources_security_mirror" \
+         --mirror-bootstrap "$dist_build_apt_sources_mirror" \
+         --mirror-chroot "$dist_build_apt_sources_mirror" \
+         --mirror-chroot-security "$dist_build_apt_sources_security_mirror" \
+         --mirror-debian-installer "$dist_build_apt_sources_mirror" \
+         --parent-mirror-binary "$dist_build_apt_sources_mirror" \
+         --parent-mirror-binary-security "$dist_build_apt_sources_security_mirror" \
+         --parent-mirror-bootstrap "$dist_build_apt_sources_mirror" \
+         --parent-mirror-chroot "$dist_build_apt_sources_mirror" \
+         --parent-mirror-chroot-security "$dist_build_apt_sources_security_mirror" \
+         --parent-mirror-debian-installer "$dist_build_apt_sources_mirror" \
+         --archive-areas "main contrib non-free non-free-firmware" \
+         --cache-packages false \
+         --chroot-filesystem ext4 \
+         --source false \
+         --zsync false
+
+   ## TODO: remove
+   ls -la
+   realpath ./config/package-lists/my.list.chroot || true
+   echo "task-lxde-desktop firefox-esr" | $SUDO_TO_ROOT tee ./config/package-lists/my.list.chroot >/dev/null
+
+   ## Running 'lb config' should not result in any further changes.
+   #$SUDO_TO_ROOT lb config
+
+   $SUDO_TO_ROOT lb config --dump
+
+   $SUDO_TO_ROOT lb config --validate
+}
+
 create-debian-iso-image() {
    ## Sanity test.
    test -d "$binary_build_folder_live_build"
@@ -67,8 +170,10 @@ main() {
    elif [ "$dist_build_type_long" = "workstation" ]; then
       true
    elif [ "$dist_build_type_long" = "whonix-host" ]; then
+      create-debian-iso-config
       create-debian-iso-image
    elif [ "$dist_build_type_long" = "kicksecure" ]; then
+      create-debian-iso-config
       create-debian-iso-image
    else
       error "ERROR: Invalid dist_build_flavor $dist_build_flavor (dist_build_type_long: $dist_build_type_long). Please report this bug!"
