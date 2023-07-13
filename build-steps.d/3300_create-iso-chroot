@@ -36,6 +36,21 @@ make-live-build-use-mmdebstrap() {
    ls -la /usr/sbin/debootstrap
 }
 
+etc-mtab-workaround() {
+   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1032408
+   ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1040928
+
+   local search replace file_name
+
+   search='if ! Chroot chroot "test -s /etc/mtab"'
+   replace='if ! Chroot chroot "test -e /etc/mtab"'
+   file_name="/usr/lib/live/build/binary_rootfs"
+
+   $SUDO_TO_ROOT $str_replace_tool "$search" "$replace" "$file_name"
+
+   true
+}
+
 create-debian-iso-config() {
    $SUDO_TO_ROOT rm --recursive --force "$binary_build_folder_live_build"
    mkdir --parents "$binary_build_folder_live_build"
@@ -140,6 +155,8 @@ create-debian-iso-config() {
 
 create-debian-iso-chroot() {
    #make-live-build-use-mmdebstrap
+
+   etc-mtab-workaround
 
    if $SUDO_TO_ROOT mount | grep home | grep nosuid | grep nodev ; then
       ## Required in Qubes and other operating systems that configure nosuid, nodev mount options.
