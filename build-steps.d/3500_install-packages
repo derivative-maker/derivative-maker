@@ -232,20 +232,12 @@ install-packages() {
    ## meta package installation.
    pkg-install legacy-dist
 
-   if [ "$dist_build_type_long" = "gateway" ]; then
+   if [ "$dist_build_type_short" = "kicksecure" ]; then
+      pkg-install kicksecure-packages-dependencies-pre
+   elif [ "$dist_build_type_short" = "whonix" ]; then
       pkg-install whonix-gateway-packages-dependencies-pre
-   elif [ "$dist_build_type_long" = "workstation" ]; then
-      pkg-install whonix-workstation-packages-dependencies-pre
-   elif [ "$dist_build_type_long" = "whonix-host-xfce" ]; then
-      pkg-install whonix-host-packages-dependencies-pre
-   elif [ "$dist_build_type_long" = "whonix-host-cli" ]; then
-      pkg-install whonix-host-packages-dependencies-pre
-   elif [ "$dist_build_type_long" = "kicksecure-host-xfce" ]; then
-      pkg-install kicksecure-packages-dependencies-pre
-   elif [ "$dist_build_type_long" = "kicksecure-host-cli" ]; then
-      pkg-install kicksecure-packages-dependencies-pre
    else
-      error "ERROR: Invalid dist_build_flavor $dist_build_flavor. Please report this bug!"
+      error "ERROR: Invalid dist_build_type_short '$dist_build_type_short'. Please report this bug!"
    fi
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
@@ -388,8 +380,9 @@ $dist_build_script_skip_package_install${reset}"
       true "${cyan}INFO: skipping installation of weak recommended guest additions packages spice-vdagent because not using --target qcow2, ok.${reset}"
    fi
 
+   ## TODO: Kicksecure
    ## Weak recommended packages so calamares can remove them.
-   if [ "$dist_build_type_long" = "whonix-host" ]; then
+   if [ "$dist_build_type_short" = "whonix" ]; then
       pkg-add-to-install-list calamares
       pkg-add-to-install-list calamares-settings-debian
 
