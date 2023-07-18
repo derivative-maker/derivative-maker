@@ -247,9 +247,13 @@ install-packages() {
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
    "$dist_source_help_steps_folder/chroot-raw" "$@"
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-      true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
-      export INITRD=No
+   if [ "$dist_build_iso" = "true" ]; then
+      true "INFO: initramfs configuration is up to live-build."
+   else
+      if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+         true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
+         export INITRD=No
+      fi
    fi
 
    ## Debugging.
@@ -422,44 +426,48 @@ $dist_build_script_skip_package_install${reset}"
 
    pkg-list-install
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-      ## dracut is automatically run during above package installation through the usual
-      ## Debian package triggers might break the boot process. Re-running dracut with
-      ## the correct command line parameters is required in order to fix that.
+   if [ "$dist_build_iso" = "true" ]; then
+      true "INFO: initramfs configuration is up to live-build."
+   else
+      if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+         ## dracut is automatically run during above package installation through the usual
+         ## Debian package triggers might break the boot process. Re-running dracut with
+         ## the correct command line parameters is required in order to fix that.
 
-      true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
-      unset INITRD
+         true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
+         unset INITRD
 
-      ## Debugging.
-      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab || true
+         ## Debugging.
+         $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab || true
 
-      ## For documentation on how to install dracut in a chroot, see:
-      ## https://github.com/dracutdevs/dracut/issues/1596
+         ## For documentation on how to install dracut in a chroot, see:
+         ## https://github.com/dracutdevs/dracut/issues/1596
 
-      KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 "/boot/")"
-      KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
+         KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 "/boot/")"
+         KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
 
-      KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
-      ## example KERNELIMG:
-      ## vmlinuz-6.1.0-9-amd64
+         KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
+         ## example KERNELIMG:
+         ## vmlinuz-6.1.0-9-amd64
 
-      KERNELVER="${KERNELIMG#vmlinuz-}"
-      ## example KERNELVER:
-      ## 6.1.0-9-amd64
+         KERNELVER="${KERNELIMG#vmlinuz-}"
+         ## example KERNELVER:
+         ## 6.1.0-9-amd64
 
-      ## Add dracut support to grml-debootstrap:
-      ## https://github.com/grml/grml-debootstrap/pull/196
-      $SUDO_TO_ROOT \
-         $CHROOT \
-            dracut \
-               --no-hostonly \
-               --kver "$KERNELVER" \
-               --force \
-               --reproducible \
-               --fstab \
-               --add-fstab /etc/fstab \
-               --verbose \
-               $INITRD_GENERATOR_OPTS
+         ## Add dracut support to grml-debootstrap:
+         ## https://github.com/grml/grml-debootstrap/pull/196
+         $SUDO_TO_ROOT \
+            $CHROOT \
+               dracut \
+                  --no-hostonly \
+                  --kver "$KERNELVER" \
+                  --force \
+                  --reproducible \
+                  --fstab \
+                  --add-fstab /etc/fstab \
+                  --verbose \
+                  $INITRD_GENERATOR_OPTS
+      fi
    fi
 
    ## Since dracut was not run except before, grub config is still incomplete.
