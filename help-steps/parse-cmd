@@ -675,13 +675,17 @@ dist_build_one_parse_cmd() {
        esac
    done
 
-   ## binutils dmsetup:
-   ## https://packages.debian.org/bullseye/dmsetup lists 'Recommends:' which
-   ## are actually required for a functional boot process.
-   ## pigz: maybe not required but useful.
-   ## Not using dracut yet until issues with chroot builds are resolved.
-   [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="dracut dracut-config-generic dracut-config-rescue binutils dmsetup pigz"
-   #[ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="initramfs-tools"
+   if [ "$dist_build_iso" = "true" ]; then
+      [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="none"
+   else
+      ## binutils dmsetup:
+      ## https://packages.debian.org/bullseye/dmsetup lists 'Recommends:' which
+      ## are actually required for a functional boot process.
+      ## pigz: maybe not required but useful.
+      ## Not using dracut yet until issues with chroot builds are resolved.
+      [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="dracut dracut-config-generic dracut-config-rescue binutils dmsetup pigz"
+      #[ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="initramfs-tools"
+   fi
 
    if [ "$dist_build_target_arch" = "i386" ]; then
       [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-686"
