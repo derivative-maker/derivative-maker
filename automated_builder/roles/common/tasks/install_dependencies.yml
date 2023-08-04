@@ -1,23 +1,26 @@
 ---
-- name: Install dependencies
-  become: true
-  block:
-    - name: Wait for cloud-init / user-data to finish
-      command: cloud-init status --wait
-      changed_when: false
+- name: Check droplet status
+  retries: 10
+  delay: 20
+  community.digitalocean.digital_ocean_droplet_info:
+    oauth_token: "{{ DO_API_TOKEN }}"
+    name: automated-builder-vps
+  register: droplet_facts
+  until: droplet_facts.data[0].status == "active"
 
-    - name: Install apt packages
-      apt:
-        pkg:
-          - git
-          - time
-          - curl
-          - lsof
-          - apt-cacher-ng
-          - lsb-release
-          - fakeroot
-          - dpkg-dev
-          - fasttrack-archive-keyring
-          - dnsutils
-          - software-properties-common
-        update_cache: true
+- name: Install apt packages
+  become: true
+  apt:
+    pkg:
+      - git
+      - time
+      - curl
+      - lsof
+      - apt-cacher-ng
+      - lsb-release
+      - fakeroot
+      - dpkg-dev
+      - fasttrack-archive-keyring
+      - dnsutils
+      - software-properties-common
+    update_cache: true
