@@ -45,6 +45,28 @@ check-unicode() {
    true
 }
 
+check-operating-system-version() {
+   if ! test -r /etc/os-release ; then
+      error "file /etc/os-release does not exist!
+
+Is package base-files installed? It is required for this check.
+sudo apt install base-files
+
+Are you building on Debian? Only building on Debian is supported."
+   fi
+
+   local codename
+   codename=$(cat /etc/os-release)
+   codename=$(echo "$codename" | grep VERSION_CODENAME)
+   codename=$(echo "$codename" | cut -d= -f2)
+
+   if [ "$dist_build_apt_stable_release" = "$codename" ]; then
+      return 0
+   fi
+
+   exit 1
+}
+
 check-dpkg() {
    ## dpkg --audit does not exit with a non-zero exit code if something is wrong.
    ## dpkg --audit does not return anything, if everything is fine.
@@ -311,6 +333,7 @@ signing_key() {
 
 main() {
    check-unicode "$@"
+   check-operating-system-version "$@"
    check-dpkg "$@"
    check-hostname "$@"
    check-source-folder-permissions "$@"
