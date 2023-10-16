@@ -325,6 +325,21 @@ ${under}sudo apt-get install --no-install-recommends $required_packages_list${eu
       fi
    done
 
+   if [ ! "$dist_build_windows_installer" = "true" ]; then
+      return 0
+   fi
+
+   for required_package_item in $dist_build_script_build_dependency_windows_installer_debian_testing ; do
+      if ! dpkg-query --show --showformat='${Version}' "$required_package_item" ; then
+         error "${bold}${red}ERROR $BASH_SOURCE: Required package '$required_package_item' missing. Run${reset}:
+
+For Windows installer the following packages must be installed from Debian trixie before running derivative-maker:
+$dist_build_script_build_dependency_windows_installer_debian_testing
+
+Once derivative-maker builds from Debian trixie by default this code can be refactored."
+      fi
+   done
+
    true
 }
 
