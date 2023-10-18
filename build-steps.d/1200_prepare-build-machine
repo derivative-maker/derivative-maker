@@ -224,13 +224,10 @@ repo_proxy_test() {
    error "See above!"
 }
 
-check_required_packages_installed() {
+virtualbox_installer_repository() {
    if [ ! "$dist_build_windows_installer" = "true" ]; then
       return 0
    fi
-
-   ## TODO
-   exit 1
 
    if ! test -d ~/virtualbox-windows-installer-binary ; then
       pushd ~
@@ -240,8 +237,8 @@ check_required_packages_installed() {
 
    pushd ~/virtualbox-windows-installer-binary
    git fetch
-
    git merge --ff-only origin/master
+   "$dist_source_help_steps_folder/git-gpg-verify" "$@"
    "${dist_developer_meta_files_folder}/usr/bin/dm-virtualbox-installer-exe-verify-windows"
    popd
 
@@ -249,9 +246,10 @@ check_required_packages_installed() {
 }
 
 main() {
-   repo_proxy_setup
+   repo_proxy_setup "$@"
    repo_proxy_test "$@"
    build_machine_setup "$@"
+   virtualbox_installer_repository "$@"
 }
 
 main "$@"

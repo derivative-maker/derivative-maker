@@ -1,0 +1,39 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+dist_build_internal_run="true"
+
+source pre
+source colors
+source variables
+
+main() {
+   true "gpg_bin: $gpg_bin"
+
+   # Set up a separate GPG keystore
+   export GNUPGHOME="$binary_build_folder_dist/temp_gpg"
+   mkdir --parents "$GNUPGHOME"
+   chmod --recursive og-rwx "$GNUPGHOME"
+   gpg --fingerprint
+   gpg --import ./packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc
+   gpg --fingerprint
+
+   git verify-commit HEAD
+
+   true
+}
+
+main "$@"
