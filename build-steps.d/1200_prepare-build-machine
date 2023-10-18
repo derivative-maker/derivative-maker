@@ -224,6 +224,30 @@ repo_proxy_test() {
    error "See above!"
 }
 
+check_required_packages_installed() {
+   if [ ! "$dist_build_windows_installer" = "true" ]; then
+      return 0
+   fi
+
+   ## TODO
+   exit 1
+
+   if ! test -d ~/virtualbox-windows-installer-binary ; then
+      pushd ~
+      git clone https://gitlab.com/kicksecure/VirtualBox-Windows-Installer-Binary.git
+      popd
+   fi
+
+   pushd ~/virtualbox-windows-installer-binary
+   git fetch
+
+   git merge --ff-only origin/master
+   "${dist_developer_meta_files_folder}/usr/bin/dm-virtualbox-installer-exe-verify-windows"
+   popd
+
+   true
+}
+
 main() {
    repo_proxy_setup
    repo_proxy_test "$@"
