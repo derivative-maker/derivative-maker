@@ -72,6 +72,11 @@ mount_raw() {
 
    local kpartx_output a b device
    kpartx_output="$($SUDO_TO_ROOT kpartx -a -s -v "$img" 2>&1)"
+   ## example kpartx_output:
+   ## add map loop0p1 (253:0): 0 204800 linear 7:0 2048
+   ## add map loop0p2 (253:1): 0 2048 linear 7:0 206848
+   ## add map loop0p3 (253:2): 0 3983360 linear 7:0 208896
+
    sync
 
    if [ "$kpartx_output" = "" ]; then
@@ -79,11 +84,16 @@ mount_raw() {
       error "$msg"
    fi
 
+   ## This is needed because using grml-debootstrap with '--vmefi' option.
+   kpartx_last_line=$(echo "$kpartx_output" | tail --lines -1)
+   ## example kpartx_last_line:
+   ## add map loop0p3 (253:2): 0 3983360 linear 7:0 208896
+
    ## Debugging.
    $SUDO_TO_ROOT losetup --all
    sync
 
-   read a b device _ <<< "$kpartx_output"
+   read a b device _ <<< "$kpartx_last_line"
    dev_mapper_device="/dev/mapper/$device"
 
    if [ "$kpartx_only" = "true" ]; then
