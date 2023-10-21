@@ -9,7 +9,7 @@ main() {
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
   build_workstation_vm >> /home/ansible/workstation_build.log 2>&1
   ## TODO: gather logs or simplify
-  prepare_release >> /home/ansible/prepare_release.log 2>&1
+  #prepare_release >> /home/ansible/prepare_release.log 2>&1
 }
 
 build_gateway_vm() {
