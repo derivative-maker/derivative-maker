@@ -34,6 +34,11 @@ prepare_release() {
   return 0
 
   dm-prepare-release \
+    --flavor whonix-gateway-xfce \
+    --target virtualbox \
+    --target windows
+
+  dm-prepare-release \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
     --target windows
