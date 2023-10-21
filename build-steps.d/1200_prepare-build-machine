@@ -253,6 +253,13 @@ grml-debootstrap_installation() {
    true
 }
 
+packages_installation_from_newer_check() {
+   local package_item
+   for package_item in $dist_build_script_build_dependency_windows_installer_debian_testing ; do
+      dpkg --list | grep -- "$package_item"
+   done
+}
+
 packages_installation_from_newer_repository() {
    if [ ! "$dist_build_windows_installer" = "true" ]; then
       true "INFO: No packages from testing are currently required if not building Windows Installer."
@@ -278,6 +285,7 @@ packages_installation_from_newer_repository() {
 
    if dpkg --status $with_real_package_rtl >/dev/null ; then
       true "INFO: All packages required for building Windows Installer are already installed."
+      packages_installation_from_newer_check
       return 0
    fi
 
@@ -298,9 +306,9 @@ packages_installation_from_newer_repository() {
          --yes \
          install \
          $dist_build_script_build_dependency_windows_installer_debian_testing
+
+   packages_installation_from_newer_check
 }
-
-
 
 main() {
    repo_proxy_setup "$@"
