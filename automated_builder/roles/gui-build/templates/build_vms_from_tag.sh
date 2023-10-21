@@ -27,7 +27,7 @@ build_workstation_vm() {
 }
 
 prepare_release() {
-  ./help-steps/signing-key-create
+  /home/ansible/derivative-maker/help-steps/signing-key-create
 
   ## Does nothing but good to test anyhow.
   dm-prepare-release \
