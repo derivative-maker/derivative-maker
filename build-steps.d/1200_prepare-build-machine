@@ -254,8 +254,30 @@ grml-debootstrap_installation() {
 }
 
 packages_installation_from_newer_repository() {
-   ## No packages are currently required if not building Windows Installer.
    if [ ! "$dist_build_windows_installer" = "true" ]; then
+      true "INFO: No packages from testing are currently required if not building Windows Installer."
+      return 0
+   fi
+
+   ## fp-units-win-rtl is a virtual package.
+   local real_fp_units_win_rtl_package
+   real_fp_units_win_rtl_package=$(grep-status -FProvides,Package -sPackage,Provides,Status fp-units-win-rtl | grep Package: | cut --delimiter=" " -f2) || true
+   ## example real_fp_units_win_rtl_package:
+   ## fp-units-win-rtl-3.2.2
+
+   if [ "$real_fp_units_win_rtl_package" = "" ]; then
+      ## Fallback. This will result in the 'dpkg --status' command to fail,
+      ## which will then result in package installation.
+      real_fp_units_win_rtl_package="fp-units-win-rtl"
+   fi
+
+   local without_virtual_rtl
+   without_virtual_rtl=$(echo "$dist_build_script_build_dependency_windows_installer_debian_testing" | $str_replace_tool "fp-units-win-rtl" "")
+
+   with_real_package_rtl="$without_virtual_rtl $real_fp_units_win_rtl_package"
+
+   if dpkg --status $with_real_package_rtl >/dev/null ; then
+      true "INFO: All packages required for building Windows Installer are already installed."
       return 0
    fi
 
