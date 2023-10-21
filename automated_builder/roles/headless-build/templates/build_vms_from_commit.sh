@@ -15,6 +15,7 @@ build_gateway_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
+    --target windows \
     --remote-derivative-packages true \
     --allow-untagged true
 }
@@ -23,6 +24,7 @@ build_workstation_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
+    --target windows \
     --remote-derivative-packages true \
     --allow-untagged true
 }
@@ -33,7 +35,8 @@ prepare_release() {
 
   dm-prepare-release \
     --flavor whonix-workstation-xfce \
-    --target virtualbox
+    --target virtualbox \
+    --target windows
 }
 
 main
