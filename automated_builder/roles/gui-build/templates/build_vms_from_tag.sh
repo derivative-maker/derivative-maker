@@ -27,10 +27,6 @@ build_workstation_vm() {
 }
 
 prepare_release() {
-  echo "TODO: Needs test keys for gpg and signify."
-  return 0
-
-  ## Local test keys can be created using:
   ./help-steps/signing-key-create
 
   ## Does nothing but good to test anyhow.
