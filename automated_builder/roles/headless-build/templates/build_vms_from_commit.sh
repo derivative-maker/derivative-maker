@@ -8,6 +8,7 @@ export dist_build_non_interactive=true
 main() {
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
   build_workstation_vm >> /home/ansible/workstation_build.log 2>&1
+  ## TODO: gather logs or simplify
   prepare_release >> /home/ansible/prepare_release.log 2>&1
 }
 
@@ -32,6 +33,9 @@ build_workstation_vm() {
 prepare_release() {
   echo "TODO: Needs test keys for gpg and signify."
   return 0
+
+  ## Local test keys can be created using:
+  ./help-steps/signing-key-create
 
   ## Does nothing but good to test anyhow.
   dm-prepare-release \
