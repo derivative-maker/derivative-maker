@@ -1,0 +1,97 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+dist_build_internal_run="true"
+
+source pre
+source colors
+source variables
+
+main() {
+   gpg_key_create "$@"
+   signify_key_create "$@"
+   true "INFO: END of $FUNCNAME"
+}
+
+gpg_key_create() {
+   true "gpg_bin: $gpg_bin"
+   ## Debugging.
+   pwd
+
+   ## Set up a separate GPG keystore.
+   export GNUPGHOME="$dist_local_signing_key_folder"
+   mkdir --parents "$dist_local_signing_key_folder"
+   ## chmod 700, so gpg will not complain about folder permissions
+   chmod --recursive og-rwx "$dist_local_signing_key_folder"
+   ## Initialize.
+   gpg --fingerprint
+
+   ## http://www.gnupg.org/documentation/manuals/gnupg-devel/Unattended-GPG-key-generation.html
+   ## https://github.com/ioerror/torbirdy/blob/master/gpg.conf
+
+   echo "
+      Key-Type: RSA
+      Key-Length: 4096
+      Subkey-Type: RSA
+      Subkey-Length: 4096
+      Name-Real: derivative-maker generated signing key
+      Name-Email: derivative-maker@invalid.tld
+      Expire-Date: 0
+      Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
+   " | gpg \
+      --no-options \
+      --no-emit-version \
+      --no-comments \
+      --display-charset utf-8 \
+      --personal-digest-preferences SHA512 \
+      --cert-digest-algo SHA512 \
+      --default-preference-list "SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed" \
+      --keyserver-options no-honor-keyserver-url \
+      --fixed-list-mode \
+      --keyid-format 0xlong \
+      --list-options show-uid-validity \
+      --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
+      --no-default-keyring \
+      --homedir "$dist_local_signing_key_folder" \
+      --batch \
+      --gen-key
+
+   ## Debugging.
+   ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
+   ## a build log, this will help with debugging.
+   gpg \
+      --no-options \
+      --no-default-keyring \
+      --homedir "$dist_local_signing_key_folder" \
+      --keyid-format 0xlong \
+      --fingerprint \
+      --list-secret-keys
+
+   true "INFO: END of $FUNCNAME"
+}
+
+signify_key_create() {
+   mkdir --parents "$signify_folder"
+   chmod --recursive og-rwx "$signify_folder"
+
+   pushd "$signify_folder" >/dev/null
+   signify-openbsd -n -G -p "$signify_public_key" -s "$signify_private_key" -c "derivative-maker generated signing key"
+   popd >/dev/null
+
+   true "INFO: END of $FUNCNAME"
+}
+
+main "$@"
