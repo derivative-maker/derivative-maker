@@ -33,6 +33,7 @@ prepare_release() {
   echo "TODO: Needs test keys for gpg and signify."
   return 0
 
+  ## Does nothing but good to test anyhow.
   dm-prepare-release \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
