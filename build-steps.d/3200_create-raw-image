@@ -110,33 +110,39 @@ create-debian-raw-image() {
       [ -n "$GRUB_INSTALL" ] || export GRUB_INSTALL='no'
    fi
 
-   ## Currently not required.
+   ## Currently not required. Why not use qemu-debootstrap by default?
+   ## qemu-debootstrap:
+   ## - Cannot be combined with mmdebstrap.
+   ## - Cannot bootstrap from multiple (regular and security) repositories
+   ##   at the same time aka "multistrap".
+   ## - Does not support APT sources in a sources.list file such as for example
+   ##   build_sources/debian_stable_current_clearnet.list
+   ##   (variable: dist_build_sources_list_primary)
+   ##   but requires an APT URI such as for example.
+   ##   http://HTTPS///deb.debian.org/debian
+   ##   (variable: dist_build_apt_sources_mirror)
    #[ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP='qemu-debootstrap'
 
    [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP="$mmdebstrap_wrapper"
 
    if [ "$DEBOOTSTRAP" = "$mmdebstrap_wrapper" ]; then
       ## Using a sources.list probably only with mmdebstrap.
+      ## mmdebstrap supports multistrap, i.e. downloading from multiple
+      ## APT sources at the same time such as the stable and the security
+      ## APT repository.
       [ -n "$MIRROR" ] || export MIRROR="$dist_build_sources_list_primary"
    else
-      ## qemu-debootstrap:
-      ## - cannot be combined with mmdebstrap.
-      ## - cannot bootstrap from multiple (regular and security) repositories
-      ##   at the same time.
-      ## - does not support apt sources in a sources.list file such as for example
-      ##   build_sources/debian_stable_current_clearnet.list
-      ##   (variable: dist_build_sources_list_primary)
-      ##   but requires a apt URI such as for example.
-      ##   http://HTTPS///deb.debian.org/debian
-      ##   (variable: dist_build_apt_sources_mirror)
+      ## Others such as debootstrap, qemu-debootstrap at time of writing
+      ## only supported a single APT source.
       [ -n "$MIRROR" ] || export MIRROR="$dist_build_apt_sources_mirror"
    fi
 
    ## grml-debootstrap's default is initramfs.
    ## https://github.com/grml/grml-debootstrap/pull/196
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
-      ## This has currently no effect. Since kernel installation is not done during
-      ## this step, grml-debootstrap chroot-script will skip initramfs creation.
+      ## This has currently no effect. Since kernel installation and initrd
+      ## creating is not done during this step, grml-debootstrap chroot-script
+      ## will skip initramfs creation.
       [ -n "$INITRD_GENERATOR" ] || export INITRD_GENERATOR="dracut"
    fi
 
