@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 export dist_build_non_interactive=true
 
 ## Debugging.
