@@ -14,6 +14,8 @@ main() {
 }
 
 build_gateway_vm() {
+  /home/ansible/derivative-maker/help-steps/signing-key-create
+
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
@@ -32,8 +34,6 @@ build_workstation_vm() {
 }
 
 prepare_release() {
-  /home/ansible/derivative-maker/help-steps/signing-key-create
-
   ## Does nothing but good to test anyhow.
   dm-prepare-release \
     --flavor whonix-gateway-xfce \
