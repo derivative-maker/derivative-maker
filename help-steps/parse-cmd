@@ -28,11 +28,11 @@ ${reset}"
 }
 
 dist_build_one_script_help() {
-   true "
-help-steps/dist_build_one script
+   echo "
+derivative-maker
 
 Syntax:
-help-steps/dist_build_one --flavor flavor --target target
+--flavor flavor --target target
 
 creates separate build folder
 $HOMEVAR/derivative-binary
@@ -207,6 +207,8 @@ true: pure build only containing Freedom Software.
 Default: No default. Required for host builds.
 Not required for VM builds since always pure build only containing Freedom Software.
 "
+
+exit 0
 }
 
 dist_build_one_parse_cmd() {
@@ -232,7 +234,6 @@ dist_build_one_parse_cmd() {
        case $1 in
            -h | --help | -\?)
                dist_build_one_script_help
-               exit 0
                ;;
            --flavor)
                true "${cyan}INFO: --flavor $2 chosen.${reset}"
@@ -758,3 +759,12 @@ Defaulting dist_build_sources_clearnet_or_onion to ${under}clearnet${eunder}.
       fi
    fi
 }
+
+: "${BASH_SOURCE:=""}"
+if [ "${BASH_SOURCE}" != "${0}" ]; then
+   echo "INFO $0: script was sourced."
+   exit 1
+else
+   echo "INFO $0: script was executed."
+   dist_build_one_parse_cmd "$@"
+fi
