@@ -2,7 +2,7 @@
 
 set -e
 
-export dist_build_non_interactive=true
+export CI=true
 
 ## Debugging.
 #export dist_build_no_unset_xtrace=true
