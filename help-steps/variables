@@ -847,6 +847,15 @@ export make_use_debsign
 
 ## {{{ fallback variables for debchange (dch), dpkg-buildpackage and debuild
 
+if [ "$dist_build_sign_local_repository" = "true" ]; then
+   if [ "$dist_local_signing_key_folder" = "" ]; then
+      error_ "dist_build_sign_local_repository is true, but dist_local_signing_key_folder is empty!"
+   else
+      [ -n "$dist_build_reprepro_signing_options" ] || dist_build_reprepro_signing_options="--gnupghome $dist_local_signing_key_folder"
+      export GNUPGHOME="$dist_local_signing_key_folder"
+   fi
+fi
+
 ## see: man debchange
 [ -n "$DEBFULLNAME" ] || DEBFULLNAME="derivative distribution auto generated local APT signing key"
 export DEBFULLNAME
@@ -854,8 +863,16 @@ export DEBFULLNAME
 [ -n "$DEBEMAIL" ] || DEBEMAIL="derivative-distribution@local-signing.key"
 export DEBEMAIL
 
-## TODO
-#export DEBSIGN_KEYID="916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
+if [ "$DEBSIGN_KEYID" = "" ]; then
+   ## Unfortunately there is no simple way to get the fingerprint for a key id (e-mail address)
+   ## using gpg command line.
+   ## https://unix.stackexchange.com/questions/743982/how-to-use-grep-to-get-the-gpg-key-fingerprint-values
+   ## Overwriting with '|| true' because a signing key might not have been created by the time
+   ## this script is sourced. Sanity testing is done outside help-steps/variables.
+   signing_gpg_key_fingerprint=$(gpg --list-secret-keys --with-colons "$DEBEMAIL" | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -1) || true
+   export DEBSIGN_KEYID="$signing_gpg_key_fingerprint"
+fi
+
 ## Not a duplicate. Useful for lkrg "dpkg-buildpackage -us -uc -ui -sa" since
 ## it its debian/changelog file is created by a different author.
 export DEB_SIGN_KEYID="$DEBSIGN_KEYID"
@@ -863,14 +880,6 @@ export DEB_SIGN_KEYID="$DEBSIGN_KEYID"
 export make_debsign_opts="-k$DEBSIGN_KEYID"
 
 [ -n "$dist_build_sign_local_repository" ] || dist_build_sign_local_repository=false
-
-if [ "$dist_build_sign_local_repository" = "true" ]; then
-   if [ "$dist_local_signing_key_folder" = "" ]; then
-      error_ "dist_build_sign_local_repository is true, but dist_local_signing_key_folder is empty!"
-   else
-      [ -n "$dist_build_reprepro_signing_options" ] || dist_build_reprepro_signing_options="--gnupghome $dist_local_signing_key_folder"
-   fi
-fi
 
 if [ "$dist_build_sign_local_repository" = "true" ]; then
    ## For whatever it may be worth.
