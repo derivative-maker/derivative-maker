@@ -847,14 +847,12 @@ export make_use_debsign
 
 ## {{{ fallback variables for debchange (dch), dpkg-buildpackage and debuild
 
-if [ "$dist_build_sign_local_repository" = "true" ]; then
-   if [ "$dist_local_signing_key_folder" = "" ]; then
-      error_ "dist_build_sign_local_repository is true, but dist_local_signing_key_folder is empty!"
-   else
-      [ -n "$dist_build_reprepro_signing_options" ] || dist_build_reprepro_signing_options="--gnupghome $dist_local_signing_key_folder"
-      export GNUPGHOME="$dist_local_signing_key_folder"
-   fi
-fi
+## 'dpkg-source --require-valid-signature' does not support the GNUPGHOME
+## environment variable. Hence, hardcoding to the default folder. Otherwise
+## genmkfile would break at 'dpkg-source --require-valid-signature'.
+[ -n "$dist_local_signing_key_folder" ] || dist_local_signing_key_folder=~/.gnupg
+[ -n "$dist_build_reprepro_signing_options" ] || dist_build_reprepro_signing_options="--gnupghome $dist_local_signing_key_folder"
+[ -n "$GNUPGHOME" ] ||  GNUPGHOME="$dist_local_signing_key_folder"
 
 ## see: man debchange
 [ -n "$DEBFULLNAME" ] || DEBFULLNAME="derivative distribution auto generated local APT signing key"
