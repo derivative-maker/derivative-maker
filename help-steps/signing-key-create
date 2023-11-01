@@ -23,6 +23,9 @@ source variables
 main() {
    sanity_tests "$@"
    gpg_key_create "$@"
+   gpg_key_debugging "$@"
+   gpgv_key_import "$@"
+   gpgv_key_debugging "$@"
    signify_key_create "$@"
    true "INFO: END of $FUNCNAME"
 }
@@ -74,7 +77,10 @@ gpg_key_create() {
       --passphrase '' \
       --quick-generate-key "$DEBEMAIL" default default 0
 
-   ## Debugging.
+   true "INFO: END of $FUNCNAME"
+}
+
+gpg_key_debugging() {
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    $gpg_bin \
@@ -82,8 +88,41 @@ gpg_key_create() {
       --fingerprint \
       --list-secret-keys \
       "$DEBEMAIL"
+}
 
-   true "INFO: END of $FUNCNAME"
+gpgv_key_import() {
+   ## `dpkg-source` uses `gpgv` which uses file '~/.gnupg/trustedkeys.kbx'
+   $gpg_bin \
+      --keyid-format 0xlong \
+      --armor \
+      --export \
+      "$DEBEMAIL" | \
+         $gpg_bin \
+            --no-default-keyring \
+            --keyring ~/.gnupg/trustedkeys.kbx \
+            --trust-model always \
+            --import
+
+   ## sets: signing_gpg_key_fingerprint
+   signing_gpg_key_fingerprint_function
+
+   echo -e "5\ny\n" | \
+      gpg \
+         --no-default-keyring \
+         --keyring ~/.gnupg/trustedkeys.kbx \
+         --command-fd 0 \
+         --edit-key "$signing_gpg_key_fingerprint" \
+         trust
+}
+
+gpgv_key_debugging() {
+   $gpg_bin \
+      --no-default-keyring \
+      --keyring ~/.gnupg/trustedkeys.kbx \
+      --keyid-format 0xlong \
+      --fingerprint \
+      --list-secret-keys \
+      "$DEBEMAIL"
 }
 
 signify_key_create() {

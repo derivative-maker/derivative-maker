@@ -860,13 +860,18 @@ export DEBFULLNAME
 [ -n "$DEBEMAIL" ] || DEBEMAIL="derivative-distribution@local-signing.key"
 export DEBEMAIL
 
-if [ "$DEBSIGN_KEYID" = "" ]; then
+signing_gpg_key_fingerprint_function() {
    ## Unfortunately there is no simple way to get the fingerprint for a key id (e-mail address)
    ## using gpg command line.
    ## https://unix.stackexchange.com/questions/743982/how-to-use-grep-to-get-the-gpg-key-fingerprint-values
    ## Overwriting with '|| true' because a signing key might not have been created by the time
    ## this script is sourced. Sanity testing is done outside help-steps/variables.
    signing_gpg_key_fingerprint=$(gpg --list-secret-keys --keyid-format 0xlong --with-colons "$DEBEMAIL" 2>/dev/null | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -1) || true
+}
+
+if [ "$DEBSIGN_KEYID" = "" ]; then
+   ## sets: signing_gpg_key_fingerprint
+   signing_gpg_key_fingerprint_function
    export DEBSIGN_KEYID="$signing_gpg_key_fingerprint"
 fi
 
