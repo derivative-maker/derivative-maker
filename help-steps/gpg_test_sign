@@ -30,7 +30,15 @@ main() {
    echo "test" | tee "$binary_build_folder_dist/test_sign_file" >/dev/null
    chown "$user_name:$user_name" "$binary_build_folder_dist/test_sign_file"
 
-   export GNUPGHOME="$dist_local_signing_key_folder"
+   #export GNUPGHOME="$dist_local_signing_key_folder"
+
+   $gpg_bin \
+      --with-colons \
+      --keyid-format 0xlong \
+      --fingerprint \
+      --list-secret-keys \
+      "$DEBEMAIL" \
+      | awk -F: '$1 == "pub" {print $2}'
 
    $gpg_bin --keyid-format 0xlong --detach-sign --armor --yes --output "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
    $gpg_bin --keyid-format 0xlong --verify "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"

@@ -37,7 +37,8 @@ gpg_key_create() {
    pwd
 
    ## Set up a separate GPG keystore.
-   export GNUPGHOME="$dist_local_signing_key_folder"
+   #export GNUPGHOME="$dist_local_signing_key_folder"
+
    mkdir --parents "$dist_local_signing_key_folder"
    ## chmod 700, so gpg will not complain about folder permissions
    chmod --recursive og-rwx "$dist_local_signing_key_folder"
@@ -56,7 +57,6 @@ gpg_key_create() {
    true "INFO: gpg key with DEBEMAIL $DEBEMAIL does not exist yet. Generating..."
 
    $gpg_bin \
-      --no-options \
       --no-emit-version \
       --no-comments \
       --display-charset utf-8 \
@@ -69,8 +69,6 @@ gpg_key_create() {
       --keyid-format 0xlong \
       --list-options show-uid-validity \
       --sig-notation issuer-fpr@notations.openpgp.fifthhorseman.net=%g \
-      --no-default-keyring \
-      --homedir "$dist_local_signing_key_folder" \
       --batch \
       --pinentry-mode loopback \
       --passphrase '' \
@@ -80,12 +78,10 @@ gpg_key_create() {
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    $gpg_bin \
-      --no-options \
-      --no-default-keyring \
-      --homedir "$dist_local_signing_key_folder" \
       --keyid-format 0xlong \
       --fingerprint \
-      --list-secret-keys
+      --list-secret-keys \
+      "$DEBEMAIL"
 
    true "INFO: END of $FUNCNAME"
 }
