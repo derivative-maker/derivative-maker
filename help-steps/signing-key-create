@@ -53,11 +53,11 @@ gpg_key_create() {
    ## https://github.com/ioerror/torbirdy/blob/master/gpg.conf
 
    if $gpg_bin --fingerprint --keyid-format 0xlong "$DEBEMAIL" &>/dev/null ; then
-      true "INFO: gpg key with DEBEMAIL $DEBEMAIL already exists. Skipping."
+      true "INFO: gpg key with uid DEBEMAIL $DEBEMAIL already exists. Skipping."
       return 0
    fi
 
-   true "INFO: gpg key with DEBEMAIL $DEBEMAIL does not exist yet. Generating..."
+   true "INFO: gpg key with uid DEBEMAIL $DEBEMAIL does not exist yet. Generating..."
 
    ## https://unix.stackexchange.com/questions/318385/no-such-file-or-directory-when-generating-a-gpg-key
    ## gpg: agent_genkey failed: No such file or directory
@@ -86,6 +86,7 @@ gpg_key_create() {
 }
 
 gpg_key_debugging() {
+   true "INFO: show gpg secret key fingerprint for uid DEBEMAIL"
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    $gpg_bin \
@@ -96,7 +97,9 @@ gpg_key_debugging() {
 }
 
 gpgv_key_import() {
+   true "INFO: Create ~/.gnupg/trustedkeys.kbx for dpkg-source."
    ## `dpkg-source` uses `gpgv` which uses file '~/.gnupg/trustedkeys.kbx'
+   ## '--trust-model always' is required otherwise gpg exists non-zero.
    $gpg_bin \
       --keyid-format 0xlong \
       --armor \
@@ -111,6 +114,7 @@ gpgv_key_import() {
    ## sets: signing_gpg_key_fingerprint
    signing_gpg_key_fingerprint_function
 
+   true "INFO: Set signing key uid DEBEMAIL to ultimately trusted in keyring ~/.gnupg/trustedkeys.kbx. Otherwise dpkg-source would refuse it."
    echo -e "5\ny\n" | \
       $gpg_bin \
          --no-default-keyring \
@@ -121,6 +125,7 @@ gpgv_key_import() {
 }
 
 gpgv_key_debugging() {
+   true "INFO: show signing key uid DEBEMAIL using for keyring ~/.gnupg/trustedkeys.kbx (for gpgv / dpkg-source))"
    $gpg_bin \
       --no-default-keyring \
       --keyring ~/.gnupg/trustedkeys.kbx \
