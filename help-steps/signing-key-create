@@ -97,10 +97,10 @@ gpg_key_debugging() {
 }
 
 gpgv_key_import() {
-   touch ~/.gnupg/trustedkeys.kbx
+   touch ~/.gnupg/trustedkeys.gpg
 
-   true "INFO: Create ~/.gnupg/trustedkeys.kbx for dpkg-source."
-   ## `dpkg-source` uses `gpgv` which uses file '~/.gnupg/trustedkeys.kbx'
+   true "INFO: Create ~/.gnupg/trustedkeys.gpg for dpkg-source."
+   ## `dpkg-source` uses `gpgv` which uses file '~/.gnupg/trustedkeys.gpg'
    ## '--trust-model always' is required otherwise gpg exists non-zero.
    $gpg_bin \
       --keyid-format 0xlong \
@@ -109,28 +109,28 @@ gpgv_key_import() {
       "$DEBEMAIL" | \
          $gpg_bin \
             --no-default-keyring \
-            --keyring ~/.gnupg/trustedkeys.kbx \
+            --keyring ~/.gnupg/trustedkeys.gpg \
             --trust-model always \
             --import
 
    ## sets: signing_gpg_key_fingerprint
    signing_gpg_key_fingerprint_function
 
-   true "INFO: Set signing key uid DEBEMAIL to ultimately trusted in keyring ~/.gnupg/trustedkeys.kbx. Otherwise dpkg-source would refuse it."
+   true "INFO: Set signing key uid DEBEMAIL to ultimately trusted in keyring ~/.gnupg/trustedkeys.gpg. Otherwise dpkg-source would refuse it."
    echo -e "5\ny\n" | \
       $gpg_bin \
          --no-default-keyring \
-         --keyring ~/.gnupg/trustedkeys.kbx \
+         --keyring ~/.gnupg/trustedkeys.gpg \
          --command-fd 0 \
          --edit-key "$signing_gpg_key_fingerprint" \
          trust
 }
 
 gpgv_key_debugging() {
-   true "INFO: show signing key uid DEBEMAIL using for keyring ~/.gnupg/trustedkeys.kbx (for gpgv / dpkg-source))"
+   true "INFO: show signing key uid DEBEMAIL using for keyring ~/.gnupg/trustedkeys.gpg (for gpgv / dpkg-source))"
    $gpg_bin \
       --no-default-keyring \
-      --keyring ~/.gnupg/trustedkeys.kbx \
+      --keyring ~/.gnupg/trustedkeys.gpg \
       --keyid-format 0xlong \
       --fingerprint \
       --list-secret-keys \
