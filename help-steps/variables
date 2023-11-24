@@ -529,13 +529,32 @@ fi
 ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
 export COWBUILDER_PREFIX
 
+chroot_env_vars_var_remove_item="
+   TEMP
+   TEMPDIR
+   TMP
+   TMPDIR
+"
+
+for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_item ; do
+   if [ "$chroot_env_vars_var_remove_item" = "" ]; then
+      true "INFO: variable $chroot_env_vars_var_remove_item is empty."
+      continue
+   fi
+   if [ "$chroot_remove_env_list" = "" ]; then
+      chroot_remove_env_list="--remove $chroot_env_vars_var_remove_item"
+   else
+      chroot_remove_env_list+=" --remove $chroot_env_vars_var_remove_item"
+   fi
+done
+
 if [ "$dist_build_install_to_root" = "true" ]; then
    if [ "$CHROOT" = "" ]; then
       CHROOT=""
    fi
 else
-   [ -n "$CHROOT" ] || CHROOT="chroot $CHROOT_FOLDER"
-   #[ -n "$CHROOT" ] || CHROOT="systemd-nspawn --directory=$CHROOT_FOLDER"
+   [ -n "$CHROOT" ] || CHROOT="env $chroot_remove_env_list chroot $CHROOT_FOLDER"
+   #[ -n "$CHROOT" ] || CHROOT="env $chroot_remove_env_list systemd-nspawn --directory=$CHROOT_FOLDER"
 fi
 
 if [ "$no_git" = "1" ]; then
@@ -1128,27 +1147,8 @@ for env_vars_var_keep_item in $env_vars_keep_list ; do
    fi
 done
 
-env_vars_remove_list="
-   TEMP
-   TEMPDIR
-   TMP
-   TMPDIR
-"
-
-for env_vars_var_remove_item in $env_vars_remove_list ; do
-   if [ "$env_vars_var_remove_item" = "" ]; then
-      true "INFO: variable $env_vars_var_remove_item is empty."
-      continue
-   fi
-   if [ "$sudo_remove_env_list" = "" ]; then
-      sudo_remove_env_list="--remove $env_vars_var_remove_item"
-   else
-      sudo_remove_env_list+=" --remove $env_vars_var_remove_item"
-   fi
-done
-
 SUDO_TO_ROOT+=" "
-SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list $sudo_remove_env_list"
+SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
 
 ## XXX: Not possible because some scripts use extra sudo arguments such as "--preserve-env".
 #SUDO_TO_ROOT+=" "
