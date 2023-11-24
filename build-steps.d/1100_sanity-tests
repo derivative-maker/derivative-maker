@@ -75,6 +75,24 @@ expected operating system codename: '$dist_build_apt_stable_release'"
    true
 }
 
+check-sudo() {
+   local sudo_test_output
+   sudo_test_output="$($SUDO_TO_ROOT test -d /usr 2>&1)"
+   if [ "$sudo_test_output" = "" ]; then
+      true "INFO: sudo_test_output is empty as expected, ok."
+      return 0
+   fi
+   error "\
+sudo_test_output not empty! In other words, the output of command
+
+sudo dpkg test -d /usr
+
+is expected to be empty but was non-empty.
+
+The user must fix this issue before proceeding. These issue is most likely not caused by derivative-issue. This is most likely a general system configuration issue."
+   true
+}
+
 check-dpkg() {
    ## dpkg --audit does not exit with a non-zero exit code if something is wrong.
    ## dpkg --audit does not return anything, if everything is fine.
@@ -340,6 +358,7 @@ signing_key() {
 main() {
    check-unicode "$@"
    check-operating-system-version "$@"
+   check-sudo "$@"
    check-dpkg "$@"
    check-hostname "$@"
    check-source-folder-permissions "$@"
