@@ -301,6 +301,28 @@ $help_text"
    true
 }
 
+check-virtualbox-installed() {
+   if [ "$dist_build_internal_run" = "true" ]; then
+      true "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+      return 0
+   fi
+   if [ ! "$dist_build_virtualbox" = "true" ]; then
+      true "INFO: dist_build_virtualbox not yet to true, skipping $FUNCNAME, ok."
+      return 0
+   fi
+
+   if command -v VBoxManage >/dev/null ; then
+      true "INFO: VBoxManage available, ok."
+      return 0
+   fi
+
+   error "VirtualBox not installed yet. VBoxManage command unavailable.
+
+$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/dist-installer-cli --virtualbox-only"
+
+   true
+}
+
 check-virtualbox-vm-exists() {
    if [ "$dist_build_internal_run" = "true" ]; then
       return 0
@@ -367,8 +389,9 @@ main() {
    check-stray-mounts "$@"
    mount-test "$@"
    check-copy-vms-into-raw "$@"
-   check-virtualbox-vm-exists "$@"
    check_required_packages_installed "$@"
+   check-virtualbox-installed "$@"
+   check-virtualbox-vm-exists "$@"
    signing_key "$@"
 
    source "$dist_source_help_steps_folder/git_sanity_test"
