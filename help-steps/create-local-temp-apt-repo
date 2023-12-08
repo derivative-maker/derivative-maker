@@ -26,8 +26,8 @@ main() {
    ## "/tmp/empty"
 
    ## dist_apt_repository_folder Examples:
-   ## /home/user/derivative-binary/aptrepo_local/Kicksecure
-   ## /home/user/derivative-binary/aptrepo_local/Whonix
+   ## /home/user/derivative-binary/aptrepo_local/kicksecure
+   ## /home/user/derivative-binary/aptrepo_local/whonix
 
    $SUDO_TO_ROOT rm -f "$dist_sources_list_temp_initial_deb_sources_list"
 
@@ -65,6 +65,9 @@ main() {
       else
          ## Sanity test.
          test -d "$dist_apt_repository_folder"
+         ## If $dist_apt_repository_folder is owned by user and host umask is 027 (others ("o") cannot read),
+         ## then the unprivileged APT downloaded cannot access this folder.
+         chmod --recursive o+r "$dist_apt_repository_folder"
 
          ## Mount our local apt repository inside the image (or machine).
          $SUDO_TO_ROOT mount --bind "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
