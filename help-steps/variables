@@ -427,8 +427,16 @@ fi
 #    [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_DRACUT"
 # fi
 
-## TODO: test
 [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_DRACUT"
+
+if echo "$BUILD_INITRAMFS_PKGS" | grep --quiet "dracut" ; then
+   ## INITRD_GENERATOR_OPTS gets read by grml-debootstrap and passed to dracut and is also
+   ## read by build-steps.d/*_install-packages
+   ##
+   ## TODO: use --add instead -a
+   [ -n "$INITRD_GENERATOR_OPTS" ] || INITRD_GENERATOR_OPTS='-a dmsquash-live'
+   export INITRD_GENERATOR_OPTS
+fi
 
 true "${cyan}INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
 
