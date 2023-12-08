@@ -521,13 +521,13 @@ root_check() {
        $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
        exit 1
    fi
-   $output_cmd "INFO: Script running as as non-root, ok."
+   true "INFO: Script running as as non-root, ok."
    ## Not using 'sudo --non-interactive --validate' because that caused an
    ## error on an ansible server "sudo: a password is required". Potential bug in sudo?
    ## https://forums.whonix.org/t/derivative-maker-automated-ci-builder/14468/14
-   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr' to test if sudo password entry prompt is needed..."
+   true "INFO: Running 'sudo --non-interactive -- test -d /usr' to test if sudo password entry prompt is needed..."
    if sudo --non-interactive -- test -d /usr ; then
-      $output_cmd "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
+      true "INFO: sudo password already previously cached (entered) or this system has passwordless sudo, ok."
    else
       $output_cmd "INFO: Going to run 'sudo --validate' to prompt for password..."
       $output_cmd "${bold}INFO: Please enter sudo password.${reset}"
@@ -543,7 +543,7 @@ root_check() {
          error "sudo password prompt entry failure"
       fi
    fi
-   $output_cmd "INFO: Running 'sudo --non-interactive -- test -d /usr 2>&1' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
+   true "INFO: Running 'sudo --non-interactive -- test -d /usr 2>&1' to test if output (stdout, stderr) is empty as expected (no warnings or error messages shown)..."
    ## SUDO_TO_ROOT unavailable here because set in file: help-steps/variables
    sudo_test_output="$(sudo --non-interactive -- test -d /usr 2>&1)" || true
    if [ ! "$sudo_test_output" = "" ]; then
@@ -554,7 +554,7 @@ root_check() {
       error "sudo command output is non-empty!"
       return 0
    fi
-   $output_cmd "INFO: root_check ok."
+   true "INFO: root_check ok."
 }
 
 root_check
