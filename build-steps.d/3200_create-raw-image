@@ -106,9 +106,18 @@ create-debian-raw-image() {
 
    mmdebstrap_wrapper="$source_code_folder_dist/help-steps/pbuilder-debootstrap-command-filter"
 
+   local use_vmefi_maybe
    if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
       [ -n "$GRUB_INSTALL" ] || export GRUB_INSTALL='no'
+      ## Do not pass --vmefi to grml-debootstarp due to the following grml-debootstrap bug.
+      ## VM build failing if combining `--vmefi` with `--arch arm64`
+      ## https://github.com/grml/grml-debootstrap/issues/257
+      ##
+      ## '--arch arm64' do not need '--vmefi' anyhow because grml-debootstrap setups up EFI
+      ## for these VM builds anyhow.
+      [ -n "$use_vmefi_maybe" ] || use_vmefi_maybe=""
    fi
+   [ -n "$use_vmefi_maybe" ] || use_vmefi_maybe="--vmefi"
 
    ## Currently not required. Why not use qemu-debootstrap by default?
    ## qemu-debootstrap:
@@ -175,7 +184,7 @@ create-debian-raw-image() {
                   --debopt "$dist_build_debopt" \
                   --arch "$dist_build_target_arch" \
                   --filesystem "$dist_build_file_system" \
-                  --vmefi \
+                  $use_vmefi_maybe \
                   --force \
                   --hostname "$dist_build_hostname" \
                   --nopassword \
