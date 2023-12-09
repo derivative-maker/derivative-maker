@@ -8,14 +8,22 @@ export CI=true
 #export dist_build_no_unset_xtrace=true
 
 main() {
+  build_kicksecure_vm_arm64 >> /home/ansible/kicksecure_arm64_build.log 2>&1
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
   build_workstation_vm >> /home/ansible/workstation_build.log 2>&1
   prepare_release >> /home/ansible/prepare_release.log 2>&1
 }
 
-build_gateway_vm() {
+build_kicksecure_vm_arm64() {
   /home/ansible/derivative-maker/help-steps/signing-key-create
 
+  /home/ansible/derivative-maker/derivative-maker \
+    --flavor kicksecure-xfce \
+    --target utm \
+    --arch arm64
+}
+
+build_gateway_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
@@ -34,6 +42,11 @@ build_workstation_vm() {
 }
 
 prepare_release() {
+  dm-prepare-release \
+    --flavor kicksecure-xfce \
+    --target utm \
+    --arch arm64
+
   ## Does nothing but good to test anyhow.
   dm-prepare-release \
     --flavor whonix-gateway-xfce \
