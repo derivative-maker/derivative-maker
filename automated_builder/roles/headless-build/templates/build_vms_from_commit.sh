@@ -8,10 +8,16 @@ export CI=true
 #export dist_build_no_unset_xtrace=true
 
 main() {
+  signing_key_test >> /home/ansible/signing_key_test.log 2>&1
   build_kicksecure_vm_arm64 >> /home/ansible/kicksecure_arm64_build.log 2>&1
   build_gateway_vm >> /home/ansible/gateway_build.log 2>&1
   build_workstation_vm >> /home/ansible/workstation_build.log 2>&1
   prepare_release >> /home/ansible/prepare_release.log 2>&1
+}
+
+signing_key_test() {
+  /home/ansible/derivative-maker/help-steps/signing-key-create
+  /home/ansible/derivative-maker/help-steps/signing-key-test
 }
 
 build_kicksecure_vm_arm64() {
