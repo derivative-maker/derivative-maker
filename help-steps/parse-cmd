@@ -32,183 +32,102 @@ dist_build_one_script_help() {
 derivative-maker
 
 Syntax:
---flavor flavor --target target
+  --flavor [flavor] --target [target]
 
-creates separate build folder
-$HOMEVAR/derivative-binary
+Description:
+  Creates a separate build folder at \$HOMEVAR/derivative-binary.
 
-For verbose documentation on build configuration parameters please have a
-look at the full build documentation.
+  For detailed information on build configuration parameters, please refer to the full build documentation.
 
---flavor whonix-gateway-xfce|whonix-gateway-rpi|whonix-gateway-cli|whonix-workstation-xfce|whonix-workstation-cli|whonix-custom-workstation|whonix-host-cli|whonix-host-xfce|kicksecure-cli|kicksecure-xfce|kicksecure-host-xfce|kicksecure-host-cli
-whonix-gateway-xfce: Builds Whonix-Gateway Xfce.
-whonix-gateway-rpi: Builds Whonix-Gateway CLI for the RPi 3.
-whonix-gateway-cli: Builds a Whonix-Gateway CLI.
-whonix-workstation-xfce: Builds Whonix-Workstation Xfce.
-whonix-workstation-cli: Builds Whonix-Workstation CLI.
-whonix-custom-workstation: Builds Whonix-Custom-Workstation.
-whonix-host-cli: Builds Whonix-Host CLI
-whonix-host-xfce: Builds Whonix-Host Xfce
-kicksecure-cli: Builds Kicksecure CLI
-kicksecure-xfce: Builds Kicksecure Xfce
-kicksecure-host-xfce: Builds Whonix-Host Xfce
-kicksecure-host-cli: Builds Whonix-Host CLI
+Flavors:
+  --flavor [flavor_option]
+  Options:
+    whonix-gateway-xfce         : Builds Whonix-Gateway Xfce VM.
+    whonix-gateway-rpi          : Builds Whonix-Gateway CLI RPi 3 VM.
+    whonix-gateway-cli          : Builds Whonix-Gateway CLI VM.
+    whonix-workstation-xfce     : Builds Whonix-Workstation Xfce VM.
+    whonix-workstation-cli      : Builds Whonix-Workstation CLI VM.
+    whonix-custom-workstation   : Builds Whonix-Custom-Workstation VM.
+    whonix-host-cli             : Builds Whonix-Host CLI.
+    whonix-host-xfce            : Builds Whonix-Host Xfce.
+    kicksecure-cli              : Builds Kicksecure VM CLI VM.
+    kicksecure-xfce             : Builds Kicksecure VM Xfce VM.
+    kicksecure-host-xfce        : Builds Kicksecure Xfce Host.
+    kicksecure-host-cli         : Builds Kicksecure CLI Host.
 
---target virtualbox|qcow2|utm|iso|raw|dist-installer-cli|windows|root
-virtualbox: Use this to build VirtualBox .ovas.
-qcow2: Use this to build qcow2 images.
-utm: Use this to build utm images.
-iso: Use this to build iso images.
-raw: Use this to build raw images.
-dist-installer-cli: Use this to sign dist-installer-cli.
-windows: Use this to build the Windows Installer.
-root: Use this for Whonix with physical or install to root installations.
+Targets:
+  --target [target_option]
+  Options:
+    virtualbox              : Builds VirtualBox .ova files.
+    qcow2                   : Builds qcow2 images.
+    utm                     : Builds UTM images.
+    iso                     : Builds ISO images.
+    raw                     : Builds raw disk images.
+    dist-installer-cli      : Builds dist-installer-cli.
+    windows                 : Builds the Windows Installer.
+    root                    : Builds for physical installations.
 
-vmram, vram, vmsize examples.
---vmram 128
---vram 12
---vmsize 200G
+Optional Parameters:
+  --vmram [size]           : Set VM RAM size (e.g., --vmram 128).
+  --vram [size]            : Set VM video RAM size (e.g., --vram 12).
+  --vmsize [size]          : Set VM disk size (e.g., --vmsize 200G).
 
---freshness frozen|current
-frozen: Use frozen sources.
-current: Use current sources.
+  --freshness [option]     : Choose between 'frozen' (frozen sources) or 'current' (current sources).
+  --connection [option]    : Select 'clearnet' for clearnet apt sources or 'onion' for onion apt sources.
+  --repo [true|false]      : Enable or disable derivative remote repository (default: false).
 
---connection clearnet|onion
-clearnet: use clearnet apt sources
-onion: use onion apt sources
+Environment Variables:
+  flavor_meta_packages_to_install : Set meta packages (e.g., 'none' or a space-delimited list).
+  flavor_meta_packages_to_install examples:
+  flavor_meta_packages_to_install='none'
+  flavor_meta_packages_to_install=' non-qubes-vm-enhancements-cli kicksecure-dependencies-cli whonix-shared-packages-dependencies-cli whonix-gateway-packages-dependencies-cli '
 
---repo true|false
-false: Default. Will ${under}not${eunder} enable remote repository.
-true: ${under}enable${eunder} remote repository.
+  install_package_list            : Additional custom packages (e.g., 'gparted' or space delimited list).
+  Example install_package_list:
+  install_package_list=' gparted gedit '
 
-flavor_meta_packages_to_install - environment variable
-Meta Package Selection
-Quoted space delimited list of packages or 'none'.
-flavor_meta_packages_to_install examples:
-flavor_meta_packages_to_install='none'
-flavor_meta_packages_to_install=' non-qubes-vm-enhancements-cli kicksecure-dependencies-cli whonix-shared-packages-dependencies-cli whonix-gateway-packages-dependencies-cli '
+  DERIVATIVE_APT_REPOSITORY_OPTS  : Configure Derivative APT Repository options.
+  DERIVATIVE_APT_REPOSITORY_OPTS examples:
+  DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository stable'
+  DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository testers'
+  DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository developers'
+  DERIVATIVE_APT_REPOSITORY_OPTS='--enable --codename bookworm'
 
-install_package_list - environment variable
-Custom Additional Packages Install List
-Quoted space delimited list of packages or 'none'.
-Defaults to: none
-install_package_list examples:
-install_package_list=' gparted '
-install_package_list=' gparted gedit '
+Advanced Options:
+  --report [true|false]           : Enable or disable build reports (default: false).
+  --verifiable [true|false]       : Toggle file deletion in cleanup script for verifiable builds (default: false).
+  --sanity-tests [true|false]     : Enable or disable chroot script sanity tests for faster build speed (default: false).
+  --retry-max [attempts]          : Set maximum retry attempts. (default: 2)
+  --retry-wait [seconds]          : Set wait time between retry attempts.
+  --retry-before [script]         : Specify a script to run before retry. [default: none)
+  --retry-after [script]          : Specify a script to run after retry. [default: none)
+  --allow-uncommitted [true|false]: Permit builds with uncommitted changes (default: false).
+  --allow-untagged [true|false]   : Permit builds from non-tagged sources (default: false).
+  --kernel [packages]             : Specify kernel packages (e.g., 'linux-image-amd64' or 'none').
+  --headers [packages]            : Specify kernel header packages.
+  --remote-derivative-packages    : Choose to use remote derivative packages instead of building derivative packages from source code. (default: false).
+  --release [unsupported_option]  : Set release option (unsupported). (bookworm|xenial|bionic)
+  --arch [architecture]           : Set architecture (e.g., i386, amd64, kfreebsd-i386, kfreebsd-amd64) (default: amd64).
+  (Note: amd64 also works with most Intel CPUs.)
 
-DERIVATIVE_APT_REPOSITORY_OPTS - environment variable
-Derivative APT Repository.
-Disabled by default.
-DERIVATIVE_APT_REPOSITORY_OPTS examples:
-DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository stable'
-DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository testers'
-DERIVATIVE_APT_REPOSITORY_OPTS='--enable --repository developers'
-DERIVATIVE_APT_REPOSITORY_OPTS='--enable --codename bookworm'
+For VMs only:
+  --initramfs [packages]          : Specify initramfs packages. (none, initramfs-tools) (default: $BUILD_INITRAMFS_DRACUT)
 
---remote-derivative-packages true|false
-false: Default. Will ${under}not${eunder} remote derivative packages.
-true: ${under}use${eunder} remote derivative packages.
+Configuration Files:
+  --confdir [/path/to/config/dir] : Specify an additional configuration directory.
+  --conffile [/path/to/config/file]: Specify an additional configuration file.
+  --grmlbin [/path/to/grml-debootstrap]: Set the grml-debootstrap path (default: grml-debootstrap).
 
---release bookworm|xenial|bionic
-Unsupported.
+Miscellaneous:
+  --unsafe-io [true|false]        : Toggle unsafe IO options (default: false).
+  --freedom [true|false]          : Choose between pure or impure builds (required for host builds).
+  --tb [none|closed|open]         : Configure Tor Browser installation options (default: closed).
+  closed: Abort build, fail closed if Tor Browser cannot be installed.
+  open: Do not abort build, fail open if Tor Browser cannot and installed.
 
---report true|false
-true
-false: Default. Skip.
-(Related to Verifiable Builds.)
-
---verifiable true|false
-true
-false: Skip deletion of non-determinstic files in the cleanup chroot script.
-       (These files are later automatically re-created by First Run Initializer.)
-
---sanity-tests true|false
-true
-false: Skip chroot script sanity tests.
-
---retry-max 1|0|2|[...]
-attempts
-
---retry-wait 5|1|2|[...]
-Seconds between attempts.
-
---retry-before script
---retry-after script
-Dispatch command or script.
-
---allow-uncommitted false|true
-false: Break when uncommitted changes are found. Default.
-true: Do not use unless you know what you are doing.
-
---allow-untagged false|true
-false: Break when build from non-tag. Default.
-true: Do not use unless you know what you are doing.
-
---arch
-Only of interest for VM builds. Not for installations to root.
-i386: less tested.
-amd64: default, best tested.
-kfreebsd-i386: entirely untested and most likely needs work.
-kfreebsd-amd64: entirely untested and most likely needs work.
-
---kernel <Quoted space delimited list of packages.>
-Only of interest for VM builds. Not for installations to root.
-Defaults to linux-image-amd64.
-none: Do not install kernel packages.
-linux-image-686
-linux-image-686-pae
-linux-image-amd64
-Possibly others. (Unmaintained!)
-
---headers <Quoted space delimited list of packages.>
-Only of interest for VM builds. Not for installations to root.
-Defaults to linux-headers-amd64.
-none: Do not install kernel header packages.
-linux-headers-686
-linux-headers-686-pae
-linux-headers-amd64
-Possibly others. (Unmaintained!)
-
---initramfs <Quoted space delimited list of packages.>
-Only of interest for VM builds. Not for installations to root.
-Defaults to: \$BUILD_INITRAMFS_DRACUT
-none: Do not install initramfs packages.
-Possibly others. (Unmaintained!)
-Example: --initramfs initramfs-tools
-
---confdir /path/to/config/dir
-Will get sourced after
-\$source_code_folder_dist/buildconfig.d /etc/buildconfig-dist.d ../buildconfig.d
-Files need to have the '.conf' file extension.
-and before --conffile.
-
---conffile /path/to/config/file
-Will get sourced after all other files.
-
---grmlbin /path/to/grml-debootstrap
-Defaults to grml-debootstrap.
-
---tb none|closed|open
-none: Do not install Tor Browser.
-closed: Fail closed if Tor Browser cannot be installed.
-open: Fail open if Tor Browser cannot and installed.
-Defaults to closed.
-Requires the tb-updater package being installed. Be careful if you modify
-the default package selection as well.
-
---unsafe-io false|true
-false: No unsafe io.
-true: Use unsafe io, '-o Dpkg::Options::=--force-unsafe-io', eatmydata and ignore 'sync'.
-Defaults to false.
-
---freedom false|true
-false: impure build containing nonfreedom software, see https://www.kicksecure.com/wiki/Dev/nonfree
-true: pure build only containing Freedom Software.
-Default: No default. Required for host builds.
-Not required for VM builds since always pure build only containing Freedom Software.
+Please use the options as per your requirements. For any assistance, refer to the full documentation.
 "
-
-exit 0
+    exit 0
 }
 
 dist_build_one_parse_cmd() {
