@@ -468,7 +468,27 @@ $dist_build_script_skip_package_install${reset}"
                $INITRD_GENERATOR_OPTS
    fi
 
-   $SUDO_TO_ROOT $CHROOT update-grub
+   ## Debugging.
+   ## grub-mkconfig does this.
+   $SUDO_TO_ROOT $CHROOT grub-probe --target=device / || true
+   ## Sometimes this outputs:
+   ## /dev/mapper/loop0p2
+   ## Which results in:
+   ## GRUB_DEVICE=/dev/mapper/loop0p2
+   ## which results in:
+   ## root=/dev/mapper/loop0p2
+   ## which then results in an unbootable system.
+   $SUDO_TO_ROOT $CHROOT grub-probe --target=device /boot || true
+
+   ## TODO: comment in
+   #$SUDO_TO_ROOT $CHROOT update-grub
+
+   ## TODO: comment out
+   ## Debugging.
+   ## update-grub is a wrapper that essentially runs:
+   ## grub-mkconfig -o /boot/grub/grub.cfg
+   ## Run grub-mkconfig with sh xtrace enabled for debug output.
+   $SUDO_TO_ROOT $CHROOT sh -xv grub-mkconfig -o /boot/grub/grub.cfg
 
    ## Debugging.
    true "/boot/grub/grub.cfg root= :"
