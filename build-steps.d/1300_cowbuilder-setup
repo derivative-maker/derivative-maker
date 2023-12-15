@@ -55,7 +55,12 @@ cowbuilder_setup_do() {
    ## Debugging.
    $SUDO_TO_ROOT cat "$dist_build_pbuilder_config_file"
 
-   for dist_build_multiarch_package_item in $make_cross_build_platform_list ; do
+   ## cowbuilder chroot also required for host_architecture so local dependencies can be built.
+   make_cross_build_platform_list_including_host_architecture="$make_cross_build_platform_list $host_architecture"
+   ## Remove duplicates in case we have just set this for example to "amd64 amd64".
+   make_cross_build_platform_list_including_host_architecture=$(echo "$make_cross_build_platform_list_including_host_architecture" | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
+
+   for dist_build_multiarch_package_item in $make_cross_build_platform_list_including_host_architecture ; do
       true "dist_build_multiarch_package_item: $dist_build_multiarch_package_item"
       export dist_build_multiarch_package_item
 
