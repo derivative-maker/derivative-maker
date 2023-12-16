@@ -1,0 +1,39 @@
+#!/bin/bash
+
+## Copyright (C) 2023 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+convert-to-iso(){
+   local iso_tmp_dir
+   iso_tmp_dir="$binary_build_folder_dist/${VMNAME}_iso-tmp"
+
+   $SUDO_TO_ROOT "$source_code_folder_dist/grml-debootstraptest/image-to-iso" "$binary_image_raw" "$iso_tmp_dir" "$binary_image_iso"
+
+   true
+}
+
+main() {
+   if [ "$dist_build_iso" = "true" ]; then
+      convert-to-iso "$@"
+   else
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is not set to 'true'.${reset}"
+      exit 0
+   fi
+}
+
+main "$@"
