@@ -369,6 +369,20 @@ $dist_build_script_skip_package_install${reset}"
    ## vm-config-dist.
    pkg-list-install
 
+   local efi_weak_recommended_packages_list
+   ## Availability (and usefulness) is architecture specific.
+   efi_weak_recommended_packages_list="sbsigntool efibootmgr mokutil keyutils shim-signed-common"
+
+   for iso_weak_recommended_packages_item in $efi_weak_recommended_packages_list ; do
+      ## Test if available. Might be unavailable (and unneeded) on some architectures.
+      if $SUDO_TO_ROOT $CHROOT apt-get-noninteractive install --dry-run "$iso_weak_recommended_packages_item" &>/dev/null ; then
+         true "INFO: Yes, adding weak recommended package to the installation list: $iso_weak_recommended_packages_item"
+         pkg-add-to-install-list "$iso_weak_recommended_packages_item"
+      else
+         true "INFO: No, not adding weak recommended package to the installation list: $iso_weak_recommended_packages_item"
+      fi
+   done
+
    if [ "$dist_build_raw" = "true" ]; then
       ## XXX: Superfluous for non-libvirt raw image builds.
       pkg-add-to-install-list spice-vdagent
