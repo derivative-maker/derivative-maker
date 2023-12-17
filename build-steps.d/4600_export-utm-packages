@@ -26,7 +26,13 @@ export_utm_packages() {
    utmfolder="${dist_binary_build_folder}/${VMNAME}.utm"
    mkdir --parents "${utmfolder}/Images"
    $SUDO_TO_ROOT chown "$user_name:$user_name" "$binary_image_raw"
-   mv "$binary_image_raw" "${utmfolder}/Images/${VMNAME}.raw"
+   ## copy instead of move the raw image
+   ## disadvantage:
+   ## - requires more disk space
+   ## advantage:
+   ## - makes this step idempotent, easier to test and debug
+   ## - can CI test dm-prepare-release
+   cp "$binary_image_raw" "${utmfolder}/Images/${VMNAME}.raw"
    cp "$source_utm_file" "${utmfolder}/config.plist"
 
    tar -zcvSf "${dist_binary_build_folder}/${VMNAME}.utm.tar.gz" "$utmfolder"
