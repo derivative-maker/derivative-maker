@@ -54,6 +54,11 @@ build_workstation_vm() {
 prepare_release() {
   dm-prepare-release \
     --flavor kicksecure-xfce \
+    --target iso \
+    --arch amd64
+
+  dm-prepare-release \
+    --flavor kicksecure-xfce \
     --target utm \
     --arch arm64
 
