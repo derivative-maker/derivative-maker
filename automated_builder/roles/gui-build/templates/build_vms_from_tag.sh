@@ -23,6 +23,7 @@ signing_key_test() {
 
 build_kicksecure_iso_amd64() {
   /home/ansible/derivative-maker/derivative-maker \
+    --repo true \
     --flavor kicksecure-xfce \
     --target iso \
     --arch amd64 \
@@ -32,6 +33,7 @@ build_kicksecure_iso_amd64() {
 
 build_kicksecure_vm_arm64() {
   /home/ansible/derivative-maker/derivative-maker \
+    --repo true \
     --flavor kicksecure-xfce \
     --target utm \
     --arch arm64
@@ -39,15 +41,19 @@ build_kicksecure_vm_arm64() {
 
 build_gateway_vm() {
   /home/ansible/derivative-maker/derivative-maker \
+    --repo true \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
+    --target qcow2 \
     --target windows
 }
 
 build_workstation_vm() {
   /home/ansible/derivative-maker/derivative-maker \
+    --repo true \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
+    --target qcow2 \
     --target windows
 }
 
@@ -66,12 +72,16 @@ prepare_release() {
   dm-prepare-release \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
-    --target windows
+    --target qcow2 \
+    --target windows \
+    --arch amd64
 
   dm-prepare-release \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
-    --target windows
+    --target qcow2 \
+    --target windows \
+    --arch amd64
 }
 
 main

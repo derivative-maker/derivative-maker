@@ -34,13 +34,16 @@ build_kicksecure_vm_arm64() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor kicksecure-xfce \
     --target utm \
-    --arch arm64
+    --arch arm64 \
+    --remote-derivative-packages true \
+    --repo true
 }
 
 build_gateway_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
+    --target qcow2 \
     --target windows \
     --remote-derivative-packages true \
     --allow-untagged true
@@ -50,6 +53,7 @@ build_workstation_vm() {
   /home/ansible/derivative-maker/derivative-maker \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
+    --target qcow2 \
     --target windows \
     --remote-derivative-packages true \
     --allow-untagged true
@@ -70,12 +74,15 @@ prepare_release() {
   dm-prepare-release \
     --flavor whonix-gateway-xfce \
     --target virtualbox \
-    --target windows
+    --target qcow2 \
+    --target windows \
+    --arch amd64
 
   dm-prepare-release \
     --flavor whonix-workstation-xfce \
     --target virtualbox \
-    --target windows
+    --target windows \
+    --arch amd64
 }
 
 main
