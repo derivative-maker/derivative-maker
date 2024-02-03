@@ -35,6 +35,21 @@ export_utm_packages() {
    cp "$binary_image_raw_file" "${utmfolder}/Data/${VMNAME}.raw"
    cp "$source_utm_file" "${utmfolder}/config.plist"
 
+   ## fill in correct architecture and target in UTM template files
+   local utm_arch
+   local utm_target
+   if [ "$dist_build_target_arch" = "arm64" ]; then
+      utm_arch="aarch64"
+      utm_target="virt"
+   else
+      utm_arch="x86_64"
+      utm_target="q35"
+   fi
+
+   sed s/_ARCH_/${utm_arch}/ "${utmfolder}/config.plist" > "${utmfolder}/config.plist.tmp" && mv "${utmfolder}/config.plist.tmp" "${utmfolder}/config.plist"
+   sed s/_TARGET_/${utm_target}/ "${utmfolder}/config.plist" > "${utmfolder}/config.plist.tmp" && mv "${utmfolder}/config.plist.tmp" "${utmfolder}/config.plist"
+
+   ## compress the utm folder into one archive respecting sparse (null) bytes
    tar -zcvSf "${dist_binary_build_folder}/${VMNAME}.utm.tar.gz" "$utmfolder"
 }
 
