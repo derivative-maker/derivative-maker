@@ -74,6 +74,13 @@ fi
 ## https://unix.stackexchange.com/a/271387/49297
 #/usr/lib/dpkg/methods/apt/update /var/lib/dpkg apt apt
 
+## Can be out-commented in Debian trixie.
+## Required for usrmerge systemd unit files folder /usr/lib/system/system.
+debhelper_version="$(dpkg-query --show --showformat='${Version}' "debhelper")"
+if ! dpkg --compare-versions "$debhelper_version" ge "13.11.8~bpo12+1"; then
+    apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes --target-release=bookworm-backports install debhelper
+fi
+
 apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
 
 ## Sanity test for above aptitude issue.
