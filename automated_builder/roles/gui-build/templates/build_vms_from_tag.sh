@@ -1,6 +1,9 @@
 #!/bin/bash
 
+set -x
 set -e
+
+true "$0: START"
 
 export CI=true
 
@@ -8,86 +11,18 @@ export CI=true
 #export dist_build_no_unset_xtrace=true
 
 main() {
-  signing_key_test "$@" >> /home/ansible/signing_key_test.log 2>&1
-  build_kicksecure_iso_amd64 "$@" >> /home/ansible/kicksecure_iso_amd64_build.log 2>&1
-  build_kicksecure_vm_arm64 "$@" >> /home/ansible/kicksecure_arm64_build.log 2>&1
-  build_gateway_vm "$@" >> /home/ansible/gateway_build.log 2>&1
-  build_workstation_vm "$@" >> /home/ansible/workstation_build.log 2>&1
-  prepare_release "$@" >> /home/ansible/prepare_release.log 2>&1
+  signing_key_create "$@" >> /home/ansible/signing_key_create.log 2>&1
+  build_command "$@" >> /home/ansible/build.log 2>&1
 }
 
-signing_key_test() {
+signing_key_create() {
   /home/ansible/derivative-maker/help-steps/signing-key-create "$@"
-  /home/ansible/derivative-maker/help-steps/signing-key-test "$@"
 }
 
-build_kicksecure_iso_amd64() {
-  /home/ansible/derivative-maker/derivative-maker \
-    --repo true \
-    --flavor kicksecure-xfce \
-    --target iso \
-    --arch amd64 \
-    "$@"
-}
-
-build_kicksecure_vm_arm64() {
-  /home/ansible/derivative-maker/derivative-maker \
-    --repo true \
-    --flavor kicksecure-xfce \
-    --target utm \
-    --arch arm64 \
-    "$@"
-}
-
-build_gateway_vm() {
-  /home/ansible/derivative-maker/derivative-maker \
-    --repo true \
-    --flavor whonix-gateway-xfce \
-    --target virtualbox \
-    --target qcow2 \
-    --target windows \
-    "$@"
-}
-
-build_workstation_vm() {
-  /home/ansible/derivative-maker/derivative-maker \
-    --repo true \
-    --flavor whonix-workstation-xfce \
-    --target virtualbox \
-    --target qcow2 \
-    --target windows \
-    "$@"
-}
-
-prepare_release() {
-  dm-prepare-release \
-    --flavor kicksecure-xfce \
-    --target iso \
-    --arch amd64 \
-    "$@"
-
-  dm-prepare-release \
-    --flavor kicksecure-xfce \
-    --target utm \
-    --arch arm64 \
-    "$@"
-
-  ## Does nothing but good to test anyhow.
-  dm-prepare-release \
-    --flavor whonix-gateway-xfce \
-    --target virtualbox \
-    --target qcow2 \
-    --target windows \
-    --arch amd64 \
-    "$@"
-
-  dm-prepare-release \
-    --flavor whonix-workstation-xfce \
-    --target virtualbox \
-    --target qcow2 \
-    --target windows \
-    --arch amd64 \
-    "$@"
+build_command() {
+  /home/user/derivative_dot/derivative-maker/packages/kicksecure/developer-meta-files/usr/bin/dm-virtualbox-build-official "$@"
 }
 
 main "$@"
+
+true "$0: END"
