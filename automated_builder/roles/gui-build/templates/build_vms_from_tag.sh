@@ -20,7 +20,7 @@ signing_key_create() {
 }
 
 build_command() {
-  /home/user/derivative_dot/derivative-maker/packages/kicksecure/developer-meta-files/usr/bin/dm-virtualbox-build-official "$@"
+  /home/ansible/derivative-maker/packages/kicksecure/developer-meta-files/usr/bin/dm-virtualbox-build-official "$@"
 }
 
 main "$@"
