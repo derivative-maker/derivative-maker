@@ -23,7 +23,7 @@ export_utm_packages() {
    ## create folder structure for UTM
    ## move image file
    ## copy configs
-   mkdir --parents "${utmfolder}/Data"
+   mkdir --parents "${binary_image_utm_folder}/Data"
    $SUDO_TO_ROOT chown "$user_name:$user_name" "$binary_image_raw_file"
    ## copy instead of move the raw image
    ## disadvantage:
@@ -31,8 +31,8 @@ export_utm_packages() {
    ## advantage:
    ## - makes this step idempotent, easier to test and debug
    ## - can CI test dm-prepare-release
-   cp "$binary_image_raw_file" "${utmfolder}/Data/${VMNAME}.raw"
-   cp "$source_utm_file" "${utmfolder}/config.plist"
+   cp "$binary_image_raw_file" "${binary_image_utm_folder}/Data/${VMNAME}.raw"
+   cp "$source_utm_file" "${binary_image_utm_folder}/config.plist"
 
    ## fill in correct architecture and target in UTM template files
    local utm_arch
@@ -45,8 +45,8 @@ export_utm_packages() {
       utm_target="q35"
    fi
 
-   $str_replace_tool "_ARCH_"   "${utm_arch}"   "${utmfolder}/config.plist"
-   $str_replace_tool "_TARGET_" "${utm_target}" "${utmfolder}/config.plist"
+   $str_replace_tool "_ARCH_"   "${utm_arch}"   "${binary_image_utm_folder}/config.plist"
+   $str_replace_tool "_TARGET_" "${utm_target}" "${binary_image_utm_folder}/config.plist"
 
    ## compress the utm folder into one archive respecting sparse (null) bytes
    ## dm-prepare-release also uses tar. Using similar options here.
@@ -60,7 +60,7 @@ export_utm_packages() {
       --mtime='2015-10-21 00:00Z' \
       --gzip \
       --file="${dist_binary_build_folder}/${VMNAME}.utm.tar.gz" \
-      "$utmfolder"
+      "$binary_image_utm_folder"
 }
 
 main() {
