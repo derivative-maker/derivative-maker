@@ -18,6 +18,35 @@ source pre
 source colors
 source variables
 
+hostname_check() {
+   ## This cannot be done with a chroot in folder /usr/libexec/initializer-dist/chroot-scripts-post.d,
+   ## because the image is still chrooted (chroot-raw) at that time. As a result, a host operating
+   ## system temporary file (a copy of the host's /etc/hostname) is bind mounted to the chroot's
+   ## /etc/hostname file
+   if [ "$dist_build_type_short" = "kicksecure" ]; then
+      one_expected="$dist_build_hostname"
+      two_expected=""
+      three_expected=""
+      one_actual=$($SUDO_TO_ROOT cat /etc/hostname)
+      two_actual=""
+      three_actual=""
+   elif [ "$dist_build_type_short" = "whonix" ]; then
+      one_expected="$dist_build_hostname"
+      two_expected="$dist_build_hostname"
+      three_expected=""
+      one_actual=$($SUDO_TO_ROOT cat /etc/hostname)
+      ## ./packages/whonix/whonix-base-files/etc/hostname.whonix
+      two_actual=$($SUDO_TO_ROOT cat /etc/{$dist_build_type_short}.whonix)
+      three_actual=$($SUDO_TO_ROOT cat /etc/hostname.${dist_build_type_short}-orig)
+   fi
+
+   if [ "$one_actual" != "$one_expected" ] || [ "$two_actual" != "$two_expected" ] || [ "$three_actual" != "$three_expected" ]; then
+      error "hostname_check failed! See above for variable one_expected etc."
+   fi
+
+   true
+}
+
 run-chroot-scripts-post-d() {
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
@@ -56,6 +85,8 @@ Not running any chroot scripts.${reset}"
    "$dist_source_help_steps_folder"/remove-local-temp-apt-repo "$@"
 
    "$dist_source_help_steps_folder"/unchroot-raw "$@"
+
+   hostname_check
 
    "$dist_source_help_steps_folder"/unprevent-daemons-from-starting "$@"
 
