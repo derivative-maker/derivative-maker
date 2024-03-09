@@ -49,12 +49,16 @@ export_utm_packages() {
    $str_replace_tool "_TARGET_" "${utm_target}" "${utmfolder}/config.plist"
 
    ## compress the utm folder into one archive respecting sparse (null) bytes
-   ## dm-prepare-release also uses tar.
+   ## dm-prepare-release also uses tar. Using similar options here.
    tar \
       --create \
       --verbose \
-      --gzip \
+      --owner=0 --group=0 --numeric-owner \
+      --mode=go=rX,u+rw,a-s \
+      --sort=name \
       --sparse \
+      --mtime='2015-10-21 00:00Z' \
+      --gzip \
       --file="${dist_binary_build_folder}/${VMNAME}.utm.tar.gz" \
       "$utmfolder"
 }
