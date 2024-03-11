@@ -596,9 +596,27 @@ dist_build_one_parse_cmd() {
        esac
    done
 
-   if [ "$dist_build_target_arch" = "amd64" ]; then
+   if [ "$dist_build_target_arch" = "i386" ]; then
+      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
+   elif [ "$dist_build_target_arch" = "amd64" ]; then
+      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
       ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
       [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
+   else
+      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="false"
+   fi
+
+   if [ "$dist_build_virtualbox" = "true" ]; then
+      if [ "$virtualbox_suppported_architecture" = "false" ]; then
+         error "\
+${red}${bold}VirtualBox architecture support test failed!
+virtualbox_suppported_architecture: '$virtualbox_suppported_architecture'
+dist_build_target_arch is not 'amd64'.
+dist_build_target_arch is '$dist_build_target_arch'.
+You cannot build '--target virtualbox' if not using ''arch i386' or '--arch amd64'.
+This is because at time of writing this check, VirtualBox supports 'i386' and 'amd64' only.
+Should VirtualBox meanwhile support other architectures such as 'arm64', then this check can simply be removed in the source code.${reset}"
+      fi
    fi
 
    [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="$dist_build_target_arch"
