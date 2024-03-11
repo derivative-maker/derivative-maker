@@ -596,21 +596,15 @@ dist_build_one_parse_cmd() {
        esac
    done
 
-   if [ "$dist_build_target_arch" = "i386" ]; then
-      [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-686"
-      [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-686"
-      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="i386"
-   elif [ "$dist_build_target_arch" = "arm64" ]; then
-      [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-arm64"
-      [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-arm64"
-      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="arm64"
+   if [ "$dist_build_target_arch" = "amd64" ]; then
+      ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
+      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
    fi
 
-   [ -n "$dist_build_target_arch" ] || dist_build_target_arch="amd64"
-   [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-amd64"
-   [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-amd64"
-   ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
-   [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
+   [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="$dist_build_target_arch"
+
+   [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-${dist_build_target_arch}"
+   [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-${dist_build_target_arch}"
 
    export BUILD_INITRAMFS_PKGS
    export dist_build_target_arch
@@ -618,7 +612,8 @@ dist_build_one_parse_cmd() {
    export BUILD_HEADER_PKGS
    export target_architecture_pretty_name
 
-   true "${cyan}INFO: dist_build_target_arch         (--arch): $dist_build_target_arch${reset}"
+   true "${cyan}INFO: dist_build_target_arch    (--arch): $dist_build_target_arch${reset}"
+   true "${cyan}INFO: target_architecture_pretty_name   : $target_architecture_pretty_name${reset}"
    true "${cyan}INFO: BUILD_KERNEL_PKGS       (--kernel): $BUILD_KERNEL_PKGS${reset}"
    true "${cyan}INFO: BUILD_HEADER_PKGS      (--headers): $BUILD_HEADER_PKGS${reset}"
 
