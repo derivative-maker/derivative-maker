@@ -283,6 +283,8 @@ install-packages() {
    $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
    $SUDO_TO_ROOT $CHROOT dpkg --configure -a
    $SUDO_TO_ROOT $CHROOT dpkg --audit
+
+   ## XXX: once installed a newer kernel, which then messed up /boot/grub/grub.cfg to then include root=/dev/mapper which will fail to boot.
    $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
 
    ## Debugging.
@@ -504,6 +506,9 @@ $dist_build_script_skip_package_install${reset}"
    ## Run grub-mkconfig with sh xtrace enabled for debug output.
    ## Full path to /usr/sbin/grub-mkconfig required because using sh -xv.
    $SUDO_TO_ROOT $CHROOT sh -xv /usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg
+   ## TODO: enable verbose output during execution of /etc/grub.d/10_linux somehow.
+   ##       It is being executed by grub-mkconfig. Needed to investigate where the
+   ##       root=/dev/mapper issue is coming from
 
    ## Debugging.
    true "/boot/grub/grub.cfg root= :"
