@@ -348,17 +348,41 @@ check-virtualbox-vm-exists() {
    true
 }
 
+install_required_packages() {
+   ## XXX: Ideally this would happen in a different script without
+   ##       "sanity-tests" in its name.
+
+   ## Using the build system's already exiting APT sources list.
+   ## As configured by the local system administrator.
+   ##
+   ## Not using the following command line options:
+   #-o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
+   #-o Dir::Etc::sourceparts="-" \
+   ## Because dist_build_sources_list_primary requires apt-cacher-ng.
+
+   $SUDO_TO_ROOT \
+      apt-get \
+         ${APTGETOPT_WITHOUT_APT_CACHE[@]} \
+         update
+
+   $SUDO_TO_ROOT \
+      apt-get \
+         ${APTGETOPT_WITHOUT_APT_CACHE[@]} \
+         $apt_unattended_opts \
+         --no-install-recommends \
+         --yes \
+         install \
+         $required_packages_list
+}
+
 check_required_packages_installed() {
-   local required_packages_list required_package_item
-   local required_packages_list="git time curl apt-cacher-ng lsb-release fakeroot fasttrack-archive-keyring safe-rm"
+   required_packages_list="git time curl apt-cacher-ng lsb-release fakeroot fasttrack-archive-keyring safe-rm"
+   local required_package_item
 
    for required_package_item in $required_packages_list ; do
       if ! dpkg-query --show --showformat='${Version}' "$required_package_item" ; then
-         error "${bold}${red}ERROR $BASH_SOURCE: Required package '$required_package_item' missing. Run${reset}:
-
-${under}sudo apt-get update${eunder}
-
-${under}sudo apt-get install --no-install-recommends $required_packages_list${eunder}"
+         true "INFO: Required package '$required_package_item' missing."
+         install_required_packages
          break
       fi
    done
