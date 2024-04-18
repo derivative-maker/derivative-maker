@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -x
+set -e
+
 main() {
   prepare_environment
   install_source

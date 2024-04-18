@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -x
+set -e
 
 REPO_URL=$1
 COMMIT_BRANCH=$2

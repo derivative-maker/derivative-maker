@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 decrypt_vault() {
   check_vault_value
   if [ "$ANSIBLE_VAULT_VALUE" == "ANSIBLE_VAULT" ]; then
