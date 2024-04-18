@@ -3,9 +3,9 @@
 set -x
 set -e
 
-REPO_URL=$1
-COMMIT_BRANCH=$2
-VERSION_TAG=$3
+REPO_URL="$1"
+COMMIT_BRANCH="$2"
+VERSION_TAG="$3"
 
 main() {
   echo "Running source code installation script..."
@@ -28,7 +28,7 @@ clean_old_source() {
 
 install_source_code() {
   cd /home/ansible
-  git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 https://github.com/$REPO_URL
+  git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 "https://github.com/$REPO_URL"
   cd /home/ansible/derivative-maker
   git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
@@ -36,9 +36,9 @@ install_source_code() {
 
 checkout_code(){
   if [ -z "$VERSION_TAG" ]; then
-    git checkout --recurse-submodules $COMMIT_BRANCH
+    git checkout --recurse-submodules "$COMMIT_BRANCH"
   else
-    git checkout --recurse-submodules $VERSION_TAG
+    git checkout --recurse-submodules "$VERSION_TAG"
   fi
 }
 

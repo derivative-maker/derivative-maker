@@ -21,7 +21,7 @@ encrypt_vault() {
 }
 
 write_password() {
-  echo $ANSIBLE_VAULT_PASSWORD > ansible_vault_password
+  echo "$ANSIBLE_VAULT_PASSWORD" > ansible_vault_password
 }
 
 check_vault_value() {
