@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 REPO_URL=$1
 COMMIT_BRANCH=$2
 VERSION_TAG=$3
