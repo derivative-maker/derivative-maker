@@ -281,29 +281,8 @@ if [ "$dist_build_flavor" = "whonix-host-xfce" ]; then
    [ -n "$dist_build_desktop" ] || dist_build_desktop="Xfce"
    [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-
-   if [ "$dist_build_virtualbox" = "true" ] || [ "$dist_build_iso" = "true" ]; then
-      if [ "$build_freedom_only" = "true" ]; then
-         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-vbox-freedom "
-      elif [ "$build_freedom_only" = "false" ]; then
-         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-vbox-freedom whonix-host-xfce-vbox-nonfreedom "
-      else
-         error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
-      fi
-   elif [ "$dist_build_qcow2" = "true" ] || [ "$dist_build_iso" = "true" ]; then
-      if [ "$build_freedom_only" = "true" ]; then
-         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom "
-      elif [ "$build_freedom_only" = "false" ]; then
-         [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-host-xfce-kvm-freedom whonix-host-xfce-kvm-nonfreedom "
-      else
-         error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
-      fi
-   else
-      ## This would break:
-      ## sudo ./help-steps/mount-raw --target raw --flavor whonix-host-xfce --freedom false
-      #error "${red}${bold}Only 'target --qcow2' is supported for dist_build_flavor $dist_build_flavor for now.${reset}"
-      echo "${red}${bold}NOTE: Only 'target --qcow2' is supported for dist_build_flavor $dist_build_flavor for now.${reset}"
-   fi
+   ## TODO: Do not hardcode to VirtualBox.
+   [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-xfce-host-virtualbox "
 fi
 
 if [ "$dist_build_flavor" = "kicksecure-cli" ]; then
@@ -354,6 +333,19 @@ if [ "$dist_build_flavor" = "kicksecure-cli-host" ]; then
    [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
    #[ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
    [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-cli-host "
+fi
+
+[ -n "$build_freedom_only" ] || build_freedom_only="false"
+
+if echo "$dist_build_type_long" | grep --quiet "host" ; then
+   if [ "$build_freedom_only" = "true" ]; then
+      echo "INFO: --freedom true, therefore omitting firmware-nonfreedom, ok."
+   elif [ "$build_freedom_only" = "false" ]; then
+      echo "INFO: --freedom false, therefore adding firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
+      flavor_meta_packages_to_install+=" firmware-nonfreedom "
+   else
+      error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
+   fi
 fi
 
 ## derivative_name_list is used by:
