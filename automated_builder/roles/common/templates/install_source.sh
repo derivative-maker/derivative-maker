@@ -36,9 +36,9 @@ install_source_code() {
 
 checkout_code(){
   if [ -z "$VERSION_TAG" ]; then
-    git checkout --recurse-submodules "$COMMIT_BRANCH"
+    git checkout "$COMMIT_BRANCH"
   else
-    git checkout --recurse-submodules "$VERSION_TAG"
+    git checkout "$VERSION_TAG"
   fi
 }
 
