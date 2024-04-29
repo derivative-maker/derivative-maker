@@ -30,6 +30,7 @@ install_source_code() {
   cd /home/ansible
   git clone --depth=1 "https://github.com/$REPO_URL"
   cd /home/ansible/derivative-maker
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
 }
 
