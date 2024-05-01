@@ -28,27 +28,16 @@ clean_old_source() {
 
 install_source_code() {
   cd /home/ansible
-
-  ## failing: https://github.com/Whonix/derivative-maker/actions/runs/8739211625
-  #git clone --recurse-submodules --jobs=4 --shallow-submodules --depth=1 "https://github.com/$REPO_URL"
-
   git clone --depth=1 "https://github.com/$REPO_URL"
-
   cd /home/ansible/derivative-maker
-
-  ## Why is this needed?
-  #git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
 }
 
 checkout_code(){
-  ## Leave '--recurse-submodules' to derivative-maker.
   if [ -z "$VERSION_TAG" ]; then
-    #git checkout --recurse-submodules "$COMMIT_BRANCH"
     git checkout "$COMMIT_BRANCH"
   else
-    #git checkout --recurse-submodules "$VERSION_TAG"
     git checkout "$VERSION_TAG"
   fi
 }
