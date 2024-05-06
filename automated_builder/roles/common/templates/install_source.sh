@@ -18,18 +18,18 @@ main() {
 }
 clean_old_source() {
   if [ -d "/home/ansible/derivative-maker" ]; then
-    rm -rf /home/ansible/derivative-maker
+    rm -rf "/home/ansible/derivative-maker"
   fi
 
   if [ -d "/home/ansible/derivative-binary" ]; then
-    rm -rf /home/ansible/derivative-binary
+    rm -rf "/home/ansible/derivative-binary"
   fi
 }
 
 install_source_code() {
-  cd /home/ansible
+  cd "/home/ansible"
   git clone --depth=1 "https://github.com/$REPO_URL"
-  cd /home/ansible/derivative-maker
+  cd "/home/ansible/derivative-maker"
   git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
 }
