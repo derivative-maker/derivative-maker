@@ -8,6 +8,7 @@ COMMIT_BRANCH="$2"
 VERSION_TAG="$3"
 
 main() {
+  echo "$0: START"
   echo "Running source code installation script..."
   echo "CI repository URL: $REPO_URL"
   echo "CI Branch: $COMMIT_BRANCH"
@@ -15,7 +16,10 @@ main() {
   clean_old_source
   install_source_code
   checkout_code
+
+  echo "$0: END"
 }
+
 clean_old_source() {
   if [ -d "/home/ansible/derivative-maker" ]; then
     rm -rf "/home/ansible/derivative-maker"
