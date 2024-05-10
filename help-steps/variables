@@ -21,7 +21,7 @@ Host Preparation
 
 variables_script_sanity_test() {
    local dist_build_programs_to_check_installed_list programs_to_check_installed_item
-   dist_build_programs_to_check_installed_list="logname whoami dirname basename awk grep dpkg-parsechangelog"
+   dist_build_programs_to_check_installed_list="logname whoami dirname basename awk grep"
 
    for programs_to_check_installed_item in $dist_build_programs_to_check_installed_list ; do
       $SUDO_TO_ROOT command -v "$programs_to_check_installed_item" >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
@@ -107,7 +107,12 @@ export LC_ALL TZ
 export UWT_DEV_PASSTHROUGH
 
 ## used by mmdebstrap
-SOURCE_DATE_EPOCH="$(dpkg-parsechangelog -STimestamp)"
+## dpkg-parsechangelog (from package dpkg-dev) is not available before dependencies are installed.
+if command -v dpkg-parsechangelog &>/dev/null ; then
+   SOURCE_DATE_EPOCH="$(dpkg-parsechangelog -STimestamp)"
+else
+   true "INFO: SOURCE_DATE_EPOCH not available yet because dpkg-parsechangelog has not been installed yet."
+fi
 
 ## TODO: do not export without thinking this through since also used by debhelper
 export SOURCE_DATE_EPOCH
