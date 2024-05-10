@@ -15,7 +15,7 @@ main() {
 }
 
 build_command() {
-  /home/ansible/derivative-maker/help-steps/dm-build-official --ci true "$@"
+  /home/ansible/derivative-maker/help-steps/dm-build-official "$@"
 }
 
 main "$@"
