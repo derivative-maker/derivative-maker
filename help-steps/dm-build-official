@@ -1,0 +1,209 @@
+#!/bin/bash
+
+## Copyright (C) 2023 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## This script is supposed to be run:
+## - For official binary builds by a builder (developer).
+## - For debug builds: (dm-virtualbox-build-debug)
+## - By the CI.
+
+set -x
+set -e
+true "$0: START"
+
+run_cmd() {
+  [ -n "$TESTING_MODE" ] || TESTING_MODE=0
+  if [ "$TESTING_MODE" -eq 1 ]; then
+    set +x
+    echo "$@"
+  else
+    "$@"
+  fi
+}
+
+true "$0: checklist..."
+run_cmd df -h
+run_cmd sleep 2
+
+if [ "$CI" = "true" ]; then
+  run_cmd pushd ~
+  run_cmd git clone https://gitlab.com/kicksecure/virtualbox-windows-installer-binary.git
+  run_cmd popd
+fi
+
+true "$0: checklist..."
+if [ "$TESTING_MODE" -eq 1 ]; then
+  echo ls -la ~/virtualbox-windows-installer-binary/VirtualBox-*
+else
+  ls -la ~/virtualbox-windows-installer-binary/VirtualBox-*
+fi
+run_cmd sleep 2
+
+build_args=()
+
+build_args+=(--repo true)
+## Make sure official builds come with a downloaded browser (Tor Browser) installed by default.
+build_args+=(--tb closed)
+
+## XXX: hardcoded path
+run_cmd cd ~/derivative-maker
+
+true "INFO: 0: $0"
+## CI is not executing from system installed version but hardcoding the version in derivative-maker source code.
+if [ "$0" = "/usr/bin/dm-virtualbox-build-official" ]; then
+  true "INFO: This is a test to avoid building from an outdated version..."
+  run_cmd diff /usr/bin/dm-virtualbox-build-official ./packages/kicksecure/developer-meta-files/usr/bin/dm-virtualbox-build-official
+fi
+
+run_cmd test -d ~/.ssh
+
+run_cmd ./help-steps/signing-key-test
+
+## Ordered as follows for the following reasons:
+## - 1) Build '--flavor kicksecure-xfce' because building ISO, which is newer,
+##      therefore more prone to build issues. Error out quicker is better.
+## - 2) Build '--flavor whonix-gateway-xfce' because it is required to be able to
+##      run dm-prepare-release due to unified ova files.
+## - 3) Build '--flavor whonix-workstation-xfce' because it is the most
+##   complex, because of downloading Tor Browser as well as when used with
+##   '--target windows', because:
+##   - *_prepare-build-machine does git clone virtualbox-windows-installer-binary
+##   - dm-prepare-release builds Whonix Windows Installer
+## - 4) Build CLI flavors because the least likely to have build issues.
+# if [ "$CI" = "true" ]; then
+#   ## Build fewer flavors on CI to save build time.
+#   ## It is unlikely that building an Xfce flavor would succeed while the CLI flavor would fail.
+#   [ -n "$flavors_list" ] || flavors_list=(
+#     kicksecure-xfce
+#     whonix-gateway-xfce
+#     whonix-workstation-xfce
+#   )
+# else
+  [ -n "$flavors_list" ] || flavors_list=(
+    kicksecure-xfce
+    kicksecure-cli
+    whonix-gateway-xfce
+    whonix-workstation-xfce
+    whonix-gateway-cli
+    whonix-workstation-cli
+  )
+# fi
+
+build_upload_noninteractive=true
+export build_upload_noninteractive
+
+[ -n "$architecture" ] || architecture=$(dpkg --print-architecture)
+build_args+=(--arch "$architecture")
+
+multi_target_args=()
+
+case $architecture in
+  amd64)
+    ## Also build the Whonix-Windows-Installer.
+    ## Incomplete until Whonix-Windows-Installer authenticode certificate is available.
+    build_args+=(--target windows)
+    ## '--target virtualbox'
+    ## Build VirtualBox ova. (amd64 for Windows, Linux, Mac)
+    multi_target_args+=(--target virtualbox)
+    if [ "$CI" = "true" ]; then
+      ## Dedicated KVM maintainer.
+      ## This script is currently not used by the KVM maintainer.
+      ## Therefore testing '--target qcow2' for amd64 architecture on CI only.
+      multi_target_args+=(--target qcow2)
+    fi
+  ;;
+  arm64)
+    multi_target_args+=(--target qcow2)
+    ## Only on arm64 for Mac M1, M2.
+    multi_target_args+=(--target utm)
+  ;;
+  *)
+    ## '--target qcow2' might be the most universal.
+    multi_target_args+=(--target qcow2)
+  ;;
+esac
+
+for flavor_item in "${flavors_list[@]}"; do
+  run_cmd ./derivative-delete "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+done
+
+for flavor_item in "${flavors_list[@]}"; do
+  ## Not yet using multi_target_args as the sanity test for Whonix-Gateway ISO would complain that the VMs
+  ## have not been built yet.
+  run_cmd ./build-steps.d/*_sanity-tests "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+done
+
+## '--target iso' prepare-build-machine.
+run_cmd ./build-steps.d/*_prepare-build-machine "${build_args[@]}" --target iso "${multi_target_args[@]}" --flavor internal "$@"
+
+run_cmd ./build-steps.d/*_cowbuilder-setup "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
+run_cmd ./build-steps.d/*_local-dependencies "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
+
+export dist_build_raw_base_image_create=true
+## '--flavor internal' would lead to variable dist_build_hostname being unset.
+run_cmd ./build-steps.d/*_create-raw-image "${build_args[@]}" "${multi_target_args[@]}" --flavor kicksecure-cli "$@"
+unset dist_build_raw_base_image_create
+
+run_cmd ./build-steps.d/*_create-debian-packages "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
+
+SKIP_SCRIPTS+=" sanity-tests "
+SKIP_SCRIPTS+=" prepare-build-machine "
+SKIP_SCRIPTS+=" cowbuilder-setup "
+## Using cached_binary_image_raw_file instead because we will set dist_build_use_cached_raw_base_image=true.
+## Variable cached_binary_image_raw_file will result in create-raw-image simply making a copy of the exiting raw image.
+#SKIP_SCRIPTS+=" create-raw-image "
+SKIP_SCRIPTS+=" local-dependencies "
+SKIP_SCRIPTS+=" create-debian-packages "
+export SKIP_SCRIPTS
+
+dist_build_use_cached_raw_base_image=true
+export dist_build_use_cached_raw_base_image
+
+## Build and dm-prepare-release.
+for flavor_item in "${flavors_list[@]}"; do
+  case $flavor_item in
+    kicksecure-xfce)
+      ## For now, create an ISO only for Kicksecure Xfce.
+      ## Not for Kicksecure CLI.
+      ## Not yet for Whonix.
+      true "INFO: ISO build flavor."
+      run_cmd ./derivative-maker "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
+      run_cmd dm-prepare-release "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
+      ;;
+    *)
+      true "INFO: Non-ISO build flavor."
+      ;;
+  esac
+
+  run_cmd ./derivative-maker "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+  run_cmd dm-prepare-release "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+done
+
+## Uploading.
+for flavor_item in "${flavors_list[@]}"; do
+  if echo "$flavor_item" | grep --quiet "gateway" ; then
+    ## Not needed for gateway due to unified images.
+    continue
+  fi
+
+  if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
+    ## Skip upload of debug images.
+    echo simulate-echo-only: run_cmd dm-upload-images "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+    continue
+  fi
+
+  case $flavor_item in
+    kicksecure-xfce)
+      true "INFO: ISO build flavor."
+      run_cmd dm-upload-images "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
+      ;;
+    *)
+      true "INFO: Non-ISO build flavor."
+      ;;
+  esac
+
+  run_cmd dm-upload-images "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+done
+
+true "$0: END"
