@@ -15,7 +15,8 @@ main() {
 }
 
 build_command() {
-  /home/ansible/derivative-maker/packages/kicksecure/developer-meta-files/usr/bin/dm-virtualbox-build-official --ci true "$@"
+  ## TODO: drop TESTING_MODE=1
+  TESTING_MODE=1 /home/ansible/derivative-maker/help-steps/usr/bin/dm-build-official --ci true "$@"
 }
 
 main "$@"
