@@ -283,51 +283,6 @@ $help_text"
    true
 }
 
-check-virtualbox-installed() {
-   if [ "$dist_build_internal_run" = "true" ]; then
-      true "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
-      return 0
-   fi
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      true "INFO: dist_build_virtualbox not yet to true, skipping $FUNCNAME, ok."
-      return 0
-   fi
-
-   if command -v VBoxManage >/dev/null ; then
-      true "INFO: VBoxManage available, ok."
-      return 0
-   fi
-
-   error "VirtualBox not installed yet. VBoxManage command unavailable."
-
-   true
-}
-
-check-virtualbox-vm-exists() {
-   if [ "$dist_build_internal_run" = "true" ]; then
-      return 0
-   fi
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      return 0
-   fi
-
-   ## VirtualBox might not be installed at this point.
-   ## Trying anyway, in case this script has already been run and installed
-   ## VirtualBox beforehand.
-
-   local command_v_exit_code="0"
-   command -v VBoxManage >/dev/null || { command_v_exit_code="$?" ; true; }
-
-   if [ ! "$command_v_exit_code" = "0" ]; then
-      true "${cyan}INFO: VBoxManage command not yet available, ok.${reset}"
-      return 0
-   fi
-
-   "$dist_source_help_steps_folder/vm-exists-test" "$@"
-
-   true
-}
-
 install_required_packages() {
    ## XXX: Ideally this would happen in a different script without
    ##       "sanity-tests" in its name.
@@ -407,8 +362,6 @@ main() {
    mount-test "$@"
    check-copy-vms-into-raw "$@"
    check_required_packages_installed "$@"
-   check-virtualbox-installed "$@"
-   check-virtualbox-vm-exists "$@"
    signing_key "$@"
 
    source "$dist_source_help_steps_folder/git_sanity_test"

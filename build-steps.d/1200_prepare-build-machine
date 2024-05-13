@@ -183,19 +183,6 @@ build_machine_setup() {
             linux_headers="linux-headers-${host_architecture}"
          fi
          packages_to_be_installed+=" $linux_headers "
-
-         "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/dist-installer-cli" --non-interactive --virtualbox-only --log-level=debug --ci
-
-         true "INFO: Checking if VirtualBox is already installed..."
-         if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
-            true "INFO: virtualbox is already installed."
-         elif virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox-7.0")" ; then
-            true "INFO: virtualbox-7.0 is already installed."
-         else
-            true "${red}${bold}ERROR: Neither package virtualbox nor package virtualbox-7.0 is installed.${reset}"
-            error "See above!"
-         fi
-
       fi
 
    fi
@@ -300,6 +287,64 @@ repo_proxy_test() {
    error "See above!"
 }
 
+virtualbox-installation() {
+   true "INFO: Checking if VirtualBox is already installed..."
+   if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
+      true "INFO: virtualbox is already installed."
+   elif virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox-7.0")" ; then
+      true "INFO: virtualbox-7.0 is already installed."
+   else
+      "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/dist-installer-cli" --non-interactive --virtualbox-only --log-level=debug --ci
+   fi
+
+   true
+}
+
+check-virtualbox-installed() {
+   if [ "$dist_build_internal_run" = "true" ]; then
+      true "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+      return 0
+   fi
+   if [ ! "$dist_build_virtualbox" = "true" ]; then
+      true "INFO: dist_build_virtualbox not yet to true, skipping $FUNCNAME, ok."
+      return 0
+   fi
+
+   if command -v VBoxManage >/dev/null ; then
+      true "INFO: VBoxManage available, ok."
+      return 0
+   fi
+
+   error "VirtualBox not installed yet. VBoxManage command unavailable."
+
+   true
+}
+
+check-virtualbox-vm-exists() {
+   if [ "$dist_build_internal_run" = "true" ]; then
+      return 0
+   fi
+   if [ ! "$dist_build_virtualbox" = "true" ]; then
+      return 0
+   fi
+
+   ## VirtualBox might not be installed at this point.
+   ## Trying anyway, in case this script has already been run and installed
+   ## VirtualBox beforehand.
+
+   local command_v_exit_code="0"
+   command -v VBoxManage >/dev/null || { command_v_exit_code="$?" ; true; }
+
+   if [ ! "$command_v_exit_code" = "0" ]; then
+      true "${cyan}INFO: VBoxManage command not yet available, ok.${reset}"
+      return 0
+   fi
+
+   "$dist_source_help_steps_folder/vm-exists-test" "$@"
+
+   true
+}
+
 virtualbox_installer_repository() {
    if [ ! "$dist_build_windows_installer" = "true" ]; then
       true "$0: INFO: Skip $FUNCNAME, because dist_build_windows_installer is not set to true."
@@ -399,6 +444,9 @@ main() {
    build_machine_setup "$@"
    check-unicode "$@"
    virtualbox_installer_repository "$@"
+   virtualbox-installation
+   check-virtualbox-installed "$@"
+   check-virtualbox-vm-exists "$@"
    grml-debootstrap_installation "$@"
    packages_installation_from_newer_repository "$@"
    source_date_epoch_test "$@"
