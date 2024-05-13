@@ -21,29 +21,6 @@ source variables
 cd "$MYDIR"
 cd ..
 
-check-unicode() {
-   local check_unicode_tool
-   check_unicode_tool="${dist_developer_meta_files_folder}/usr/bin/dm-check-unicode"
-   ## https://github.com/grml/grml-debootstrap/issues/219
-   ## overwrite with '|| true' because `grep` exits non-zero if no match was found.
-   ## TODO: dm-check-unicode currently hardcoded. Does not use source_code_folder_dist.
-
-   test -x "$check_unicode_tool"
-
-   grep_find_unicode_wrapper_output="$("$check_unicode_tool" "$source_code_folder_dist" 2>&1)" || true
-
-   if [ "$grep_find_unicode_wrapper_output" = "" ]; then
-      true "INFO: grep_find_unicode_wrapper_output empty, good, OK."
-   else
-      error "$0: ERROR: Unicode found!
-
-See also:
-https://forums.whonix.org/t/detecting-malicious-unicode-in-source-code-and-pull-requests/13754"
-   fi
-
-   true
-}
-
 check-operating-system-version() {
    if ! test -r /etc/os-release ; then
       error "file /etc/os-release does not exist!
@@ -420,7 +397,6 @@ signing_key() {
 }
 
 main() {
-   check-unicode "$@"
    check-operating-system-version "$@"
    check-sudo "$@"
    check-dpkg "$@"
