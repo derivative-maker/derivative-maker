@@ -355,13 +355,22 @@ export dist_build_type_long
 
 export VMNAME VMRAM VRAM
 
+maybe_disable_dist_build_windows_installer() {
+   if [ "$dist_build_internal_run" = "true" ]; then
+      echo "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+   else
+      echo "INFO: dist_build_internal_run is not set to true, therefore: dist_build_windows_installer=false"
+      dist_build_windows_installer=false
+   fi
+}
+
 if [ "$dist_build_type_short" = "kicksecure" ]; then
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure"
    [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Kicksecure"
    [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com"
    [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   echo "INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: dist_build_windows_installer=false"
-   dist_build_windows_installer=false
+   echo "INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   maybe_disable_dist_build_windows_installer
 elif [ "$dist_build_type_short" = "whonix" ]; then
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
    [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Whonix"
@@ -373,8 +382,8 @@ elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
    ## XXX: Does not support lists.
    # -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com whonix.org"
    [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   echo "INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: dist_build_windows_installer=false"
-   dist_build_windows_installer=false
+   echo "INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   maybe_disable_dist_build_windows_installer
    VMNAME=dist-installer-cli
 elif [ "$dist_build_type_short" = "internalrun" ]; then
    true
@@ -387,8 +396,8 @@ fi
 [ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase=$(echo "$dist_build_desktop" | tr '[:upper:]' '[:lower:]')
 
 if [ ! "$dist_build_desktop_lowercase" = "xfce" ] ; then
-   echo "INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'xfce'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: dist_build_windows_installer=false"
-   dist_build_windows_installer=false
+   echo "INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'xfce'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   maybe_disable_dist_build_windows_installer
 fi
 
 ## {{{ initramfs
