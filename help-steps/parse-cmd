@@ -3,6 +3,11 @@
 ## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
+parse_cmd_type_error() {
+   echo "${red}${bold}ERROR: --type must be either 'vm' or 'host' and cannot be used multiple times.${reset}"
+   exit 1
+}
+
 parse_cmd_target_error() {
    echo "${red}${bold}ERROR: --target must be either virtualbox, qcow2, utm, iso, raw, dist-installer-cli, windows or root and can be used multiple times.${reset}"
    exit 1
@@ -62,6 +67,12 @@ Targets:
     dist-installer-cli      : Builds dist-installer-cli.
     windows                 : Builds the Windows Installer.
     root                    : Builds for physical installations.
+
+Types:
+  --type [type_option]
+  Options:
+    host                    : Specifies that the build is for a host system.
+    vm                      : Specifies that the build is for a virtual machine.
 
 Optional Parameters:
   --vmram [size]           : Set VM RAM size (e.g., --vmram 128).
@@ -188,33 +199,44 @@ dist_build_one_parse_cmd() {
                fi
                shift 2
                ;;
+           --type)
+               true "${cyan}INFO: --type $2 chosen.${reset}"
+               if [ "$2" = "host" ]; then
+                  dist_build_type="host"
+               elif [ "$2" = "vm" ]; then
+                  dist_build_type="vm"
+               else
+                  parse_cmd_type_error
+               fi
+               shift 2
+               ;;
            --target)
                true "${cyan}INFO: --target $2 chosen.${reset}"
                if [ "$2" = "virtualbox" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_virtualbox="true"
                   dist_build_image_upload_supported="true"
-                  dist_build_vm="true"
+                  dist_build_type="vm"
                elif [ "$2" = "qcow2" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_qcow2="true"
                   dist_build_image_upload_supported="true"
-                  dist_build_vm="true"
+                  dist_build_type="vm"
                elif [ "$2" = "utm" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
                   export dist_build_utm="true"
                   dist_build_image_upload_supported="false"
-                  dist_build_vm="true"
+                  dist_build_type="vm"
                elif [ "$2" = "iso" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_iso="true"
                   dist_build_image_upload_supported="true"
+                  dist_build_type="host"
                elif [ "$2" = "raw" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
                   dist_build_image_upload_supported="false"
-                  dist_build_vm="true"
                elif [ "$2" = "root" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_install_to_root="true"
