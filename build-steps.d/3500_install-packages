@@ -191,6 +191,22 @@ pkg-list-install() {
 install-packages() {
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
+   ## Ideally this sanity test would be in ./build-steps.d/*_sanity-tests but due to
+   ## help-steps/dm-build-official uses it is better to have it here.
+   if [ "$dist_build_vm" = "true" ]; then
+      if [ "$dist_build_iso" = "true" ]; then
+      error "\
+You cannot combine '--target iso' with:
+* '--target virtualbox'
+* '--target qcow2'
+* '--target raw'
+* '--target utm'
+
+This is because help-steps/variables selects flavor_meta_packages_to_install based on the '--target'.
+"
+      fi
+   fi
+
    ## provided by: help-steps/pre
    apt-cacher-ng_config_check
 
