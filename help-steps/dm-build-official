@@ -129,6 +129,14 @@ case $architecture in
   ;;
 esac
 
+## multi_target_args comment:
+## Cannot mix,
+## * 1) '--target iso', and,
+## * 2) "${multi_target_args[@]}"
+## because no ISO should be build for Whonix-Gateway, Whonix-Workstation.
+## (Maybe in the future for Whonix-Host.)
+## The ISO should only be built for Kicksecure-Xfce for now.
+
 for flavor_item in "${flavors_list[@]}"; do
   run_cmd ./derivative-delete "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
@@ -139,7 +147,10 @@ for flavor_item in "${flavors_list[@]}"; do
   run_cmd ./build-steps.d/*_sanity-tests "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
 
-## '--target iso' prepare-build-machine, because additional dependencies are required for building the ISO.
+## Use both,
+## * 1) '--target iso', and,
+## * 2) "${multi_target_args[@]}"
+## for prepare-build-machine, because additional dependencies are required for building the ISO.
 run_cmd ./build-steps.d/*_prepare-build-machine "${build_args[@]}" --target iso "${multi_target_args[@]}" --flavor internal "$@"
 
 run_cmd ./build-steps.d/*_cowbuilder-setup "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
