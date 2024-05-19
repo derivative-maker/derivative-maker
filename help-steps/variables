@@ -310,10 +310,10 @@ fi
 
 if echo "$dist_build_type_long" | grep --quiet "host" ; then
    if [ "$build_freedom_only" = "true" ]; then
-      true "INFO: --freedom true, therefore omitting firmware-nonfreedom and only adding firmware-linux-free, ok."
+      true "$BASH_SOURCE INFO: --freedom true, therefore omitting firmware-nonfreedom and only adding firmware-linux-free, ok."
       [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-linux-free "
    elif [ "$build_freedom_only" = "false" ]; then
-      true "INFO: --freedom false, therefore adding firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
+      true "$BASH_SOURCE INFO: --freedom false, therefore adding firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
       [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-nonfreedom "
    else
       error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
@@ -349,9 +349,9 @@ export VMNAME VMRAM VRAM
 
 maybe_disable_dist_build_windows_installer() {
    if [ "$dist_build_internal_run" = "true" ]; then
-      echo "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+      echo "$BASH_SOURCE INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
    else
-      echo "INFO: dist_build_internal_run is not set to true, therefore: dist_build_windows_installer=false"
+      echo "$BASH_SOURCE INFO: dist_build_internal_run is not set to true, therefore: dist_build_windows_installer=false"
       dist_build_windows_installer=false
    fi
 }
@@ -361,7 +361,7 @@ if [ "$dist_build_type_short" = "kicksecure" ]; then
    [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Kicksecure"
    [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com"
    [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   echo "INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   echo "$BASH_SOURCE INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
 elif [ "$dist_build_type_short" = "whonix" ]; then
    [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
@@ -374,7 +374,7 @@ elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
    ## XXX: Does not support lists.
    # -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com whonix.org"
    [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   echo "INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   echo "$BASH_SOURCE INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
    VMNAME=dist-installer-cli
 elif [ "$dist_build_type_short" = "internalrun" ]; then
@@ -388,7 +388,7 @@ fi
 [ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase=$(echo "$dist_build_desktop" | tr '[:upper:]' '[:lower:]')
 
 if [ ! "$dist_build_desktop_lowercase" = "xfce" ] ; then
-   echo "INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'xfce'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+   echo "$BASH_SOURCE INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'xfce'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
 fi
 
@@ -414,7 +414,7 @@ if echo "$BUILD_INITRAMFS_PKGS" | grep --quiet "dracut" ; then
    export INITRD_GENERATOR_OPTS
 fi
 
-true "${cyan}INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
+true "${cyan}$BASH_SOURCE INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
 
 ## }}}
 
@@ -435,7 +435,7 @@ else
 fi
 export CHROOT_FOLDER
 
-true "variables INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
+true "$BASH_SOURCE INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
 
 if [ "$VMNAME" = "unknown" ]; then
    true "variables ERROR: VMNAME is unknown. Please report this bug!"
@@ -443,9 +443,9 @@ if [ "$VMNAME" = "unknown" ]; then
 fi
 
 if [ "$dist_build_internal_run" = "true" ]; then
-   true "$BASH_SOURCE: INFO: Internal run."
+   true "$BASH_SOURCE INFO: Internal run."
 else
-   true "$BASH_SOURCE: INFO: VMNAME is $VMNAME"
+   true "$BASH_SOURCE INFO: VMNAME is $VMNAME"
 fi
 
 if [ "$VMNAME" = "" ]; then
@@ -991,7 +991,7 @@ own_filename="$(basename "$0")"
 for skip_script in $SKIP_SCRIPTS; do
    if matched_word=$(echo "$own_filename" | grep "$skip_script") ; then
       unset skip_script
-      echo "${bold}${green}INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
+      echo "${bold}${green}$BASH_SOURCE INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
       exit 0
    fi
 done
