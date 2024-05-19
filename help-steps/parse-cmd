@@ -3,6 +3,22 @@
 ## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
+implicit_dist_type_vm() {
+   if [ ! "$dist_build_type" = "" ]; then
+      return 0
+   fi
+   echo "${cyan}INFO: implicitly setting '--type vm' because using '$1'.${reset}"
+   dist_build_type="vm"
+}
+
+implicit_dist_type_host() {
+   if [ ! "$dist_build_type" = "" ]; then
+      return 0
+   fi
+   echo "${cyan}INFO: implicitly setting '--type host' because using '$1'.${reset}"
+   dist_build_type="host"
+}
+
 parse_cmd_type_error() {
    echo "${red}${bold}ERROR: --type must be either 'vm' or 'host' and cannot be used multiple times.${reset}"
    exit 1
@@ -204,7 +220,7 @@ dist_build_one_parse_cmd() {
                if [ "$2" = "host" ]; then
                   dist_build_type="host"
                elif [ "$2" = "vm" ]; then
-                  dist_build_type="vm"
+                  implicit_dist_type_vm
                else
                   parse_cmd_type_error
                fi
@@ -216,23 +232,23 @@ dist_build_one_parse_cmd() {
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_virtualbox="true"
                   dist_build_image_upload_supported="true"
-                  dist_build_type="vm"
+                  implicit_dist_type_vm "--target $2"
                elif [ "$2" = "qcow2" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_qcow2="true"
                   dist_build_image_upload_supported="true"
-                  dist_build_type="vm"
+                  implicit_dist_type_vm "--target $2"
                elif [ "$2" = "utm" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
                   export dist_build_utm="true"
                   dist_build_image_upload_supported="false"
-                  dist_build_type="vm"
+                  implicit_dist_type_vm "--target $2"
                elif [ "$2" = "iso" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_iso="true"
                   dist_build_image_upload_supported="true"
-                  dist_build_type="host"
+                  implicit_dist_type_host "--target $2"
                elif [ "$2" = "raw" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
