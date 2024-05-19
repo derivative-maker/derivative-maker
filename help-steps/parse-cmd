@@ -168,8 +168,9 @@ dist_build_one_parse_cmd() {
    args=("$@")
 
    if [ ! "$dist_build_internal_run" = "true" ]; then
-      if [ "$args" = "" ]; then
-         error "${red}${bold}No option chosen! Use --help.${reset}"
+      if [ "${#args[@]}" -eq 0 ]; then
+         echo "${red}${bold}No option chosen! Use '--help'.${reset}"
+         exit 1
       fi
    fi
 
@@ -623,14 +624,16 @@ dist_build_one_parse_cmd() {
                break
                ;;
            -*)
-               error "${red}${bold}unknown option (1): $1${reset}"
+               echo "${red}${bold}unknown option (1): '$1'${reset}"
+               exit 1
                break
                ;;
            *)
                if [ "$1" = "" ]; then
                   true
                else
-                  error "${red}${bold}unknown option (2): $1${reset}"
+                  echo "${red}${bold}unknown option (2): '$1'${reset}"
+                  exit 1
                fi
                break
                ;;
@@ -690,7 +693,8 @@ Using default dist_build_sources_clearnet_or_onion=${under}clearnet${eunder}.
       true
    else
       if [ "$build_machines_counter" -gt "1" ]; then
-         error "${red}${bold}You cannot use --flavor multiples times!${reset}"
+         echo "${red}${bold}You cannot use --flavor multiples times!${reset}"
+         exit 1
       fi
    fi
 
