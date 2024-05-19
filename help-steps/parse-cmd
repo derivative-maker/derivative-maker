@@ -4,6 +4,9 @@
 ## See the file COPYING for copying conditions.
 
 implicit_dist_type_vm() {
+   if echo "${args[@]}" | grep --quiet --fixed-string -- "--type" ; then
+      return 0
+   fi
    if [ ! "$dist_build_type" = "" ]; then
       return 0
    fi
@@ -12,6 +15,9 @@ implicit_dist_type_vm() {
 }
 
 implicit_dist_type_host() {
+   if echo "${args[@]}" | grep --quiet --fixed-string -- "--type" ; then
+      return 0
+   fi
    if [ ! "$dist_build_type" = "" ]; then
       return 0
    fi
@@ -725,6 +731,14 @@ Using default dist_build_sources_clearnet_or_onion=${under}clearnet${eunder}.
          echo "${red}${bold}You can not combine --target root with other targets.${reset}"
          exit 1
       fi
+   fi
+
+   if [ "$dist_build_type" = "vm" ]; then
+      true
+   elif [ "$dist_build_type" = "host" ]; then
+      true
+   else
+      error "missing dist_build_type. set: '--type vm' or '--type host'"
    fi
 }
 
