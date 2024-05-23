@@ -99,9 +99,14 @@ The user must fix this issue before proceeding. These issue is most likely not c
 }
 
 check-hostname() {
+   ## mmdebstrap requires /etc/hostname to exist.
    if ! test -f /etc/hostname ; then
-      ## mmdebstrap requires /etc/hostname to exist.
-      error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname does not exist on the build system!${reset}"
+      local local_hostname
+      if ! local_hostname="$(hostname)" ; then
+         error "${bold}${red}ERROR $BASH_SOURCE: Running command 'hostname' failed. See above.${reset}"
+      fi
+      true "${bold}${cyan}INFO: File /etc/hostname did not exist. Writing $local_hostname to /etc/hostname, ok.${reset}"
+      echo "$local_hostname" | $SUDO_TO_ROOT tee /etc/hostname >/dev/null
    fi
    if ! test -r /etc/hostname ; then
       error "${bold}${red}ERROR $BASH_SOURCE: /etc/hostname unreadable on the build system!${reset}"
