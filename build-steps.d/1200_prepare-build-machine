@@ -355,18 +355,55 @@ virtualbox_installer_repository() {
       return 0
    fi
 
-   if ! test -d ~/virtualbox-windows-installer-binary ; then
-      pushd ~
-      git clone --depth=1 https://gitlab.com/kicksecure/virtualbox-windows-installer-binary.git
-      popd
-   fi
+   ## Kept in derivative-maker source code folder:
+   ## - SHA256SUMS
+   ## - download.txt
+   ## reason: security
+   ##
+   ## Downloaded from virtualbox.org during build script:
+   ## - VirtualBox installer (example file name: VirtualBox-7.0.18-162988-Win.exe)
+   ## reason: Larger than 100 MB and can therefore not be added to git.
 
-   pushd ~/virtualbox-windows-installer-binary
-   git fetch
-   git merge --ff-only origin/master
-   "$dist_source_help_steps_folder/git-gpg-verify" "$@"
-   "${dist_developer_meta_files_folder}/usr/bin/dm-virtualbox-installer-exe-verify-windows"
-   popd
+   mkdir --parents "$binary_build_folder_dist/virtualbox-windows-installer-binary"
+   ## dm-virtualbox-installer-exe-verify-windows requires being in the folder.
+   pushd "$binary_build_folder_dist/virtualbox-windows-installer-binary" >/dev/null
+
+   cp --verbose "$source_code_folder_dist/windows/virtualbox/download.txt" "$binary_build_folder_dist/virtualbox-windows-installer-binary/"
+   cp --verbose "$source_code_folder_dist/windows/virtualbox/SHA256SUMS" "$binary_build_folder_dist/virtualbox-windows-installer-binary/"
+
+   curl_download_target_url=$(cat "$source_code_folder_dist/windows/virtualbox/download.txt")
+   ## Exact filename is required for SHA256SUMS verification.
+   versioned_virtualbox_file_name=$(basename "$curl_download_target_url")
+
+   ## XXX: Not easy due to dependencies.
+   #CURL_PRGRS="$source_code_folder_dist/packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/curl-prgrs"
+   CURL_PRGRS="curl"
+   CURL_RESUME="--continue-at -"
+   ## TODO
+   #CURL_PROXY=
+   CURL_FORCE_SSL="--tlsv1.3 --proto =https --cert-status"
+   #CURL_OPTS="--verbose"
+   CURL_OUT_FILE="$binary_build_folder_dist/virtualbox-windows-installer-binary/$versioned_virtualbox_file_name"
+   curl_download_max_time="3600"
+
+   $CURL_PRGRS \
+      $CURL_RESUME \
+      --fail \
+      $CURL_PROXY \
+      $CURL_FORCE_SSL \
+      --retry-connrefused \
+      --retry 10 \
+      --retry-delay 60 \
+      --max-time "$curl_download_max_time" \
+      --location \
+      $CURL_OPTS \
+      --output "$CURL_OUT_FILE" \
+      "$curl_download_target_url"
+
+   ## Would also notice if multiple VirtualBox-*-Win.exe files are inside the virtualbox-windows-installer-binary folder.
+   dm-virtualbox-installer-exe-verify-windows
+
+   popd >/dev/null
 
    true
 }
