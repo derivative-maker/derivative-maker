@@ -21,6 +21,15 @@ source variables
 cd "$MYDIR"
 cd ..
 
+check-git-folder() {
+   if ! test -e "$source_code_folder_dist/.git" ; then
+      error "$source_code_folder_dist/.git does not exist."
+   fi
+   if ! test -e "$source_code_folder_dist/packages/kicksecure/genmkfile/.git" ; then
+      error "$source_code_folder_dist/packages/kicksecure/genmkfile/.git does not exist."
+   fi
+}
+
 check-operating-system-version() {
    if ! test -r /etc/os-release ; then
       error "file /etc/os-release does not exist!
@@ -329,6 +338,7 @@ check_required_packages_installed() {
 }
 
 main() {
+   check-git-folder "$@"
    check-operating-system-version "$@"
    check-sudo "$@"
    check-dpkg "$@"
