@@ -645,9 +645,11 @@ set_default_variable() {
     fi
 }
 
-if [ "$dist_build_type_long" = "kicksecure" ]; then
+if [ "${dist_build_source_archive}" = "true" ]; then
+    set_default_variable dist_unified_name "derivative-maker-source-${dist_build_version}"
+elif [ "$dist_build_type_long" = "kicksecure" ]; then
     set_default_variable dist_unified_name "Kicksecure-${dist_build_desktop}-${dist_build_version}"
-else
+elif [ "$dist_build_type_long" = "whonix" ]; then
     set_default_variable dist_unified_name "Whonix-${dist_build_desktop}-${dist_build_version}"
 fi
 
@@ -660,7 +662,7 @@ set_default_variable binary_image_iso_file "${dist_binary_build_folder}/${VMNAME
 set_default_variable binary_image_windows_installer_file "${dist_binary_build_folder}/${dist_unified_name}.exe"
 set_default_variable libvirt_target_raw_xz_archive_file "${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.raw.libvirt.xz"
 set_default_variable libvirt_target_qcow2_xz_archive_file "${dist_binary_build_folder}/${dist_unified_name}.${target_architecture_pretty_name}.qcow2.libvirt.xz"
-set_default_variable source_xz_archive_file "${dist_binary_build_folder}/${dist_unified_name}.xz"
+set_default_variable source_archive_xz_file "${dist_binary_build_folder}/${dist_unified_name}.xz"
 
 set_default_variable binary_image_text "${dist_binary_build_folder}/${VMNAME}-${dist_build_version}.text"
 
@@ -683,7 +685,7 @@ set_default_variable libvirt_target_network_file_internal "${dist_binary_build_f
 set_default_variable copy_vms_into_raw_file_one "${dist_binary_build_folder}/Whonix-Gateway-${dist_build_desktop}-${dist_build_version}.qcow2"
 set_default_variable copy_vms_into_raw_file_two "${dist_binary_build_folder}/Whonix-Workstation-${dist_build_desktop}-${dist_build_version}.qcow2"
 
-## Sanity test. dm-prepare-release uses 'rm -r'.
+## Sanity test. dm-prepare-release uses 'rm --force --recursive'.
 ## XXX: hardcoded derivative-binary
 if ! echo "$dist_binary_build_folder" | grep --quiet --fixed-strings -- "derivative-binary" ; then
    echo "$0: FAIL: wrong folder: dist_binary_build_folder: $dist_binary_build_folder"
