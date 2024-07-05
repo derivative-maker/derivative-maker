@@ -331,6 +331,9 @@ check-virtualbox-installed() {
 }
 
 check-virtualbox-vm-exists() {
+   ## No longer required since using dedicated Linux user account.
+   return 0
+
    if [ "$dist_build_internal_run" = "true" ]; then
       return 0
    fi
@@ -351,6 +354,12 @@ check-virtualbox-vm-exists() {
    fi
 
    "$dist_source_help_steps_folder/vm-exists-test" "$@"
+
+   true
+}
+
+create-virtualbox-temporary-user() {
+   adduser --quiet --system --group "dm-vbox-temp"
 
    true
 }
@@ -462,6 +471,7 @@ main() {
    virtualbox-installation
    check-virtualbox-installed "$@"
    check-virtualbox-vm-exists "$@"
+   create-virtualbox-temporary-user "$@"
    grml-debootstrap_installation "$@"
    packages_installation_from_newer_repository "$@"
    signing_key "$@"

@@ -16,24 +16,20 @@ source "$MYDIR/variables"
 
 main() {
    ## Turning off the VM without saving.
-   VBoxManage controlvm "$VMNAME" poweroff || true
+   $SUDO_TO_VBOX_TEMP VBoxManage controlvm "$VMNAME" poweroff || true
    sync
 
    ## Delete old VM.
-   VBoxManage unregistervm "$VMNAME" --delete || true
+   $SUDO_TO_VBOX_TEMP VBoxManage unregistervm "$VMNAME" --delete || true
    sync
 
-   ## The "VBoxManage unregistervm --delete" does not do its job,
+   ## The "$SUDO_TO_VBOX_TEMP VBoxManage unregistervm --delete" does not do its job,
    ## we have to manually delete the VM folder.
-   if [ -d "$HOMEVAR/VirtualBox VMs/$VMNAME" ]; then
-      rm -r "$HOMEVAR/VirtualBox VMs/$VMNAME"
-   fi
+   $SUDO_TO_ROOT safe-rm -r -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
    sync
 
    ## Delete old ova.
-   if [ -e "$binary_image_ova_file" ]; then
-      $SUDO_TO_ROOT rm "$binary_image_ova_file"
-   fi
+   $SUDO_TO_ROOT safe-rm -f "$binary_image_ova_file"
    sync
 }
 

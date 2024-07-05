@@ -19,31 +19,32 @@ source colors
 source variables
 
 convert_raw_to_vdi() {
-   mkdir --parents "$HOMEVAR/VirtualBox VMs/$VMNAME"
+   $SUDO_TO_VBOX_TEMP mkdir --parents "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
 
    ## Debugging.
+   ## Execute as user "user" (actually, default user that has run derivative-maker), because inside "user"'s home folder.
    qemu-img \
       info \
          "$binary_image_raw_file"
 
-   VBoxManage convertfromraw "$binary_image_raw_file" "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   ## Can be safely deleted because stored under dedicated, temporary user account.
+   ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
+   $SUDO_TO_VBOX_TEMP rm -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$binary_image_raw_file" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Debugging.
-   qemu-img \
-         info \
-            "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    if [ "$dist_build_fast1" = "1" ]; then
       echo "${bold}${cyan}INFO: run with '--fast 1' switch, skipping compacting vdi. ${reset}"
       exit 0
    else
-      VBoxManage modifymedium --compact "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+      $SUDO_TO_VBOX_TEMP VBoxManage modifymedium --compact "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
    fi
 
    ## Debugging.
-   qemu-img \
-      info \
-         "$HOMEVAR/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 }
 
 main() {
