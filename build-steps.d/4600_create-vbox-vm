@@ -18,6 +18,13 @@ source pre
 source colors
 source variables
 
+debugging_pre() {
+   ## Execute as user "user" (actually, default user that has run derivative-maker), because inside "user"'s home folder.
+   qemu-img \
+      info \
+         "$binary_image_raw_file"
+}
+
 delete_vbox_vm() {
    ## Turning off the VM without saving.
    $SUDO_TO_VBOX_TEMP VBoxManage controlvm "$VMNAME" poweroff || true
@@ -39,12 +46,6 @@ delete_vbox_vm() {
 
 convert_raw_to_vdi() {
    $SUDO_TO_VBOX_TEMP mkdir --parents "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
-
-   ## Debugging.
-   ## Execute as user "user" (actually, default user that has run derivative-maker), because inside "user"'s home folder.
-   qemu-img \
-      info \
-         "$binary_image_raw_file"
 
    ## Can be safely deleted because stored under dedicated, temporary user account.
    ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
@@ -389,7 +390,7 @@ dns_specific() {
    $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
 }
 
-debugging() {
+debugging_post() {
    $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$VMNAME"
    $SUDO_TO_VBOX_TEMP VBoxManage getextradata "$VMNAME"
 }
@@ -403,6 +404,8 @@ main() {
    if ! test -e "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi" ; then
       error "ERROR: virtual hard drive file '$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi' does not exist!"
    fi
+
+   debugging_pre
 
    delete_vbox_vm
 
@@ -448,7 +451,7 @@ main() {
       error "ERROR: Invalid dist_build_flavor '$dist_build_flavor'. Please report this bug!"
    fi
 
-   debugging
+   debugging_post
 
    sync
 }
