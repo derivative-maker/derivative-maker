@@ -18,6 +18,25 @@ source pre
 source colors
 source variables
 
+delete_vbox_vm() {
+   ## Turning off the VM without saving.
+   $SUDO_TO_VBOX_TEMP VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+
+   ## Delete old VM.
+   $SUDO_TO_VBOX_TEMP VBoxManage unregistervm "$VMNAME" --delete || true
+   sync
+
+   ## The "$SUDO_TO_VBOX_TEMP VBoxManage unregistervm --delete" does not do its job,
+   ## we have to manually delete the VM folder.
+   $SUDO_TO_ROOT safe-rm -r -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
+   sync
+
+   ## Delete old ova.
+   #$SUDO_TO_ROOT safe-rm -f "$binary_image_ova_file"
+   #sync
+}
+
 convert_raw_to_vdi() {
    $SUDO_TO_VBOX_TEMP mkdir --parents "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
 
@@ -384,6 +403,8 @@ main() {
    if ! test -e "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi" ; then
       error "ERROR: virtual hard drive file '$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi' does not exist!"
    fi
+
+   delete_vbox_vm
 
    convert_raw_to_vdi
 
