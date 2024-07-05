@@ -18,6 +18,35 @@ source pre
 source colors
 source variables
 
+convert_raw_to_vdi() {
+   $SUDO_TO_VBOX_TEMP mkdir --parents "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
+
+   ## Debugging.
+   ## Execute as user "user" (actually, default user that has run derivative-maker), because inside "user"'s home folder.
+   qemu-img \
+      info \
+         "$binary_image_raw_file"
+
+   ## Can be safely deleted because stored under dedicated, temporary user account.
+   ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
+   $SUDO_TO_VBOX_TEMP safe-rm -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$binary_image_raw_file" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   ## Debugging.
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   if [ "$dist_build_fast1" = "1" ]; then
+      echo "${bold}${cyan}INFO: run with '--fast 1' switch, skipping compacting vdi. ${reset}"
+      exit 0
+   else
+      $SUDO_TO_VBOX_TEMP VBoxManage modifymedium --compact "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   fi
+
+   ## Debugging.
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+}
+
 general_setup() {
    ## Create a new VM. Name: $VMNAME
    $SUDO_TO_VBOX_TEMP VBoxManage createvm --name "$VMNAME" --register
@@ -355,6 +384,8 @@ main() {
    if ! test -e "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi" ; then
       error "ERROR: virtual hard drive file '$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi' does not exist!"
    fi
+
+   convert_raw_to_vdi
 
    general_setup
 
