@@ -85,28 +85,25 @@ build_upload_noninteractive=true
 export build_upload_noninteractive
 
 [ -n "$architecture" ] || architecture=$(dpkg --print-architecture)
-build_args+=(--arch "$architecture")
+build_args+=("--arch $architecture")
 
 multi_target_args=()
 
 case $architecture in
   amd64)
-    ## Also build the Whonix-Windows-Installer.
-    ## Incomplete until Whonix-Windows-Installer authenticode certificate is available.
-    build_args+=(--target windows)
     ## '--target virtualbox'
     ## Build VirtualBox ova. (amd64 for Windows, Linux, Mac)
-    multi_target_args+=(--target virtualbox)
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target virtualbox")
+    multi_target_args+=("--target qcow2")
   ;;
   arm64)
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target qcow2")
     ## Only on arm64 for Mac M1, M2.
-    multi_target_args+=(--target utm)
+    multi_target_args+=("--target utm")
   ;;
   *)
     ## '--target qcow2' might be the most universal.
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target qcow2")
   ;;
 esac
 
@@ -118,6 +115,12 @@ esac
 ## (Maybe in the future for Whonix-Host.)
 ## The ISO should only be built for Kicksecure-Xfce for now.
 
+if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
+  upload_command "echo simulate-echo-only: dm-upload-images"
+else
+  upload_command="dm-upload-images"
+fi
+
 for flavor_item in "${flavors_list[@]}"; do
   run_cmd ./derivative-delete "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
@@ -125,23 +128,23 @@ done
 for flavor_item in "${flavors_list[@]}"; do
   ## Not yet using multi_target_args as the sanity test for Whonix-Gateway ISO would complain that the VMs
   ## have not been built yet.
-  run_cmd ./build-steps.d/*_sanity-tests "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+  run_cmd ./build-steps.d/*_sanity-tests "${build_args[@]}" --target windows "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
 
 ## Use both,
 ## * 1) '--target iso', and,
 ## * 2) "${multi_target_args[@]}"
 ## for prepare-build-machine, because additional dependencies are required for building the ISO.
-run_cmd ./build-steps.d/*_prepare-build-machine "${build_args[@]}" --target iso "${multi_target_args[@]}" --flavor internal "$@"
+run_cmd ./build-steps.d/*_prepare-build-machine "${build_args[@]}" --target iso --target windows "${multi_target_args[@]}" --flavor internal "$@"
 
-run_cmd ./build-steps.d/*_cowbuilder-setup "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
-run_cmd ./build-steps.d/*_local-dependencies "${build_args[@]}" "${multi_target_args[@]}" --flavor internal "$@"
+run_cmd ./build-steps.d/*_cowbuilder-setup "${build_args[@]}" --target iso --target windows "${multi_target_args[@]}" --flavor internal "$@"
+run_cmd ./build-steps.d/*_local-dependencies "${build_args[@]}" --target iso --target windows "${multi_target_args[@]}" --flavor internal "$@"
 
-## Same source code for all Xfce vs CLI and Kicksecure vs Whonix.
+## Same source code for all of the following: Xfce vs CLI and Kicksecure vs Whonix.
 run_cmd dm-prepare-release --target source --flavor "kicksecure-xfce" "$@"
 ## New. Upload here already for testing.
-run_cmd dm-upload-images --target source --flavor "kicksecure-xfce" "$@"
-run_cmd dm-upload-images --target source --flavor "whonix-workstation-xfce" "$@"
+run_cmd $upload_command --target source --flavor "kicksecure-xfce" "$@"
+run_cmd $upload_command --target source --flavor "whonix-workstation-xfce" "$@"
 
 export dist_build_raw_base_image_create=true
 ## '--flavor internal' would lead to variable dist_build_hostname being unset.
@@ -184,6 +187,13 @@ for flavor_item in "${flavors_list[@]}"; do
   run_cmd dm-prepare-release "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
 
+
+if [ "$architecture" = "amd64" ]; then
+  ## Also build the Whonix-Windows-Installer.
+  run_cmd dm-prepare-release --target windows --flavor whonix-workstation-xfce
+  run_cmd $upload_command --target windows --flavor whonix-workstation-xfce
+fi
+
 ## Uploading.
 for flavor_item in "${flavors_list[@]}"; do
   if echo "$flavor_item" | grep --quiet "gateway" ; then
@@ -191,23 +201,22 @@ for flavor_item in "${flavors_list[@]}"; do
     continue
   fi
 
-  if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
-    ## Skip upload of debug images.
-    echo simulate-echo-only: run_cmd dm-upload-images "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
-    continue
-  fi
-
   case $flavor_item in
     kicksecure-xfce)
       true "INFO: ISO build flavor."
-      run_cmd dm-upload-images "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
+      run_cmd $upload_command "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
       ;;
     *)
       true "INFO: Non-ISO build flavor."
       ;;
   esac
 
-  run_cmd dm-upload-images "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
+  ## Skip upload of debug images.
+  ## Cannot use "${multi_target_args[@]}" here, because
+  ## help-steps/variables variable dist_server_with_upload_location_list is does not support multiple "--target"'s.
+  for multi_target_arg_item in "${multi_target_args[@]}"; do
+    run_cmd $upload_command "${build_args[@]}" "$multi_target_arg_item" --flavor "$flavor_item" "$@"
+  done
 done
 
 true "$0: END"
