@@ -89,17 +89,17 @@ case $architecture in
   amd64)
     ## '--target virtualbox'
     ## Build VirtualBox ova. (amd64 for Windows, Linux, Mac)
-    multi_target_args+=(--target virtualbox)
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target" "virtualbox")
+    multi_target_args+=("--target" "qcow2")
   ;;
   arm64)
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target" "qcow2")
     ## Only on arm64 for Mac M1, M2.
-    multi_target_args+=(--target utm)
+    multi_target_args+=("--target" "utm")
   ;;
   *)
     ## '--target qcow2' might be the most universal.
-    multi_target_args+=(--target qcow2)
+    multi_target_args+=("--target" "qcow2")
   ;;
 esac
 
@@ -208,8 +208,10 @@ for flavor_item in "${flavors_list[@]}"; do
   ## Skip upload of debug images.
   ## Cannot use "${multi_target_args[@]}" here, because
   ## help-steps/variables variable dist_server_with_upload_location_list is does not support multiple "--target"'s.
-  for multi_target_arg_item in "${multi_target_args[@]}"; do
-    run_cmd $upload_command "${build_args[@]}" "$multi_target_arg_item" --flavor "$flavor_item" "$@"
+  for ((i=0; i<${#multi_target_args[@]}; i+=2)); do
+    target_arg="${multi_target_args[i]}"
+    target_value="${multi_target_args[i+1]}"
+    run_cmd $upload_command "${build_args[@]}" $target_arg $target_value --flavor "$flavor_item" "$@"
   done
 done
 
