@@ -366,13 +366,21 @@ create-virtualbox-temporary-user() {
    ## Debugging. Because SUDO_TO_VBOX_TEMP is failing on CI.
    if [ "$CI" = "true" ]; then
       whoami || true
+      ## ansible
       groups ansible || true
+      ## ansible : ansible sudo vboxusers
+
       $SUDO_TO_ROOT -- cat /etc/sudoers || true
       $SUDO_TO_ROOT -- ls -la /etc/sudoers.d || true
       $SUDO_TO_ROOT -- cat /etc/sudoers.d/90-cloud-init-users || true
       $SUDO_TO_ROOT -- cat /etc/sudoers.d/ansible-passwordless-sudo || true
       $SUDO_TO_ROOT -- cat /etc/sudoers.d/README || true
    fi
+
+   #ansible ALL=NOPASSWD: ALL
+   #root ALL=(ALL) NOPASSWD:ALL
+   ## TODO
+   #%sudo   ALL=(ALL:ALL) NOPASSWD:ALL
 
    ## TODO: add --quiet
    $SUDO_TO_ROOT -- adduser --system --group --home "$HOMEVAR_VBOX_TEMP" "dm-vbox-temp"

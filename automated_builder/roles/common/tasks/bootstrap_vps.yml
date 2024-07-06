@@ -29,13 +29,21 @@
         mode: 0600
         remote_src: true
 
-    - name: Allow passwordless sudo commands
-      community.general.sudoers:
-        name: ansible-passwordless-sudo
+    # - name: Allow passwordless sudo commands
+    #   community.general.sudoers:
+    #     name: ansible-passwordless-sudo
+    #     state: present
+    #     user: ansible
+    #     commands: ALL
+    #     nopassword: true
+
+    - name: Allow sudo group to use sudo without password
+      lineinfile:
+        path: /etc/sudoers.d/user-passwordless-ansible
         state: present
-        user: ansible
-        commands: ALL
-        nopassword: true
+        regexp: '^%sudo\s'
+        line: '%sudo ALL=(ALL:ALL) NOPASSWD:ALL'
+        validate: '/usr/sbin/visudo -cf %s'
 
     - name: Add host to hosts file
       lineinfile:
