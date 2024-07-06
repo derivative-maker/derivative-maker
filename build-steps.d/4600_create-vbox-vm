@@ -51,7 +51,14 @@ convert_raw_to_vdi() {
    ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
    $SUDO_TO_VBOX_TEMP safe-rm -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
-   $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$binary_image_raw_file" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   ## Copy $binary_image_raw_file into a folder accessible by "dm-vbox-temp" user.
+   ## TODO: Sequential / non-parallel. Not yet parallelizable builds.
+   $SUDO_TO_ROOT cp "$binary_image_raw_file" "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+   $SUDO_TO_ROOT chown "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+   ## Safe disk space.
+   $SUDO_TO_VBOX_TEMP safe-rm "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Debugging.
    $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
