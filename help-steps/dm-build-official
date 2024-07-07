@@ -113,9 +113,8 @@ esac
 
 if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
   ## Skip upload of debug images.
-  upload_command="echo simulate-echo-only: dm-upload-images"
-else
-  upload_command="dm-upload-images"
+  rsync_cmd="true simulate-only"
+  export rsync_cmd
 fi
 
 for flavor_item in "${flavors_list[@]}"; do
@@ -174,13 +173,13 @@ done
 
 ## Same source code for all of the following: Xfce vs CLI and Kicksecure vs Whonix.
 run_cmd dm-prepare-release --target source --flavor "kicksecure-xfce" "$@"
-run_cmd $upload_command --target source --flavor "kicksecure-xfce" "$@"
-run_cmd $upload_command --target source --flavor "whonix-workstation-xfce" "$@"
+run_cmd dm-upload-images --target source --flavor "kicksecure-xfce" "$@"
+run_cmd dm-upload-images --target source --flavor "whonix-workstation-xfce" "$@"
 
 if [ "$architecture" = "amd64" ]; then
   ## Also build the Whonix-Windows-Installer.
   run_cmd dm-prepare-release --target windows --flavor whonix-workstation-xfce
-  run_cmd $upload_command --target windows --flavor whonix-workstation-xfce
+  run_cmd dm-upload-images --target windows --flavor whonix-workstation-xfce
 fi
 
 ## Uploading.
@@ -193,7 +192,7 @@ for flavor_item in "${flavors_list[@]}"; do
   case $flavor_item in
     kicksecure-xfce)
       true "INFO: ISO build flavor."
-      run_cmd $upload_command "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
+      run_cmd dm-upload-images "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
       ;;
     *)
       true "INFO: Non-ISO build flavor."
@@ -205,7 +204,7 @@ for flavor_item in "${flavors_list[@]}"; do
   for ((i=0; i<${#multi_target_args[@]}; i+=2)); do
     target_arg="${multi_target_args[i]}"
     target_value="${multi_target_args[i+1]}"
-    run_cmd $upload_command "${build_args[@]}" $target_arg $target_value --flavor "$flavor_item" "$@"
+    run_cmd dm-upload-images "${build_args[@]}" $target_arg $target_value --flavor "$flavor_item" "$@"
   done
 done
 
