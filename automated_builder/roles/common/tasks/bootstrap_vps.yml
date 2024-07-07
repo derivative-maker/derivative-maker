@@ -38,12 +38,13 @@
     #     nopassword: true
 
     - name: Allow sudo group to use sudo without password
-      lineinfile:
-        path: /etc/sudoers.d/user-passwordless-ansible
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers.d/user-passwordless-ansible
         state: present
-        regexp: '^%sudo\s'
+        create: yes
         line: '%sudo ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: '/usr/sbin/visudo -cf %s'
+        mode: '0440'
 
     - name: Add host to hosts file
       lineinfile:
