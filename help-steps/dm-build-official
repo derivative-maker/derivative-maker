@@ -80,6 +80,12 @@ export build_upload_noninteractive
 dist_build_redistributable=true
 export dist_build_redistributable
 
+if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
+  ## Skip upload of debug images.
+  rsync_cmd="true simulate-only"
+  export rsync_cmd
+fi
+
 [ -n "$architecture" ] || architecture=$(dpkg --print-architecture)
 build_args+=(--arch $architecture)
 
@@ -110,12 +116,6 @@ esac
 ## because no ISO should be build for Whonix-Gateway, Whonix-Workstation.
 ## (Maybe in the future for Whonix-Host.)
 ## The ISO should only be built for Kicksecure-Xfce for now.
-
-if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
-  ## Skip upload of debug images.
-  rsync_cmd="true simulate-only"
-  export rsync_cmd
-fi
 
 for flavor_item in "${flavors_list[@]}"; do
   ## Not yet using multi_target_args as the sanity test for Whonix-Gateway ISO would complain that the VMs
