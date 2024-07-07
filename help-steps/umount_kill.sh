@@ -73,7 +73,7 @@ temp3=$(echo "$temp2" | tail -n +2) || true
 pids=$(echo "$temp3" | awk '{print $2}') || true
 
 if [ "$pids" = "" ]; then
-   echo "INFO: Okay, no pids still running in '$file_system_object', no need to kill any."
+   true "INFO: Okay, no pids still running in '$file_system_object', no need to kill any."
 else
    echo "INFO: Okay, the following pids are still running inside '$file_system_object', which will now be killed."
 
