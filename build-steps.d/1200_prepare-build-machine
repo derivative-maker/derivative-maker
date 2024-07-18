@@ -469,26 +469,13 @@ packages_installation_from_newer_repository() {
 
 signing_key() {
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$dist_build_sign_local_repository" = "false" ]; then
-      true "INFO: Skipping signing_key test because 'dist_build_sign_local_repository=false'."
-      return 0
-   fi
    if [ "$GPG_AGENT_INFO" = "" ]; then
       true "${cyan}${bold}INFO: Environment variable ${under}GPG_AGENT_INFO${eunder} is not set. gnupg-agent will not be available.${reset}"
    fi
-   if [ "$CI" = "true" ]; then
-      if test -f "$binary_build_folder_dist/status-files/signing-key-create.done" ; then
-         ## Doing this only once be because the signing-key-create script by design errors out if there already is an existing
-         ## signing key. This is to avoid overwriting an already existing user created signing key.
-         true "INFO: Skipping signing_key creation because was already done earlier."
-      else
-         true "INFO: Automatically create signing key on CI..."
-         "$dist_source_help_steps_folder/signing-key-create" "$@"
-         ## Create a status file to avoid re-running this.
-         mkdir --parents "$binary_build_folder_dist/status-files"
-         touch "$binary_build_folder_dist/status-files/signing-key-create.done"
-      fi
-   fi
+
+   ## Create signing keys if none exist yet.
+   "$dist_source_help_steps_folder/signing-key-create" "$@"
+
    ## Letting a builder using a gpg key password cache its passwords early,
    ## so we do not pause the build process later when reprepro creates the
    ## local apt repository or when signing redistributable images.
