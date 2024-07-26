@@ -16,7 +16,7 @@ main() {
 
 build_command() {
   debug_args_maybe=()
-  debug_args_maybe+=(--remote-derivative-packages true)
+  #debug_args_maybe+=(--remote-derivative-packages true)
 
   /home/ansible/derivative-maker/help-steps/dm-build-official "${debug_args_maybe[@]}" "$@"
 }
