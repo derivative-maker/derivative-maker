@@ -473,8 +473,12 @@ signing_key() {
       true "${cyan}${bold}INFO: Environment variable ${under}GPG_AGENT_INFO${eunder} is not set. gnupg-agent will not be available.${reset}"
    fi
 
-   ## Create signing keys if none exist yet.
-   "$dist_source_help_steps_folder/signing-key-create" "$@"
+   if [ "$dist_build_redistributable" = "true" ]; then
+      true "INFO: dist_build_redistributable=true, therefore skipping $dist_source_help_steps_folder/signing-key-create, ok."
+   else
+      true "INFO: Create signing keys if none exist yet..."
+      "$dist_source_help_steps_folder/signing-key-create" "$@"
+   fi
 
    ## Letting a builder using a gpg key password cache its passwords early,
    ## so we do not pause the build process later when reprepro creates the
