@@ -154,6 +154,23 @@ download_packages_from_debian_sid() {
    build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
+download_packages_from_debian_bookworm_backports() {
+   available_architectures_for_download_only_list="all"
+   dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
+   repo_signing_key="none"
+   repo_sources_list="$dist_build_sources_list_debian_bookworm_backports"
+   temp_newer_packages="$binary_build_folder_dist/temp_packages_debian_bookworm_backports"
+   export download_source_package="false"
+
+   newer_package_list=""
+   
+   if [ "$dist_build_iso" = "true" ]; then
+      newer_package_list="calamares"
+   fi
+
+   build_run_function get_newer_packages_from_third_party_repositories "$@";
+}
+
 get_newer_packages_from_third_party_repositories() {
    true "${cyan}$BASH_SOURCE INFO: Downloading newer packages from third-party repository... ${reset}"
 
@@ -409,6 +426,7 @@ create-debian-packages() {
 
    #build_run_function download_virtualbox_packages_virtualbox_org "$@"
    #build_run_function download_packages_from_debian_sid "$@"
+   build_run_function download_packages_from_debian_bookworm_backports "$@"
 
    ## https://www.whonix.org/wiki/Dev/Tor
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593/57
