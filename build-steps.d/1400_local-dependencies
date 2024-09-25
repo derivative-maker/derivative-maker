@@ -85,8 +85,9 @@ virtualbox_windows_installer_download() {
    #CURL_PROXY=
    CURL_FORCE_SSL="--tlsv1.3 --proto =https --cert-status"
    #CURL_OPTS="--verbose"
-   CURL_OUT_FILE="$binary_build_folder_dist/virtualbox-windows-installer-binary/$versioned_virtualbox_file_name"
    curl_download_max_time="3600"
+
+   CURL_OUT_FILE="$binary_build_folder_dist/virtualbox-windows-installer-binary/$versioned_virtualbox_file_name"
 
    $CURL_PRGRS \
       $CURL_RESUME \
@@ -105,6 +106,31 @@ virtualbox_windows_installer_download() {
    ## provided by package: developer-meta-files
    ## Would also notice if multiple VirtualBox-*-Win.exe files are inside the virtualbox-windows-installer-binary folder.
    dm-virtualbox-installer-exe-verify-windows
+
+   CURL_OUT_FILE="$binary_build_folder_dist/virtualbox-windows-installer-binary/vc_redist.x64.exe"
+   #vc_redist_target_url="https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x64.exe"
+   vc_redist_target_url="https://aka.ms/vs/17/release/vc_redist.arm64.exe"
+
+   curl_download_target_url="$vc_redist_target_url"
+
+   ## Microsoft only supports tlsv1.2 at time of writing.
+   CURL_FORCE_SSL="--tlsv1.2 --proto =https --cert-status"
+
+   $CURL_PRGRS \
+      $CURL_RESUME \
+      --fail \
+      $CURL_PROXY \
+      $CURL_FORCE_SSL \
+      --retry-connrefused \
+      --retry 10 \
+      --retry-delay 60 \
+      --max-time "$curl_download_max_time" \
+      --location \
+      $CURL_OPTS \
+      --output "$CURL_OUT_FILE" \
+      "$curl_download_target_url"
+
+   dm-virtualbox-installer-vc_redist-verify-windows
 
    popd >/dev/null
 
