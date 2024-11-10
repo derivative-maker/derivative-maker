@@ -1,0 +1,268 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: $BASH_SOURCE $@"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+cd ..
+cd help-steps
+
+source pre
+source colors
+source variables
+
+# Stub, allows autodetection of GRUB configuration option to work without errors
+str_replace() {
+    echo ''
+}
+
+create-live-build-image() {
+   # Prepare live-build directory
+
+   dist_live_build_folder="${dist_binary_build_folder}/live-build"
+   mkdir -p "${dist_live_build_folder}/auto"
+   pushd "${dist_live_build_folder}"
+
+   # Install basic live-build configuration
+
+   live_build_localrepo_location=""
+   live_build_localrepo_list=""
+
+   if [ "${build_remote_derivative_pkgs}" != 'true' ]; then
+      derivative_repository_name='kicksecure'
+      set_dist_build_reprepro_folder_options
+      live_build_localrepo_location="${dist_apt_repository_folder}"
+      live_build_localrepo_list="local main contrib non-free"
+   fi
+
+   $SUDO_TO_ROOT lb clean # in case there's a leftover build tree present
+
+   mkdir -p auto
+   live_build_auto_config="#!/bin/sh
+
+set -e
+
+lb config noauto \\
+	--apt apt-get \\
+	--apt-http-proxy '${REPO_PROXY}' \\
+	--apt-indices false \\
+	--apt-options '${APTGETOPT[@]} --yes --allow-remove-essential' \\
+	--apt-recommends false \\
+	--apt-source-archives false \\
+	--archive-areas 'main contrib non-free non-free-firmware' \\
+	--backports true \\
+	--binary-image iso-hybrid \\
+	--bootappend-live 'rd.live.overlay.overlayfs=1 boot=live components splash live-config.hostname=kicksecure rd.live.image root=live:CDLABEL=Kicksecure_17 rd.live.dir=live rd.live.squashimg=filesystem.squashfs' \\
+	--bootappend-live-failsafe 'none' \\
+	--bootloaders 'grub-pc grub-efi' \\
+	--cache false \\
+	--chroot-localrepo-locations '${live_build_localrepo_location}' \\
+	--chroot-localrepo-lists '${live_build_localrepo_list}' \\
+	--debian-installer live \\
+	--debootstrap-engine mmdebstrap \\
+	--debootstrap-options '--include=apt-transport-https,ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
+	--debug \\
+	--distribution '${dist_build_apt_stable_release}' \\
+	--firmware-binary false \\
+	--firmware-chroot false \\
+	--image-name 'kicksecure-${dist_build_version}' \\
+	--initramfs dracut-live \\
+	--iso-application 'Kicksecure' \\
+	--iso-preparer 'Kicksecure live-build; https://github.com/Kicksecure/live-build' \\
+	--iso-publisher 'ENCRYPTED SUPPORT LP; https://kicksecure.com' \\
+	--iso-volume 'Kicksecure 17' \\
+	--linux-packages 'linux-image linux-headers' \\
+	--mirror-binary '${dist_build_apt_sources_mirror}' \\
+	--mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
+	--mirror-bootstrap '${dist_build_apt_sources_mirror}' \\
+	--mirror-chroot '${dist_build_apt_sources_mirror}' \\
+	--mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
+	--mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
+	--parent-mirror-binary '${dist_build_apt_sources_mirror}' \\
+	--parent-mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
+	--parent-mirror-bootstrap '${dist_build_apt_sources_mirror}' \\
+	--parent-mirror-chroot '${dist_build_apt_sources_mirror}' \\
+	--parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
+	--parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
+	--verbose \\
+	--zsync false \\
+	\"\${@}\""
+   echo "${live_build_auto_config}" > auto/config
+   chmod +x auto/config
+   cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_auto_clean" auto/clean
+   chmod +x auto/clean
+
+   # Generate initial autoconfig data (incomplete)
+   lb config
+
+   # Install full configuration
+
+   pushd config
+
+   # Apt archives
+
+   mkdir -p archives
+   echo "deb https://fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" > archives/fasttrack.list.chroot
+   if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
+      echo "deb https://deb.kicksecure.com ${dist_build_apt_stable_release} main contrib non-free" > archives/kicksecuretmp.list.chroot
+      cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/kicksecuretmp.key.chroot
+   fi
+
+   # Package lists
+
+   mkdir -p package-lists
+   cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_live" package-lists/live.list.chroot
+   # NOTE: This file is called 'z-kicksecure.list.chroot' because the list
+   # files are handled in alphabetical order and these packages MUST be
+   # handled last.
+   cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_kicksecure" package-lists/z-kicksecure.list.chroot
+
+   # Apt configuration
+
+   mkdir -p apt
+   live_build_package_pins="Package: calamares
+Pin: release a=${dist_build_apt_stable_release}-backports
+Pin-Priority: 900"
+   echo "${live_build_package_pins}" > apt/preferences
+
+   # Branding and GRUB configuration
+
+   mkdir -p bootloaders
+   cp -r "${source_code_folder_dist}/live-build-data/grub-config" bootloaders/grub-pc
+   mkdir -p includes.installer/usr/share/graphics
+   cp "${source_code_folder_dist}/live-build-data/d-i-branding"/* includes.installer/usr/share/graphics/
+   mkdir -p 'includes.installer/usr/share/themes/Clearlooks/gtk-2.0'
+   cp "${source_code_folder_dist}/live-build-data/d-i-theme/gtkrc" includes.installer/usr/share/themes/Clearlooks/gtk-2.0/gtkrc
+
+   # d-i config
+   cp "${source_code_folder_dist}/live-build-data/preseed.cfg" includes.installer/preseed.cfg
+
+   popd
+
+   # Parse full configuration
+   lb config
+   lb config --dump
+   lb config --validate 
+
+   # Build ISO bootstrap
+   if ! $SUDO_TO_ROOT lb bootstrap --verbose --debug; then
+      true "${bold}${red}ERROR: Live build bootstrap stage failed!${reset}"
+      error "See above!"
+      return 0
+   fi
+
+   # Keep security-misc from erroring out during installation
+   $SUDO_TO_ROOT mkdir -p chroot/var/lib/security-misc
+   $SUDO_TO_ROOT touch chroot/var/lib/security-misc/skip_install_check
+   # Make dist-base-files create a user as it should
+   $SUDO_TO_ROOT mkdir -p chroot/var/lib/dist-base-files
+   $SUDO_TO_ROOT touch chroot/var/lib/dist-base-files/live_build
+   # Ensure kernel is configured properly, we aren't using grml-debootstrap so we have to do this ourselves
+   mkdir -p chroot/etc
+   $SUDO_TO_ROOT cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_kernel_img_conf" chroot/etc/kernel-img.conf
+
+   # Build ISO chroot
+   if ! $SUDO_TO_ROOT lb chroot --verbose --debug; then
+      true "${bold}${red}ERROR: Live build chroot stage failed!${reset}"
+      error "See above!"
+      return 0
+   fi
+
+   # Generate repository-dist config file
+   $SUDO_TO_ROOT chroot chroot repository-dist $DERIVATIVE_APT_REPOSITORY_OPTS
+   if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
+      # Get rid of temporary repo and key
+      safe-rm config/archives/kicksecuretmp.list.chroot
+      safe-rm config/archives/kicksecuretmp.key.chroot
+   fi
+
+   # Extract bootloader configuration and put it in the live-build config
+   # live-build unmounts several important directories when it exits a stage,
+   # but we actually need some of those here, so we have to manually remount
+   # them.
+   $SUDO_TO_ROOT mount --bind /dev chroot/dev
+   $SUDO_TO_ROOT mount --bind /dev/pts chroot/dev/pts
+   $SUDO_TO_ROOT mount --bind /sys chroot/sys
+   $SUDO_TO_ROOT mount --bind /proc chroot/proc
+   live_build_bootloader_config="$($SUDO_TO_ROOT chroot chroot grub-mkconfig \
+      | grep '^\s*linux' \
+      | head -n1 \
+      | cut -d' ' -f5-)"
+   sed -i "s/LB_BOOTAPPEND_LIVE=\"\(.*\)\"/LB_BOOTAPPEND_LIVE=\"\1 ${live_build_bootloader_config}\"/" config/binary
+   # Get rid of the temp bootloader, we don't need it anymore and it will
+   # cause installation issues
+   $SUDO_TO_ROOT chroot chroot apt-get "${APTGETOPT[@]}" --yes purge grub-pc
+   $SUDO_TO_ROOT chroot chroot apt-get "${APTGETOPT[@]}" --yes autopurge
+   $SUDO_TO_ROOT umount chroot/proc
+   $SUDO_TO_ROOT umount chroot/sys
+   $SUDO_TO_ROOT umount chroot/dev/pts
+   $SUDO_TO_ROOT umount chroot/dev
+
+   # Add debian-installer
+   if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
+      true "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
+      error "See above!"
+      return 0
+   fi
+
+   # Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded
+   $SUDO_TO_ROOT safe-rm chroot/etc/apt/sources.list
+   # Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
+   $SUDO_TO_ROOT safe-rm chroot/etc/apt/apt.conf.d/00recommends
+   # Don't force Dracut to make reproducible images, the default is to not use reproducible mode, this is most likely a live-build artifact
+   $SUDO_TO_ROOT safe-rm chroot/etc/dracut.conf.d/50-reproducible.conf
+   # Blank file most likely left by live-build
+   $SUDO_TO_ROOT safe-rm chroot/etc/udev/rules.d/70-persistent-cd.rules
+   # We inserted this earlier to prevent security-misc from erroring out, but it could actually cause problems now, and it's no longer needed
+   $SUDO_TO_ROOT safe-rm chroot/var/lib/security-misc/skip_install_check
+   # This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
+   $SUDO_TO_ROOT safe-rm chroot/var/lib/dist-base-files/live_build
+   # Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?
+   if [ -d "chroot/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
+      ## Check which chroot scripts we got.
+      $SUDO_TO_ROOT chroot chroot run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+
+      ## Run the chroot scripts.
+      $SUDO_TO_ROOT chroot chroot run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+   else
+      true "${green}${bold}INFO: Folder /usr/libexec/initializer-dist/chroot-scripts-post.d does not exist in chroot.
+Not running any chroot scripts.${reset}"
+   fi
+
+   # Package into an ISO
+   if ! $SUDO_TO_ROOT lb binary --verbose --debug; then
+      true "${bold}${red}ERROR: Live build binary stage failed!${reset}"
+      error "See above!"
+      return 0
+   fi
+
+   # Cleanup
+   mv "kicksecure-${dist_build_version}-amd64.hybrid.iso" "${binary_image_iso_file}"
+   popd
+}
+
+main() {
+   if [ "${dist_build_install_to_root}" = "true" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to true.${reset}"
+      return 0
+   fi
+
+   if [ "${dist_build_iso}" != "true" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is not set to true.${reset}"
+      return 0
+   elif [ "${dist_build_type_short}" != "kicksecure" ]; then
+      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_type_short is not set to 'kicksecure'.${reset}"
+      return 0
+   fi
+
+   create-live-build-image
+}
+
+main "$@"
