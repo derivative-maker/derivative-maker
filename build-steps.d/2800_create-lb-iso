@@ -149,7 +149,7 @@ Pin-Priority: 900"
    # Parse full configuration
    lb config
    lb config --dump
-   lb config --validate 
+   lb config --validate
 
    # Build ISO bootstrap
    if ! $SUDO_TO_ROOT lb bootstrap --verbose --debug; then
@@ -212,11 +212,13 @@ Pin-Priority: 900"
       return 0
    fi
 
-   # Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded
+   # Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
    $SUDO_TO_ROOT safe-rm chroot/etc/apt/sources.list
    # Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
    $SUDO_TO_ROOT safe-rm chroot/etc/apt/apt.conf.d/00recommends
    # Don't force Dracut to make reproducible images, the default is to not use reproducible mode, this is most likely a live-build artifact
+   # security-misc implements sets dracut's 'reproducible=yes' setting anyhow in file:
+   # ./packages/kicksecure/security-misc/etc/dracut.conf.d/30-security-misc.conf
    $SUDO_TO_ROOT safe-rm chroot/etc/dracut.conf.d/50-reproducible.conf
    # Blank file most likely left by live-build
    $SUDO_TO_ROOT safe-rm chroot/etc/udev/rules.d/70-persistent-cd.rules
