@@ -404,6 +404,46 @@ grml-debootstrap_installation() {
    true
 }
 
+live-build_installation() {
+   local restore_uncommitted_state
+
+   restore_uncommitted_state='y'
+
+   ## live-build's manpages must be built first, or it will fail to
+   ## install. However, building the manpages modifies the source tree,
+   ## and we don't want to overwrite any uncommitted changes the user may
+   ## have. We therefore make a "checkpoint" commit that we almost
+   ## immediately undo, preserving any uncommitted changes. This does
+   ## result in all modified files becoming unstaged, which isn't perfect
+   ## but isn't horrible either. Preserving which files are staged and
+   ## which ones are not is probably difficult.
+
+   pushd "$source_code_folder_dist/live-build"
+
+   ## Preserve uncommitted changes
+   git add -A
+   git commit -m 'checkpoint' || {
+      restore_uncommitted_state='n'
+      true
+   }
+
+   ## Build and install
+   make -C manpages update
+   make -C manpages build
+   $SUDO_TO_ROOT make install
+
+   ## Revert back to the checkpoint
+   git add -A
+   git reset --hard HEAD
+
+   ## Restore uncommitted source tree state
+   if [ "$restore_uncommitted_state" = 'y' ]; then
+      git reset HEAD^
+   fi
+   popd
+   true
+}
+
 packages_installation_from_newer_check() {
    local package_item
    for package_item in $dist_build_script_build_dependency_windows_installer_debian_testing ; do
@@ -506,6 +546,7 @@ main() {
    check-virtualbox-vm-exists "$@"
    create-virtualbox-temporary-user "$@"
    grml-debootstrap_installation "$@"
+   live-build_installation "$@"
    packages_installation_from_newer_repository "$@"
    signing_key "$@"
 }
