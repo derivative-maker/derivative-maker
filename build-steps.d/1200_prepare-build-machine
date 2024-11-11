@@ -420,27 +420,47 @@ live-build_installation() {
 
    pushd "$source_code_folder_dist/live-build"
 
-   ## Preserve uncommitted changes
-   git add -A
-   git commit -m 'checkpoint' || {
-      restore_uncommitted_state='n'
-      true
-   }
+   ## Do not proceed if the working tree is unclean.
+   ## provided by: help-steps/pre
+   ## Actually not needed, ./build-steps.d/1100_sanity-tests should cover this already.
+   #nothing_to_commit_test
 
-   ## Build and install
+   ## Preserve uncommitted changes
+   #git add -A
+   #git commit -m 'checkpoint' || {
+      #restore_uncommitted_state='n'
+      #true
+   #}
+
+   ## Build live-build man pages.
+   ## This makes the ./manpages/ folder dirty.
    make -C manpages update
    make -C manpages build
+
+   ## Install live-build.
    $SUDO_TO_ROOT make install
 
    ## Revert back to the checkpoint
-   git add -A
-   git reset --hard HEAD
+   #git add -A
+
+   ## git status
+   ## > modified:   manpages/
+   ## Back to pristine source code.
+   ## Delete auto generated manpages.
+   ## Doing it for all of the live-build source code might make things more cumbersome for developers.
+   #git reset --hard HEAD
+   git checkout HEAD -- ./manpages/
 
    ## Restore uncommitted source tree state
-   if [ "$restore_uncommitted_state" = 'y' ]; then
-      git reset HEAD^
-   fi
+   #if [ "$restore_uncommitted_state" = 'y' ]; then
+      #git reset HEAD^
+   #fi
+
+   ## Sanity test.
+   #nothing_to_commit_test
+
    popd
+
    true
 }
 
