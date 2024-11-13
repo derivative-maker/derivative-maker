@@ -14,6 +14,9 @@ main() {
   echo "COMMIT_BRANCH: $COMMIT_BRANCH"
   echo "VERSION_TAG: $VERSION_TAG"
 
+  ## Debugging.
+  env
+
   clean_old_source
   install_source_code
   checkout_code
