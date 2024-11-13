@@ -6,6 +6,7 @@ set -e
 REPO_URL="$1"
 COMMIT_BRANCH="$2"
 VERSION_TAG="$3"
+GITHUB_EVENT_NAME="$4"
 
 main() {
   echo "$0: START"
@@ -13,6 +14,13 @@ main() {
   echo "REPO_URL: $REPO_URL"
   echo "COMMIT_BRANCH: $COMMIT_BRANCH"
   echo "VERSION_TAG: $VERSION_TAG"
+
+  if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+      VERSION_TAG=""
+      echo "Detected pull request. VERSION_TAG set to empty."
+  else
+      echo "Regular branch or tag push. Using provided VERSION_TAG: $VERSION_TAG"
+  fi
 
   ## Debugging.
   env
