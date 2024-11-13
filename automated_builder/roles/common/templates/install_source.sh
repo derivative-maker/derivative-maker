@@ -10,8 +10,9 @@ VERSION_TAG="$3"
 main() {
   echo "$0: START"
   echo "Running source code installation script..."
-  echo "CI repository URL: $REPO_URL"
-  echo "CI Branch: $COMMIT_BRANCH"
+  echo "REPO_URL: $REPO_URL"
+  echo "COMMIT_BRANCH: $COMMIT_BRANCH"
+  echo "VERSION_TAG: $VERSION_TAG"
 
   clean_old_source
   install_source_code
