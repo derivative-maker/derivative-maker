@@ -14,9 +14,16 @@ else
    xtrace_was_set="false"
 fi
 
+## Cannot be implemented in help-steps/parse-cmd since it runs later than this.
+if echo "$@" | grep --quiet --fixed-strings -- "--debug" ; then
+   dist_build_no_unset_xtrace=true
+fi
+
 if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
    dist_build_no_unset_xtrace=false
-   true "$BASH_SOURCE INFO: dist_build_no_unset_xtrace=false - Therefore disable xtrace."
+   ## This runs even before the command line parser. So this cannot easily be implemented as as '--debug' optoin.
+   true "\
+$BASH_SOURCE INFO: Disabling verbose/debug output (xtrace) (set +x) because dist_build_no_unset_xtrace=false. For more verbose output add the following build option: --debug"
    set +x
 fi
 
