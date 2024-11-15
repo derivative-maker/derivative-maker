@@ -172,11 +172,17 @@ Pin-Priority: 900"
       error "${bold}${red}ERROR: Live build chroot stage failed!${reset}"
    fi
 
-   # Enable generation of repository-dist config file
+   ## TODO: refactoring. Use replace 'chroot' with "${CHROOT_FOLDER}" everywhere in this script.
+   CHROOT_FOLDER="$(realpath chroot)"
+
+   ## Enable generation of repository-dist config file
+   ## Code duplication.
+   ## Same as in install-packages.
    if [ "${build_remote_repo_enable}" = 'true' ]; then
-      $SUDO_TO_ROOT chroot chroot systemctl enable repository-dist-installer.service
-      echo "${DERIVATIVE_APT_REPOSITORY_OPTS}" | $SUDO_TO_ROOT tee -- chroot/var/lib/repository-dist/derivative_apt_repository_opts
+      mkdir --parents "${CHROOT_FOLDER}/var/lib/repository-dist/"
+      $SUDO_TO_ROOT cp "${binary_build_folder_dist}/derivative_apt_repository_opts" "${CHROOT_FOLDER}/var/lib/repository-dist/derivative_apt_repository_opts"
    fi
+
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
       # Get rid of temporary repo and key
       safe-rm config/archives/kicksecuretmp.list.chroot
