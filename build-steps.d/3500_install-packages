@@ -536,6 +536,20 @@ $dist_build_script_skip_package_install${reset}"
    sync
 }
 
+set-up-repository-dist() {
+   "$dist_source_help_steps_folder/mount-raw" "$@"
+   "$dist_source_help_steps_folder/prevent-daemons-from-starting" "$@"
+   "$dist_source_help_steps_folder/chroot-raw" "$@"
+
+   if [ "${build_remote_repo_enable}" = 'true' ]; then
+      $SUDO_TO_ROOT $CHROOT systemctl enable repository-dist-installer.service
+      echo "${DERIVATIVE_APT_REPOSITORY_OPTS}" | $SUDO_TO_ROOT tee -- "${CHROOT_FOLDER}/var/lib/repository-dist/derivative_apt_repository_opts"
+   fi
+
+   "$dist_source_help_steps_folder/unchroot-raw" "$@"
+   "$dist_source_help_steps_folder/unmount-raw" "$@"
+}
+
 main() {
    if [ "$dist_build_iso" = "true" ]; then
        true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is set to true.${reset}"
@@ -546,6 +560,7 @@ main() {
       true "${cyan}INFO: Skipping installing packages for $VMNAME.${reset}"
    else
       install-packages "$@"
+      set-up-repository-dist "$@"
    fi
 }
 
