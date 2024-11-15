@@ -1,8 +1,23 @@
+
 #!/bin/bash
 
 set -x
 set -e
 
-/home/ansible/build_vms_from_tag.sh \
-  --allow-untagged true \
-  --remote-derivative-packages true
+true "$0: START"
+
+export CI=true
+
+main() {
+  build_command "$@" >> /home/ansible/build.log 2>&1
+}
+
+build_command() {
+  /home/ansible/derivative-maker/help-steps/dm-build-official \
+    --allow-untagged true \
+    --remote-derivative-packages true
+}
+
+main "$@"
+
+true "$0: END"
