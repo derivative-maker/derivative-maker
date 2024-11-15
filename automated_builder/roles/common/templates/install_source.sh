@@ -14,16 +14,14 @@ main() {
   echo "REPO_URL: $REPO_URL"
   echo "COMMIT_BRANCH: $COMMIT_BRANCH"
   echo "VERSION_TAG: $VERSION_TAG"
+  echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
 
   if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-      VERSION_TAG=""
+      skip_tag="true"
       echo "Detected pull request. VERSION_TAG set to empty."
   else
       echo "Regular branch or tag push. Using provided VERSION_TAG: $VERSION_TAG"
   fi
-
-  ## Debugging.
-  env
 
   clean_old_source
   install_source_code
@@ -51,7 +49,7 @@ install_source_code() {
 }
 
 checkout_code(){
-  if [ -z "$VERSION_TAG" ]; then
+  if [ -z "$skip_tag" ]; then
     git checkout "$COMMIT_BRANCH"
   else
     git checkout "$VERSION_TAG"
