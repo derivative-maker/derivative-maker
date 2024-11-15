@@ -9,25 +9,25 @@ VERSION_TAG="$3"
 GITHUB_EVENT_NAME="$4"
 
 main() {
-  echo "$0: START"
-  echo "Running source code installation script..."
+  determine_event
+  clean_old_source
+  install_source_code
+  checkout_code
+}
+
+determine_event() {
+  echo "Determining source code ref"
   echo "REPO_URL: $REPO_URL"
   echo "COMMIT_BRANCH: $COMMIT_BRANCH"
   echo "VERSION_TAG: $VERSION_TAG"
   echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
 
-  if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-      skip_tag="true"
-      echo "Detected pull request. VERSION_TAG set to empty."
+  if [[ "${GITHUB_EVENT_NAME}" = "pull_request" ]]; then
+      SKIP_TAG=1
+      echo "Detected pull request. SKIP_TAG set to true"
   else
-      echo "Regular branch or tag push. Using provided VERSION_TAG: $VERSION_TAG"
+      echo "Tag or commit push. Using provided ref: $VERSION_TAG"
   fi
-
-  clean_old_source
-  install_source_code
-  checkout_code
-
-  echo "$0: END"
 }
 
 clean_old_source() {
