@@ -199,7 +199,9 @@ Pin-Priority: 900"
       | grep '^\s*linux' \
       | head -n1 \
       | cut -d' ' -f5-)"
+
    sed -i "s/LB_BOOTAPPEND_LIVE=\"\(.*\)\"/LB_BOOTAPPEND_LIVE=\"\1 ${live_build_bootloader_config}\"/" config/binary
+
    # Get rid of the temp bootloader, we don't need it anymore and it will
    # cause installation issues
    $SUDO_TO_ROOT chroot chroot apt-get "${APTGETOPT[@]}" --yes purge grub-pc
@@ -228,10 +230,12 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT safe-rm chroot/var/lib/security-misc/skip_install_check
    # This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
    $SUDO_TO_ROOT safe-rm chroot/var/lib/dist-base-files/live_build
+
    if [ "$($SUDO_TO_ROOT chroot chroot dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
       # Put the debian.list file back, live-build appropriates it and then deletes it
       $SUDO_TO_ROOT cp "${source_code_folder_dist}/packages/kicksecure/anon-apt-sources-list/etc/apt/sources.list.d/debian.list" chroot/etc/apt/sources.list.d/debian.list
    fi
+
    # Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?
    if [ -d "chroot/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
@@ -252,6 +256,7 @@ Not running any chroot scripts.${reset}"
    # live-build does not support configuration of the output ISO file name.
    # Rename from ISO file name defined by live-build format to derivative-maker format.
    mv "${dist_build_type_short}-${dist_build_version}-${dist_build_target_arch}.hybrid.iso" "${binary_image_iso_file}"
+
    popd
 }
 
