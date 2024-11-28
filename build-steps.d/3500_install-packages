@@ -341,9 +341,17 @@ $dist_build_script_skip_package_install${reset}"
    if [ "$dist_build_virtualbox" = "true" ] || [ "$dist_build_iso" = "true" ]; then
       ## See also build-steps.d/*_create-debian-packages function
       ## download_virtualbox_packages_from_debian_sid
-      pkg-add-to-install-list virtualbox-guest-utils
-      pkg-add-to-install-list virtualbox-guest-x11
 
+      ## At time of writing, available for architectures amd64 i386 only.
+      if [ "$dist_build_target_arch" = "amd64" ] || [ "$dist_build_target_arch" = "i386" ]; then
+         pkg-add-to-install-list virtualbox-guest-utils
+         pkg-add-to-install-list virtualbox-guest-x11
+      else
+         true "${cyan}INFO: skipping installation of virtualbox-guest-utils, virtualbox-guest-x11 because architecture is neither amd64 nor i386..${reset}"
+      fi
+
+      ## https://packages.debian.org/virtualbox-guest-additions-iso is available for architecture "all".
+      ##
       ## Not required but keeping in case above packages become unavailable.
       ## Allows for higher flexibility if later switches from/to
       ## virtualbox.org repository or Debian fasttrack repository are required.
