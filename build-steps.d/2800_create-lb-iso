@@ -48,22 +48,20 @@ create-live-build-image() {
    mkdir -p auto
 
    live_build_cross_arch_config=''
-   if [ "${dist_build_target_arch}" = 'arm64' ] \
-      && [ "${host_architecture}" != 'arm64' ]; then
-      ## Configure for cross building
-      live_build_cross_arch_config="
+   if [ "${dist_build_target_arch}" = 'arm64' ] ]; then
+      if [ "${host_architecture}" != 'arm64' ]; then
+         ## Configure for cross building
+         live_build_cross_arch_config="
 	--bootstrap-qemu-arch arm64 \\
 	--bootstrap-qemu-static /usr/bin/qemu-aarch64-static \\"
+      fi
    fi
 
    live_build_arch_specific_config=''
-   if [ "${dist_build_target_arch}" = 'amd64' ] \
-      || [ "${dist_build_target_arch}" = 'i386' ]; then
-      live_build_arch_specific_config="
-	--bootloaders 'grub-pc grub-efi' \\"
+   if [ "${dist_build_target_arch}" = 'amd64' ] || [ "${dist_build_target_arch}" = 'i386' ]; then
+      live_build_arch_specific_config="--bootloaders 'grub-pc grub-efi'"
    elif [ "${dist_build_target_arch}" = 'arm64' ]; then
-      live_build_arch_specific_config="
-	--bootloaders 'grub-efi' \\"
+      live_build_arch_specific_config="--bootloaders 'grub-efi'"
    fi
 
    echo "#!/bin/sh
