@@ -51,9 +51,8 @@ create-live-build-image() {
    if [ "${dist_build_target_arch}" = 'arm64' ] ]; then
       if [ "${host_architecture}" != 'arm64' ]; then
          ## Configure for cross building
-         live_build_cross_arch_config="
-	--bootstrap-qemu-arch arm64 \\
-	--bootstrap-qemu-static /usr/bin/qemu-aarch64-static \\"
+         live_build_cross_arch_config="--bootstrap-qemu-arch arm64 \\
+   --bootstrap-qemu-static /usr/bin/qemu-aarch64-static"
       fi
    fi
 
@@ -69,53 +68,55 @@ create-live-build-image() {
 set -e
 
 lb config noauto \\
-	--apt apt-get \\
-	--apt-http-proxy '${REPO_PROXY}' \\
-	--apt-indices false \\
-	--apt-options '${APTGETOPT[@]} --yes --allow-remove-essential' \\
-	--apt-recommends false \\
-	--apt-source-archives false \\
-	--architecture '${dist_build_target_arch}' \\
-	--archive-areas 'main contrib non-free non-free-firmware' \\
-	--backports true \\
-	--binary-image iso-hybrid \\
-	--bootappend-live 'rd.live.overlay.overlayfs=1 boot=live components splash live-config.hostname=${dist_build_hostname} rd.live.image root=live:CDLABEL=${dist_build_type_short} rd.live.dir=live rd.live.squashimg=filesystem.squashfs' \\
-	--bootappend-live-failsafe 'none' \\
-	--cache false \\
-	--chroot-localrepo-locations '${live_build_localrepo_location}' \\
-	--chroot-localrepo-lists '${live_build_localrepo_list}' \\
-	--debian-installer live \\
-	--debootstrap-engine mmdebstrap \\
-	--debootstrap-options '--include=ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
-	--debug \\
-	--distribution '${dist_build_apt_stable_release}' \\
-	--firmware-binary false \\
-	--firmware-chroot false \\
-	--image-name '${dist_build_type_short}-${dist_build_version}' \\
-	--initramfs dracut-live \\
-	--iso-application '${dist_build_type_short_pretty}' \\
-	--iso-preparer '${dist_build_type_short_pretty} live-build; https://github.com/Kicksecure/live-build' \\
-	--iso-publisher 'https://${project_clearnet}' \\
-	--iso-volume '${dist_build_type_short}' \\
-	--linux-packages 'linux-image linux-headers' \\
-	--mirror-binary '${dist_build_apt_sources_mirror}' \\
-	--mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
-	--mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
-	--mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
-	--mirror-chroot '${dist_build_apt_sources_mirror}' \\
-	--mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
-	--mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
-	--parent-mirror-binary '${dist_build_apt_sources_mirror}' \\
-	--parent-mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
-	--parent-mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
-	--parent-mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
-	--parent-mirror-chroot '${dist_build_apt_sources_mirror}' \\
-	--parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
-	--parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
-	--verbose \\
-	--zsync false \\${live_build_cross_arch_config}${live_build_arch_specific_config}
-	\"\${@}\"" \
-	| sponge -- auto/config
+   --apt apt-get \\
+   --apt-http-proxy '${REPO_PROXY}' \\
+   --apt-indices false \\
+   --apt-options '${APTGETOPT[@]} --yes --allow-remove-essential' \\
+   --apt-recommends false \\
+   --apt-source-archives false \\
+   --architecture '${dist_build_target_arch}' \\
+   --archive-areas 'main contrib non-free non-free-firmware' \\
+   --backports true \\
+   --binary-image iso-hybrid \\
+   --bootappend-live 'rd.live.overlay.overlayfs=1 boot=live components splash live-config.hostname=${dist_build_hostname} rd.live.image root=live:CDLABEL=${dist_build_type_short} rd.live.dir=live rd.live.squashimg=filesystem.squashfs' \\
+   --bootappend-live-failsafe 'none' \\
+   --cache false \\
+   --chroot-localrepo-locations '${live_build_localrepo_location}' \\
+   --chroot-localrepo-lists '${live_build_localrepo_list}' \\
+   --debian-installer live \\
+   --debootstrap-engine mmdebstrap \\
+   --debootstrap-options '--include=ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
+   --debug \\
+   --distribution '${dist_build_apt_stable_release}' \\
+   --firmware-binary false \\
+   --firmware-chroot false \\
+   --image-name '${dist_build_type_short}-${dist_build_version}' \\
+   --initramfs dracut-live \\
+   --iso-application '${dist_build_type_short_pretty}' \\
+   --iso-preparer '${dist_build_type_short_pretty} live-build; https://github.com/Kicksecure/live-build' \\
+   --iso-publisher 'https://${project_clearnet}' \\
+   --iso-volume '${dist_build_type_short}' \\
+   --linux-packages 'linux-image linux-headers' \\
+   --mirror-binary '${dist_build_apt_sources_mirror}' \\
+   --mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
+   --mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
+   --mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
+   --mirror-chroot '${dist_build_apt_sources_mirror}' \\
+   --mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
+   --mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
+   --parent-mirror-binary '${dist_build_apt_sources_mirror}' \\
+   --parent-mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
+   --parent-mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
+   --parent-mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
+   --parent-mirror-chroot '${dist_build_apt_sources_mirror}' \\
+   --parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
+   --parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
+   --verbose \\
+   --zsync false \\
+   ${live_build_cross_arch_config} \\
+   ${live_build_arch_specific_config} \\
+   \"\${@}\"" \
+   | sponge -- auto/config
 
    chmod +x auto/config
 
