@@ -46,6 +46,24 @@ create-live-build-image() {
    $SUDO_TO_ROOT lb clean # in case there's a leftover build tree present
 
    mkdir -p auto
+
+   live_build_cross_arch_config=''
+   live_build_arch_specific_config=''
+   if [ "${dist_build_target_arch}" = 'arm64' ] \
+      && [ "$(dpkg --print-architecture)" != 'arm64' ]; then
+      ## Configure for cross building
+      live_build_cross_arch_config="
+	--bootstrap-qemu-arch arm64 \\
+	--bootstrap-qemu-static /usr/bin/qemu-aarch64-static \\"
+   fi
+   if [ "${dist_build_target_arch}" = 'amd64' ] \
+      || [ "${dist_build_target_arch}" = 'i386' ]; then
+      live_build_arch_specific_config="
+	--bootloaders 'grub-pc grub-efi' \\"
+   elif [ "${dist_build_target_arch}" = 'arm64' ]; then
+      live_build_arch_specific_config="
+	--bootloaders 'grub-efi' \\"
+   fi
    echo "#!/bin/sh
 
 set -e
@@ -57,12 +75,12 @@ lb config noauto \\
 	--apt-options '${APTGETOPT[@]} --yes --allow-remove-essential' \\
 	--apt-recommends false \\
 	--apt-source-archives false \\
+	--architecture '${dist_build_target_arch}' \\
 	--archive-areas 'main contrib non-free non-free-firmware' \\
 	--backports true \\
 	--binary-image iso-hybrid \\
 	--bootappend-live 'rd.live.overlay.overlayfs=1 boot=live components splash live-config.hostname=${dist_build_hostname} rd.live.image root=live:CDLABEL=${dist_build_type_short} rd.live.dir=live rd.live.squashimg=filesystem.squashfs' \\
 	--bootappend-live-failsafe 'none' \\
-	--bootloaders 'grub-pc grub-efi' \\
 	--cache false \\
 	--chroot-localrepo-locations '${live_build_localrepo_location}' \\
 	--chroot-localrepo-lists '${live_build_localrepo_list}' \\
@@ -95,7 +113,7 @@ lb config noauto \\
 	--parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
 	--parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
 	--verbose \\
-	--zsync false \\
+	--zsync false \\${live_build_cross_arch_config}${live_build_arch_specific_config}
 	\"\${@}\"" \
 	| sponge -- auto/config
 
@@ -133,6 +151,15 @@ lb config noauto \\
    # handled last.
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_kicksecure" package-lists/z-kicksecure.list.chroot
    sed -i "s/XXX_ARCHITECTURE_XXX/${dist_build_target_arch}/" package-lists/z-kicksecure.list.chroot
+   if [ "${dist_build_target_arch}" = 'arm64' ]; then
+      ## ARM64 doesn't support firmware-nonfreedom because of intel-microcode and amd64-microcode
+      ## ARM64 doesn't have VirtualBox utilities
+      sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
+      sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
+   else
+      sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
+      sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+   fi
 
    # Apt configuration
 
@@ -213,7 +240,7 @@ Pin-Priority: 900"
 
    # Get rid of the temp bootloader, we don't need it anymore and it will
    # cause installation issues
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-pc
+   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
    $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
 
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
