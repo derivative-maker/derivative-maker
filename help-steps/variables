@@ -578,7 +578,8 @@ fi
 
 [ -n "$rsync_cmd" ] || rsync_cmd="rsync"
 
-[ -n "$rsync_opts" ] || rsync_opts="\
+if [ "$rsync_cmd" = "" ]; then
+   rsync_opts="\
    --links \
    --hard-links \
    --safe-links \
@@ -590,8 +591,12 @@ fi
    --sparse \
    --partial \
    --progress \
-   --verbose \
-"
+   --verbose"
+
+   if [ "$build_dry_run" = "true" ]; then
+      rsync_opts="$rsync_opts --dry-run"
+   fi
+fi
 
 ## TODO: auto retry function error handler trap lacks variables
 ## such as variable APTGETOPT.
