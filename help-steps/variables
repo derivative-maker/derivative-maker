@@ -644,7 +644,6 @@ fi
 
 ## --always because travis-ci does not fetch tags.
 temp="$($git_bin describe --always --abbrev=1000000000)"
-
 ## Examples temp:
 ## 10-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
 ## 10.0.0.0.3-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5-developers-only
@@ -658,6 +657,7 @@ if [ "$dist_build_version" = "" ]; then
 else
    true "${cyan}INFO: Variable dist_build_version was already set to: dist_build_version=${dist_build_version}${reset}"
 fi
+unset temp
 
 ## Using `export`, so 70_log_build_version can read it.
 export dist_build_version
@@ -668,6 +668,7 @@ export dist_build_version
 ## }}}
 
 set_default_variable() {
+    local var_name var_content
     var_name="$1"
     var_content="$2"
 
@@ -1100,6 +1101,11 @@ SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
 
 #echo "INFO: SUDO_TO_ROOT:"
 #echo "${cyan}$SUDO_TO_ROOT${reset}"
+
+## Development.
+#set -x
+#declare -p | awk '{print $3}' | sort > ~/varnames
+#exit
 
 if [ "$xtrace_was_set" = "true" ]; then
    echo "$BASH_SOURCE INFO: xtrace_was_set=true - Therefore re-enable xtrace. (set -x)"
