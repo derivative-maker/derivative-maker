@@ -19,20 +19,17 @@ source colors
 source variables
 
 create-live-build-image() {
-   # Prepare live-build directory
-
+   ## Prepare live-build directory
    dist_live_build_folder="${dist_binary_build_folder}/live-build"
    mkdir -p "${dist_live_build_folder}/auto"
    pushd "${dist_live_build_folder}"
 
-   # Avoid errors related to /dev/null when running under Qubes OS
-
+   ## Avoid errors related to /dev/null when running under Qubes OS
    if LC_ALL=C mount | grep ' on /home ' | grep -q 'nodev'; then
       $SUDO_TO_ROOT mount -o remount,rw,dev /home
    fi
 
-   # Install basic live-build configuration
-
+   ## Install basic live-build configuration
    live_build_localrepo_location=""
    live_build_localrepo_list=""
 
@@ -129,15 +126,13 @@ lb config noauto \\
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_auto_clean" auto/clean
    chmod +x auto/clean
 
-   # Generate initial autoconfig data (incomplete)
+   ## Generate initial autoconfig data (incomplete)
    lb config
 
-   # Install full configuration
-
+   ## Install full configuration
    pushd config
 
-   # Apt archives
-
+   ## Apt archives
    mkdir -p archives
    echo "deb http://HTTPS///fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
@@ -145,13 +140,12 @@ lb config noauto \\
       cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/kicksecuretmp.key.chroot
    fi
 
-   # Package lists
-
+   ## Package lists
    mkdir -p package-lists
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_live" package-lists/live.list.chroot
-   # NOTE: This file is called 'z-kicksecure.list.chroot' because the list
-   # files are handled in alphabetical order and these packages MUST be
-   # handled last.
+   ## NOTE: This file is called 'z-kicksecure.list.chroot' because the list
+   ## files are handled in alphabetical order and these packages MUST be
+   ## handled last.
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_kicksecure" package-lists/z-kicksecure.list.chroot
    sed -i "s/XXX_ARCHITECTURE_XXX/${dist_build_target_arch}/" package-lists/z-kicksecure.list.chroot
    if [ "${dist_build_target_arch}" = 'arm64' ]; then
@@ -167,16 +161,15 @@ lb config noauto \\
       sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
    fi
 
-   # Apt configuration
 
+   ## Apt configuration
    mkdir -p apt
    live_build_package_pins="Package: calamares
 Pin: release a=${dist_build_apt_stable_release}-backports
 Pin-Priority: 900"
    echo "${live_build_package_pins}" | sponge -- apt/preferences
 
-   # Branding and GRUB configuration
-
+   ## Branding and GRUB configuration
    mkdir -p bootloaders
    cp -r "${source_code_folder_dist}/live-build-data/grub-config" bootloaders/grub-pc
    mkdir -p includes.installer/usr/share/graphics
@@ -184,36 +177,36 @@ Pin-Priority: 900"
    mkdir -p 'includes.installer/usr/share/themes/Clearlooks/gtk-2.0'
    cp "${source_code_folder_dist}/live-build-data/d-i-theme/gtkrc" includes.installer/usr/share/themes/Clearlooks/gtk-2.0/gtkrc
 
-   # d-i config
+   ## d-i config
    cp "${source_code_folder_dist}/live-build-data/preseed.cfg" includes.installer/preseed.cfg
 
    popd
 
-   # Parse full configuration
+   ## Parse full configuration
    lb config
    lb config --dump
    lb config --validate
 
-   # Build ISO bootstrap
+   ## Build ISO bootstrap
    if ! $SUDO_TO_ROOT lb bootstrap --verbose --debug; then
       error "${bold}${red}ERROR: Live build bootstrap stage failed!${reset}"
    fi
 
    CHROOT_FOLDER="$(realpath chroot)"
 
-   # Keep security-misc from erroring out during installation
+   ## Keep security-misc from erroring out during installation
    $SUDO_TO_ROOT mkdir -p "${CHROOT_FOLDER}/var/lib/security-misc"
    $SUDO_TO_ROOT touch "${CHROOT_FOLDER}/var/lib/security-misc/skip_install_check"
 
-   # Make dist-base-files create a user as it should
+   ## Make dist-base-files create a user as it should
    $SUDO_TO_ROOT mkdir -p "${CHROOT_FOLDER}/var/lib/dist-base-files"
    $SUDO_TO_ROOT touch "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
-   # Ensure kernel is configured properly, we aren't using grml-debootstrap so we have to do this ourselves
+   ## Ensure kernel is configured properly, we aren't using grml-debootstrap so we have to do this ourselves
    $SUDO_TO_ROOT mkdir -p "${CHROOT_FOLDER}/etc"
    $SUDO_TO_ROOT cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_kernel_img_conf" "${CHROOT_FOLDER}/etc/kernel-img.conf"
 
-   # Build ISO chroot
+   ## Build ISO chroot
    if ! $SUDO_TO_ROOT lb chroot --verbose --debug; then
       error "${bold}${red}ERROR: Live build chroot stage failed!${reset}"
    fi
@@ -223,15 +216,15 @@ Pin-Priority: 900"
    repository_dist_initializer_setup
 
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
-      # Get rid of temporary repo and key
+      ## Get rid of temporary repo and key
       safe-rm config/archives/kicksecuretmp.list.chroot
       safe-rm config/archives/kicksecuretmp.key.chroot
    fi
 
-   # Extract bootloader configuration and put it in the live-build config
-   # live-build unmounts several important directories when it exits a stage,
-   # but we actually need some of those here, so we have to manually remount
-   # them.
+   ## Extract bootloader configuration and put it in the live-build config
+   ## live-build unmounts several important directories when it exits a stage,
+   ## but we actually need some of those here, so we have to manually remount
+   ## them.
    $SUDO_TO_ROOT mount --bind /dev "${CHROOT_FOLDER}/dev"
    $SUDO_TO_ROOT mount --bind /dev/pts "${CHROOT_FOLDER}/dev/pts"
    $SUDO_TO_ROOT mount --bind /sys "${CHROOT_FOLDER}/sys"
@@ -244,8 +237,8 @@ Pin-Priority: 900"
 
    sed -i "s/LB_BOOTAPPEND_LIVE=\"\(.*\)\"/LB_BOOTAPPEND_LIVE=\"\1 ${live_build_bootloader_config}\"/" config/binary
 
-   # Get rid of the temp bootloader, we don't need it anymore and it will
-   # cause installation issues
+   ## Get rid of the temp bootloader, we don't need it anymore and it will
+   ## cause installation issues
    $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
    $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
 
@@ -254,32 +247,32 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev/pts"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev"
 
-   # Add debian-installer
+   ## Add debian-installer
    if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
       error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
    fi
 
-   # Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
+   ## Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/apt/sources.list"
-   # Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
+   ## Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/apt/apt.conf.d/00recommends"
-   # Don't force Dracut to make reproducible images, the default is to not use reproducible mode, this is most likely a live-build artifact
-   # security-misc implements sets dracut's 'reproducible=yes' setting anyhow in file:
-   # ./packages/kicksecure/security-misc/etc/dracut.conf.d/30-security-misc.conf
+   ## Don't force Dracut to make reproducible images, the default is to not use reproducible mode, this is most likely a live-build artifact
+   ## security-misc implements sets dracut's 'reproducible=yes' setting anyhow in file:
+   ## ./packages/kicksecure/security-misc/etc/dracut.conf.d/30-security-misc.conf
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/dracut.conf.d/50-reproducible.conf"
-   # Blank file most likely left by live-build
+   ## Blank file most likely left by live-build
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/udev/rules.d/70-persistent-cd.rules"
-   # We inserted this earlier to prevent security-misc from erroring out, but it could actually cause problems now, and it's no longer needed
+   ## We inserted this earlier to prevent security-misc from erroring out, but it could actually cause problems now, and it's no longer needed
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/var/lib/security-misc/skip_install_check"
-   # This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
+   ## This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
    if [ "$($SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
-      # Put the debian.list file back, live-build appropriates it and then deletes it
+      ## Put the debian.list file back, live-build appropriates it and then deletes it
       $SUDO_TO_ROOT cp "${source_code_folder_dist}/packages/kicksecure/anon-apt-sources-list/etc/apt/sources.list.d/debian.list" "${CHROOT_FOLDER}/etc/apt/sources.list.d/debian.list"
    fi
 
-   # Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?
+   ## Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?
    if [ -d "${CHROOT_FOLDER}/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
       $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
@@ -291,17 +284,17 @@ Pin-Priority: 900"
 Not running any chroot scripts.${reset}"
    fi
 
-   # Network configuration
+   ## Network configuration
    echo "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
    $SUDO_TO_ROOT cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
 
-   # Package into an ISO
+   ## Package into an ISO
    if ! $SUDO_TO_ROOT lb binary --verbose --debug; then
       error "${bold}${red}ERROR: Live build binary stage failed!${reset}"
    fi
 
-   # live-build does not support configuration of the output ISO file name.
-   # Rename from ISO file name defined by live-build format to derivative-maker format.
+   ## live-build does not support configuration of the output ISO file name.
+   ## Rename from ISO file name defined by live-build format to derivative-maker format.
    mv "${dist_build_type_short}-${dist_build_version}-${dist_build_target_arch}.hybrid.iso" "${binary_image_iso_file}"
 
    popd
