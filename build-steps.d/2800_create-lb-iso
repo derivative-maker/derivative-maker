@@ -45,22 +45,35 @@ create-live-build-image() {
    mkdir -p auto
 
    live_build_cross_arch_config=''
-   if [ "${dist_build_target_arch}" = 'arm64' ]; then
+   if [ "${host_architecture}" != "${dist_build_target_arch}" ]; then
       true "${green}INFO: dist_build_target_arch=${dist_build_target_arch}${reset}"
-      if [ "${host_architecture}" != 'arm64' ]; then
-         true "${green}INFO: But host_architecture=${host_architecture}${reset}"
-         true "${green}INFO: Therefore cross-building.${reset}"
-         live_build_cross_arch_config="--bootstrap-qemu-arch arm64 \\
-   --bootstrap-qemu-static /usr/bin/qemu-aarch64-static"
-      fi
+      true "${green}INFO: host_architecture=${host_architecture}${reset}"
+      true "${green}INFO: Host architecture and target architecture do not match. Therefore cross-building${reset}"
+      live_build_cross_arch_qemu=''
+      case "${dist_build_target_arch}" in
+         ## Both 32-bit ARM variants use the same emulator
+         'armel'   ) live_build_cross_arch_qemu='arm';;
+         'armhf'   ) live_build_cross_arch_qemu='arm';;
+         'arm64'   ) live_build_cross_arch_qemu='aarch64';;
+         'i386'    ) live_build_cross_arch_qemu='i386';;
+         'amd64'   ) live_build_cross_arch_qemu='x86_64';;
+         'mipsel'  ) live_build_cross_arch_qemu='mipsel';;
+         'mips64el') live_build_cross_arch_qemu='mips64el';;
+         ## Yes, the emulator for ppc64el really is ppc64le. This is not a typo.
+         'ppc64el' ) live_build_cross_arch_qemu='ppc64le';;
+         'riscv64' ) live_build_cross_arch_qemu='riscv64';;
+         's390x'   ) live_build_cross_arch_qemu='s390x';;
+      esac
+      live_build_cross_arch_config="--bootstrap-qemu-arch ${dist_build_target_arch} \\
+   --bootstrap-qemu-static /usr/bin/qemu-${live_build_cross_arch_qemu}-static \\"
    fi
 
    live_build_arch_specific_config=''
-   if [ "${dist_build_target_arch}" = 'amd64' ] || [ "${dist_build_target_arch}" = 'i386' ]; then
-      live_build_arch_specific_config="--bootloaders 'grub-pc grub-efi'"
-   elif [ "${dist_build_target_arch}" = 'arm64' ]; then
-      live_build_arch_specific_config="--bootloaders 'grub-efi'"
-   fi
+   case "${dist_build_target_arch}" in
+      i386|amd64) live_build_arch_specific_config="--bootloaders 'grub-pc grub-efi' \\";;
+      armel|armhf|arm64|riscv64) live_build_arch_specific_config="--bootloaders 'grub-efi' \\";;
+      *) true;; # don't specify a bootloader at all, leave live-build to figure it out, if it can
+   esac
 
    echo "#!/bin/sh
 
@@ -148,19 +161,40 @@ lb config noauto \\
    ## handled last.
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_kicksecure" package-lists/z-kicksecure.list.chroot
    sed -i "s/XXX_ARCHITECTURE_XXX/${dist_build_target_arch}/" package-lists/z-kicksecure.list.chroot
-   if [ "${dist_build_target_arch}" = 'arm64' ]; then
-      ## ARM64 doesn't support firmware-nonfreedom because of intel-microcode and amd64-microcode
-      ## ARM64 doesn't have VirtualBox utilities
-      ## ARM64 doesn't support livepatch and thus doesn't support tirdad
-      sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
-      sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
-      sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
-   else
-      sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
-      sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
-      sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
-   fi
 
+   case "${dist_build_target_arch}" in
+      armel|armhf|arm64|mipsel|mips64el|riscv64)
+         ## firmware-nonfreedom unsupported because of intel-microcode and amd64-microcode
+         ## no VirtualBox utilities
+         ## no supoprt for livepatch, thus doesn't support tirdad
+         sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
+         ;;
+      ppc64el|s390x)
+         ## firmware-nonfreedom unsupported because of intel-microcode and amd64-microcode
+         ## no VirtualBox utilities
+         ## supports livepatch, thus tirdad should work
+         sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
+         ;;
+      i386)
+         ## firmware-nonfreedom supported, intel-microcode and amd64-microcode both exist
+         ## Yes, amd64-microcode exists on i386.
+         ## VirtualBox utilities exist
+         ## no supoprt for livepatch, thus doesn't support tirdad
+         sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
+         ;;
+      amd64)
+         ## Supports everything
+         sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
+         ;;
+   esac
 
    ## Apt configuration
    mkdir -p apt
