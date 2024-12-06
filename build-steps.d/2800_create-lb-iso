@@ -153,6 +153,12 @@ lb config noauto \\
       cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/kicksecuretmp.key.chroot
    fi
 
+   ## Apt configuration
+   live_build_package_pins="Package: calamares
+Pin: release n=${dist_build_apt_stable_release}-backports
+Pin-Priority: 900"
+   echo "${live_build_package_pins}" | sponge -- archives/z-kicksecure.pref.chroot
+
    ## Package lists
    mkdir -p package-lists
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_live" package-lists/live.list.chroot
@@ -198,12 +204,6 @@ lb config noauto \\
          ;;
    esac
 
-   ## Apt configuration
-   mkdir -p apt
-   live_build_package_pins="Package: calamares
-Pin: release a=${dist_build_apt_stable_release}-backports
-Pin-Priority: 900"
-   echo "${live_build_package_pins}" | sponge -- apt/preferences
 
    ## Branding and GRUB configuration
    mkdir -p bootloaders
