@@ -95,7 +95,7 @@ lb config noauto \\
    --cache false \\
    --chroot-localrepo-locations '${live_build_localrepo_location}' \\
    --chroot-localrepo-lists '${live_build_localrepo_list}' \\
-   --debian-installer live \\
+   --debian-installer none \\
    --debootstrap-engine mmdebstrap \\
    --debootstrap-options '--include=ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
    --debug \\
@@ -285,8 +285,9 @@ Pin-Priority: 900"
 
    ## Get rid of the temp bootloader, we don't need it anymore and it will
    ## cause installation issues
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
+   ## Disabled, we're going to keep grub-efi while d-i is disabled.
+   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
+   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
 
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
@@ -294,9 +295,10 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev"
 
    ## Add debian-installer
-   if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
-      error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
-   fi
+   ## Disabled.
+   # if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
+   #    error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
+   # fi
 
    ## Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/apt/sources.list"
