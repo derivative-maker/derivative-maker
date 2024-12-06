@@ -95,7 +95,7 @@ lb config noauto \\
    --cache false \\
    --chroot-localrepo-locations '${live_build_localrepo_location}' \\
    --chroot-localrepo-lists '${live_build_localrepo_list}' \\
-   --debian-installer live \\
+   --debian-installer none \\
    --debootstrap-engine mmdebstrap \\
    --debootstrap-options '--include=ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
    --debug \\
@@ -153,6 +153,12 @@ lb config noauto \\
       cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/kicksecuretmp.key.chroot
    fi
 
+   ## Apt configuration
+   live_build_package_pins="Package: calamares
+Pin: release n=${dist_build_apt_stable_release}-backports
+Pin-Priority: 900"
+   echo "${live_build_package_pins}" | sponge -- archives/z-kicksecure.pref.chroot
+
    ## Package lists
    mkdir -p package-lists
    cp "${source_code_folder_dist}/live-build-data/live-build-config/live_build_package_list_live" package-lists/live.list.chroot
@@ -198,12 +204,10 @@ lb config noauto \\
          ;;
    esac
 
-   ## Apt configuration
-   mkdir -p apt
-   live_build_package_pins="Package: calamares
-Pin: release a=${dist_build_apt_stable_release}-backports
-Pin-Priority: 900"
-   echo "${live_build_package_pins}" | sponge -- apt/preferences
+   case "${dist_build_flavor}" in
+      'kicksecure-cli') sed -i 's/XXX_KICKSECURE_HOST_XXX/kicksecure-cli-host/' package-lists/z-kicksecure.list.chroot;;
+      'kicksecure-xfce') sed -i 's/XXX_KICKSECURE_HOST_XXX/kicksecure-xfce-host/' package-lists/z-kicksecure.list.chroot;;
+   esac
 
    ## Branding and GRUB configuration
    mkdir -p bootloaders
@@ -231,7 +235,8 @@ Pin-Priority: 900"
    fi
 
    ## Sanity test.
-   test -d "${dist_apt_repository_folder}"
+   ## Breaks --remote-derivative-packages builds.
+   # test -d "${dist_apt_repository_folder}"
 
    ## Build ISO bootstrap
    if ! $SUDO_TO_ROOT lb bootstrap --verbose --debug; then
@@ -285,8 +290,9 @@ Pin-Priority: 900"
 
    ## Get rid of the temp bootloader, we don't need it anymore and it will
    ## cause installation issues
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
+   ## Disabled, we're going to keep grub-efi while d-i is disabled.
+   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
+   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
 
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
@@ -294,9 +300,10 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev"
 
    ## Add debian-installer
-   if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
-      error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
-   fi
+   ## Disabled.
+   # if ! $SUDO_TO_ROOT lb installer --verbose --debug; then
+   #    error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
+   # fi
 
    ## Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
    $SUDO_TO_ROOT safe-rm "${CHROOT_FOLDER}/etc/apt/sources.list"
