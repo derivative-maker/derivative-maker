@@ -21,6 +21,24 @@ source variables
 cd "$MYDIR"
 cd ..
 
+check-redistributable-builds-requirements() {
+   if [ "$dist_build_redistributable" != "true" ]; then
+      return 0
+   fi
+   local folder_list
+      folder_list=(
+         "$HOME/buildconfig.d"
+         "$HOME/.ssh"
+         "$HOME/.gnupg"
+         "$HOME/.signify"
+   )
+   for folder_item in "${folder_list[@]}"; do
+      if [ ! -d "$folder_item" ]; then
+         error "dist_build_redistributable=true, missing required folder: $folder_item"
+      fi
+   done
+}
+
 check-git-folder() {
    ## A few places in the source code use "git clean" or "git describe".
    if ! test -e "$source_code_folder_dist/.git" ; then
@@ -348,6 +366,7 @@ check_required_packages_installed() {
 }
 
 main() {
+   check-redistributable-builds-requirements "$@"
    check-git-folder "$@"
    check-operating-system-version "$@"
    check-sudo "$@"
