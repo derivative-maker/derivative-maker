@@ -281,6 +281,13 @@ repo_proxy_setup() {
 
    $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
 
+   if [ "$dist_build_redistributable" != "true" ]; then
+      return 0
+   fi
+
+   $SUDO_TO_ROOT mkdir --parents /rw/config/qubes-bind-dirs.d
+   echo "binds+=( '/var/cache/apt-cacher-ng' )" | $SUDO_TO_ROOT tee -- /rw/config/qubes-bind-dirs.d/40_derivative-maker_acng.conf >/dev/null
+
    true
 }
 
