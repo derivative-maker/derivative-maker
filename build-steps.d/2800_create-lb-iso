@@ -171,36 +171,53 @@ Pin-Priority: 900"
    sed -i "s/XXX_ARCHITECTURE_XXX/${dist_build_target_arch}/" package-lists/z-kicksecure.list.chroot
 
    case "${dist_build_target_arch}" in
-      armel|armhf|arm64|mipsel|mips64el|riscv64)
+      armel|mipsel|mips64el|riscv64)
          ## firmware-nonfreedom unsupported because of intel-microcode and amd64-microcode
          ## no VirtualBox utilities
          ## no supoprt for livepatch, thus doesn't support tirdad
+         ## no signed fwupd
          sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_FWUPD_SIGNED_XXX//' package-lists/z-kicksecure.list.chroot
+         ;;
+      armhf|arm64)
+         ## firmware-nonfreedom unsupported because of intel-microcode and amd64-microcode
+         ## no VirtualBox utilities
+         ## no supoprt for livepatch, thus doesn't support tirdad
+         ## has signed fwupd
+         sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          ;;
       ppc64el|s390x)
          ## firmware-nonfreedom unsupported because of intel-microcode and amd64-microcode
          ## no VirtualBox utilities
          ## supports livepatch, thus tirdad should work
+         ## no signed fwupd
          sed -i 's/XXX_FIRMWARE_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_FWUPD_SIGNED_XXX//' package-lists/z-kicksecure.list.chroot
          ;;
       i386)
          ## firmware-nonfreedom supported, intel-microcode and amd64-microcode both exist
          ## Yes, amd64-microcode exists on i386.
          ## VirtualBox utilities exist
          ## no supoprt for livepatch, thus doesn't support tirdad
+         ## has signed fwupd
          sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          ;;
       amd64)
          ## Supports everything
          sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          ;;
    esac
 
