@@ -75,6 +75,19 @@ create-live-build-image() {
       *) true;; # don't specify a bootloader at all, leave live-build to figure it out, if it can
    esac
 
+   live_build_initramfs_type=''
+   if [[ "${BUILD_INITRAMFS_PKGS}" =~ 'dracut' ]]; then
+      live_build_initramfs_type='dracut-live'
+   elif [[ "${BUILD_INITRAMFS_PKGS}" =~ 'initramfs-tools' ]]; then
+      live_build_initramfs_type='live-boot'
+   else
+      true "${red}${bold}WARNING:${reset} ${under}The ISO to be build might be unbootable!${eunder}
+- This is because the initramfs type has been set to 'none'.
+- Please leave the initramfs type unset to default to dracut, or set it to
+  initramfs-tools to use initramfs-tools and live-boot instead."
+      live_build_initramfs_type='none'
+   fi
+
    echo "#!/bin/sh
 
 set -e
@@ -104,7 +117,7 @@ lb config noauto \\
    --firmware-binary false \\
    --firmware-chroot false \\
    --image-name '${dist_build_type_short}-${dist_build_version}' \\
-   --initramfs dracut-live \\
+   --initramfs '${live_build_initramfs_type}' \\
    --iso-application '${dist_build_type_short_pretty}' \\
    --iso-preparer '${dist_build_type_short_pretty} live-build; https://github.com/Kicksecure/live-build' \\
    --iso-publisher 'https://${project_clearnet}' \\
