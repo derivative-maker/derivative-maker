@@ -138,6 +138,8 @@ lb config noauto \\
    --parent-mirror-chroot '${dist_build_apt_sources_mirror}' \\
    --parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
    --parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
+   --sysmaint-enable \\
+   --unrestricted-admin-enable \\
    --verbose \\
    --zsync false \\
    ${live_build_cross_arch_config} \\
@@ -358,10 +360,11 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mount --bind /sys "${CHROOT_FOLDER}/sys"
    $SUDO_TO_ROOT mount --bind /proc "${CHROOT_FOLDER}/proc"
 
+   # || true needed to dodge pipefail
    live_build_bootloader_config="$($SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" grub-mkconfig \
       | grep '^\s*linux' \
       | head -n1 \
-      | cut -d' ' -f5-)"
+      | cut -d' ' -f5-)" || true
 
    sed -i "s/LB_BOOTAPPEND_LIVE=\"\(.*\)\"/LB_BOOTAPPEND_LIVE=\"\1 ${live_build_bootloader_config}\"/" config/binary
 
