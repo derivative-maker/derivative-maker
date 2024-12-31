@@ -452,17 +452,23 @@ live-build_installation() {
    #}
 
    ## Build live-build man pages.
-   ## This makes the ./manpages/ folder dirty.
-   make -C manpages update
-   make -C manpages build
+   ## This makes the ./manpages/ folder dirty.#
+   ## Only required when using "make install".
+   ## No longer required since buiding and installing a deb package.
+   #make -C manpages update
+   #make -C manpages build
 
    ## If live-build is installed, "$SUDO_TO_ROOT make install" would fail.
-   if [ "$(dpkg-query --show --showformat='${Status}\n' live-build)" = 'install ok installed' ]; then
-      error "Package live-build must not be installed."
-   fi
+   #if [ "$(dpkg-query --show --showformat='${Status}\n' live-build)" = 'install ok installed' ]; then
+      #error "Package live-build must not be installed."
+   #fi
 
    ## Install live-build.
-   $SUDO_TO_ROOT make install
+   ## Fast. Simple. But can lead to broken permissions because live-build uses 'cp -a'.
+   #$SUDO_TO_ROOT make install
+   ## Therefore building with genmkfile, cowbuilder.
+   ## Setting 'make_use_lintian=false' because live-build upstream is not lintian warning free.
+   make_use_lintian=false genmkfile deb-icup
 
    ## Revert back to the checkpoint
    #git add -A
@@ -473,7 +479,9 @@ live-build_installation() {
    ## Delete auto generated manpages.
    ## Doing it for all of the live-build source code might make things more cumbersome for developers.
    #git reset --hard HEAD
-   git checkout HEAD -- ./manpages/
+   ## Only required when using "make install".
+   ## No longer required since buiding and installing a deb package.
+   #git checkout HEAD -- ./manpages/
 
    ## Restore uncommitted source tree state
    #if [ "$restore_uncommitted_state" = 'y' ]; then
