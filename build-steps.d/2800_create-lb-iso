@@ -19,6 +19,15 @@ source colors
 source variables
 
 create-live-build-image() {
+   ## Record old umask so it can be restored at the end of this function.
+   old_umask="$(umask)"
+   ## Temporarily set Debian default umask.
+   ## Compatibility with 'umask 027'.
+   ## https://www.kicksecure.com/wiki/Dev/Strong_Linux_User_Account_Isolation#umask_hardening
+   ## Fix APT error:
+   ## > The key(s) in the keyring /etc/apt/trusted.gpg.d/kicksecuretmp.key.chroot.asc are ignored as the file is not readable by user '_apt' executing apt-key.
+   umask 0022
+
    ## Prepare live-build directory
    dist_live_build_folder="${dist_binary_build_folder}/live-build"
    mkdir -p "${dist_live_build_folder}/auto"
@@ -435,6 +444,9 @@ Not running any chroot scripts.${reset}"
    mv "${dist_build_type_short}-${dist_build_version}-${dist_build_target_arch}.hybrid.iso" "${binary_image_iso_file}"
 
    popd
+
+   ## Revert back to original umask.
+   umask "$old_umask"
 }
 
 main() {
