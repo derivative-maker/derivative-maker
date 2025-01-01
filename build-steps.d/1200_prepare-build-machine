@@ -423,79 +423,6 @@ grml-debootstrap_installation() {
    true
 }
 
-live-build_installation() {
-   local restore_uncommitted_state
-
-   restore_uncommitted_state='y'
-
-   ## live-build's manpages must be built first, or it will fail to
-   ## install. However, building the manpages modifies the source tree,
-   ## and we don't want to overwrite any uncommitted changes the user may
-   ## have. We therefore make a "checkpoint" commit that we almost
-   ## immediately undo, preserving any uncommitted changes. This does
-   ## result in all modified files becoming unstaged, which isn't perfect
-   ## but isn't horrible either. Preserving which files are staged and
-   ## which ones are not is probably difficult.
-
-   pushd "$source_code_folder_dist/live-build"
-
-   ## Do not proceed if the working tree is unclean.
-   ## provided by: help-steps/pre
-   ## Actually not needed, ./build-steps.d/1100_sanity-tests should cover this already.
-   #nothing_to_commit_test
-
-   ## Preserve uncommitted changes
-   #git add -A
-   #git commit -m 'checkpoint' || {
-      #restore_uncommitted_state='n'
-      #true
-   #}
-
-   ## Build live-build man pages.
-   ## This makes the ./manpages/ folder dirty.#
-   ## Only required when using "make install".
-   ## No longer required since buiding and installing a deb package.
-   #make -C manpages update
-   #make -C manpages build
-
-   ## If live-build is installed, "$SUDO_TO_ROOT make install" would fail.
-   #if [ "$(dpkg-query --show --showformat='${Status}\n' live-build)" = 'install ok installed' ]; then
-      #error "Package live-build must not be installed."
-   #fi
-
-   ## Install live-build.
-   ## Fast. Simple. But can lead to broken permissions because live-build uses 'cp -a'.
-   #$SUDO_TO_ROOT make install
-   ## Therefore building with genmkfile, cowbuilder.
-   ## Setting 'make_use_lintian=false' because live-build upstream is not lintian warning free.
-   make_use_lintian=false genmkfile deb-icup
-
-   ## Revert back to the checkpoint
-   #git add -A
-
-   ## git status
-   ## > modified:   manpages/
-   ## Back to pristine source code.
-   ## Delete auto generated manpages.
-   ## Doing it for all of the live-build source code might make things more cumbersome for developers.
-   #git reset --hard HEAD
-   ## Only required when using "make install".
-   ## No longer required since buiding and installing a deb package.
-   #git checkout HEAD -- ./manpages/
-
-   ## Restore uncommitted source tree state
-   #if [ "$restore_uncommitted_state" = 'y' ]; then
-      #git reset HEAD^
-   #fi
-
-   ## Sanity test.
-   #nothing_to_commit_test
-
-   popd
-
-   true
-}
-
 packages_installation_from_newer_check() {
    local package_item
    for package_item in $dist_build_script_build_dependency_windows_installer_debian_testing ; do
@@ -598,7 +525,6 @@ main() {
    check-virtualbox-vm-exists "$@"
    create-virtualbox-temporary-user "$@"
    grml-debootstrap_installation "$@"
-   live-build_installation "$@"
    packages_installation_from_newer_repository "$@"
    signing_key "$@"
 }
