@@ -488,6 +488,32 @@ packages_installation_from_newer_repository() {
    packages_installation_from_newer_check
 }
 
+packages_installation_from_backports_repository() {
+   if [ "$dist_build_script_build_dependency_debian_backports" = "" ]; then
+      return 0
+   fi
+
+   $SUDO_TO_ROOT \
+      apt-get \
+         ${APTGETOPT[@]} \
+         -o Dir::Etc::sourcelist="$dist_build_sources_list_debian_bookworm_backports" \
+         -o Dir::Etc::sourceparts="-" \
+         update
+
+   $SUDO_TO_ROOT \
+      apt-get \
+         ${APTGETOPT[@]} \
+         -o Dir::Etc::sourcelist="$dist_build_sources_list_debian_bookworm_backports" \
+         -o Dir::Etc::sourceparts="-" \
+         $apt_unattended_opts \
+         --no-install-recommends \
+         --yes \
+         install \
+         $dist_build_script_build_dependency_debian_backports
+
+   true
+}
+
 signing_key() {
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
    if [ "$GPG_AGENT_INFO" = "" ]; then
@@ -528,6 +554,7 @@ main() {
    create-virtualbox-temporary-user "$@"
    grml-debootstrap_installation "$@"
    packages_installation_from_newer_repository "$@"
+   packages_installation_from_backports_repository "$@"
    signing_key "$@"
 }
 
