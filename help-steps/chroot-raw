@@ -139,29 +139,27 @@ chroot_files_cleanup() {
 }
 
 chroot_mount_files() {
-   ## controversy of:
-   ## /etc/resolv.conf /etc/hosts /etc/hostname
+   ## Controversy of:
+   ## /etc/resolv.conf, /etc/hosts, /etc/hostname
 
-   ## When we are inside chroot, we need a functional /etc/resolv.conf,
-   ## otherwise DNS lookups and subsequently apt-get and curl would be defunct.
-   ## On the other hand, we do not want to copy /etc/resolv.conf from the
-   ## build machine into chroot, to prevent leaking personal data into chroot.
-   ## Therefore we use /etc/resolv.conf from the host inside chroot,
-   ## without ever writing it. (Mounting)
+   ## Inside chroot, a functional /etc/resolv.conf is required;
+   ## otherwise, DNS lookups, and subsequently apt-get and curl, will not work.
+   ## However, copying /etc/resolv.conf from the build machine into chroot
+   ## could leak personal data. To prevent this, we use /etc/resolv.conf
+   ## from the host inside chroot by mounting it without writing to it.
 
-   ## When we are inside chroot, we need correct /etc/hosts and /etc/hostname
-   ## files, otherwise commands such as:
+   ## Similarly, /etc/hosts and /etc/hostname must be correct inside chroot.
+   ## If not, commands like:
    ##     sudo -u root echo 'This is a test echo.'
-   ## would show for example
+   ## may produce errors like:
    ##     sudo: unable to resolve host debian
-   ## and take a long time to complete.
+   ## and take longer to execute.
 
-   ## We need two commands to remount an existing file as read only.
+   ## Two commands are needed to remount an existing file as read-only.
    ## Thanks to: https://lwn.net/Articles/281157/
-   ## Remount as read only...
-   ## Does not work on Debian Wheezy.
-   ## Not required anymore. We are not starting any services, DHCP or
-   ## networking inside the chroot, so the file should remain untouched.
+   ## Note: Remounting as read-only does not work on Debian Wheezy
+   ## and is no longer required since services like DHCP or networking
+   ## are not started within the chroot, leaving the file untouched.
    #mount -o remount,ro,noload "$CHROOT_FOLDER/etc/resolv.conf"
 
    sync
@@ -169,45 +167,45 @@ chroot_mount_files() {
    local mount_base_file ok_if_match_file is_ok
    local host_system_file_full_path system_file_copy_full_path
 
-   ## If derivative-maker version already inside chroot, don't delete, keep as is, ok.
-   ## If host version inside chroot, delete, ok.
-   ## Empty version exists inside chroot in any case, ok.
-   ## If dist_chroot_mount_resolv_conf=0: don't mount; empty file.
-   ## If dist_chroot_mount_resolv_conf=1 or unset: mount host version inside chroot.
+   ## If derivative-maker version is already inside chroot, retain it.
+   ## If the host version is inside chroot, delete it.
+   ## An empty version should exist inside chroot in any case.
+   ##
+   ## If dist_chroot_mount_resolv_conf=0: do not mount; leave the file empty.
+   ## If dist_chroot_mount_resolv_conf=1 or unset: mount the host version inside chroot.
 
    if [ ! -d "$binary_build_folder_dist/system-files-copy/etc" ]; then
       mkdir --parents "$binary_build_folder_dist/system-files-copy/etc"
    fi
 
    for mount_base_file in "etc/resolv.conf" "etc/hosts" "etc/hostname" ; do
-      ## Backup exiting $mount_base_file, so we can later use it to safely mount it inside chroot.
-      ## Safely meaning, even if the chroot overwrites it, the host version remains unchanged.
+      ## Backup the existing $mount_base_file to safely mount it inside chroot.
+      ## "Safely" means the host version remains unchanged even if chroot overwrites it.
       host_system_file_full_path="/$mount_base_file"
 
       host_system_file_base_name="$(basename "$host_system_file_full_path")"
       system_file_copy_full_path="$binary_build_folder_dist/system-files-copy/etc/$host_system_file_base_name"
 
       if [ -f "$host_system_file_full_path" ]; then
-         ## Not using.
-         ## Otherwise /etc/apt/sources.list.backup leaks derivative-maker build sources inside VM.
-         ## Otherwise host /etc/resolv.conf ends up inside VM.
+         ## Not using:
+         ## - To avoid leaking derivative-maker build sources /etc/apt/sources.list.backup into VM.
+         ## - To prevent the host /etc/resolv.conf from ending up inside VM.
          #$SUDO_TO_ROOT cp --no-clobber --preserve "$1" "$1.backup"
 
          $SUDO_TO_ROOT cp --preserve "$host_system_file_full_path" "$system_file_copy_full_path"
       else
-         true "INFO: file '$host_system_file_full_path' does not exist, skipping copy, ok."
+         true "INFO: File '$host_system_file_full_path' does not exist, skipping copy."
          if [ -f "$system_file_copy_full_path" ]; then
-            true "INFO: Deleting potentially stale version from potentially previous run..."
+            true "INFO: Deleting potentially stale version from a previous run..."
             $SUDO_TO_ROOT rm --verbose "$system_file_copy_full_path"
          fi
-         ## Create empty file to make sure it exists.
+         ## Create an empty file to ensure its existence.
          $SUDO_TO_ROOT touch "$system_file_copy_full_path"
       fi
       $SUDO_TO_ROOT chown "$user_name:$user_name" "$system_file_copy_full_path"
 
-      ## Delete inside chroot if host version leaked into it previously through
-      ## another process such as perhaps 'grml-debootstrap' or 'mmdebstrap'.
-      if diff "$host_system_file_full_path" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
+      ## Remove leaked host files inside chroot from previous processes like 'grml-debootstrap' or 'mmdebstrap'.
+      if diff "$host_system_file_full_path" "$CHROOT_FOLDER/$mount_base_file" >/dev/null; then
          true "INFO: Host '/$mount_base_file' matches chroot '$CHROOT_FOLDER/$mount_base_file'"
 
          is_ok=no
@@ -215,29 +213,28 @@ chroot_mount_files() {
             "$source_code_folder_dist/packages/whonix/whonix-gw-network-conf/etc/resolv.conf.whonix" \
             "$source_code_folder_dist/packages/whonix/whonix-ws-network-conf/etc/resolv.conf.whonix" \
             "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hosts.whonix" \
-            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hostname.whonix" \
-            ; do
-               if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file" >/dev/null ; then
-                  true "INFO: But '$CHROOT_FOLDER/$mount_base_file' also matches '$ok_if_match_file', ok."
+            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hostname.whonix" ; do
+               if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file" >/dev/null; then
+                  true "INFO: '$CHROOT_FOLDER/$mount_base_file' matches '$ok_if_match_file', keeping it."
                   is_ok=yes
                   break
                fi
          done
 
          if [ "$is_ok" = "no" ]; then
-            true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
-            ## Delete leaked host $mount_base_file inside image.
+            true "INFO: Shredding '$CHROOT_FOLDER/$mount_base_file'."
+            ## Remove leaked host $mount_base_file inside the image.
             $SUDO_TO_ROOT shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
          fi
       else
-         true "INFO: Host '/$mount_base_file' does not match chroot '$CHROOT_FOLDER/$mount_base_file', ok"
+         true "INFO: Host '/$mount_base_file' does not match chroot '$CHROOT_FOLDER/$mount_base_file', proceeding."
       fi
 
-      ## File needs to exist to be able to use 'mount' in next step.
+      ## Ensure the file exists for the 'mount' command.
       $SUDO_TO_ROOT touch "$CHROOT_FOLDER/$mount_base_file"
 
       if [ "$dist_chroot_mount_resolv_conf" = "0" ]; then
-         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, because dist_chroot_mount_resolv_conf is 0.${reset}"
+         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, as dist_chroot_mount_resolv_conf is 0.${reset}"
          continue
       fi
 
