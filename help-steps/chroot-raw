@@ -197,7 +197,7 @@ chroot_mount_files() {
       else
          true "INFO: file '$host_system_file_full_path' does not exist, skipping copy, ok."
          if [ -f "$system_file_copy_full_path" ]; then
-            true "INFO: Deleting stale version from previous run..."
+            true "INFO: Deleting potentially stale version from potentially previous run..."
             $SUDO_TO_ROOT rm --verbose "$system_file_copy_full_path"
          fi
          ## Create empty file to make sure it exists.
@@ -206,7 +206,7 @@ chroot_mount_files() {
       $SUDO_TO_ROOT chown "$user_name:$user_name" "$system_file_copy_full_path"
 
       ## Delete inside chroot if host version leaked into it previously through
-      ## another process such as perhaps mmdebstrap.
+      ## another process such as perhaps 'grml-debootstrap' or 'mmdebstrap'.
       if diff "$host_system_file_full_path" "$CHROOT_FOLDER/$mount_base_file" >/dev/null ; then
          true "INFO: Host '/$mount_base_file' matches chroot '$CHROOT_FOLDER/$mount_base_file'"
 
@@ -223,20 +223,17 @@ chroot_mount_files() {
                   break
                fi
          done
+
          if [ "$is_ok" = "no" ]; then
-            if [ "$dist_build_type_short" = "whonix" ]; then
-               true "INFO: dist_build_type_short: $dist_build_type_short Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
-               ## Delete leaked host $mount_base_file (such as perhaps by grml-debootstrap) inside image.
-               $SUDO_TO_ROOT shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
-            else
-               true "INFO: dist_build_type_short: $dist_build_type_short Therefore not touching '$CHROOT_FOLDER/$mount_base_file'."
-            fi
+            true "INFO: Therefore shredding '$CHROOT_FOLDER/$mount_base_file'."
+            ## Delete leaked host $mount_base_file inside image.
+            $SUDO_TO_ROOT shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
          fi
       else
          true "INFO: Host '/$mount_base_file' does not match chroot '$CHROOT_FOLDER/$mount_base_file', ok"
       fi
 
-      ## File needs to exist to be able to mount in next step.
+      ## File needs to exist to be able to use 'mount' in next step.
       $SUDO_TO_ROOT touch "$CHROOT_FOLDER/$mount_base_file"
 
       if [ "$dist_chroot_mount_resolv_conf" = "0" ]; then
