@@ -214,20 +214,27 @@ chroot_mount_files() {
          true "INFO: Host '/$mount_base_file' matches chroot '$CHROOT_FOLDER/$mount_base_file'"
 
          is_ok=no
+
          ## Operating system specific.
          ## Provides package managed versions of these files by design:
          ## - Kicksecure: No.
          ## - Whonix: Yes.
-         for ok_if_match_file_item in \
-            "$source_code_folder_dist/packages/whonix/whonix-gw-network-conf/etc/resolv.conf.whonix" \
-            "$source_code_folder_dist/packages/whonix/whonix-ws-network-conf/etc/resolv.conf.whonix" \
-            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hosts.whonix" \
-            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hostname.whonix" ; do
-               if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file_item" >/dev/null; then
-                  true "INFO: Chroot '$CHROOT_FOLDER/$mount_base_file' matches hardcoded allowed packaged source code version (ok_if_match_file_item) '$ok_if_match_file_item', keeping it."
-                  is_ok=yes
-                  break
-               fi
+         ## Define a list of allowed packaged source code files for comparison.
+         ok_if_match_file_list=(
+            "$source_code_folder_dist/packages/whonix/whonix-gw-network-conf/etc/resolv.conf.whonix"
+            "$source_code_folder_dist/packages/whonix/whonix-ws-network-conf/etc/resolv.conf.whonix"
+            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hosts.whonix"
+            "$source_code_folder_dist/packages/whonix/whonix-base-files/etc/hostname.whonix"
+         )
+
+         for ok_if_match_file_item in "${ok_if_match_file_list[@]}"; do
+            true "ok_if_match_file_item: $ok_if_match_file_item"
+            true "CHROOT_FOLDER/mount_base_file: $CHROOT_FOLDER/$mount_base_file"
+            if diff "$CHROOT_FOLDER/$mount_base_file" "$ok_if_match_file_item" >/dev/null; then
+               true "INFO: Chroot '$CHROOT_FOLDER/$mount_base_file' matches hardcoded allowed packaged source code version (ok_if_match_file_item) '$ok_if_match_file_item', keeping it."
+               is_ok=yes
+               break
+            fi
          done
 
          if [ "$is_ok" = "no" ]; then
