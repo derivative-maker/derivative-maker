@@ -137,8 +137,7 @@ create-debian-raw-image() {
       [ -n "$grml_packages_file" ] || grml_packages_file="$source_code_folder_dist/grml_packages"
    fi
 
-   ## Currently not required. Why not use qemu-debootstrap by default?
-   ## qemu-debootstrap:
+   ## Why not use 'qemu-debootstrap' by default?
    ## - Cannot be combined with mmdebstrap.
    ## - Cannot bootstrap from multiple (regular and security) repositories
    ##   at the same time aka "multistrap".
@@ -148,21 +147,7 @@ create-debian-raw-image() {
    ##   but requires an APT URI such as for example.
    ##   http://HTTPS///deb.debian.org/debian
    ##   (variable: dist_build_apt_sources_mirror)
-   #[ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP='qemu-debootstrap'
-
    [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP="$mmdebstrap_wrapper"
-
-   if [ "$DEBOOTSTRAP" = "$mmdebstrap_wrapper" ]; then
-      ## Using a sources.list probably only with mmdebstrap.
-      ## mmdebstrap supports multistrap, i.e. downloading from multiple
-      ## APT sources at the same time such as the stable and the security
-      ## APT repository.
-      [ -n "$MIRROR" ] || export MIRROR="$dist_build_sources_list_primary"
-   else
-      ## Others such as debootstrap, qemu-debootstrap at time of writing
-      ## only supported a single APT source.
-      [ -n "$MIRROR" ] || export MIRROR="$dist_build_apt_sources_mirror"
-   fi
 
    ## grml-debootstrap's default is initramfs.
    ## https://github.com/grml/grml-debootstrap/pull/196
