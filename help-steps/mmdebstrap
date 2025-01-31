@@ -26,6 +26,32 @@ true "${bold}INFO: Currently running: $0 (derivative-maker help-steps/mmdebstrap
 
 args_original="$@"
 
+true "${bold}INFO: Old PATH: $PATH${reset}"
+
+## Example PATH:
+## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+### {{{
+IFS=':' read -ra path_array <<< "$PATH"
+
+new_path=""
+for path_part in "${path_array[@]}"; do
+   if [[ "$path_part" != *"help-steps"* ]]; then
+      new_path+="$path_part:"
+   fi
+done
+
+## Remove trailing colon.
+new_path="${new_path%:}"
+
+export PATH="$new_path"
+### }}}
+
+true "${bold}INFO: New PATH: $PATH${reset}"
+
+## Example PATH:
+## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 ## Example $@ when called by cowbuilder:
 ## --arch=amd64 --include=apt --variant=buildd --force-check-gpg bookworm /var/cache/pbuilder/base.cow_amd64 http://HTTPS///deb.debian.org/debian
 

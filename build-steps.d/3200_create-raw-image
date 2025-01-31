@@ -123,8 +123,7 @@ create-debian-raw-image() {
    ## Expand PATH environment variable so grml-debootstrap will use help-steps/mmdebstrap wrapper.
    ## Because variables "$DEBOOTSTRAP" and "$DEBOOTSTRAP_OPTS" have been deprecate by grml-debootstrap.
    ## https://github.com/grml/grml-debootstrap/pull/309
-   PATH="$source_code_folder_dist/help-steps:${PATH}"
-   export PATH
+   new_path="$source_code_folder_dist/help-steps:${PATH}"
 
    local use_vmefi_maybe
    if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
@@ -182,9 +181,9 @@ create-debian-raw-image() {
 
    ## Pass environment variables:
    ## SOURCE_DATE_EPOCH
-   ## PATH
    $SUDO_TO_ROOT \
       --preserve-env \
+         PATH="${new_path}" \
          $DEBOOTSTRAP_PREFIX \
          dist_build_multiarch_package_item="$dist_build_target_arch" \
             bash -x -e \
