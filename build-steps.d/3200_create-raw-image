@@ -120,7 +120,11 @@ create-debian-raw-image() {
    ## Do not use /etc/network/interfaces by grml-debootstrap.
    [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
-   mmdebstrap_wrapper="$source_code_folder_dist/help-steps/mmdebstrap"
+   ## Expand PATH environment variable so grml-debootstrap will use help-steps/mmdebstrap wrapper.
+   ## Because variables "$DEBOOTSTRAP" and "$DEBOOTSTRAP_OPTS" have been deprecate by grml-debootstrap.
+   ## https://github.com/grml/grml-debootstrap/pull/309
+   PATH="$source_code_folder_dist/help-steps:${PATH}"
+   export PATH
 
    local use_vmefi_maybe
    if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
@@ -138,6 +142,9 @@ create-debian-raw-image() {
    [ -n "$grml_packages_file" ] || grml_packages_file="$source_code_folder_dist/grml_packages"
 
    ## Why not use 'qemu-debootstrap' by default?
+   ## - Would require a lot work, if at all possible.
+   ## - Cannot create raw images.
+   ## - Cannot be combined with grml-debootstrap.
    ## - Cannot be combined with mmdebstrap.
    ## - Cannot bootstrap from multiple (regular and security) repositories
    ##   at the same time aka "multistrap".
@@ -147,7 +154,6 @@ create-debian-raw-image() {
    ##   but requires an APT URI such as for example.
    ##   http://HTTPS///deb.debian.org/debian
    ##   (variable: dist_build_apt_sources_mirror)
-   [ -n "$DEBOOTSTRAP" ] || export DEBOOTSTRAP="$mmdebstrap_wrapper"
 
    ## grml-debootstrap's default is initramfs.
    ## https://github.com/grml/grml-debootstrap/pull/196
@@ -176,6 +182,7 @@ create-debian-raw-image() {
 
    ## Pass environment variables:
    ## SOURCE_DATE_EPOCH
+   ## PATH
    $SUDO_TO_ROOT \
       --preserve-env \
          $DEBOOTSTRAP_PREFIX \
