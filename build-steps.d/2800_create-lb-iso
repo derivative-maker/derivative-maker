@@ -25,7 +25,7 @@ create-live-build-image() {
    ## Compatibility with 'umask 027'.
    ## https://www.kicksecure.com/wiki/Dev/Strong_Linux_User_Account_Isolation#umask_hardening
    ## Fix APT error:
-   ## > The key(s) in the keyring /etc/apt/trusted.gpg.d/kicksecuretmp.key.chroot.asc are ignored as the file is not readable by user '_apt' executing apt-key.
+   ## > The key(s) in the keyring /etc/apt/trusted.gpg.d/derivative-temp.key.chroot.asc are ignored as the file is not readable by user '_apt' executing apt-key.
    umask 0022
 
    ## Prepare live-build directory
@@ -175,8 +175,8 @@ lb config noauto \\
    mkdir -p archives
    echo "deb http://HTTPS///fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
-      echo "$sources_list_build_remote_derivative" | sponge -- archives/kicksecuretmp.list.chroot
-      cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/kicksecuretmp.key.chroot
+      echo "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
+      cp "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    fi
 
    ## Apt configuration
@@ -356,8 +356,8 @@ Pin-Priority: 900"
 
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
       ## Get rid of temporary repo and key
-      safe-rm config/archives/kicksecuretmp.list.chroot
-      safe-rm config/archives/kicksecuretmp.key.chroot
+      safe-rm config/archives/derivative-temp.list.chroot
+      safe-rm config/archives/derivative-temp.key.chroot
    fi
 
    ## Extract bootloader configuration and put it in the live-build config
