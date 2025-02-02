@@ -222,8 +222,11 @@ Recommendation:
 check-stray-mounts() {
    true "INFO: Checking for mounts..."
 
-   local proc_mounts_grep_result
-   proc_mounts_grep_result=$($SUDO_TO_ROOT cat /proc/mounts | grep "$CHROOT_FOLDER") || true
+   local chroot_folder_base_name proc_mounts_grep_result
+
+   chroot_folder_base_name="$(basename "$CHROOT_FOLDER")"
+
+   proc_mounts_grep_result=$($SUDO_TO_ROOT cat /proc/mounts | grep -i -- "$chroot_folder_base_name") || true
 
    if [ "$proc_mounts_grep_result" = "" ]; then
       true "INFO: Output of proc_mounts_grep_result is empty. No stray mounts, OK."
