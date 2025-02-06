@@ -116,8 +116,6 @@ lb config noauto \\
    --bootappend-live-failsafe 'none' \\
    --cache false \\
    --checksums md5 \\
-   --chroot-localrepo-locations '${live_build_localrepo_location}' \\
-   --chroot-localrepo-lists '${live_build_localrepo_list}' \\
    --debian-installer none \\
    --debootstrap-engine mmdebstrap \\
    --debootstrap-options '--include=ca-certificates,openssl,fasttrack-archive-keyring --variant=minbase' \\
@@ -177,6 +175,8 @@ lb config noauto \\
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
       echo "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
+   else
+      echo "deb [trusted=yes] file://${live_build_localrepo_location} ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
    fi
 
    ## Apt configuration
