@@ -120,6 +120,7 @@ create-debian-raw-image() {
    ## Do not use /etc/network/interfaces by grml-debootstrap.
    [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
+   ### {{{
    true "OLD_PATH: $PATH"
 
    ## Manual testing.
@@ -131,9 +132,9 @@ create-debian-raw-image() {
    ## https://github.com/grml/grml-debootstrap/pull/309
    new_path="$source_code_folder_dist/help-steps:${PATH}"
 
-   ## Debugging.
    PATH="${new_path}"
    export PATH
+   ### }}}
 
    local use_vmefi_maybe
    if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
@@ -191,9 +192,12 @@ create-debian-raw-image() {
 
    ## Pass environment variables:
    ## SOURCE_DATE_EPOCH
+   ## PATH
+   ##
+   ## TODO: needed?
+   ## PATH="${new_path}" \
    $SUDO_TO_ROOT \
       --preserve-env \
-         PATH="${new_path}" \
          $DEBOOTSTRAP_PREFIX \
          dist_build_multiarch_package_item="$dist_build_target_arch" \
             bash -x -e \
