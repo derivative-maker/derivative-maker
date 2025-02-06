@@ -121,6 +121,11 @@ create-debian-raw-image() {
    [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
 
    true "OLD_PATH: $PATH"
+
+   ## Manual testing.
+   ## CI has the following and lacks any mention of 'sbin' in the PATH variable.
+   #PATH="/usr/local/bin:/usr/bin:/bin:/usr/games"
+
    ## Expand PATH environment variable so grml-debootstrap will use help-steps/mmdebstrap wrapper.
    ## Because variables "$DEBOOTSTRAP" and "$DEBOOTSTRAP_OPTS" have been deprecate by grml-debootstrap.
    ## https://github.com/grml/grml-debootstrap/pull/309
@@ -129,16 +134,6 @@ create-debian-raw-image() {
    ## Debugging.
    PATH="${new_path}"
    export PATH
-   dpkg -l | grep parted || true "FAILED: dpkg -l, grep parted"
-   command -v parted || true "FAILED: command -v parted"
-   $SUDO_TO_ROOT \
-   --preserve-env \
-      PATH="${new_path}" \
-      bash -c "command -v cat"
-   $SUDO_TO_ROOT \
-   --preserve-env \
-      PATH="${new_path}" \
-      bash -c "command -v parted"
 
    local use_vmefi_maybe
    if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then

@@ -31,6 +31,9 @@ true "${bold}INFO: Old PATH: $PATH${reset}"
 ## Example PATH:
 ## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+## Example PATH on CI:
+#PATH="/usr/local/bin:/usr/bin:/bin:/usr/games"
+
 ### {{{
 true "${bold}INFO: Old PATH: $PATH${reset}"
 
@@ -41,7 +44,21 @@ for path_part in "${path_array[@]}"; do
    if [[ "$path_part" != *"help-steps"* ]]; then
       new_path+="$path_part:"
    fi
+   if [ "$path_part" = "/usr/local/sbin" ]; then
+      local_sbin_found=yes
+   fi
+   if [ "$path_part" = "/usr/sbin" ]; then
+      standard_sbin_found=yes
+   fi
 done
+
+if [ ! "$local_sbin_found" = "yes" ]; then
+   new_path+="/usr/local/sbin:$path_part"
+fi
+
+if [ ! "$standard_sbin_found" = "yes" ]; then
+   new_path+="$path_part:/usr/sbin"
+fi
 
 ## Remove trailing colon.
 new_path="${new_path%:}"
