@@ -33,6 +33,50 @@ bash -n "$BASH_SOURCE"
 
 ## }}
 
+path_variable_adjustments() {
+   local path_part path_array local_sbin_found standard_sbin_found
+
+   ## Manual testing.
+   ## CI has the following and lacks any mention of 'sbin' in the PATH variable.
+   #PATH="/usr/local/bin:/usr/bin:/bin:/usr/games"
+
+   old_path="$PATH"
+   echo "${bold}INFO: old_path: $old_path${reset}"
+   ## Example PATH:
+   ## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+   ## Example PATH on CI:
+   #PATH="/usr/local/bin:/usr/bin:/bin:/usr/games"
+
+   IFS=':' read -ra path_array <<< "$PATH"
+
+   new_path="$PATH"
+   for path_part in "${path_array[@]}"; do
+      if [ "$path_part" = "/usr/local/sbin" ]; then
+         local_sbin_found=yes
+      fi
+      if [ "$path_part" = "/usr/sbin" ]; then
+         standard_sbin_found=yes
+      fi
+   done
+
+   if [ ! "$local_sbin_found" = "yes" ]; then
+      new_path="/usr/local/sbin:$PATH:"
+   fi
+
+   if [ ! "$standard_sbin_found" = "yes" ]; then
+      new_path+="$PATH:/usr/sbin:"
+   fi
+
+   ## Remove trailing colon.
+   new_path="${new_path%:}"
+}
+
+path_variable_adjustments
+export PATH="$new_path"
+echo "${bold}INFO: new_path: $PATH${reset}"
+## Example PATH:
+## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 [ -n "$user_name" ] || user_name=$(whoami) || true

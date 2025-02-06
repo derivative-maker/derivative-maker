@@ -26,46 +26,32 @@ true "${bold}INFO: Currently running: $0 (derivative-maker help-steps/mmdebstrap
 
 args_original="$@"
 
-### {{{
+path_variable_remove_help_steps() {
+   local path_part path_array
 
-true "${bold}INFO: Old PATH: $PATH${reset}"
-## Example PATH:
-## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+   true "${bold}INFO: Old PATH: $PATH${reset}"
+   ## Example PATH:
+   ## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-## Example PATH on CI:
-#PATH="/usr/local/bin:/usr/bin:/bin:/usr/games"
+   IFS=':' read -ra path_array <<< "$PATH"
 
-IFS=':' read -ra path_array <<< "$PATH"
+   new_path=""
+   for path_part in "${path_array[@]}"; do
+      if [[ "$path_part" != *"help-steps"* ]]; then
+         new_path+="$path_part:"
+      fi
+   done
 
-new_path=""
-for path_part in "${path_array[@]}"; do
-   if [[ "$path_part" != *"help-steps"* ]]; then
-      new_path+="$path_part:"
-   fi
-   if [ "$path_part" = "/usr/local/sbin" ]; then
-      local_sbin_found=yes
-   fi
-   if [ "$path_part" = "/usr/sbin" ]; then
-      standard_sbin_found=yes
-   fi
-done
+   ## Remove trailing colon.
+   new_path="${new_path%:}"
 
-if [ ! "$local_sbin_found" = "yes" ]; then
-   new_path+="/usr/local/sbin:$path_part"
-fi
+   true "${bold}INFO: New PATH: $PATH${reset}"
+   ## Example PATH:
+   ## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+}
 
-if [ ! "$standard_sbin_found" = "yes" ]; then
-   new_path+="$path_part:/usr/sbin"
-fi
-
-## Remove trailing colon.
-new_path="${new_path%:}"
-
+path_variable_remove_help_steps
 export PATH="$new_path"
-
-true "${bold}INFO: New PATH: $PATH${reset}"
-## Example PATH:
-## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 ## Example $@ when called by cowbuilder:
 ## --arch=amd64 --include=apt --variant=buildd --force-check-gpg bookworm /var/cache/pbuilder/base.cow_amd64 http://HTTPS///deb.debian.org/debian
