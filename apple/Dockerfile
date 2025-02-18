@@ -10,15 +10,20 @@ RUN apt-get update && \
     curl \
     build-essential \
     lsb-release \
+    apt-cacher-ng \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash builder && \
     echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder && \
     chmod 440 /etc/sudoers.d/builder
 
+RUN apt-cacher-ng &
+
 USER builder
 
-RUN git clone https://github.com/derivative-maker/derivative-maker.git /home/builder/derivative-maker
+RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
+
+RUN git checkout containerized-arm-builds
 
 WORKDIR /home/builder/derivative-maker
 
