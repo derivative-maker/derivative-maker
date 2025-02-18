@@ -1,6 +1,7 @@
 FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV APPLE_SILICON_BUILDER=true
 
 RUN apt-get update && \
     apt-get install -y \
@@ -23,9 +24,8 @@ USER builder
 
 RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
 
-RUN git checkout containerized-arm-builds
-
 WORKDIR /home/builder/derivative-maker
 
-CMD ["/bin/bash", "-c", "/home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --arch arm64 --debug"]
+RUN git checkout containerized-arm-builds
 
+CMD ["/bin/bash", "-c", "/home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --arch arm64 --allow-untagged true --debug"]
