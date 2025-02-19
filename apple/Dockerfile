@@ -21,16 +21,15 @@ RUN useradd -m -s /bin/bash builder && \
     echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder && \
     chmod 440 /etc/sudoers.d/builder
 
-USER builder
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER builder
 
 WORKDIR /home/builder/derivative-maker
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
 
-USER root
-
-RUN chmod +x /usr/local/bin/entrypoint.sh
 
 CMD ["/bin/bash", "-c", "/usr/local/bin/entrypoint.sh"]
