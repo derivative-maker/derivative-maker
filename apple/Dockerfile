@@ -2,6 +2,7 @@ FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APPLE_SILICON_BUILDER=true
+ENV REPO_PROXY=""
 
 RUN apt-get update && \
     apt-get install -y \
@@ -14,7 +15,7 @@ RUN apt-get update && \
     apt-cacher-ng \
     procps \
     lsof \
-    supervisor && \
+    netcat && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash builder && \
