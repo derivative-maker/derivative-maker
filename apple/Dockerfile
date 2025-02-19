@@ -1,7 +1,6 @@
 FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV APPLE_SILICON_BUILDER=true
 
 RUN apt-get update && \
     apt-get install -y \
@@ -12,13 +11,19 @@ RUN apt-get update && \
     build-essential \
     lsb-release \
     apt-cacher-ng \
-    && rm -rf /var/lib/apt/lists/*
+    procps \
+    lsof \
+    supervisor && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash builder && \
     echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder && \
     chmod 440 /etc/sudoers.d/builder
 
-RUN apt-cacher-ng &
+RUN mkdir -p /var/log/apt-cacher-ng /etc/apt-cacher-ng /etc/supervisor/conf.d
+
+COPY ./apt-cacher-ng.conf /etc/supervisor/conf.d/apt-cacher-ng.conf
+COPY acng.conf /etc/apt-cacher-ng/acng.conf
 
 USER builder
 
@@ -26,6 +31,6 @@ RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/deriv
 
 WORKDIR /home/builder/derivative-maker
 
-RUN git checkout containerized-arm-builds
+USER root
 
-CMD ["/bin/bash", "-c", "/home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --arch arm64 --allow-untagged true --debug"]
+CMD ["/usr/bin/supervisord", "-n"]
