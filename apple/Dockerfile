@@ -1,6 +1,7 @@
 FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV APPLE_SILICON_BUILDER=true
 
 RUN apt-get update && \
     apt-get install -y \
