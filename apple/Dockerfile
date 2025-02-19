@@ -27,9 +27,10 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER builder
 
-WORKDIR /home/builder/derivative-maker
-
 RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
 
+WORKDIR /home/builder/derivative-maker
+
+RUN git checkout containerized-arm-builds
 
 CMD ["/bin/bash", "-c", "/usr/local/bin/entrypoint.sh"]
