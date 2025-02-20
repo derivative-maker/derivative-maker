@@ -2,14 +2,10 @@
 
 set -e
 
-sudo /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng &
+sleep 60
+sudo --non-interactive /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng
 
 echo "Waiting for apt-cacher-ng to start..."
+sleep 60
 
-while ! nc -z 127.0.0.1 3142; do
-  sleep 1
-done
-
-echo "apt-cacher-ng is up!"
-
-/home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target virtualbox --arch arm64 --allow-untagged true --debug
+/home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target utm --arch arm64 --repo true --tb open --vmsize 15g --allow-untagged true --debug

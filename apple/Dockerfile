@@ -15,7 +15,8 @@ RUN apt-get update && \
     apt-cacher-ng \
     procps \
     lsof \
-    netcat && \
+    cpio \
+    netcat-openbsd && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash builder && \
