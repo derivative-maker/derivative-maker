@@ -4,8 +4,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APPLE_SILICON_BUILDER=true
 ENV GRUB_INSTALL=yes
 
-RUN apt-get update && \
-  apt-get install -y \
+RUN apt-get update
+
+RUN apt-get install --yes \
     sudo \
     git \
     vim \
@@ -18,8 +19,9 @@ RUN apt-get update && \
     cpio \
     grub-efi-arm64 \
     grub-efi-arm64-bin \
-    netcat-openbsd && \
-    rm -rf /var/lib/apt/lists/*
+    netcat-openbsd
+
+RUN rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash builder && \
     echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder && \

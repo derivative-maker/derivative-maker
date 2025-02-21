@@ -284,17 +284,18 @@ repo_proxy_setup() {
    ## This would be needed if using any build_sources without 'http://HTTPS///' syntax.
    #echo "PassThroughPattern: .*" | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
 
-   if [ -z "${APPLE_SILICON_BUILDER+x}" ]; then
-     $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
-       # Find the process and kill it if running
-   else
-     PID=$(pgrep -f "apt-cacher-ng")
+   if [ "$APPLE_SILICON_BUILDER" = "true" ]; then
+     ## Find the process and kill it if running.
+     PID="$(pgrep -f "apt-cacher-ng")"
 
      if [ -n "$PID" ]; then
        $SUDO_TO_ROOT kill "$PID"
      fi
 
+     ## There is no systemd inside docker. Hence, manually restarting apt-cacher-ng.
      $SUDO_TO_ROOT /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng &
+   else
+     $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
    fi
 
    if [ "$dist_build_redistributable" != "true" ]; then
