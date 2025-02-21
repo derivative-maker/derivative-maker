@@ -33,7 +33,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER builder
 
-RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
+RUN git clone https://github.com/derivative-maker/derivative-maker.git /home/builder/derivative-maker
 
 WORKDIR /home/builder/derivative-maker
 
