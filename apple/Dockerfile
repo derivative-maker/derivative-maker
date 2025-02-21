@@ -2,10 +2,10 @@ FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APPLE_SILICON_BUILDER=true
-ENV REPO_PROXY=""
+ENV GRUB_INSTALL=yes
 
 RUN apt-get update && \
-    apt-get install -y \
+  apt-get install -y \
     sudo \
     git \
     vim \
@@ -16,6 +16,8 @@ RUN apt-get update && \
     procps \
     lsof \
     cpio \
+    grub-efi-arm64 \
+    grub-efi-arm64-bin \
     netcat-openbsd && \
     rm -rf /var/lib/apt/lists/*
 
