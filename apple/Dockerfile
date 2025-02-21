@@ -1,0 +1,40 @@
+FROM debian:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV APPLE_SILICON_BUILDER=true
+ENV GRUB_INSTALL=yes
+
+RUN apt-get update && \
+  apt-get install -y \
+    sudo \
+    git \
+    vim \
+    curl \
+    build-essential \
+    lsb-release \
+    apt-cacher-ng \
+    procps \
+    lsof \
+    cpio \
+    grub-efi-arm64 \
+    grub-efi-arm64-bin \
+    netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -s /bin/bash builder && \
+    echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder && \
+    chmod 440 /etc/sudoers.d/builder
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER builder
+
+RUN git clone https://github.com/whonix/derivative-maker.git /home/builder/derivative-maker
+
+WORKDIR /home/builder/derivative-maker
+
+RUN git checkout containerized-arm-builds
+
+CMD ["/bin/bash", "-c", "/usr/local/bin/entrypoint.sh"]
