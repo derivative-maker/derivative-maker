@@ -29,7 +29,13 @@ main() {
 
    echo "$FUNCNAME: copy policy-rc.d into /usr/sbin/ to prevent daemons from starting."
 
-   $SUDO_TO_ROOT cp --preserve --verbose "$dist_source_help_steps_folder/policy-rc.d" "$CHROOT_FOLDER"/usr/sbin/policy-rc.d
+   if [ ! -e "${CHROOT_FOLDER}/usr/sbin/policy-rc.d.derivative-maker" ]; then
+      ## Copy custom policy-rc.d into position
+      $SUDO_TO_ROOT cp --preserve --verbose "${source_code_folder_dist}/packages/kicksecure/usability-misc/usr/share/usability-misc/policy-rc.d" "${CHROOT_FOLDER}/usr/sbin/policy-rc.d.derivative-maker"
+
+      ## Install alternative
+      $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" update-alternatives --install /usr/sbin/policy-rc.d policy-rc.d /usr/sbin/policy-rc.d.derivative-maker 1000
+   fi
 
    sync
 }
