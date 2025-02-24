@@ -44,6 +44,7 @@ fi
 if [ "$CI" = "true" ]; then
   ## TODO
   architecture=arm64
+  build_args+=(--remote-derivative-packages true)
 
   ## Build fewer flavors on CI to save build time.
   ## - Specifically cross-builds (using AMD64 to build ARM64) is hitting GitHub CI timeout.
@@ -79,6 +80,14 @@ if [ "$dist_build_redistributable" = "true" ]; then
 fi
 
 if echo "$@" | grep --quiet "remote-derivative-packages true" ; then
+  remote_derivative_packages=true
+fi
+
+if echo "$build_args" | grep --quiet "remote-derivative-packages true" ; then
+  remote_derivative_packages=true
+fi
+
+if [ "$remote_derivative_packages" = "true" ]; then
   ## Skip upload of debug images.
   rsync_cmd="true simulate-only"
   export rsync_cmd
