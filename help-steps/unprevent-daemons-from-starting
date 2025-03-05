@@ -17,7 +17,14 @@ source "$MYDIR/variables"
 main() {
    sync || true
 
-   $SUDO_TO_ROOT rm --verbose --force "$CHROOT_FOLDER"/usr/sbin/policy-rc.d || true
+   if [ -e "${CHROOT_FOLDER}/usr/sbin/policy-rc.d.derivative-maker" ]; then
+      ## Uninstall alternative
+      $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" update-alternatives --remove policy-rc.d /usr/sbin/policy-rc.d.derivative-maker
+
+      ## Remove file
+      $SUDO_TO_ROOT rm --verbose --force "${CHROOT_FOLDER}/usr/sbin/policy-rc.d.derivative-maker"
+   fi
+
    sync || true
 }
 
