@@ -18,6 +18,8 @@ source pre
 source colors
 source variables
 
+source "$source_code_folder_dist/packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/strings.bsh"
+
 create-live-build-image() {
    ## Record old umask so it can be restored at the end of this function.
    old_umask="$(umask)"
@@ -290,26 +292,16 @@ Pin-Priority: 900"
          ;;
    esac
 
-   ## The following sed invocation converts flavor_meta_packages_to_install to
-   ## a newline-separated, properly escaped list that a second sed invocation
-   ## can handle. It strips leading and trailing space, crunches multiple
-   ## consecutive spaces into single spaces, then converts spaces to newlines
-   ## and adds spaces and backslashes where necessary.
-   ##
-   ## Example:
-   ##
-   ## flavor_meta_packages_to_install='non-qubes-vm-enhancements-cli kicksecure-dependencies-cli whonix-shared-packages-dependencies-cli whonix-gateway-packages-dependencies-cli'
-   ## live_build_flavor_line_list="$(sed 's/^\s\+//g; s/\s\+$//g; s/\s\+/ /g; s/\s/ \\\n/g;' <<< "${flavor_meta_packages_to_install}")"
-   ## echo "${live_build_flavor_line_list}"
-   ##
-   ## Result:
-   ##
+   ## Example flavor_meta_packages_to_install:
+   ## non-qubes-vm-enhancements-cli kicksecure-dependencies-cli whonix-shared-packages-dependencies-cli whonix-gateway-packages-dependencies-cli
+
+   live_build_flavor_line_list="$(trim_collapse_split "${flavor_meta_packages_to_install}")"
+   ## Example live_build_flavor_line_list:
    ## non-qubes-vm-enhancements-cli \
    ## kicksecure-dependencies-cli \
    ## whonix-shared-packages-dependencies-cli \
    ## whonix-gateway-packages-dependencies-cli
 
-   live_build_flavor_line_list="$(sed 's/^\s\+//g; s/\s\+$//g; s/\s\+/ /g; s/\s/ \\\n/g;' <<< "${flavor_meta_packages_to_install}")"
    sed -i "s/XXX_KICKSECURE_HOST_XXX/${live_build_flavor_line_list}/" package-lists/z-kicksecure.list.chroot
 
    ## Branding and GRUB configuration
