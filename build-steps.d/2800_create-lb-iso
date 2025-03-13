@@ -428,6 +428,12 @@ Pin-Priority: 900"
    fi
 
    ## Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?
+   ## Special mounts needed for these scripts to reliably work (in particular autologinchange will crash if this isn't done)
+   $SUDO_TO_ROOT mount --bind /dev "${CHROOT_FOLDER}/dev"
+   $SUDO_TO_ROOT mount --bind /dev/pts "${CHROOT_FOLDER}/dev/pts"
+   $SUDO_TO_ROOT mount --bind /sys "${CHROOT_FOLDER}/sys"
+   $SUDO_TO_ROOT mount --bind /proc "${CHROOT_FOLDER}/proc"
+
    if [ -d "${CHROOT_FOLDER}/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
       $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
@@ -442,6 +448,11 @@ Not running any chroot scripts.${reset}"
    ## Network configuration
    echo "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
+
+   $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
+   $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
+   $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev/pts"
+   $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev"
 
    ## Package into an ISO
    if ! $SUDO_TO_ROOT lb binary --verbose --debug; then
