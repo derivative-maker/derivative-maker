@@ -610,12 +610,15 @@ for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_item ; do
 done
 
 if [ "$dist_build_install_to_root" = "true" ]; then
-   if [ "$CHROOT" = "" ]; then
-      CHROOT=""
-   fi
+   chroot_run() {
+      $SUDO_TO_ROOT "$@"
+   }
 else
-   [ -n "$CHROOT" ] || CHROOT="env $chroot_remove_env_list chroot $CHROOT_FOLDER"
-   #[ -n "$CHROOT" ] || CHROOT="env $chroot_remove_env_list systemd-nspawn --directory=$CHROOT_FOLDER"
+   chroot_run() {
+      $SUDO_TO_ROOT env $chroot_remove_env_list chroot "$CHROOT_FOLDER" "$@"
+
+      #$SUDO_TO_ROOT env $chroot_remove_env_list systemd-nspawn --directory="$CHROOT_FOLDER"
+   }
 fi
 
 if [ "$no_git" = "1" ]; then
