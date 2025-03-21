@@ -27,17 +27,17 @@ hostname_check() {
       one_expected="$dist_build_hostname"
       two_expected=""
       three_expected=""
-      one_actual=$($SUDO_TO_ROOT $CHROOT cat "/etc/hostname")
+      one_actual=$(chroot_run cat "/etc/hostname")
       two_actual=""
       three_actual=""
    elif [ "$dist_build_type_short" = "whonix" ]; then
       one_expected="host"
       two_expected="host"
       three_expected="$dist_build_hostname"
-      one_actual=$($SUDO_TO_ROOT $CHROOT cat "/etc/hostname")
+      one_actual=$(chroot_run cat "/etc/hostname")
       ## ./packages/whonix/whonix-base-files/etc/hostname.whonix
-      two_actual=$($SUDO_TO_ROOT $CHROOT cat "/etc/hostname.${dist_build_type_short}")
-      three_actual=$($SUDO_TO_ROOT $CHROOT cat "/etc/hostname.${dist_build_type_short}-orig")
+      two_actual=$(chroot_run cat "/etc/hostname.${dist_build_type_short}")
+      three_actual=$(chroot_run cat "/etc/hostname.${dist_build_type_short}-orig")
    fi
 
    if [ "$one_actual" != "$one_expected" ] || [ "$two_actual" != "$two_expected" ] || [ "$three_actual" != "$three_expected" ]; then
@@ -61,9 +61,9 @@ run-chroot-scripts-post-d() {
    $SUDO_TO_ROOT sync
 
    ## Sanity tests.
-   $SUDO_TO_ROOT $CHROOT dir
-   $SUDO_TO_ROOT $CHROOT mount
-   $SUDO_TO_ROOT $CHROOT sync
+   chroot_run dir
+   chroot_run mount
+   chroot_run sync
 
    "$dist_source_help_steps_folder"/create-local-temp-apt-repo "$@"
 
@@ -71,14 +71,14 @@ run-chroot-scripts-post-d() {
 
    if [ -d "$CHROOT_FOLDER/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
-      $SUDO_TO_ROOT $CHROOT run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      chroot_run run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
 
       ## Debugging.
       ## TODO: Disable.
       str_replace "/usr/sbin/autologinchange" "bash -x /usr/sbin/autologinchange" "/usr/libexec/initializer-dist/chroot-scripts-post.d/75_autologin"
 
       ## Run the chroot scripts.
-      $SUDO_TO_ROOT $CHROOT run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      chroot_run run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
 
       sync
    else

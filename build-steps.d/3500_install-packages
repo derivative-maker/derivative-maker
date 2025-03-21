@@ -23,8 +23,8 @@ apt_get_parse_unmet_dependency() {
    local pkg_unmet
    pkg_unmet="$1"
    true "INFO: Running \"dpkg -l | grep $pkg_unmet\"..."
-   $SUDO_TO_ROOT $CHROOT dpkg -l | grep "$pkg_unmet" || true
-   $SUDO_TO_ROOT $CHROOT apt-cache policy "$pkg_unmet" || true
+   chroot_run dpkg -l | grep "$pkg_unmet" || true
+   chroot_run apt-cache policy "$pkg_unmet" || true
 
    local line
 
@@ -51,8 +51,8 @@ Will try to manually install it for debugging...${reset}"
          remember_pkg[$unmet_dependency]="true"
          set -x
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
-         $SUDO_TO_ROOT $CHROOT dpkg -l | grep "$unmet_dependency" || true
-         $SUDO_TO_ROOT $CHROOT apt-cache policy "$unmet_dependency" || true
+         chroot_run dpkg -l | grep "$unmet_dependency" || true
+         chroot_run apt-cache policy "$unmet_dependency" || true
          pkg-install "$unmet_dependency" || true
          set +x
          echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
@@ -84,8 +84,7 @@ This may take a while...${reset}"
    ## apt: no way to view dpkg commandline and still run dpkg
    ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=52670
    local apt_get_exit_code="0"
-   $SUDO_TO_ROOT \
-      $CHROOT \
+   chroot_run \
          apt-get-noninteractive \
             ${APTGETOPT[@]} \
             $apt_sourcelist_empty \
@@ -97,7 +96,7 @@ This may take a while...${reset}"
             "$@" \
             || { apt_get_exit_code="$?" ; true; };
 
-   $SUDO_TO_ROOT $CHROOT sync
+   chroot_run sync
    $SUDO_TO_ROOT sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
@@ -114,8 +113,7 @@ variable for debugging. This may take a while...${reset}"
    local apt_get_exit_code="0"
    apt_get_output=" \
          $( \
-            $SUDO_TO_ROOT \
-               $CHROOT \
+            chroot_run \
                   apt-get-noninteractive \
                      ${APTGETOPT[@]} \
                      $apt_sourcelist_empty \
@@ -130,7 +128,7 @@ variable for debugging. This may take a while...${reset}"
       " \
       || { apt_get_exit_code="$?" ; true; };
 
-   $SUDO_TO_ROOT $CHROOT sync
+   chroot_run sync
    sync
 
    if [ "$apt_get_exit_code" = "0" ]; then
@@ -212,8 +210,8 @@ install-packages() {
    sync
 
    ## Sanity tests.
-   $SUDO_TO_ROOT $CHROOT sync
-   $SUDO_TO_ROOT $CHROOT ls -la /
+   chroot_run sync
+   chroot_run ls -la /
 
    sync
 
@@ -221,8 +219,8 @@ install-packages() {
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
 
    ## Debugging.
-   $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/ || true
-   $SUDO_TO_ROOT $CHROOT ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
+   chroot_run ls -la /mnt/initialdeb/dists/local/ || true
+   chroot_run ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
 
@@ -232,7 +230,7 @@ install-packages() {
    dist_chroot_mount_resolv_conf="0" "$dist_source_help_steps_folder/chroot-raw" "$@"
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
 
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
 #    if [ "$dist_build_target_arch" = "arm64" ]; then
 #       ## Install package helper-scripts first so pre.bsh and initramfs-debug-enable is available.
@@ -240,7 +238,7 @@ install-packages() {
 #
 #       ## initramfs-debug-enable is provided by package helper-scripts.
 #       ## TODO: disable once arm64 build issues are resolved
-#       $CHROOT initramfs-debug-enable
+#       chroot_run initramfs-debug-enable
 #    fi
 
    ## Install legacy-dist earlier so debconf questions are answered before
@@ -274,23 +272,23 @@ install-packages() {
    fi
 
    ## Reading Debian apt repository and local repository containing derivative packages.
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
    ## Debugging.
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts clean
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts autoclean
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --yes install
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-missing --yes install
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
-   $SUDO_TO_ROOT $CHROOT dpkg --configure -a
-   $SUDO_TO_ROOT $CHROOT dpkg --audit
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts clean
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts autoclean
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --yes install
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-missing --yes install
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --fix-broken --fix-missing --yes install
+   chroot_run dpkg --configure -a
+   chroot_run dpkg --audit
 
    ## XXX: once installed a newer kernel, which then messed up /boot/grub/grub.cfg to then include root=/dev/mapper which will fail to boot.
-   $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
+   chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes dist-upgrade
 
    ## Debugging.
-   $SUDO_TO_ROOT $CHROOT apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show nano || true
-   $SUDO_TO_ROOT $CHROOT apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show helper-scripts || true
+   chroot_run apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show nano || true
+   chroot_run apt-cache ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show helper-scripts || true
 
    if [ "$dist_build_script_skip_package_install" = "" ]; then
       true "${bold}${cyan}INFO $BASH_SOURCE: Variable dist_build_script_skip_package_install is empty. \
@@ -395,7 +393,7 @@ $dist_build_script_skip_package_install${reset}"
 
    for iso_weak_recommended_packages_item in $efi_weak_recommended_packages_list ; do
       ## Test if available. Might be unavailable (and unneeded) on some architectures.
-      if $SUDO_TO_ROOT $CHROOT apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes --dry-run install "$iso_weak_recommended_packages_item" &>/dev/null ; then
+      if chroot_run apt-get-noninteractive ${APTGETOPT[@]} $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts --yes --dry-run install "$iso_weak_recommended_packages_item" &>/dev/null ; then
          true "INFO: Yes, adding weak recommended package to the installation list: $iso_weak_recommended_packages_item"
          pkg-add-to-install-list "$iso_weak_recommended_packages_item"
       else
@@ -477,13 +475,13 @@ $dist_build_script_skip_package_install${reset}"
       unset INITRD
 
       ## Debugging.
-      $SUDO_TO_ROOT $CHROOT cat /etc/fstab || true
-      $SUDO_TO_ROOT $CHROOT dracut --print-cmdline --fstab || true
+      chroot_run cat /etc/fstab || true
+      chroot_run dracut --print-cmdline --fstab || true
 
       ## For documentation on how to install dracut in a chroot, see:
       ## https://github.com/dracutdevs/dracut/issues/1596
 
-      KERNELIMG="$($SUDO_TO_ROOT $CHROOT ls -1 "/boot/")"
+      KERNELIMG="$(chroot_run ls -1 "/boot/")"
       KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
 
       KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
@@ -498,8 +496,7 @@ $dist_build_script_skip_package_install${reset}"
       ## https://github.com/grml/grml-debootstrap/pull/196
       ##
       ## INITRD_GENERATOR_OPTS is set in help-steps/variables.
-      $SUDO_TO_ROOT \
-         $CHROOT \
+      chroot_run \
             dracut \
                --no-hostonly \
                --kver "$KERNELVER" \
@@ -513,7 +510,7 @@ $dist_build_script_skip_package_install${reset}"
 
    ## Debugging.
    ## grub-mkconfig does this.
-   $SUDO_TO_ROOT $CHROOT grub-probe --target=device / || true
+   chroot_run grub-probe --target=device / || true
    ## Sometimes this outputs:
    ## /dev/mapper/loop0p2
    ## Which results in:
@@ -521,10 +518,10 @@ $dist_build_script_skip_package_install${reset}"
    ## which results in:
    ## root=/dev/mapper/loop0p2
    ## which then results in an unbootable system.
-   $SUDO_TO_ROOT $CHROOT grub-probe --target=device /boot || true
+   chroot_run grub-probe --target=device /boot || true
 
    ## TODO: comment in
-   #$SUDO_TO_ROOT $CHROOT update-grub
+   #chroot_run update-grub
 
    ## TODO: comment out
    ## Debugging.
@@ -532,17 +529,17 @@ $dist_build_script_skip_package_install${reset}"
    ## grub-mkconfig -o /boot/grub/grub.cfg
    ## Run grub-mkconfig with sh xtrace enabled for debug output.
    ## Full path to /usr/sbin/grub-mkconfig required because using sh -xv.
-   $SUDO_TO_ROOT $CHROOT sh -xv /usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg
+   chroot_run sh -xv /usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg
    ## TODO: enable verbose output during execution of /etc/grub.d/10_linux somehow.
    ##       It is being executed by grub-mkconfig. Needed to investigate where the
    ##       root=/dev/mapper issue is coming from
 
    ## Debugging.
    true "/boot/grub/grub.cfg root= :"
-   $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --color "root=" || true
+   chroot_run cat /boot/grub/grub.cfg | grep --color "root=" || true
 
    ## Sanity test.
-   if $SUDO_TO_ROOT $CHROOT cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
+   if chroot_run cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
       ## If an issue in the future, the following code from grml-debootstrap could be adjusted for derivative-maker.
       ## XXX: TARGET_UUID=todo
       #$SUDO_TO_ROOT sed -i "s;root=[^ ]\\+;root=UUID=$TARGET_UUID;" /boot/grub/grub.cfg
@@ -553,9 +550,9 @@ $dist_build_script_skip_package_install${reset}"
    "$dist_source_help_steps_folder/unprevent-daemons-from-starting" "$@"
 
    ## Forget about local repository containing derivative packages.
-   #$SUDO_TO_ROOT $CHROOT apt-get-noninteractive --no-download --list-cleanup update
+   #chroot_run apt-get-noninteractive --no-download --list-cleanup update
 
-   $SUDO_TO_ROOT $CHROOT sync
+   chroot_run sync
    sync
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
