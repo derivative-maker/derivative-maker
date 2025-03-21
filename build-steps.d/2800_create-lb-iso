@@ -379,7 +379,7 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mount --bind /proc "${CHROOT_FOLDER}/proc"
 
    # || true needed to dodge pipefail
-   live_build_bootloader_config="$($SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" grub-mkconfig \
+   live_build_bootloader_config="$(chroot_run grub-mkconfig \
       | grep '^\s*linux' \
       | head -n1 \
       | cut -d' ' -f5-)" || true
@@ -389,11 +389,11 @@ Pin-Priority: 900"
    ## Get rid of the temp bootloader, we don't need it anymore and it will
    ## cause installation issues
    ## Disabled, we're going to keep grub-efi while d-i is disabled.
-   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
-   # $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" apt-get "${APTGETOPT[@]}" --yes autopurge
+   # chroot_run apt-get "${APTGETOPT[@]}" --yes purge grub-efi*
+   # chroot_run apt-get "${APTGETOPT[@]}" --yes autopurge
 
    ## Enable fallback bootloader installation
-   $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" debconf-set-selections <<< 'grub-efi-amd64 grub2/force_efi_extra_removable boolean true'
+   chroot_run debconf-set-selections <<< 'grub-efi-amd64 grub2/force_efi_extra_removable boolean true'
 
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
@@ -421,7 +421,7 @@ Pin-Priority: 900"
    ## This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
-   if [ "$($SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
+   if [ "$(chroot_run dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
       ## 'live-build' appropriates file '/etc/apt/sources.list.d/debian.list' and then deletes it.
       ## Restore the debian.list file.
       $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/packages/kicksecure/anon-apt-sources-list/etc/apt/sources.list.d/debian.list" "${CHROOT_FOLDER}/etc/apt/sources.list.d/debian.list"
@@ -436,13 +436,13 @@ Pin-Priority: 900"
 
    if [ -d "${CHROOT_FOLDER}/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
-      $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      chroot_run run-parts --verbose --test "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
 
       ## Debugging.
-      #$SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" str_replace "/usr/sbin/autologinchange" "bash -x /usr/sbin/autologinchange" "/usr/libexec/initializer-dist/chroot-scripts-post.d/75_autologin"
+      #chroot_run str_replace "/usr/sbin/autologinchange" "bash -x /usr/sbin/autologinchange" "/usr/libexec/initializer-dist/chroot-scripts-post.d/75_autologin"
 
       ## Run the chroot scripts.
-      $SUDO_TO_ROOT chroot "${CHROOT_FOLDER}" run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
+      chroot_run run-parts --verbose --exit-on-error "/usr/libexec/initializer-dist/chroot-scripts-post.d/"
    else
       true "${green}${bold}INFO: Folder /usr/libexec/initializer-dist/chroot-scripts-post.d does not exist in chroot.
 Not running any chroot scripts.${reset}"
