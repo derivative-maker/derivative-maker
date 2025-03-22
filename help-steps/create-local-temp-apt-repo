@@ -29,7 +29,7 @@ main() {
    ## /home/user/derivative-binary/aptrepo_local/kicksecure
    ## /home/user/derivative-binary/aptrepo_local/whonix
 
-   $SUDO_TO_ROOT rm -f "$dist_sources_list_temp_initial_deb_sources_list"
+   $SUDO_TO_ROOT rm -f -- "$dist_sources_list_temp_initial_deb_sources_list"
 
    true "derivative_name_list: $derivative_name_list"
 
@@ -41,16 +41,16 @@ main() {
       ## sets: dist_apt_repository_folder
       set_dist_build_reprepro_folder_options
 
-      $SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
-      $SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/$EMPTY_DIR"
-      $SUDO_TO_ROOT mkdir --parents "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
+      $SUDO_TO_ROOT mkdir --parents -- "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
+      $SUDO_TO_ROOT mkdir --parents -- "$CHROOT_FOLDER/$EMPTY_DIR"
+      $SUDO_TO_ROOT mkdir --parents -- "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
 
       true "dist_sources_list_temp_initial_deb_sources_list: $dist_sources_list_temp_initial_deb_sources_list"
       true "sources_list_target_build_remote_derivative: $sources_list_target_build_remote_derivative"
       true "build_remote_derivative_pkgs: $build_remote_derivative_pkgs"
 
       if [ "$build_remote_derivative_pkgs" = "true" ]; then
-         $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/repo-add-dist" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/repo-add-dist"
+         $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/repo-add-dist" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/repo-add-dist"
 
          true "INFO: running repo-add-dist... It is supposed to create $dist_sources_list_temp_initial_deb_sources_list ..."
          ## Variable 'codename' is irrelevant because setting variable 'sources_list_build_remote_derivative'.
@@ -70,33 +70,33 @@ main() {
          test -d "$dist_apt_repository_folder"
          ## If $dist_apt_repository_folder is owned by user and host umask is 027 (others ("o") cannot read),
          ## then the unprivileged APT downloaded cannot access this folder.
-         chmod --recursive o+r "$dist_apt_repository_folder"
+         chmod --recursive o+r -- "$dist_apt_repository_folder"
 
          ## Mount our local apt repository inside the image (or machine).
-         $SUDO_TO_ROOT mount --bind "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
+         $SUDO_TO_ROOT mount --bind -- "$dist_apt_repository_folder" "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER/$derivative_name_item"
 
          ## Create a sources.list file for our local apt repository.
          echo "deb [trusted=yes] file:/$DEB_INSTALL_FOLDER/$derivative_name_item $dist_build_apt_codename main contrib non-free" | \
-         $SUDO_TO_ROOT tee --append "$dist_sources_list_temp_initial_deb_sources_list" >/dev/null
-         $SUDO_TO_ROOT chmod o+r "$dist_sources_list_temp_initial_deb_sources_list"
+         $SUDO_TO_ROOT tee -- --append "$dist_sources_list_temp_initial_deb_sources_list" >/dev/null
+         $SUDO_TO_ROOT chmod o+r -- "$dist_sources_list_temp_initial_deb_sources_list"
       fi
    done
 
    ## Copy which (frozen) sources.list will be used for building Kicksecure / Whonix into the image (or machine).
-   $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
-   $SUDO_TO_ROOT chmod o+r "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
+   $SUDO_TO_ROOT cp -- "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
+   $SUDO_TO_ROOT chmod o+r -- "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
    ## For debugging / Info.
-   ls -la "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
-   ls -la "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
+   ls -la -- "$CHROOT_FOLDER/$DEB_INSTALL_FOLDER"
+   ls -la -- "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder"
 
    ## For debugging / Info.
    true "(1/2) ${cyan}$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list${reset}:"
-   cat "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
+   cat -- "$CHROOT_FOLDER/$dist_sources_list_temp_build_folder/build_sources.list"
 
    ## For debugging / Info.
    true "(2/2) ${cyan}dist_sources_list_temp_initial_deb_sources_list${reset}: $dist_sources_list_temp_initial_deb_sources_list"
-   cat "$dist_sources_list_temp_initial_deb_sources_list"
+   cat -- "$dist_sources_list_temp_initial_deb_sources_list"
 }
 
 main "$@"
