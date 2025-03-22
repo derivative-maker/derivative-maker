@@ -559,6 +559,29 @@ However, if signing keys are missing for redistributable builds, then the keys s
    "$dist_source_help_steps_folder/signing-key-test" "$@"
 }
 
+sudo_setup() {
+   if [ "$USER" = "" ]; then
+      error "Environment variable USER cannot be empty! Function sudo_setup failed!"
+      return 0
+   fi
+
+   local file_content
+   file_content="\
+## This file has been automatically created by derivative-maker.
+## Feel free to delete this file after using derivative-maker.
+##
+## file: $BASH_SOURCE
+## function: $FUNCNAME
+
+Defaults:%$USER runcwd=*
+"
+
+   printf "%s" "$file_content" | $SUDO_TO_ROOT SUDO_EDITOR="" VISUAL="" EDITOR=sponge -- visudo -f /etc/sudoers.d/derivative-maker >/dev/null
+
+   ## Debugging.
+   $SUDO_TO_ROOT cat /etc/sudoers.d/derivative-maker
+}
+
 main() {
    repo_proxy_setup "$@"
    repo_proxy_test "$@"
@@ -568,11 +591,12 @@ main() {
    virtualbox-installation
    check-virtualbox-installed "$@"
    check-virtualbox-vm-exists "$@"
-   create-virtualbox-temporary-user "$@"
    grml-debootstrap_installation "$@"
    packages_installation_from_newer_repository "$@"
    packages_installation_from_backports_repository "$@"
    signing_key "$@"
+   sudo_setup "$@"
+   create-virtualbox-temporary-user "$@"
 }
 
 main "$@"
