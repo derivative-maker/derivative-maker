@@ -280,14 +280,12 @@ repo_proxy_setup() {
    ## > E: Failed to fetch http://HTTPS///deb.debian.org/debian-security/dists/bookworm-security/InRelease  403  Configuration error (confusing proxy mode) or prohibited port (see AllowUserPorts) [IP: 127.0.0.1 3142]
    echo "AllowUserPorts: 0" | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
 
+   ## Enable apt-cacher-ng HTTPS tunneling.
    ## File /etc/apt-cacher-ng/zz_debconf.conf should already contain:
    ## PassThroughPattern: .*
-
-   ## Enable apt-cacher-ng HTTPS tunneling.
-   ## Temporary workaround for live-build versus sources.list build issue.
-   ## No longer needed.
-   ## This would be needed if using any build_sources without 'http://HTTPS///' syntax.
-   #echo "PassThroughPattern: .*" | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
+   if ! grep --fixed-strings 'PassThroughPattern: .*' /etc/apt-cacher-ng/zz_debconf.conf ; then
+      echo 'PassThroughPattern: .*' | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
+   fi
 
    if [ "$APPLE_SILICON_BUILDER" = "true" ]; then
      ## Find the process and kill it if running.
