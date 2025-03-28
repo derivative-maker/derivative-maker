@@ -276,7 +276,12 @@ repo_proxy_setup() {
    ## Not possible because `append-once` requires `str_match`.
    #$SUDO_TO_ROOT "$source_code_folder_dist/packages/kicksecure/helper-scripts/usr/bin/append-once" "/etc/apt-cacher-ng/acng.conf" "AllowUserPorts: 0"
 
+   ## Avoid apt-cacher-ng error:
+   ## > E: Failed to fetch http://HTTPS///deb.debian.org/debian-security/dists/bookworm-security/InRelease  403  Configuration error (confusing proxy mode) or prohibited port (see AllowUserPorts) [IP: 127.0.0.1 3142]
    echo "AllowUserPorts: 0" | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
+
+   ## File /etc/apt-cacher-ng/zz_debconf.conf should already contain:
+   ## PassThroughPattern: .*
 
    ## Enable apt-cacher-ng HTTPS tunneling.
    ## Temporary workaround for live-build versus sources.list build issue.
