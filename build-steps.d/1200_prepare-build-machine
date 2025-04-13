@@ -369,6 +369,17 @@ check-vm-exists() {
       return 0
    fi
 
+   ## When using:
+   ## SKIP_SCRIPTS+= " prepare-release "
+   ## then skip this function.
+   local skip_script
+   for skip_script in $SKIP_SCRIPTS; do
+      if matched_word=$(echo "$skip_script" | grep "prepare-release") ; then
+         echo "${bold}${green}$BASH_SOURCE INFO: Skipping $FUNCNAME, because SKIP_SCRIPTS matches 'prepare-release'. matched_word: '$matched_word'${reset}"
+         return 0
+      fi
+   done
+
    if [ "$dist_build_raw" = "true" ]; then
       if ! test -f "$binary_image_raw_file_for_unified" ; then
          error "\
