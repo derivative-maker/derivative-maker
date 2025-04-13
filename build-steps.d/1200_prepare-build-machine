@@ -203,15 +203,6 @@ build_machine_setup() {
          install \
          $packages_to_be_installed
 
-   if [ "$dist_build_internal_run" = "true" ]; then
-      true
-   else
-      if [ "$dist_build_virtualbox" = "true" ]; then
-         ## VirtualBox will be be installed at this point.
-         "$dist_source_help_steps_folder/vm-exists-test" "$@"
-      fi
-   fi
-
    if [ "$dist_build_iso" = "true" ]; then
       pushd "$source_code_folder_dist/grml-debootstraptest" >/dev/null
       ## Using sudo because some dependencies might only be available for root.
@@ -370,9 +361,6 @@ check-virtualbox-installed() {
 }
 
 check-virtualbox-vm-exists() {
-   ## No longer required since using dedicated Linux user account.
-   return 0
-
    if [ "$dist_build_internal_run" = "true" ]; then
       return 0
    fi
@@ -380,19 +368,25 @@ check-virtualbox-vm-exists() {
       return 0
    fi
 
-   ## VirtualBox might not be installed at this point.
-   ## Trying anyway, in case this script has already been run and installed
-   ## VirtualBox beforehand.
-
-   local command_v_exit_code="0"
-   command -v VBoxManage >/dev/null || { command_v_exit_code="$?" ; true; }
-
-   if [ ! "$command_v_exit_code" = "0" ]; then
-      true "${cyan}INFO: VBoxManage command not yet available, ok.${reset}"
+   if [ ! "$dist_build_type_long" = "workstation" ]; then
       return 0
    fi
 
-   "$dist_source_help_steps_folder/vm-exists-test" "$@"
+   true "INFO: vm_names_to_be_exported: $vm_names_to_be_exported"
+
+   local vm_name_item_to_be_exported
+   for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
+      if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
+         true "${cyan}INFO: Build for $VMNAME in progress... No need to check for vm_name_item_to_be_exported $vm_name_item_to_be_exported as we are building that now, ok.${reset}"
+         continue
+      fi
+      true "${cyan}INFO: Build for VMNAME $VMNAME in progress... Checking if corresponding in list of vm_names_to_be_exported vm $vm_name_item_to_be_exported already exists (because if it did not exist, the later dm-prepare-release script would fail)...${reset}"
+      if ! $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$vm_name_item_to_be_exported" ; then
+         error "Trying to build VMNAME $VMNAME but vm_names_to_be_exported vm $vm_name_item_to_be_exported has not been built yet. This means dm-prepare-release would fail later."
+      fi
+   done
+
+   true "INFO: all vm_names_to_be_exported available, ok."
 
    true
 }
