@@ -364,25 +364,54 @@ check-vm-exists() {
    if [ "$dist_build_internal_run" = "true" ]; then
       return 0
    fi
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      return 0
-   fi
 
    if [ ! "$dist_build_type_long" = "workstation" ]; then
       return 0
    fi
 
-   true "INFO: vm_names_to_be_exported: $vm_names_to_be_exported"
-
-   local vm_name_item_to_be_exported
-   for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
-      if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
-         true "${cyan}INFO: Build for $VMNAME in progress... No need to check for vm_name_item_to_be_exported $vm_name_item_to_be_exported as we are building that now, ok.${reset}"
-         continue
-      fi
-      true "${cyan}INFO: Build for VMNAME $VMNAME in progress... Checking if corresponding in list of vm_names_to_be_exported vm $vm_name_item_to_be_exported already exists (because if it did not exist, the later dm-prepare-release script would fail)...${reset}"
-      if ! $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$vm_name_item_to_be_exported" >/dev/null ; then
+   if [ "$dist_build_raw" = "true" ]; then
+      if ! test -f "$binary_image_raw_file_for_unified" ; then
          error "\
+Trying to build...
+VMNAME: $VMNAME
+dist_build_desktop: $dist_build_desktop
+dist_build_raw: $dist_build_raw
+missing other VM for unified builds: $binary_image_raw_file_for_unified
+
+This means dm-prepare-release would fail later.
+
+Did you build a CLI build first and now intent to mix with a Xfce build? In this case, set environment variable, for example:
+binary_image_raw_file_for_unified=/path/to/raw ./derivative-maker"
+      fi
+   fi
+
+   if [ "$dist_build_qcow2" = "true" ]; then
+      if ! test -f "$binary_image_qcow2_file_for_unified" ; then
+         error "\
+Trying to build...
+VMNAME: $VMNAME
+dist_build_desktop: $dist_build_desktop
+dist_build_qcow2: $dist_build_qcow2
+missing other VM for unified builds: $binary_image_qcow2_file_for_unified
+
+This means dm-prepare-release would fail later.
+
+Did you build a CLI build first and now intent to mix with a Xfce build? In this case, set environment variable, for example:
+binary_image_raw_file_for_unified=/path/to/qcow ./derivative-maker"
+      fi
+   fi
+
+   if [ "$dist_build_virtualbox" = "true" ]; then
+      true "INFO: vm_names_to_be_exported: $vm_names_to_be_exported"
+      local vm_name_item_to_be_exported
+      for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
+         if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
+            true "${cyan}INFO: Build for $VMNAME in progress... No need to check for vm_name_item_to_be_exported $vm_name_item_to_be_exported as we are building that now, ok.${reset}"
+            continue
+         fi
+         true "${cyan}INFO: Build for VMNAME $VMNAME in progress... Checking if corresponding in list of vm_names_to_be_exported vm $vm_name_item_to_be_exported already exists (because if it did not exist, the later dm-prepare-release script would fail)...${reset}"
+         if ! $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$vm_name_item_to_be_exported" >/dev/null ; then
+            error "\
 Trying to build...
 VMNAME: $VMNAME
 dist_build_desktop: $dist_build_desktop
@@ -392,10 +421,11 @@ This means dm-prepare-release would fail later.
 
 Did you build a CLI build first and now intent to mix with a Xfce build? In this case, set environment variable, for example:
 vm_names_to_be_exported=\"Whonix-Gateway-CLI Whonix-Workstation-Xfce\" ./derivative-maker $@"
-      fi
-   done
+         fi
+      done
 
-   true "INFO: all vm_names_to_be_exported available, ok."
+      true "INFO: all vm_names_to_be_exported available, ok."
+   fi
 
    true
 }
