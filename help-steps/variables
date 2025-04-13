@@ -768,8 +768,21 @@ fi
 
 set_default_variable dist_binary_build_folder "${binary_build_folder_dist}/${dist_build_version}"
 
+set -x
+
 set_default_variable binary_image_raw_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.raw"
 set_default_variable binary_image_qcow2_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.qcow2"
+
+for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
+   if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
+      continue
+   fi
+   set_default_variable binary_image_raw_file_for_unified "${dist_binary_build_folder}/${vm_name_item_to_be_exported}-${dist_build_version}.${target_architecture_pretty_name}.raw"
+   set_default_variable binary_image_qcow2_file_for_unified "${dist_binary_build_folder}/${vm_name_item_to_be_exported}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.qcow2"
+done
+
+exit
+
 set_default_variable binary_image_ova_file "${dist_binary_build_folder}/${dist_unified_name}-${dist_build_version}.${target_architecture_pretty_name}.ova"
 set_default_variable binary_image_iso_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.iso"
 set_default_variable binary_image_windows_installer_file "${dist_binary_build_folder}/${dist_unified_name}.exe"
