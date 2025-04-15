@@ -227,6 +227,28 @@ create-debian-raw-image() {
                   --packages "$grml_packages_file" \
                   --mntpoint "$dist_grml_mount_point" \
                   --target "$binary_image_raw_file"
+
+   ## Change the partition type of the root partition so systemd identifies it
+   ## as a root partition.
+   ##
+   ## The type code used for the root partition differs depending on machine
+   ## architecture. See
+   ## https://www.toomanyatoms.com/computer/gpt_partition_type_guids.html for
+   ## info on what code to use for which architecture.
+   ##
+   ## grml-debootstrap's generated partition layout will also depend on the
+   ## architecture, so we may have to change a different partition depending
+   ## on the CPU type we're building for.
+
+   type_code=""
+   case "$dist_build_target_arch" in
+      amd64)
+         $SUDO_TO_ROOT sgdisk --typecode='3:4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709' "$binary_image_raw_file"
+         ;;
+      arm64)
+         $SUDO_TO_ROOT sgdisk --typecode='2:B921B045-1DF0-41C3-AF44-4C6F280D3FAE' "$binary_image_raw_file"
+         ;;
+   esac
 }
 
 create-empty-raw-image() {
