@@ -347,7 +347,8 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/var/lib/security-misc"
    $SUDO_TO_ROOT touch "${CHROOT_FOLDER}/var/lib/security-misc/skip_install_check"
 
-   ## Make dist-base-files create a user as it should
+   ## Indicate to dist-base-files that its postinst script is running during a
+   ## live-build build
    $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/var/lib/dist-base-files"
    $SUDO_TO_ROOT touch "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
@@ -419,8 +420,6 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/etc/udev/rules.d/70-persistent-cd.rules"
    ## We inserted this earlier to prevent security-misc from erroring out, but it could actually cause problems now, and it's no longer needed
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/security-misc/skip_install_check"
-   ## This is similarly inserted to create a new user, but we don't need it any more and it could cause problems
-   $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
    if [ "$(chroot_run dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
       ## 'live-build' appropriates file '/etc/apt/sources.list.d/debian.list' and then deletes it.
@@ -448,6 +447,9 @@ Pin-Priority: 900"
       true "${green}${bold}INFO: Folder /usr/libexec/initializer-dist/chroot-scripts-post.d does not exist in chroot.
 Not running any chroot scripts.${reset}"
    fi
+
+   ## This flag file was needed to change the behavior of dist-base-files and initializer-dist during build, it's now done being used.
+   $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
    ## Network configuration
    echo "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
