@@ -37,7 +37,7 @@ apt_get_parse_unmet_dependency() {
 
    while read -r -d $'\n' line; do
       local unmet_dependency=""
-      unmet_dependency="$(echo "$line" | grep -o "Depends:.*" | awk '{print $2}')" || true
+      unmet_dependency="$(printf "%s\n" "$line" | grep -o "Depends:.*" | awk '{print $2}')" || true
       if [ "$unmet_dependency" = "" ]; then
          ## no match
          continue
@@ -46,7 +46,7 @@ apt_get_parse_unmet_dependency() {
          if [ "${remember_pkg[$unmet_dependency]}" = "true" ]; then
             continue
          fi
-         echo "${bold}${cyan}INFO: Found unmet dependency: $unmet_dependency. \
+         printf "%s\n" "${bold}${cyan}INFO: Found unmet dependency: $unmet_dependency. \
 Will try to manually install it for debugging...${reset}"
          remember_pkg[$unmet_dependency]="true"
          set -x
@@ -55,10 +55,10 @@ Will try to manually install it for debugging...${reset}"
          chroot_run apt-cache policy "$unmet_dependency" || true
          pkg-install "$unmet_dependency" || true
          set +x
-         echo "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
+         printf "%s\n" "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
          continue
       fi
-   done < <( echo "$apt_get_output" )
+   done < <( printf "%s\n" "$apt_get_output" )
 
    set -x
 }
@@ -240,11 +240,11 @@ install-packages() {
 #       chroot_run initramfs-debug-enable
 #    fi
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
+   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
       true "INFO: Prevent running initramfs-tools needlessly. Will be run at the end. This is only to speed up the build."
       export INITRD=No
    fi
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
       source_dracut_disable_config_snippet="$source_code_folder_dist/packages/kicksecure/initializer-dist/usr/share/initializer-dist/dracut/90-derivative-maker-build.conf"
       target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-derivative-maker-build.conf"
@@ -486,13 +486,13 @@ $dist_build_script_skip_package_install${reset}"
    ## Hard dependency on package 'initializer-dist'.
    chroot_run /usr/libexec/initializer-dist/75_growfs
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
+   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
       true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
       unset INITRD
       chroot_run update-initramfs -u
    fi
 
-   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
       ## Debian package triggers might break the boot process. Re-running dracut with
       ## the correct command line parameters is required in order to fix that.
@@ -507,9 +507,9 @@ $dist_build_script_skip_package_install${reset}"
       ## https://github.com/dracutdevs/dracut/issues/1596
 
       KERNELIMG="$(chroot_run ls -1 -- "/boot/")"
-      KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
+      KERNELIMG="$(printf "%s\n" "$KERNELIMG" | grep "vmlinuz")"
 
-      KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
+      KERNELIMG="$(printf "%s\n" "$KERNELIMG" | sed -n '1p')"
       ## example KERNELIMG:
       ## vmlinuz-6.1.0-9-amd64
 
