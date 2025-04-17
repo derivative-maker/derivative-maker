@@ -266,9 +266,13 @@ install-packages() {
    "$dist_source_help_steps_folder/chroot-raw" "$@"
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
 
+   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
+      true "INFO: Prevent running initramfs-tools needlessly. Will be run at the end. This is only to speed up the build."
+      export INITRD=No
+   fi
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
-      export INITRD=No
+      ## TODO
    fi
 
    ## Reading Debian apt repository and local repository containing derivative packages.
@@ -473,13 +477,15 @@ $dist_build_script_skip_package_install${reset}"
    ## requires: variable CHROOT_FOLDER
    repository_dist_initializer_setup
 
+   if echo "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
+      true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
+      unset INITRD
+   fi
+
    if echo "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
       ## Debian package triggers might break the boot process. Re-running dracut with
       ## the correct command line parameters is required in order to fix that.
-
-      true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running dracut."
-      unset INITRD
 
       ## Debugging.
       chroot_run cat /etc/fstab || true
