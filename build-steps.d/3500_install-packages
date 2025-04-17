@@ -22,9 +22,9 @@ source variables
 apt_get_parse_unmet_dependency() {
    local pkg_unmet
    pkg_unmet="$1"
-   true "INFO: Running \"dpkg -l | grep $pkg_unmet\"..."
-   chroot_run dpkg -l | grep "$pkg_unmet" || true
-   chroot_run apt-cache policy "$pkg_unmet" || true
+   true "INFO: Running \"dpkg -l | grep -- $pkg_unmet\"..."
+   chroot_run dpkg -l | grep -- "$pkg_unmet" || true
+   chroot_run apt-cache policy -- "$pkg_unmet" || true
 
    local line
 
@@ -51,8 +51,8 @@ Will try to manually install it for debugging...${reset}"
          remember_pkg[$unmet_dependency]="true"
          set -x
          true "INFO: Running \"dpkg -l | grep $unmet_dependency\"..."
-         chroot_run dpkg -l | grep "$unmet_dependency" || true
-         chroot_run apt-cache policy "$unmet_dependency" || true
+         chroot_run dpkg -l | grep -- "$unmet_dependency" || true
+         chroot_run apt-cache policy -- "$unmet_dependency" || true
          pkg-install "$unmet_dependency" || true
          set +x
          printf "%s\n" "${bold}${cyan}INFO: Attempt to install unmet_dependency: $unmet_dependency done.${reset}"
