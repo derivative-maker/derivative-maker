@@ -201,9 +201,9 @@ install-packages() {
    ## /etc/default/grub.d/20_dist-base-files.cfg
    ## https://www.kicksecure.com/wiki/Dev/boot#/etc/default/grub.d/20_dist-base-files.cfg
    ## https://www.kicksecure.com/wiki/Grub#/etc/default/grub.d/20_dist-base-files.cfg
-   $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/dist-base-files/usr/share/derivative-base-files/20_dist-base-files.cfg" "$CHROOT_FOLDER/etc/default/grub.d/20_dist-base-files.cfg"
+   $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/dist-base-files/usr/share/derivative-base-files/20_dist-base-files.cfg" "$CHROOT_FOLDER/etc/default/grub.d/20_dist-base-files.cfg"
 
-   $SUDO_TO_ROOT cp "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
+   $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
 
    "$dist_source_help_steps_folder/prevent-daemons-from-starting" "$@"
 
@@ -211,7 +211,7 @@ install-packages() {
 
    ## Sanity tests.
    chroot_run sync
-   chroot_run ls -la /
+   chroot_run ls -la -- /
 
    sync
 
@@ -219,8 +219,8 @@ install-packages() {
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
 
    ## Debugging.
-   chroot_run ls -la /mnt/initialdeb/dists/local/ || true
-   chroot_run ls -la /mnt/initialdeb/dists/local/main/binary-*/ || true
+   chroot_run ls -la -- /mnt/initialdeb/dists/local/ || true
+   chroot_run ls -la -- /mnt/initialdeb/dists/local/main/binary-*/ || true
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
 
@@ -500,13 +500,13 @@ $dist_build_script_skip_package_install${reset}"
       chroot_run safe-rm --force --verbose -- "$target_dracut_disable_config_snippet"
 
       ## Debugging.
-      chroot_run cat /etc/fstab || true
+      chroot_run cat -- /etc/fstab || true
       chroot_run dracut --print-cmdline --fstab || true
 
       ## For documentation on how to install dracut in a chroot, see:
       ## https://github.com/dracutdevs/dracut/issues/1596
 
-      KERNELIMG="$(chroot_run ls -1 "/boot/")"
+      KERNELIMG="$(chroot_run ls -1 -- "/boot/")"
       KERNELIMG="$(echo "$KERNELIMG" | grep "vmlinuz")"
 
       KERNELIMG="$(echo "$KERNELIMG" | sed -n '1p')"
@@ -561,10 +561,10 @@ $dist_build_script_skip_package_install${reset}"
 
    ## Debugging.
    true "/boot/grub/grub.cfg root= :"
-   chroot_run cat /boot/grub/grub.cfg | grep --color "root=" || true
+   chroot_run cat -- /boot/grub/grub.cfg | grep --color "root=" || true
 
    ## Sanity test.
-   if chroot_run cat /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
+   if chroot_run cat -- /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
       ## If an issue in the future, the following code from grml-debootstrap could be adjusted for derivative-maker.
       ## XXX: TARGET_UUID=todo
       #$SUDO_TO_ROOT sed -i "s;root=[^ ]\\+;root=UUID=$TARGET_UUID;" /boot/grub/grub.cfg
