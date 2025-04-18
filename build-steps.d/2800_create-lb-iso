@@ -356,6 +356,12 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/etc"
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_kernel_img_conf" "${CHROOT_FOLDER}/etc/kernel-img.conf"
 
+   ## Prevent needless initramfs builds.
+   source_dracut_disable_config_snippet="$source_code_folder_dist/packages/kicksecure/initializer-dist/usr/share/initializer-dist/dracut/90-derivative-maker-build.conf"
+   $SUDO_TO_ROOT -- mkdir --parents -- "$CHROOT_FOLDER/etc/dracut.conf.d"
+   target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-derivative-maker-build.conf"
+   $SUDO_TO_ROOT -- cp --verbose -- "$source_dracut_disable_config_snippet" "$target_dracut_disable_config_snippet"
+
    ## Build ISO chroot
    if ! $SUDO_TO_ROOT lb chroot --verbose --debug; then
       error "${bold}${red}ERROR: Live build chroot stage failed!${reset}"
@@ -433,6 +439,7 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mount --bind /dev/pts "${CHROOT_FOLDER}/dev/pts"
    $SUDO_TO_ROOT mount --bind /sys "${CHROOT_FOLDER}/sys"
    $SUDO_TO_ROOT mount --bind /proc "${CHROOT_FOLDER}/proc"
+   $SUDO_TO_ROOT mount -t tmpfs tmpfs "${CHROOT_FOLDER}/run"
 
    if [ -d "${CHROOT_FOLDER}/usr/libexec/initializer-dist/chroot-scripts-post.d" ]; then
       ## Check which chroot scripts we got.
@@ -455,10 +462,38 @@ Not running any chroot scripts.${reset}"
    echo "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
 
+   ## Re-enable dracut initramfs builds, then do a build
+   $SUDO_TO_ROOT safe-rm --force --verbose -- "$target_dracut_disable_config_snippet"
+
+   ## For documentation on how to install dracut in a chroot, see:
+   ## https://github.com/dracutdevs/dracut/issues/1596
+
+   KERNELIMG="$(chroot_run ls -1 -- "/boot/")"
+   KERNELIMG="$(printf "%s\n" "$KERNELIMG" | grep "vmlinuz")"
+   KERNELIMG="$(printf "%s\n" "$KERNELIMG" | sed -n '1p')"
+   ## example KERNELIMG:
+   ## vmlinuz-6.1.0-9-amd64
+
+   KERNELVER="${KERNELIMG#vmlinuz-}"
+   ## example KERNELVER:
+   ## 6.1.0-9-amd64
+
+   chroot_run \
+      dracut \
+         --no-hostonly \
+         --kver "$KERNELVER" \
+         --force \
+         --reproducible \
+         --fstab \
+         --add-fstab /etc/fstab \
+         --verbose \
+         $INITRD_GENERATOR_OPTS
+
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev/pts"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev"
+   $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/run"
 
    ## Package into an ISO
    if ! $SUDO_TO_ROOT lb binary --verbose --debug; then
