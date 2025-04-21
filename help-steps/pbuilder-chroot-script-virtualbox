@@ -29,16 +29,16 @@ source "/home/$user_name/pbuilder_config_file"
 
 chown --recursive -- "$user_name" "/home/$user_name"
 
-adduser user sudo
-echo "user ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
+adduser "$user_name" sudo
+echo "$user_name ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
 
 ## Debugging.
 ## sudo test.
 sudo --non-interactive test -d /usr
 
 ## Debugging.
-sudo --non-interactive -u user -- test -x /usr/bin/dist-installer-cli-standalone
-sudo --non-interactive -u user -- ls -la /usr/bin/dist-installer-cli-standalone
+sudo --non-interactive -u "$user_name" -- test -x /usr/bin/dist-installer-cli-standalone
+sudo --non-interactive -u "$user_name" -- ls -la /usr/bin/dist-installer-cli-standalone
 
 printf '%s\n' "APTGETOPT_SERIALIZED:"
 printf '%s\n' "--------------------"
@@ -61,13 +61,13 @@ dist_installer_cli_arguments+=("--no-import")
 #dist_installer_cli_arguments+=("--oracle-repo")
 
 success=""
-if ! sudo --non-interactive -u user APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
+if ! sudo --non-interactive -u "$user_name" APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
   success=false
 fi
 
-last_run_integer="$(printf '%s ' "/home/user/dist-installer-cli-download/logs/"/* | awk '{print NF}')"
-cat -- "/home/user/dist-installer-cli-download/logs/$last_run_integer/debug.log"
-cat -- "/home/user/dist-installer-cli-download/logs/$last_run_integer/user.log"
+last_run_integer="$(printf '%s ' "/home/$user_name/dist-installer-cli-download/logs/"/* | awk '{print NF}')"
+cat -- "/home/$user_name/dist-installer-cli-download/logs/$last_run_integer/debug.log"
+cat -- "/home/$user_name/dist-installer-cli-download/logs/$last_run_integer/user.log"
 
 if [ "$success" = "false" ];then
   error "VirtualBox installer failed inside cowbuilder chroot."
