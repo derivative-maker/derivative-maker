@@ -36,11 +36,11 @@ delete_vbox_vm() {
 
    ## The "$SUDO_TO_VBOX_TEMP VBoxManage unregistervm --delete" does not do its job,
    ## we have to manually delete the VM folder.
-   $SUDO_TO_ROOT safe-rm -r -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
+   $SUDO_TO_ROOT safe-rm -r -f -- "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
    sync
 
    ## Delete old ova.
-   #$SUDO_TO_ROOT safe-rm -f "$binary_image_ova_file"
+   #$SUDO_TO_ROOT safe-rm -f -- "$binary_image_ova_file"
    #sync
 }
 
@@ -49,7 +49,7 @@ convert_raw_to_vdi() {
 
    ## Can be safely deleted because stored under dedicated, temporary user account.
    ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
-   $SUDO_TO_VBOX_TEMP safe-rm -f "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   $SUDO_TO_VBOX_TEMP safe-rm -f -- "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Copy $binary_image_raw_file into a folder accessible by "dm-vbox-temp" user.
    ## TODO: Sequential / non-parallel. Not yet parallelizable builds.
@@ -59,7 +59,7 @@ convert_raw_to_vdi() {
    $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
    ## Safe disk space.
-   $SUDO_TO_VBOX_TEMP safe-rm "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+   $SUDO_TO_VBOX_TEMP safe-rm -- "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
 
    ## Debugging.
    $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
@@ -479,7 +479,7 @@ main() {
    else
       ## Safe disk space.
       ## Delete no longer needed raw image to save disk space during the build process.
-      $SUDO_TO_ROOT safe-rm -f "$binary_image_raw_file"
+      $SUDO_TO_ROOT safe-rm -f -- "$binary_image_raw_file"
    fi
 
    sync
