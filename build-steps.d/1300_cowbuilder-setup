@@ -62,8 +62,18 @@ cowbuilder_setup_do() {
    ## Debugging.
    $SUDO_TO_ROOT cat -- "$dist_build_pbuilder_config_file"
 
+   make_cross_build_platform_list_including_host_architecture+=" $make_cross_build_platform_list "
+
+   if [ "$dist_build_virtualbox" = "true" ]; then
+      if [ "$dist_build_target_arch" = "arm64" ]; then
+         true "${cyan}INFO: '--target virtualbox' and '--arch arm64', therefore also building a AMD64 chroot, because at time of writing VirtualBox is available only on ARM64 macOS but not for ARM64 Linux.${reset}"
+         make_cross_build_platform_list_including_host_architecture+=" amd64 "
+      fi
+   fi
+
    ## cowbuilder chroot also required for host_architecture so local dependencies can be built.
-   make_cross_build_platform_list_including_host_architecture="$make_cross_build_platform_list $host_architecture"
+   make_cross_build_platform_list_including_host_architecture+=" $host_architecture "
+
    ## Remove duplicates in case we have just set this for example to "amd64 amd64".
    make_cross_build_platform_list_including_host_architecture=$(printf "%s\n" "$make_cross_build_platform_list_including_host_architecture" | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
 
