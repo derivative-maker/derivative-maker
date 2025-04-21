@@ -134,6 +134,16 @@ cowbuilder_setup_do() {
       $SUDO_TO_ROOT mkdir --parents -- "$base_folder/home/$user_name"
       $SUDO_TO_ROOT cp -- "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"
 
+      dist_installer_cli_file_name=$(basename "$binary_image_installer_dist_source")
+      ## example dist_installer_cli_file_name:
+      ## dist-installer-cli-standalone
+
+      ## copy dist-installer-cli-standalone into chroot home folder
+      ## Might not be required for all platforms but depending on '"$dist_build_virtualbox" = "true"'
+      ## might cause issues with reproducibility. Has no effect if not used.
+      ## Copy unconditionally for simplicity.
+      $SUDO_TO_ROOT cp -- "$binary_image_installer_dist_source" "$base_folder/home/$user_name/$dist_installer_cli_file_name"
+
       cowbuilder_exit_code=0
       $SUDO_TO_ROOT \
          $COWBUILDER_PREFIX \
