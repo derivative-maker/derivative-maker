@@ -6,7 +6,7 @@
 set -x
 set -e
 
-true "${bold}INFO: Currently running pbuilder VirtualBox chroot script.${reset}"
+true "${bold}INFO: Currently running cowbuilder VirtualBox chroot script.${reset}"
 
 set -o pipefail
 #set -o nounset
@@ -23,6 +23,12 @@ cat "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
+## TODO: remove
+#adduser --quiet --group --system --home "/home/$user_name" "$user_name"
+#usermod -d "/home/$user_name" "$user_name"
+
+chown --recursive -- "$user_name" "/home/$user_name"
+
 adduser user sudo
 echo "user ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
 
@@ -34,8 +40,27 @@ sudo --non-interactive test -d /usr
 sudo --non-interactive -u user -- test -x /usr/bin/dist-installer-cli-standalone
 sudo --non-interactive -u user -- ls -la /usr/bin/dist-installer-cli-standalone
 
-sudo --non-interactive -u user -- bash -x /usr/bin/dist-installer-cli-standalone -l debug || true
-ls -la /home/user/dist-installer-cli-download/logs/
-sleep 10
+printf '%s\n' "APTGETOPT_SERIALIZED:"
+printf '%s\n' "--------------------"
+printf '%s\n' "$APTGETOPT_SERIALIZED"
+printf '%s\n' "--------------------"
 
-true "${bold}INFO: End of script pbuilder VirtualBox chroot script.${reset}"
+dist_installer_cli_arguments=()
+dist_installer_cli_arguments+=("--virtualbox-only")
+dist_installer_cli_arguments+=("--log-level=debug")
+## If needed, should enable the apt-cacher-ng version of it manually.
+#dist_installer_cli_arguments+=("--oracle-repo")
+
+success=""
+if ! sudo --non-interactive -u user APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" bash -x /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
+  success=false
+fi
+
+last_run_integer="$(printf '%s ' "/home/user/dist-installer-cli-download/logs/"/* | awk '{print NF}')"
+cat -- "/home/user/dist-installer-cli-download/logs/$last_run_integer/debug.log"
+
+if [ "$success" = "false" ];then
+  error "VirtualBox installer failed inside cowbuilder chroot."
+fi
+
+true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"

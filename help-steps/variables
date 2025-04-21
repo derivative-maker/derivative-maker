@@ -122,12 +122,18 @@ export dist_aptgetopt_file
 $SUDO_TO_ROOT rm -f -- "$dist_aptgetopt_file"
 
 aptgetopt_add() {
-   APTGETOPT[${#APTGETOPT[@]}]="$1"
-   APTGETOPT_ALT="$APTGETOPT_ALT $1"
-   if echo "$@" | grep --quiet --ignore-case "proxy" ; then
+   local opt opt_file
+   opt="$1"
+   echo "$1"
+
+   APTGETOPT+=("-o")
+   APTGETOPT+=("$opt")
+   APTGETOPT_ALT+=" $opt"
+
+   if [[ "$opt" =~ [Pp]roxy ]]; then
       return 0
    fi
-   APTGETOPT_WITHOUT_APT_CACHE[${#APTGETOPT_WITHOUT_APT_CACHE[@]}]="$1"
+   APTGETOPT_WITHOUT_APT_CACHE+=("$opt")
 }
 
 aptgetopt_conf_add () {
@@ -563,7 +569,7 @@ export XZ_OPT
 
 if [ "$dist_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
-   aptgetopt_add "-o Dpkg::Options::=--force-unsafe-io"
+   aptgetopt_add "Dpkg::Options::=--force-unsafe-io"
    aptgetopt_conf_add "Dpkg::Options:: \"--force-unsafe-io\";"
    libeatmydata_file=/usr/lib/*-linux-gnu/libeatmydata.so
    if test -f "$libeatmydata_file" ; then
@@ -596,13 +602,13 @@ if [ -n "${REPO_PROXY}" ]; then
    ## apt config file must be without equals sign
    ## apt config file must be trailing colon sign
 
-   aptgetopt_add "-o Acquire::http::Proxy=${REPO_PROXY}"
+   aptgetopt_add "Acquire::http::Proxy=${REPO_PROXY}"
    aptgetopt_conf_add "Acquire::http::Proxy \"${REPO_PROXY}\";"
 
-   aptgetopt_add "-o Acquire::https::Proxy=${REPO_PROXY}"
+   aptgetopt_add "Acquire::https::Proxy=${REPO_PROXY}"
    aptgetopt_conf_add "Acquire::https::Proxy \"${REPO_PROXY}\";"
 
-   aptgetopt_add "-o Acquire::tor::Proxy=${REPO_PROXY}"
+   aptgetopt_add "Acquire::tor::Proxy=${REPO_PROXY}"
    aptgetopt_conf_add "Acquire::tor::Proxy \"${REPO_PROXY}\";"
 
    DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
@@ -1061,10 +1067,7 @@ echo "\
 ## Debugging.
 #set -x
 
-APTGETOPT[\${#APTGETOPT[@]}]=\"${APTGETOPT[@]}\"
-printf '%s\n' \"APTGETOPT[ before: \${APTGETOPT[@]}\"
-
-APTGETOPT[\${#APTGETOPT[@]}]=\"-o Acquire::BlockDotOnion=false\"
+APTGETOPT_SERIALIZED=$(printf '%s\n' \"${APTGETOPT[@]}\")
 
 export dist_aptgetopt_file
 
@@ -1073,7 +1076,6 @@ export dist_aptgetopt_file
 export BUILDPLACE
 
 ## Debugging.
-printf '%s\n' \"APTGETOPT after: \${APTGETOPT[@]}\"
 printf '%s\n' \"BUILDPLACE: \$BUILDPLACE\"
 printf '%s\n' \"dist_aptgetopt_file: \$dist_aptgetopt_file\"
 
@@ -1178,6 +1180,14 @@ SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
 
 #echo "INFO: SUDO_TO_ROOT:"
 #echo "${cyan}$SUDO_TO_ROOT${reset}"
+
+#APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
+APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
+export APTGETOPT_SERIALIZED
+
+## Debugging.
+#declare -p APTGETOPT
+#printf "%s\n" "$APTGETOPT_SERIALIZED"
 
 ## Development.
 #set -x
