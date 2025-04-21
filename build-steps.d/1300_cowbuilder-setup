@@ -142,11 +142,12 @@ cowbuilder_setup_do() {
       ## Might not be required for all platforms but depending on '"$dist_build_virtualbox" = "true"'
       ## might cause issues with reproducibility. Has no effect if not used.
       ## Copy unconditionally for simplicity.
-      $SUDO_TO_ROOT cp -- "$binary_image_installer_dist_source" "$base_folder/home/$user_name/$dist_installer_cli_file_name"
-
+      $SUDO_TO_ROOT cp -- "$binary_image_installer_dist_source" "$base_folder/usr/bin/$dist_installer_cli_file_name"
+      $SUDO_TO_ROOT chmod o+rx -- "$base_folder/usr/bin/$dist_installer_cli_file_name"
       $SUDO_TO_ROOT chown --recursive -- "$user_name:$user_name" "$base_folder/home/$user_name"
 
-      cowbuilder_execute="$dist_build_pbuilder_chroot_script"
+      cowbuilder_execute="$dist_build_pbuilder_main_chroot_script"
+      #cowbuilder_execute="$dist_build_pbuilder_virtualbox_chroot_script"
 
       cowbuilder_exit_code=0
       $SUDO_TO_ROOT \
@@ -154,10 +155,12 @@ cowbuilder_setup_do() {
             cowbuilder \
                --architecture "$dist_build_multiarch_package_item" \
                --configfile "$dist_build_pbuilder_config_file" \
-               --execute "$cowbuilder_execute" \
+               --execute \
                --basepath "$base_folder" \
                --buildplace "$cow_folder" \
                --save-after-login \
+               -- \
+               "$cowbuilder_execute" \
                || { cowbuilder_exit_code="$?" ; true; };
 
       if [ -d "$base_folder" ]; then

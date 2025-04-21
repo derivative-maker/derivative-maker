@@ -1,0 +1,41 @@
+#!/bin/bash
+
+## Copyright (C) 2017 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "${bold}INFO: Currently running pbuilder VirtualBox chroot script.${reset}"
+
+set -o pipefail
+#set -o nounset
+
+## /usr/share/doc/pbuilder/examples/D10tmp
+[ -n "$TMP" -a ! -d "$TMP" ] && mkdir -p "$TMP" || true
+[ -n "$TMPDIR" -a ! -d "$TMPDIR" ] && mkdir -p "$TMPDIR" || true
+## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=725434;msg=45
+chmod 1777 "$TMP" || true
+chmod 1777 "$TMPDIR" || true
+
+## Debugging.
+cat "/home/$user_name/pbuilder_config_file"
+
+source "/home/$user_name/pbuilder_config_file"
+
+adduser user sudo
+echo "user ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
+
+## Debugging.
+## sudo test.
+sudo --non-interactive test -d /usr
+
+## Debugging.
+sudo --non-interactive -u user -- test -x /usr/bin/dist-installer-cli-standalone
+sudo --non-interactive -u user -- ls -la /usr/bin/dist-installer-cli-standalone
+
+sudo --non-interactive -u user -- bash -x /usr/bin/dist-installer-cli-standalone -l debug || true
+ls -la /home/user/dist-installer-cli-download/logs/
+sleep 10
+
+true "${bold}INFO: End of script pbuilder VirtualBox chroot script.${reset}"
