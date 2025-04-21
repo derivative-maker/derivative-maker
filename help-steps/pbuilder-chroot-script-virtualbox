@@ -46,13 +46,22 @@ printf '%s\n' "$APTGETOPT_SERIALIZED"
 printf '%s\n' "--------------------"
 
 dist_installer_cli_arguments=()
+dist_installer_cli_arguments+=("--non-interactive")
 dist_installer_cli_arguments+=("--virtualbox-only")
 dist_installer_cli_arguments+=("--log-level=debug")
+## Speed up the build.
+## Running 'apt-get update' is pointless as this is a freshly created chroot.
+dist_installer_cli_arguments+=("--noupdate")
+## Redundant.
+dist_installer_cli_arguments+=("--no-boot")
+## Redundant.
+dist_installer_cli_arguments+=("--no-import")
+
 ## If needed, should enable the apt-cacher-ng version of it manually.
 #dist_installer_cli_arguments+=("--oracle-repo")
 
 success=""
-if ! sudo --non-interactive -u user APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" bash -x /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
+if ! sudo --non-interactive -u user APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
   success=false
 fi
 
@@ -63,5 +72,8 @@ cat -- "/home/user/dist-installer-cli-download/logs/$last_run_integer/user.log"
 if [ "$success" = "false" ];then
   error "VirtualBox installer failed inside cowbuilder chroot."
 fi
+
+## Check if VirtualBox really got installed.
+command -v vboxmanage >/dev/null
 
 true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"
