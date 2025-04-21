@@ -87,47 +87,58 @@ cowbuilder_setup_do() {
       ## base_folder
       set_cowbuilder_folders
 
-      if [ -d "$base_folder" ]; then
-         $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
-         $SUDO_TO_ROOT safe-rm --recursive --force -- "$base_folder"
+      ## TODO
+      skip=true
+
+      if [ "$skip" = "true" ]; then
+         true "${cyan}INFO: Skipping cowbuilder chroot creation.${reset}"
+      else
+         if [ -d "$base_folder" ]; then
+            $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
+            $SUDO_TO_ROOT safe-rm --recursive --force -- "$base_folder"
+         fi
+
+         local cowbuilder_exit_code
+         cowbuilder_exit_code=0
+
+         ## '--mirror "$dist_build_apt_sources_mirror"' should be only cosmetic,
+         ## because of mmdebstrap wrapper and hooks.
+         ##
+         ## Duplicate --extrapackages to prevent removal by pbuilder.
+         $SUDO_TO_ROOT \
+            $COWBUILDER_PREFIX \
+               cowbuilder \
+                  --architecture "$dist_build_multiarch_package_item" \
+                  --configfile "$dist_build_pbuilder_config_file" \
+                  --create \
+                  --basepath "$base_folder" \
+                  --buildplace "$cow_folder" \
+                  --distribution "$dist_build_apt_stable_release" \
+                  --mirror "$dist_build_apt_sources_mirror" \
+                  --debootstrap "$dist_source_help_steps_folder/mmdebstrap" \
+                  --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
+                  --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
+                  || { cowbuilder_exit_code="$?" ; true; };
+
+         if [ -d "$base_folder" ]; then
+            $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
+         fi
+
+         if [ ! "$cowbuilder_exit_code" = "0" ]; then
+            return "$cowbuilder_exit_code"
+         fi
       fi
 
-      local cowbuilder_exit_code
-      cowbuilder_exit_code=0
-
-      ## '--mirror "$dist_build_apt_sources_mirror"' should be only cosmetic,
-      ## because of mmdebstrap wrapper and hooks.
-      ##
-      ## Duplicate --extrapackages to prevent removal by pbuilder.
-      $SUDO_TO_ROOT \
-         $COWBUILDER_PREFIX \
-            cowbuilder \
-               --architecture "$dist_build_multiarch_package_item" \
-               --configfile "$dist_build_pbuilder_config_file" \
-               --create \
-               --basepath "$base_folder" \
-               --buildplace "$cow_folder" \
-               --distribution "$dist_build_apt_stable_release" \
-               --mirror "$dist_build_apt_sources_mirror" \
-               --debootstrap "$dist_source_help_steps_folder/mmdebstrap" \
-               --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
-               --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
-               || { cowbuilder_exit_code="$?" ; true; };
-
-      if [ -d "$base_folder" ]; then
-         $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
-      fi
-
-      if [ ! "$cowbuilder_exit_code" = "0" ]; then
-         return "$cowbuilder_exit_code"
-      fi
+      true "INFO: Disable needless initramfs builds inside cowbuilder chroot (not supposed to get booted)."
+      $SUDO_TO_ROOT mkdir --parents -- "$base_folder/etc/dracut.conf.d"
+      $SUDO_TO_ROOT -- cp --verbose -- "$source_dracut_disable_config_snippet" "$base_folder/etc/dracut.conf.d"
 
       ## help-steps/pbuilder-hooks/G10sources_list_restore.bsh should have restored it already.
       ## `pbuilder` component `/usr/lib/pbuilder/pbuilder-createbuildenv`
       ## unfortunately runs function `installaptlines` after `${DEBOOTSTRAP}`,
       ## which uses a different sources list. This pbuilder hook script restores
       ## derivative-maker build APT sources list.
-      true "Sanity test. Security critical. Comparing derivative-maker build sources list with chroot sources list."
+      true "INFO: Sanity test. Security critical. Comparing derivative-maker build sources list with chroot sources list."
       $SUDO_TO_ROOT diff -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
       $SUDO_TO_ROOT cp -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
 
@@ -146,26 +157,33 @@ cowbuilder_setup_do() {
       $SUDO_TO_ROOT chmod o+rx -- "$base_folder/usr/bin/$dist_installer_cli_file_name"
       $SUDO_TO_ROOT chown --recursive -- "$user_name:$user_name" "$base_folder/home/$user_name"
 
-      cowbuilder_execute="$dist_build_pbuilder_main_chroot_script"
-      cowbuilder_execute="$dist_build_pbuilder_virtualbox_chroot_script"
+      cowbuilder_script_list=()
+      cowbuilder_script_list+=("$dist_build_pbuilder_main_chroot_script")
+      cowbuilder_script_list+=("$dist_build_pbuilder_virtualbox_chroot_script")
 
-      cowbuilder_exit_code=0
-      $SUDO_TO_ROOT \
-         $COWBUILDER_PREFIX \
-            cowbuilder \
-               --architecture "$dist_build_multiarch_package_item" \
-               --configfile "$dist_build_pbuilder_config_file" \
-               --execute \
-               --basepath "$base_folder" \
-               --buildplace "$cow_folder" \
-               --save-after-login \
-               -- \
-               "$cowbuilder_execute" \
-               || { cowbuilder_exit_code="$?" ; true; };
+      for cowbuilder_execute_script in "${cowbuilder_script_list[@]}"; do
+         cowbuilder_exit_code=0
+         $SUDO_TO_ROOT \
+            $COWBUILDER_PREFIX \
+               cowbuilder \
+                  --architecture "$dist_build_multiarch_package_item" \
+                  --configfile "$dist_build_pbuilder_config_file" \
+                  --execute \
+                  --basepath "$base_folder" \
+                  --buildplace "$cow_folder" \
+                  --save-after-login \
+                  -- \
+                  "$cowbuilder_execute_script" \
+                  || { cowbuilder_exit_code="$?" ; true; };
 
-      if [ -d "$base_folder" ]; then
-         $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
-      fi
+         if [ -d "$base_folder" ]; then
+            $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
+         fi
+
+         if [ ! "$cowbuilder_exit_code" = "0" ]; then
+            break
+         fi
+      done
 
       if [ ! "$cowbuilder_exit_code" = "0" ]; then
          return "$cowbuilder_exit_code"
