@@ -20,7 +20,7 @@ chmod 1777 "$TMP" || true
 chmod 1777 "$TMPDIR" || true
 
 ## Debugging.
-cat "/home/$user_name/pbuilder_config_file"
+cat -- "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
@@ -32,16 +32,17 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
     #ls -la /usr/lib/libeatmydata.so || true
 
     echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/02apt-speedup
-    cat /etc/dpkg/dpkg.cfg.d/02apt-speedup
+    cat -- /etc/dpkg/dpkg.cfg.d/02apt-speedup
 fi
 
 ## Debugging.
 true "apt_unattended_opts: $apt_unattended_opts"
 
 ## Debugging.
-cat /etc/apt/sources.list
-true "\${APTGETOPT[@]}:
-${APTGETOPT[@]}"
+cat -- /etc/apt/sources.list
+
+mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
 
 if test -f /var/lib/dpkg/available ; then
    true "INFO: /var/lib/dpkg/available exists."
@@ -78,10 +79,10 @@ fi
 ## Required for usrmerge systemd unit files folder /usr/lib/system/system.
 debhelper_version="$(dpkg-query --show --showformat='${Version}' "debhelper")"
 if ! dpkg --compare-versions "$debhelper_version" ge "13.11.8~bpo12+1"; then
-    apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes --target-release=bookworm-backports install debhelper
+    apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes --target-release=bookworm-backports install debhelper
 fi
 
-apt-get ${APTGETOPT[@]} $apt_unattended_opts --yes dist-upgrade
+apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes dist-upgrade
 
 adduser --quiet --group --system --home "/home/$user_name" "$user_name"
 
