@@ -246,6 +246,7 @@ install-packages() {
    fi
    if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
+      $SUDO_TO_ROOT -- mkdir --parents -- "$(dirname "$target_dracut_disable_config_snippet")"
       $SUDO_TO_ROOT -- cp --verbose -- "$source_dracut_disable_config_snippet" "$target_dracut_disable_config_snippet"
    fi
 
@@ -524,8 +525,6 @@ $dist_build_script_skip_package_install${reset}"
                --kver "$KERNELVER" \
                --force \
                --reproducible \
-               --fstab \
-               --add-fstab /etc/fstab \
                --verbose \
                $INITRD_GENERATOR_OPTS
    fi
