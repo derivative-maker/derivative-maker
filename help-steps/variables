@@ -5,7 +5,7 @@
 
 true "$BASH_SOURCE INFO: begin"
 
-#echo "INFO: Currently running script: $BASH_SOURCE"
+#printf "%s\n" "INFO: Currently running script: $BASH_SOURCE"
 
 ## {{ Sanity Tests.
 
@@ -137,7 +137,7 @@ aptgetopt_add() {
 
 aptgetopt_conf_add () {
    mkdir --parents -- "$binary_build_folder_dist/"
-   echo "$1" | tee --append "$dist_aptgetopt_file" >/dev/null
+   printf "%s\n" "$1" | tee --append "$dist_aptgetopt_file" >/dev/null
 }
 
 ## Avoiding "perl: warning: Setting locale failed." as suggested on
@@ -224,7 +224,7 @@ repository_dist_initializer_setup() {
 
    ## Enable generation of repository-dist config file
    if [ "${build_remote_repo_enable}" = 'true' ]; then
-      echo "${DERIVATIVE_APT_REPOSITORY_OPTS}" | sponge -- "${binary_build_folder_dist}/derivative_apt_repository_opts"
+      printf "%s\n" "${DERIVATIVE_APT_REPOSITORY_OPTS}" | sponge -- "${binary_build_folder_dist}/derivative_apt_repository_opts"
       $SUDO_TO_ROOT mkdir --parents "${CHROOT_FOLDER}/var/lib/repository-dist/"
       $SUDO_TO_ROOT cp "${binary_build_folder_dist}/derivative_apt_repository_opts" "${CHROOT_FOLDER}/var/lib/repository-dist/derivative_apt_repository_opts"
    else
@@ -397,7 +397,7 @@ fi
 
 [ -n "$build_freedom_only" ] || build_freedom_only="false"
 
-if echo "$dist_build_type_long" | grep --quiet "host" ; then
+if printf "%s\n" "$dist_build_type_long" | grep --quiet "host" ; then
    if [ "$build_freedom_only" = "true" ]; then
       true "$BASH_SOURCE INFO: --freedom true, therefore omitting firmware-nonfreedom and only adding firmware-linux-free, ok."
       [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-linux-free "
@@ -487,7 +487,7 @@ fi
 
 ## example dist_build_desktop_lowercase:
 ## xfce
-[ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase=$(echo "$dist_build_desktop" | tr '[:upper:]' '[:lower:]')
+[ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase=$(printf "%s\n" "$dist_build_desktop" | tr '[:upper:]' '[:lower:]')
 
 if [ ! "$dist_build_desktop_lowercase" = "xfce" ] ; then
    true "$BASH_SOURCE INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'xfce'. Build Whonix Windows Installer only for Whonix Xfce for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
@@ -509,7 +509,7 @@ fi
 
 [ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_DRACUT"
 
-if echo "$BUILD_INITRAMFS_PKGS" | grep --quiet "dracut" ; then
+if printf "%s\n" "$BUILD_INITRAMFS_PKGS" | grep --quiet "dracut" ; then
    ## INITRD_GENERATOR_OPTS gets read by grml-debootstrap and passed to dracut and is also
    ## read by build-steps.d/*_install-packages
    ##
@@ -562,7 +562,7 @@ fi
 
 if [ "$VMNAME" = "" ]; then
    MSG="${red}${bold}variables ERROR: VMNAME is empty! Please report this bug!${reset}"
-   echo "$MSG"
+   printf "%s\n" "$MSG"
    error "$MSG"
 fi
 
@@ -729,7 +729,7 @@ fi
 
 [ -n "$dist_build_current_git_head" ] || dist_build_current_git_head="$($git_bin rev-parse HEAD)"
 
-#echo "dist_build_current_git_head: $dist_build_current_git_head"
+#printf "%s\n" "dist_build_current_git_head: $dist_build_current_git_head"
 
 ## }}}
 
@@ -749,9 +749,9 @@ else
 fi
 unset temp
 
-dist_build_version="$(echo "$dist_build_version" | sed "s|-developers-only||g")"
-dist_build_version="$(echo "$dist_build_version" | sed "s|-testers-only||g")"
-dist_build_version="$(echo "$dist_build_version" | sed "s|-stable||g")"
+dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-developers-only||g")"
+dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-testers-only||g")"
+dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-stable||g")"
 
 ## Using `export`, so 70_log_build_version can read it.
 export dist_build_version
@@ -767,11 +767,11 @@ set_default_variable() {
   var_content="$2"
 
   if [ -z "${!var_name:-}" ]; then
-    #echo "INFO: Variable '$var_name' is already set? No. - Setting: $var_name='$var_content'"
+    #printf "%s\n" "INFO: Variable '$var_name' is already set? No. - Setting: $var_name='$var_content'"
     eval "$var_name='$var_content'"
     return 0
   fi
-  #echo "INFO: Variable '$var_name' is already set? Yes. - Already: $var_name='${!var_name}'"
+  #printf "%s\n" "INFO: Variable '$var_name' is already set? Yes. - Already: $var_name='${!var_name}'"
 }
 
 if [ "${dist_build_source_archive}" = "true" ]; then
@@ -825,8 +825,8 @@ set_default_variable copy_vms_into_raw_file_two "${dist_binary_build_folder}/Who
 
 ## Sanity test. dm-prepare-release uses 'rm --force --recursive'.
 ## XXX: hardcoded derivative-binary
-if ! echo "$dist_binary_build_folder" | grep --quiet --fixed-strings -- "derivative-binary" ; then
-   echo "$0: FAIL: wrong folder: dist_binary_build_folder: $dist_binary_build_folder"
+if ! printf "%s\n" "$dist_binary_build_folder" | grep --quiet --fixed-strings -- "derivative-binary" ; then
+   printf "%s\n" "$0: FAIL: wrong folder: dist_binary_build_folder: $dist_binary_build_folder"
    exit 1
 fi
 
@@ -1061,7 +1061,7 @@ $SUDO_TO_ROOT rm --force -- "$dist_build_pbuilder_config_file"
 mkdir --parents "$binary_build_folder_dist"
 mkdir --parents "$make_cowbuilder_dist_folder"
 
-echo "\
+printf "%s\n" "\
 ## This is an auto generated file.
 ## Auto generated by '$dist_source_help_steps_folder/$BASH_SOURCE'.
 ## Edits will be lost!
@@ -1109,9 +1109,9 @@ export tb_disable_anon_ws_dnf_conf
 ## runs after 'pre' to provide pretty color functions.
 own_filename="$(basename "$0")"
 for skip_script in $SKIP_SCRIPTS; do
-   if matched_word=$(echo "$own_filename" | grep "$skip_script") ; then
+   if matched_word=$(printf "%s\n" "$own_filename" | grep "$skip_script") ; then
       unset skip_script
-      echo "${bold}${green}$BASH_SOURCE INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
+      printf "%s\n" "${bold}${green}$BASH_SOURCE INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
       exit 0
    fi
 done
@@ -1178,8 +1178,8 @@ SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
 #SUDO_TO_ROOT+=" "
 #SUDO_TO_ROOT+="--"
 
-#echo "INFO: SUDO_TO_ROOT:"
-#echo "${cyan}$SUDO_TO_ROOT${reset}"
+#printf "%s\n" "INFO: SUDO_TO_ROOT:"
+#printf "%s\n" "${cyan}$SUDO_TO_ROOT${reset}"
 
 ## Cannot export bash array.
 #export APTGETOPT
@@ -1196,7 +1196,7 @@ export APTGETOPT_SERIALIZED
 #exit
 
 if [ "$xtrace_was_set" = "true" ]; then
-   echo "$BASH_SOURCE INFO: xtrace_was_set=true - Therefore re-enable xtrace. (set -x)"
+   printf "%s\n" "$BASH_SOURCE INFO: xtrace_was_set=true - Therefore re-enable xtrace. (set -x)"
    set -x
 fi
 true "$BASH_SOURCE INFO: End of script, ok."
