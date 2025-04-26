@@ -24,6 +24,12 @@ cat -- "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
+## Debugging.
+true "apt_unattended_opts: $apt_unattended_opts"
+
+mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
+
 if [ "$dist_build_unsafe_io" = "true" ]; then
     #if ! test -h /usr/lib/libeatmydata.so ; then
         #ln -s /usr/lib/x86_64-linux-gnu/libeatmydata.so /usr/lib/libeatmydata.so || true
@@ -36,13 +42,7 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
 fi
 
 ## Debugging.
-true "apt_unattended_opts: $apt_unattended_opts"
-
-## Debugging.
 cat -- /etc/apt/sources.list
-
-mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
-printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
 
 if test -f /var/lib/dpkg/available ; then
    true "INFO: /var/lib/dpkg/available exists."
