@@ -32,6 +32,20 @@ chown --recursive -- "$user_name" "/home/$user_name"
 adduser "$user_name" sudo
 printf "%s\n" "$user_name ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
 
+## {{ code duplication
+##    - prepare-build-machine
+##    - pbuilder-chroot-script-virtualbox
+adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "dm-vbox-temp"
+mkdir --parents -- "$HOMEVAR_VBOX_TEMP"
+chown --recursive -- "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP"
+## Debugging.
+groups -- "dm-vbox-temp" || true
+ls -la -- "$HOMEVAR_VBOX_TEMP"
+## Sanity test.
+test -d "/"
+ls -la -- "$HOMEVAR_VBOX_TEMP"
+## }}
+
 ## Debugging.
 ## sudo test.
 sudo --non-interactive test -d /usr
@@ -87,19 +101,5 @@ fi
 
 ## Check if VirtualBox really got installed.
 command -v vboxmanage >/dev/null
-
-## {{ code duplication
-##    - prepare-build-machine
-##    - pbuilder-chroot-script-virtualbox
-adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "dm-vbox-temp"
-mkdir --parents -- "$HOMEVAR_VBOX_TEMP"
-chown --recursive -- "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP"
-## Debugging.
-groups -- "dm-vbox-temp" || true
-ls -la -- "$HOMEVAR_VBOX_TEMP"
-## Sanity test.
-test -d "/"
-ls -la -- "$HOMEVAR_VBOX_TEMP"
-## }}
 
 true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"
