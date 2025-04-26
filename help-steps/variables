@@ -121,12 +121,21 @@ export dist_aptgetopt_file
 ## XXX: sudo with '--'
 $SUDO_TO_ROOT rm -f -- "$dist_aptgetopt_file"
 
+## Cannot export bash array.
+#export APTGETOPT
+export APTGETOPT_SERIALIZED
+
+## Debugging.
+#declare -p APTGETOPT
+#printf "%s\n" "$APTGETOPT_SERIALIZED"
+
 aptgetopt_add() {
    local opt opt_file
    opt="$1"
 
    APTGETOPT+=("-o")
    APTGETOPT+=("$opt")
+   APTGETOPT_SERIALIZED=\"$(printf '%s\n' "${APTGETOPT[@]}")\"
 
    if [[ "$opt" =~ [Pp]roxy ]]; then
       return 0
@@ -1073,38 +1082,29 @@ printf "%s\n" "\
 ## '--configfile /home/user/derivative-binary/pbuilder.conf'
 ## NOTE: Cowbuilder ignores arbitrary environment variables such as 'APTGETOPT_SERIALIZED'.
 ##       Therefore, cowbuilder chroot scripts must run:
-## 'source /home/$user_name/pbuilder_config_file'
+##       'source /home/$user_name/pbuilder_config_file'
+##       Maybe false. Just requires correct 'export'.
 
 ## Debugging.
 #set -x
 
-printf '%s\n' \"$0: INFO: This is dist_build_pbuilder_config_file: '$dist_build_pbuilder_config_file'\"
-
-APTGETOPT_SERIALIZED=\"$(printf '%s\n' "${APTGETOPT[@]}")\"
-
-HOMEVAR_VBOX_TEMP=\"$HOMEVAR_VBOX_TEMP\"
-
+export APTGETOPT_SERIALIZED
+export HOMEVAR_VBOX_TEMP
 export dist_aptgetopt_file
 
 ## making pbuilder /usr/lib/pbuilder/pbuilder-createbuildenv work with mmdebstrap.
 ## so it can be read by help-steps/mmdebstrap wrapper
 export BUILDPLACE
 
-## Debugging.
-printf '%s\n' \"APTGETOPT_SERIALIZED: '\$APTGETOPT_SERIALIZED'\"
-printf '%s\n' \"HOMEVAR_VBOX_TEMP: '\$HOMEVAR_VBOX_TEMP'\"
-printf '%s\n' \"BUILDPLACE: '\$BUILDPLACE'\"
-printf '%s\n' \"dist_aptgetopt_file: '\$dist_aptgetopt_file'\"
-
 APTCACHEHARDLINK=no
+export APTCACHEHARDLINK
 
 ## E: Cross building is possible only with the APT dependency resolver
 ## Not compatible with 'set -o nounset'.
 PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
+export PBUILDERSATISFYDEPENDSCMD
 
-printf '%s\n' \"$0: INFO: End of dist_build_pbuilder_config_file: ''$dist_build_pbuilder_config_file'\"
-
-## End of '$dist_build_pbuilder_config_file'.
+## End of: '$dist_build_pbuilder_config_file'
 " | \
    tee -- "$dist_build_pbuilder_config_file" >/dev/null
 
@@ -1195,15 +1195,6 @@ SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
 
 #printf "%s\n" "INFO: SUDO_TO_ROOT:"
 #printf "%s\n" "${cyan}$SUDO_TO_ROOT${reset}"
-
-## Cannot export bash array.
-#export APTGETOPT
-#APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
-export APTGETOPT_SERIALIZED
-
-## Debugging.
-#declare -p APTGETOPT
-#printf "%s\n" "$APTGETOPT_SERIALIZED"
 
 ## Development.
 #set -x
