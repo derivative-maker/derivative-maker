@@ -101,7 +101,7 @@ create-live-build-image() {
 
    ## TODO: Should quote...? ${APTGETOPT[*]}
 
-   echo "#!/bin/sh
+   printf '%s\n' "#!/bin/sh
 
 set -e
 
@@ -175,19 +175,19 @@ lb config noauto \\
 
    ## Apt archives
    mkdir --parents -- archives
-   echo "deb http://HTTPS///fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
+   printf '%s\n' "deb http://HTTPS///fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
-      echo "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
+      printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    else
-      echo "deb [trusted=yes] file://${live_build_localrepo_location} ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
+      printf '%s\n' "deb [trusted=yes] file://${live_build_localrepo_location} ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
    fi
 
    ## Apt configuration
    live_build_package_pins="Package: calamares
 Pin: release n=${dist_build_apt_stable_release}-backports
 Pin-Priority: 900"
-   echo "${live_build_package_pins}" | sponge -- archives/z-kicksecure.pref.chroot
+   printf '%s\n' "${live_build_package_pins}" | sponge -- archives/z-kicksecure.pref.chroot
 
    ## Package lists
    mkdir --parents -- package-lists
@@ -328,7 +328,7 @@ Pin-Priority: 900"
    if [ "$build_dry_run" = "true" ]; then
       true "${bold}${cyan}INFO: Dry-run, skipping the rest of $BASH_SOURCE. ${reset}"
       ## Cannot be completely empty, or torrent creation would later fail during the prepare-release step.
-      echo "dummy" | sponge -- "${binary_image_iso_file}"
+      printf '%s\n' "dummy" | sponge -- "${binary_image_iso_file}"
       return 0
    fi
 
@@ -459,7 +459,7 @@ Not running any chroot scripts.${reset}"
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/dist-base-files/live_build"
 
    ## Network configuration
-   echo "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
+   printf '%s\n' "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
 
    ## Re-enable dracut initrd builds, then run dracut to build initrd.
