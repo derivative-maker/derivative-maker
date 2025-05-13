@@ -279,18 +279,20 @@ repo_proxy_setup() {
       echo 'PassThroughPattern: .*' | $SUDO_TO_ROOT tee -a "/etc/apt-cacher-ng/acng.conf" >/dev/null
    fi
 
-   if [ "$APPLE_SILICON_BUILDER" = "true" ]; then
-     ## Find the process and kill it if running.
-     PID="$(pgrep -f "apt-cacher-ng")"
+   if [ "$DOCKER" = "true" ]; then
+      ## Find the process and kill it if running.
+      local pgrep_result apt_cacher_ng_pids_list
+      pgrep_result="$(pgrep -f "apt-cacher-ng")" || true
+      readarray -t apt_cacher_ng_pids_list <<< "$pgrep_result"
 
-     if [ -n "$PID" ]; then
-       $SUDO_TO_ROOT kill "$PID"
-     fi
+      for apt_cacher_ng_pid_item in "${apt_cacher_ng_pids_list[@]}"; do
+         $SUDO_TO_ROOT start-stop-daemon --stop --quiet --retry=TERM/5/KILL/5 --pid "$apt_cacher_ng_pid_item" || true
+      done
 
-     ## There is no systemd inside docker. Hence, manually restarting apt-cacher-ng.
-     $SUDO_TO_ROOT /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng &
+      ## There is no systemd inside docker. Hence, manually restarting apt-cacher-ng.
+      $SUDO_TO_ROOT /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng &
    else
-     $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
+      $SUDO_TO_ROOT systemctl restart apt-cacher-ng.service
    fi
 
    if [ "$dist_build_redistributable" != "true" ]; then

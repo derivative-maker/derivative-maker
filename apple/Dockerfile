@@ -1,7 +1,7 @@
 FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV APPLE_SILICON_BUILDER=true
+ENV DOCKER=true
 ENV GRUB_INSTALL=yes
 
 RUN apt-get update
