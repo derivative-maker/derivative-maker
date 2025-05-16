@@ -52,10 +52,15 @@ cowbuilder_setup_do() {
    fi
 
    if [ "$dist_build_unsafe_io" = "true" ]; then
-      if $SUDO_TO_ROOT mount | grep -- /var/cache/pbuilder | grep -- tmpfs ; then
-         true "INFO: /var/cache/pbuilder already tmpfs."
+      if [ "$DOCKER" = "true" ]; then
+         ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/21
+         true "INFO: Skip re-mounting /var/cache/pbuilder as tmpfs because DOCKER=true, ok."
       else
-         $SUDO_TO_ROOT mount -t tmpfs -o size=2G none /var/cache/pbuilder
+         if $SUDO_TO_ROOT mount | grep -- /var/cache/pbuilder | grep -- tmpfs ; then
+            true "INFO: /var/cache/pbuilder already tmpfs."
+         else
+            $SUDO_TO_ROOT mount -t tmpfs -o size=2G none /var/cache/pbuilder
+         fi
       fi
    fi
 
