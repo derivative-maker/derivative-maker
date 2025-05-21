@@ -21,6 +21,17 @@ source variables
 cd "$MYDIR"
 cd ..
 
+test-wc() {
+   if ! printf '%s\n' | wc -l >/dev/null ; then
+      error "\
+command 'wc' test failed! Do not ignore this!
+
+'wc' can core dump. Example:
+zsh: illegal hardware instruction (core dumped) wc -l
+https://github.com/rspamd/rspamd/issues/5137"
+   fi
+}
+
 check-redistributable-builds-requirements() {
    if [ "$dist_build_redistributable" != "true" ]; then
       return 0
@@ -372,6 +383,7 @@ check_required_packages_installed() {
 }
 
 main() {
+   test-wc "$@"
    check-redistributable-builds-requirements "$@"
    check-git-folder "$@"
    check-operating-system-version "$@"
