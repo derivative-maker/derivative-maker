@@ -15,7 +15,7 @@ else
 fi
 
 ## Cannot be implemented in help-steps/parse-cmd since it runs later than this.
-if echo "$@" | grep --quiet --fixed-strings -- "--debug" ; then
+if printf '%s\n' "$@" | grep --fixed-strings -- "--debug" &>/dev/null; then
    dist_build_no_unset_xtrace=true
 fi
 
@@ -140,7 +140,7 @@ process_backtrace_function() {
          echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/cmdline does not exist | ps_p_output: $ps_p_output"
       fi
       if test -f "/proc/$CP/status" ; then
-         PP="$(grep PPid "/proc/$CP/status" | awk '{ print $2; }')" || true
+         PP="$(grep -- PPid "/proc/$CP/status" | awk '{ print $2; }')" || true
       else
          ps_p_output="$(ps --no-headers -p "$CP")"
          echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/status does not exist | ps_p_output: $ps_p_output"
@@ -149,7 +149,7 @@ process_backtrace_function() {
       CP="$PP"
    done
    ## using tac to "print in reverse" [3]
-   process_backtrace_result="$(echo -en "$TRACE" | tac | grep -n ":")" || true
+   process_backtrace_result="$(echo -en "$TRACE" | tac | grep --line-number -- ":")" || true
    if [ "$xtrace_reenable" = "true" ]; then
       set -x
    fi
@@ -588,7 +588,7 @@ root_check() {
 }
 
 apt-cacher-ng_config_check() {
-   if grep -q "AllowUserPorts: 0\$" /etc/apt-cacher-ng/acng.conf ; then
+   if grep -- "AllowUserPorts: 0\$" /etc/apt-cacher-ng/acng.conf &>/dev/null ; then
       true "INFO: 'AllowUserPorts: 0' already in /etc/apt-cacher-ng/acng.conf, ok."
       return 0
    fi
