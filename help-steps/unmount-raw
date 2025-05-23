@@ -53,22 +53,29 @@ unmount_raw() {
    wait "$!"
    sync
 
-   ## Debugging.
-   ## Not needed. unmount-helper should not influence this.
-   #$SUDO_TO_ROOT losetup --all
-   #sync
-
-   ## Debugging.
-   $SUDO_TO_ROOT kpartx -l -v "$img"
-
-   ## Example:
-   ## sudo kpartx -l /home/user/derivative-binary/17.4.0.2/Kicksecure-CLI-17.4.0.2.Intel_AMD64.raw
-   #loop0p1 : 0 204800 /dev/loop0 2048
-   #loop0p2 : 0 2048 /dev/loop0 206848
-   #loop0p3 : 0 209504256 /dev/loop0 208896
-
    $SUDO_TO_ROOT kpartx -d -s -v "$img"
    sync
+
+   local loop_devices_output loop_devices_list loop_devices_item
+   ## Example:
+   ## sudo losetup --associated /home/user/derivative-binary/17.4.0.2/Kicksecure-CLI-17.4.0.2.Intel_AMD64.raw --noheadings --output NAME
+   #/dev/loop1
+   #/dev/loop2
+   #/dev/loop0
+   ## NOTE: There should only be one loop device (such as '/dev/loop1'). But in case of bugs, there might be multiple.
+   loop_devices_output="$($SUDO_TO_ROOT losetup --associated "$img" --noheadings --output NAME)"
+
+   mapfile -t loop_devices_list <<< "$loop_devices_output"
+
+   for loop_devices_item in "${loop_devices_list[@]}" ; do
+      ## Check if the block device still exists.
+      if test -b "$loop_devices_item" ; then
+         true "INFO: kpartx -d -s -v failed to unmount all loop devices, attempting to unmount..."
+         ## Inside docker (and maybe other corner cases) 'kpartx -d -s -v "$img"' might fail to unmount loop devices.
+         ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/43
+         $SUDO_TO_ROOT kpartx -d -s -v "$loop_devices_item"
+      fi
+   done
 
    true "INFO: Middle of $FUNCNAME. Running losetup --all for debugging after kpartx -d (Delete partition mappings.)"
    $SUDO_TO_ROOT losetup --all
