@@ -12,7 +12,8 @@ LOG_DIR="$PWD/logs"
 sudo modprobe -a loop dm_mod
 
 sudo docker run --name derivative-docker -it --rm --privileged \
-	--env 'flavor_meta_packages_to_install=' \
+	--env "TAG=17.4.0.3-developers-only" \
+ 	--env 'flavor_meta_packages_to_install=' \
 	--env 'install_package_list=' \
 	--env ' DERIVATIVE_APT_REPOSITORY_OPTS=' \
 	--volume ${BUILDER_VOLUME}:/home/user \
