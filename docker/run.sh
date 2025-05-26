@@ -2,25 +2,33 @@
 
 set -e
 
+volume_check() {
 
-BUILDER_VOLUME=$(dirname $PWD)
+[ -d ${1} ] || { mkdir -p "${1}"; sleep .1; \
+sudo chown -R ${2} ${1}; \
+sudo chmod -R ${3} ${1}; }
+
+}
+
+BUILDER_VOLUME="../"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-docker"
 
 sudo modprobe -a loop dm_mod
 
 sudo docker run --name derivative-docker -it --rm --privileged \
-	--env "TAG=17.4.0.3-developers-only" \
-	--env "tbb_version=${TOR}" \
-	--env 'FLAVOR=whonix-gateway-cli whonix-workstation-cli' \
-	--env 'TARGET=qcow2' \
-	--env 'ARCH=amd64' \
-	--env 'TYPE=vm' \
-	--env 'CONNECTION=clearnet' \
-	--env 'CLEAN=false' \
-	--env 'REPO=false' \
- 	--env 'OPTS=' \
-	--env 'REPO_PROXY=http://127.0.0.1:3142' \
-	--env 'APT_CACHER_ARGS=' \
+	--env 'flavor_meta_packages_to_install=' \
+	--env 'install_package_list=' \
+	--env ' DERIVATIVE_APT_REPOSITORY_OPTS=' \
 	--volume ${BUILDER_VOLUME}:/home/user \
-	--volume ${CACHER_VOLUME}:/var/cache/apt-cacher-ng ${IMG}
+	--volume ${CACHER_VOLUME}:/var/cache/apt-cacher-ng ${IMG} \
+	/bin/bash -c  "/usr/bin/su ${USER} --command '/usr/bin/start_build.sh \
+	--flavor whonix-gateway-cli \
+	--target qcow2 \
+	--type vm \
+	--arch amd64 \
+	--connection clearnet \
+	--repo false \
+	--report false \
+	--sanity-tests true \
+	--freshness current'"
