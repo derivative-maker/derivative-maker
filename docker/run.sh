@@ -5,6 +5,9 @@ set -e
 BUILDER_VOLUME="$(dirname $PWD)"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-docker"
+USER="user"
+LOG_DIR="$PWD/logs"
+[ -d ${LOG_DIR} ] || mkdir -p ${LOG_DIR}
 
 sudo modprobe -a loop dm_mod
 
@@ -23,4 +26,5 @@ sudo docker run --name derivative-docker -it --rm --privileged \
 	--repo false \
 	--report false \
 	--sanity-tests true \
-	--freshness current'"
+	--freshness current \
+	--allow-uncommitted true'"
