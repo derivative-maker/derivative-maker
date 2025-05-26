@@ -25,4 +25,4 @@ COPY entrypoint.sh start_build.sh /usr/bin
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 
-CMD ["/bin/bash", "-c", "/usr/bin/su ${USER} --command '/usr/bin/start_build.sh'"]
+CMD ["/bin/bash"]
