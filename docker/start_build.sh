@@ -18,4 +18,4 @@ cd ~/
 git verify-commit ${TAG}^{commit}; git checkout --recurse-submodules ${TAG}; \
 git status; } 2>&1 | tee -a ${GIT_LOG}
 
-/home/user/derivative-maker ${@} 2>&1 | tee -a ${BUILD_LOG}; exec "$@"
+/home/user/derivative-maker ${@} 2>&1 | tee -a ${BUILD_LOG}; set -- ${@: -1}; exec "$@"
