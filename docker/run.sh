@@ -18,7 +18,7 @@ sudo docker run --name derivative-docker -it --rm --privileged \
 	--env ' DERIVATIVE_APT_REPOSITORY_OPTS=' \
 	--volume ${BUILDER_VOLUME}:/home/user \
 	--volume ${CACHER_VOLUME}:/var/cache/apt-cacher-ng ${IMG} \
-	/bin/bash -c  "/usr/bin/su ${USER} --command '/usr/bin/start_build.sh \
+	/bin/bash -c  "/usr/bin/su ${USER} --preserve-environment --session-command '/usr/bin/start_build.sh \
 	--flavor whonix-gateway-cli \
 	--target qcow2 \
 	--type vm \
