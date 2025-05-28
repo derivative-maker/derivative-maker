@@ -3,7 +3,6 @@
 set -e
 
 LOG_DIR="${HOME}/docker/logs"
-KEY_LOG="${LOG_DIR}/key.log"
 GIT_LOG="${LOG_DIR}/git.log"
 BUILD_LOG="${LOG_DIR}/build.log"
 
