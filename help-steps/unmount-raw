@@ -70,22 +70,23 @@ unmount_raw() {
 
    for loop_devices_item in "${loop_devices_list[@]}" ; do
       ## Check if the block device still exists.
-      if test -b "$loop_devices_item" ; then
-         true "INFO: kpartx -d -s -v failed to unmount all loop devices, attempting to unmount..."
-         ## Inside docker (and maybe other corner cases) 'kpartx -d -s -v "$img"' might fail to unmount loop devices.
-         ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/43
-
-         ## Overwrite with '|| true' because it might exit non-zero.
-         ## sudo kpartx -d -s -v /dev/loop0
-         #del devmap : loop0p1
-         #del devmap : loop0p2
-         #loop0p3 is in use. Not removing
-         #zsh: exit 1
-         $SUDO_TO_ROOT kpartx -d -s -v "$img" || true "INFO: kpartx non-zero exit code."
-
-         ## Overwrite with '|| true' because: Precaution. Testing. Unknown is strictly required.
-         $SUDO_TO_ROOT losetup -d "$loop_devices_item" || true "INFO: losetup non-zero exit code."
+      if ! test -b "$loop_devices_item" ; then
+         continue
       fi
+      true "INFO: kpartx -d -s -v failed to unmount all loop devices, attempting to unmount..."
+      ## Inside docker (and maybe other corner cases) 'kpartx -d -s -v "$img"' might fail to unmount loop devices.
+      ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/43
+
+      ## Overwrite with '|| true' because it might exit non-zero.
+      ## sudo kpartx -d -s -v /dev/loop0
+      #del devmap : loop0p1
+      #del devmap : loop0p2
+      #loop0p3 is in use. Not removing
+      #zsh: exit 1
+      $SUDO_TO_ROOT kpartx -d -s -v "$loop_devices_item" || true "INFO: kpartx non-zero exit code."
+
+      ## Overwrite with '|| true' because: Precaution. Testing. Unknown is strictly required.
+      $SUDO_TO_ROOT losetup -d "$loop_devices_item" || true "INFO: losetup non-zero exit code."
    done
 
    true "INFO: Middle of $FUNCNAME. losetup --associated after kpartx -d (Delete partition mappings.)"
