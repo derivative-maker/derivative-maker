@@ -6,10 +6,6 @@ LOG_DIR="${HOME}/docker/logs"
 KEY_LOG="${LOG_DIR}/key.log"
 GIT_LOG="${LOG_DIR}/git.log"
 BUILD_LOG="${LOG_DIR}/build.log"
-KEY="${HOME}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc"
-
-[ -f ${KEY} ] && { gpg --keyid-format long --import --import-options show-only --with-fingerprint ~/derivative.asc; \
-gpg --import ~/derivative.asc; gpg --check-sigs 916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA; } 2>&1 | tee ${KEY_LOG}
 
 cd ~/
 
