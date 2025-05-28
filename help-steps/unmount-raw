@@ -87,6 +87,14 @@ unmount_raw() {
       fi
    done
 
+   true "INFO: Middle of $FUNCNAME. losetup --associated after kpartx -d (Delete partition mappings.)"
+   local loop_devices_output_after
+   loop_devices_output_after="$($SUDO_TO_ROOT losetup --associated "$img" --noheadings --output NAME)"
+
+   if [ ! "$loop_devices_output_after" = "" ]; then
+      error "Unmount failed. Variable loop_devices_output_after is non-empty."
+   fi
+
    true "INFO: Middle of $FUNCNAME. Running losetup --all for debugging after kpartx -d (Delete partition mappings.)"
    $SUDO_TO_ROOT losetup --all
    sync
