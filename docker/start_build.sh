@@ -8,9 +8,18 @@ BUILD_LOG="${LOG_DIR}/build.log"
 
 cd ~/
 
-[ -n "${TAG}" ] || TAG="master"; \
-{ git pull; [ ${TAG} = 'master' ] || { git describe; git verify-tag ${TAG}; }; \
-git verify-commit ${TAG}^{commit}; git checkout --recurse-submodules ${TAG}; \
-git status; } 2>&1 | tee -a ${GIT_LOG}
+{
+  if [ -z "${TAG:-}" ]; then
+    TAG="master";
+  fi
+  git pull
+  if [ "${TAG}" != 'master' ]; then
+    git describe
+    git verify-tag "${TAG}"
+  fi
+  git verify-commit "${TAG}^{commit}"
+  git checkout --recurse-submodules "${TAG}"
+  git status
+} 2>&1 | tee -a -- "${GIT_LOG}"
 
 /home/user/derivative-maker ${@:1:$(($#-1))} 2>&1 | tee -a ${BUILD_LOG}; set -- ${@: -1}; exec "$@"
