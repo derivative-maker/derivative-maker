@@ -22,7 +22,7 @@ Requires=docker-entrypoint.service systemd-logind.service systemd-user-sessions.
 EOF
 
 quoted_args="$(printf " %q" "${@}")"
-echo "${quoted_args}" >/etc/docker-entrypoint-cmd
+printf '%s\n' "${quoted_args}" >/etc/docker-entrypoint-cmd
 
 cat >/etc/systemd/system/docker-entrypoint.service <<EOF
 [Unit]
