@@ -4,7 +4,7 @@ container=docker
 export container
 
 if [ $# -eq 0 ]; then
-	echo >&2 'ERROR: No command specified. You probably want to run `journalctl -f`, or maybe `bash`?'
+	printf '%s\n' 'ERROR: No command specified. You probably want to run "journalctl -f", or maybe "bash"?' >&2
 	exit 1
 fi
 
