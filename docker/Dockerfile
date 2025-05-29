@@ -15,11 +15,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
 
 FROM baseimage
 
-LABEL maintainer="derivative-maker"
-LABEL org.label-schema.description="Containerization of Whonix/derivative-maker"
-LABEL org.label-schema.name="derivative-docker"
-LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.vcs-url="https://github.com/derivative-maker/derivative-maker"
+LABEL org.opencontainers.image.authors="adrelanos@whonix.org"
+LABEL org.opencontainers.image.description="Containerization of Whonix/derivative-maker"
+LABEL org.opencontainers.image.title="derivative-maker-docker"
+LABEL org.opencontainers.image.source="https://github.com/derivative-maker/derivative-maker"
+LABEL org.opencontainers.image.documentation="https://www.kicksecure.com/wiki/Dev/Build_Documentation/VM"
+LABEL org.opencontainers.image.version="17.4.0.3-developers-only"
+LABEL org.opencontainers.image.vendor="ENCRYPTED SUPPORT LLC"
 
 COPY entrypoint.sh start_build.sh /usr/bin
 
