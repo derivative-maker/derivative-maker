@@ -22,4 +22,4 @@ cd ~/
   git status
 } 2>&1 | tee -a -- "${GIT_LOG}"
 
-/home/user/derivative-maker ${@:1:$(($#-1))} 2>&1 | tee -a ${BUILD_LOG}; set -- ${@: -1}; exec "$@"
+/home/user/derivative-maker "$@" | tee -a ${BUILD_LOG}
