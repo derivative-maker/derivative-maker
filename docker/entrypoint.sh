@@ -9,7 +9,7 @@ if [ $# -eq 0 ]; then
 fi
 
 if [ ! -t 0 ]; then
-	echo >&2 'ERROR: TTY needs to be enabled (`docker run -t ...`).'
+	printf '%s\n' 'ERROR: TTY needs to be enabled ("docker run -t ...").' >&2
 	exit 1
 fi
 
