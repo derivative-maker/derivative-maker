@@ -18,13 +18,4 @@ sudo docker run --name derivative-maker-docker -it --rm --privileged \
 	--env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
 	--volume ${BUILDER_VOLUME}:/home/user \
 	--volume ${CACHER_VOLUME}:/var/cache/apt-cacher-ng ${IMG} \
-	/bin/bash -c  "/usr/bin/su ${USER} --preserve-environment --session-command '/usr/bin/start_build.sh \
-	--flavor whonix-gateway-cli \
-	--target qcow2 \
-	--type vm \
-	--arch amd64 \
-	--connection clearnet \
-	--repo false \
-	--report false \
-	--sanity-tests true \
-	--freshness current'"
+	/bin/bash -c  "/usr/bin/su ${USER} --preserve-environment --session-command '/usr/bin/start_build.sh'"
