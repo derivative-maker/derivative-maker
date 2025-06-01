@@ -7,6 +7,35 @@ CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 ARGS=""
 
+volume_check() {
+
+[ -d ${1} ] || { mkdir -p "${1}"; sleep .1; \
+sudo chown -R ${2} ${1}; \
+sudo chmod -R ${3} ${1}; }
+
+}
+
+for i in "$@"; do
+	
+	case $i in
+
+	-t|--tag)
+	TAG=${2}
+	shift 2
+	;;
+	-*|--*)
+	echo "Unknown option $i"
+	exit 1
+	;;
+	*)
+	;;
+	
+	esac
+
+done
+
+volume_check "${CACHER_VOLUME}" '101:102' '770'
+
 sudo modprobe -a loop dm_mod
 
 sudo docker run --name derivative-maker-docker -it --rm --privileged \
