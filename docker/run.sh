@@ -9,7 +9,7 @@ ARGS=""
 
 volume_check() {
 
-[ -d ${1} ] || { mkdir -p "${1}"; sleep .1; \
+[ -d "${1}" ] || { mkdir -p "${1}"; sleep .1; \
 sudo chown -R ${2} ${1}; \
 sudo chmod -R ${3} ${1}; }
 
