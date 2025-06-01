@@ -15,18 +15,10 @@ cd "${SOURCE_DIR}"
 
 {
 git pull
-
-if [ -z "${TAG:-}" ]; then
-
-	TAG="master"
-
-else
-
-	git describe
-	git verify-tag "${TAG}"
-
-fi
-
+git fetch --tags --depth=1
+[ -n "${TAG}" ] || TAG="$(git tag -l  | tail -1)"
+git describe
+git verify-tag "${TAG}"
 git verify-commit "${TAG}^{commit}"
 git checkout --recurse-submodules "${TAG}"
 git status
