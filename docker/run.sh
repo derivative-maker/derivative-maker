@@ -39,7 +39,7 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 sudo modprobe -a loop dm_mod
 
 sudo docker run --name derivative-maker-docker -it --rm --privileged \
-	--env "TAG=17.4.0.3-developers-only" \
+	--env "TAG=${TAG}" \
  	--env 'flavor_meta_packages_to_install=' \
 	--env 'install_package_list=' \
 	--env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
