@@ -54,7 +54,7 @@ elif [ -x /usr/lib/systemd/systemd ]; then
 elif [ -x /sbin/init ]; then
 	systemd=/sbin/init
 else
-	echo >&2 'ERROR: systemd is not installed'
+	printf '%s\n' 'ERROR: systemd is not installed' >&2
 	exit 1
 fi
 systemd_args="--show-status=false --unit=docker-entrypoint.target"
