@@ -9,8 +9,7 @@ GIT_LOG="${LOG_DIR}/git.log"
 BUILD_LOG="${LOG_DIR}/build.log"
 
 mkdir -p "${BINARY_DIR}" "${LOG_DIR}"
-[ -d "${HOME}/derivative-binary" ] || \
-ln -s "${BINARY_DIR}" "${HOME}/derivative-binary"
+ln -sf "${BINARY_DIR}" "${HOME}/derivative-binary"
 
 cd "${SOURCE_DIR}"
 
