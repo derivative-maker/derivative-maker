@@ -14,15 +14,13 @@ ln -sf "${BINARY_DIR}" "${HOME}/derivative-binary"
 cd "${SOURCE_DIR}"
 
 {
-if [ -z "${TAG:-}" ]; then
-
-	TAG="master";
-
-fi
-
 git pull
 
-if [ "${TAG}" != 'master' ]; then
+if [ -z "${TAG:-}" ]; then
+
+	TAG="master"
+
+ else
 
 	git describe
 	git verify-tag "${TAG}"
