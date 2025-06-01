@@ -4,7 +4,7 @@ ENV USER=user \
 HOME=/home/user
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y dbus dbus-user-session \
-	git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
+	ca-certificates git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
 	### user account ###
 	adduser --quiet --disabled-password --home ${HOME} --gecos "${USER},,,," ${USER} && \
 	echo "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/passwordless_sudo && \
