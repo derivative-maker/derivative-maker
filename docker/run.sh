@@ -16,6 +16,6 @@ sudo docker run --name derivative-maker-docker -it --rm --privileged \
  	--env 'flavor_meta_packages_to_install=' \
 	--env 'install_package_list=' \
 	--env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
-	--volume ${BUILDER_VOLUME}:/home/user \
+	--volume ${BUILDER_VOLUME}:/home/user/derivative-maker \
 	--volume ${CACHER_VOLUME}:/var/cache/apt-cacher-ng ${IMG} \
 	/bin/bash -c  "/usr/bin/su ${USER} --preserve-environment --session-command '/usr/bin/start_build.sh'"
