@@ -20,7 +20,7 @@ if [ -z "${TAG:-}" ]; then
 
 	TAG="master"
 
- else
+else
 
 	git describe
 	git verify-tag "${TAG}"
