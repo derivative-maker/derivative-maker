@@ -6,8 +6,6 @@ BUILDER_VOLUME="$(dirname $PWD)"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 USER="user"
-LOG_DIR="$PWD/logs"
-[ -d ${LOG_DIR} ] || mkdir -p ${LOG_DIR}
 
 sudo modprobe -a loop dm_mod
 
