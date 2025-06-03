@@ -18,8 +18,7 @@ git pull
 git fetch --tags --depth=1
 [ -n "${TAG}" ] || TAG="$(git tag -l  | tail -1)"
 git checkout --recurse-submodules "${TAG}"
-git describe
-git verify-tag "${TAG}"
+[ "$TAG" = "master" ] || { git describe; git verify-tag "${TAG}"; }
 git verify-commit "${TAG}^{commit}"
 git status
 } 2>&1 | tee -a -- "${GIT_LOG}"
