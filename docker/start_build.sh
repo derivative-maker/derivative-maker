@@ -16,7 +16,7 @@ cd "${SOURCE_DIR}"
 {
 git pull
 git fetch --tags --depth=1
-[ -n "${TAG}" ] || TAG="$(git tag -l  | tail -1)"
+[ -n "${TAG}" ] || TAG="$(git describe --tags $(git rev-list --tags --max-count=1))"
 git checkout --recurse-submodules "${TAG}"
 [ "$TAG" = "master" ] || { git describe; git verify-tag "${TAG}"; }
 git verify-commit "${TAG}^{commit}"
