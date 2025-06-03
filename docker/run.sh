@@ -16,7 +16,7 @@ sudo chmod -R ${3} ${1}; }
 }
 
 for i in "$@"; do
-	
+
 	case $i in
 
 	-t|--tag)
@@ -30,7 +30,7 @@ for i in "$@"; do
 	*)
  	shift
 	;;
-	
+
 	esac
 
 done
