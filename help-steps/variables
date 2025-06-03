@@ -505,6 +505,29 @@ if [ ! "$dist_build_desktop_lowercase" = "xfce" ] ; then
    maybe_disable_dist_build_windows_installer
 fi
 
+## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
+## i.e. only space, which gets actually filled up, will take disk space.
+
+if [ "$build_dry_run" = "true" ]; then
+   [ -n "$VMSIZE" ] || VMSIZE="1M"
+fi
+[ -n "$VMSIZE" ] || VMSIZE="100G"
+export VMSIZE
+
+## Disk identifier for grml-debootstrap.
+## https://github.com/grml/grml-debootstrap/pull/28
+[ -n "$DISK_IDENTIFIER" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
+export DISK_IDENTIFIER
+
+if [ "$dist_build_install_to_root" = "true" ]; then
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER=""
+else
+   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
+fi
+export CHROOT_FOLDER
+
+true "$BASH_SOURCE INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
+
 ## {{{ initramfs
 
 ## binutils dmsetup:
@@ -536,29 +559,6 @@ target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-deriva
 true "${cyan}$BASH_SOURCE INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
 
 ## }}}
-
-## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
-## i.e. only space, which gets actually filled up, will take disk space.
-
-if [ "$build_dry_run" = "true" ]; then
-   [ -n "$VMSIZE" ] || VMSIZE="1M"
-fi
-[ -n "$VMSIZE" ] || VMSIZE="100G"
-export VMSIZE
-
-## Disk identifier for grml-debootstrap.
-## https://github.com/grml/grml-debootstrap/pull/28
-[ -n "$DISK_IDENTIFIER" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
-export DISK_IDENTIFIER
-
-if [ "$dist_build_install_to_root" = "true" ]; then
-   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER=""
-else
-   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
-fi
-export CHROOT_FOLDER
-
-true "$BASH_SOURCE INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
 
 if [ "$VMNAME" = "unknown" ]; then
    true "variables ERROR: VMNAME is unknown. Please report this bug!"
