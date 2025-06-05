@@ -5,7 +5,8 @@ set -e
 BUILDER_VOLUME="$(dirname $PWD)"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
-ARGS=""
+USER="user"
+ARGS="--flavor kicksecure-xfce --target iso --repo true --arch amd64"
 
 volume_check() {
 
@@ -15,16 +16,16 @@ sudo chmod -R ${3} ${1}; }
 
 }
 
-for i in "$@"; do
+while (( $# != 0 )); do
 
-	case $i in
+	case $1 in
 
 	-t|--tag)
 	TAG=${2}
 	shift 2
 	;;
 	-*|--*)
-	echo "Unknown option $i"
+	echo "Unknown option $1"
 	exit 1
 	;;
 	*)

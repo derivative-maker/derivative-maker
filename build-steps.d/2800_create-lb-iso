@@ -184,7 +184,7 @@ lb config noauto \\
       printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    else
-      printf '%s\n' "deb [trusted=yes] file://${live_build_localrepo_location} ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
+      printf '%s\n' "deb [trusted=yes] file://$(readlink -f "${live_build_localrepo_location}") ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
    fi
 
    ## Apt configuration
@@ -348,6 +348,7 @@ Pin-Priority: 900"
 
    ## TODO: Set this centrally in 'help-steps/variables'? Because 'help-steps/variables' already sets variable 'CHROOT_FOLDER'.
    CHROOT_FOLDER="$(realpath -- chroot)"
+   target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-derivative-maker-build.conf"
 
    ## Keep security-misc from erroring out during installation
    $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/var/lib/security-misc"

@@ -21,6 +21,15 @@ source variables
 cd "$MYDIR"
 cd ..
 
+update_apt_database() {
+   $SUDO_TO_ROOT \
+      apt-get \
+         "${APTGETOPT[@]}" \
+         -o Dir::Etc::sourcelist="$dist_build_sources_list_primary" \
+         -o Dir::Etc::sourceparts="-" \
+         update
+}
+
 local_dependencies() {
    ## developer-meta-files provides dm-reprepro-wrapper
 
@@ -28,6 +37,15 @@ local_dependencies() {
 
    ## Use full path to genmkfile so it does not need to be installed.
    ## This saves a bit build time and allows the bootstrap issue of building genmkfile using genmkfile.
+   ## APTGETOPT gymnastics needed to pass apt sources information to genmkfile without permanently modifying APTGETOPT.
+   local APTGETOPT_OLD
+   APTGETOPT_OLD=( "${APTGETOPT[@]}" )
+   APTGETOPT+=(
+      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary"
+      -o Dir::Etc::sourceparts="-"
+   )
+   APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
+
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
 
    if [ "$make_use_cowbuilder" = "false" ]; then
@@ -49,6 +67,9 @@ local_dependencies() {
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
 
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-install
+
+   APTGETOPT=( "${APTGETOPT_OLD[@]}" )
+   APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
 
    popd
 }
@@ -102,7 +123,17 @@ live-build_installation() {
    #$SUDO_TO_ROOT make install
    ## Therefore building with genmkfile, cowbuilder.
    ## Setting 'make_use_lintian=false' because live-build upstream is not lintian warning free.
+   ## APTGETOPT gymnastics needed to pass apt sources information to genmkfile without permanently modifying APTGETOPT.
+   local APTGETOPT_OLD
+   APTGETOPT_OLD=( "${APTGETOPT[@]}" )
+   APTGETOPT+=(
+      -o Dir::Etc::sourcelist="$dist_build_sources_list_primary"
+      -o Dir::Etc::sourceparts="-"
+   )
+   APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
    make_use_lintian=false "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-icup
+   APTGETOPT=( "${APTGETOPT_OLD[@]}" )
+   APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
 
    ## Revert back to the checkpoint
    #git add -A
@@ -230,6 +261,7 @@ virtualbox_windows_installer_download() {
 }
 
 main() {
+   update_apt_database "$@"
    local_dependencies "$@"
    live-build_installation "$@"
    virtualbox_windows_installer_download "$@"
