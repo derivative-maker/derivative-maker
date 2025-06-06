@@ -47,7 +47,9 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 
 sudo -- modprobe -a loop dm_mod
 
-sudo -- docker \
+sudo \
+  -- \
+    docker \
       run \
       --name derivative-maker-docker \
       --interactive \
