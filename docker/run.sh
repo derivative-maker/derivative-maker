@@ -3,7 +3,7 @@
 set -x
 set -e
 
-BUILDER_VOLUME="$(dirname $PWD)"
+BUILDER_VOLUME="$(dirname -- "$PWD")"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
