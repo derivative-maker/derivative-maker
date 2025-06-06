@@ -18,9 +18,9 @@ if [ ! -t 0 ]; then
 	exit 1
 fi
 
-env >/etc/docker-entrypoint-env
+env > /etc/docker-entrypoint-env
 
-cat >/etc/systemd/system/docker-entrypoint.target <<EOF
+cat > /etc/systemd/system/docker-entrypoint.target <<EOF
 [Unit]
 Description=the target for docker-entrypoint.service
 Requires=docker-entrypoint.service systemd-logind.service systemd-user-sessions.service
@@ -29,7 +29,7 @@ EOF
 quoted_args="$(printf " %q" "${@}")"
 printf '%s\n' "${quoted_args}" >/etc/docker-entrypoint-cmd
 
-cat >/etc/systemd/system/docker-entrypoint.service <<EOF
+cat > /etc/systemd/system/docker-entrypoint.service <<EOF
 [Unit]
 Description=docker-entrypoint.service
 
