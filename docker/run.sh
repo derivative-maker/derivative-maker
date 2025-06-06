@@ -47,16 +47,9 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 
 sudo -- modprobe -a loop dm_mod
 
-declare -a su_cmd=(
-  /usr/bin/su
-  "${USER}"
-  --preserve-environment
-  --session-command
-  --
-  "${@}"
-)
-
 sudo \
+  --preserve-environment \
+  -u "${USER}" \
   -- \
     docker \
       run \
@@ -75,4 +68,4 @@ sudo \
       bash \
         -c \
         -- \
-          "${su_cmd[@]}"
+          "${@}"
