@@ -52,6 +52,7 @@ declare -a su_cmd=(
   "${USER}"
   --preserve-environment
   --session-command
+  --
   "${@}"
 )
 
@@ -69,5 +70,6 @@ sudo -- \
   --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
   --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
   --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
+  -- \
   /bin/bash -c \
   "${su_cmd[@]}"
