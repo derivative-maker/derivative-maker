@@ -47,6 +47,14 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 
 sudo -- modprobe -a loop dm_mod
 
+declare -a su_cmd=(
+  /usr/bin/su
+  "${USER}"
+  --preserve-environment
+  --session-command
+  "${@}"
+)
+
 sudo -- \
   docker \
   run \
@@ -62,4 +70,4 @@ sudo -- \
   --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
   --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
   /bin/bash -c \
-  "/usr/bin/su ${USER} --preserve-environment --session-command '/usr/bin/start_build.sh ${@}'"
+  "${su_cmd[@]}"
