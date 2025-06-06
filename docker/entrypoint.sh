@@ -4,6 +4,7 @@
 ## See the file COPYING for copying conditions.
 
 set -e
+
 container=docker
 export container
 
