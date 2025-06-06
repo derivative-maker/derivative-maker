@@ -7,6 +7,7 @@ set -x
 set -e
 
 SOURCE_DIR="${HOME}/derivative-maker"
+## TODO: Why is BINARY_DIR inside SOURCE_DIR? Should be separated.
 BINARY_DIR="${SOURCE_DIR}/derivative-binary"
 LOG_DIR="${BINARY_DIR}/logs"
 GIT_LOG="${LOG_DIR}/git.log"
