@@ -32,7 +32,7 @@ while true; do
       ;;
     -*)
       printf '%s\n' "$0: ERROR: unknown option: $1" >&2
-      return 0
+      exit 1
       ;;
     *)
       break
