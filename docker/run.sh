@@ -41,7 +41,8 @@ sudo -- \
   docker \
   run \
   --name derivative-maker-docker \
-  -it \
+  --interactive \
+  --tty \
   --rm \
   --privileged \
   --env "TAG=${TAG}" \
