@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 container=docker
 export container
