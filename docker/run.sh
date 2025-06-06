@@ -6,6 +6,7 @@
 set -x
 set -e
 
+USER="user"
 BUILDER_VOLUME="$(dirname -- "$PWD")"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
@@ -33,10 +34,6 @@ while true; do
       shift
       break
       ;;
-    -*)
-      printf '%s\n' "$0: ERROR: unknown option: $1" >&2
-      exit 1
-      ;;
     *)
       break
       ;;
@@ -50,11 +47,7 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 
 sudo -- modprobe -a loop dm_mod
 
-sudo \
-  --preserve-env \
-  -u "${USER}" \
-  -- \
-    docker \
+sudo -- docker \
       run \
       --name derivative-maker-docker \
       --interactive \
@@ -67,4 +60,8 @@ sudo \
       --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
       --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
       --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
-      "${@}"
+      sudo \
+      --preserve-env \
+      -u "${USER}" \
+      -- \
+      /usr/bin/start_build.sh "${@}"
