@@ -51,6 +51,7 @@ ExecStopPost=/bin/bash -ec "if echo \${EXIT_STATUS} | grep [A-Z] > /dev/null; th
 StandardInput=tty-force
 StandardOutput=inherit
 StandardError=inherit
+## TODO: Avoid WorkingDirectory.
 WorkingDirectory=$(pwd)
 EnvironmentFile=/etc/docker-entrypoint-env
 
