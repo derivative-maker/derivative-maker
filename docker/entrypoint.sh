@@ -25,6 +25,7 @@ env | tee -- /etc/docker-entrypoint-env >/dev/null
 cat -- /etc/docker-entrypoint-env
 
 true "INFO: Create file: /etc/systemd/system/docker-entrypoint.target"
+## TODO: Consider making /etc/systemd/system/docker-entrypoint.target a standalone file.
 cat > /etc/systemd/system/docker-entrypoint.target <<EOF
 [Unit]
 Description=the target for docker-entrypoint.service
