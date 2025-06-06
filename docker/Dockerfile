@@ -23,7 +23,8 @@ LABEL org.opencontainers.image.documentation="https://www.kicksecure.com/wiki/De
 LABEL org.opencontainers.image.version="1.0"
 LABEL org.opencontainers.image.vendor="ENCRYPTED SUPPORT LLC"
 
-COPY entrypoint.sh start_build.sh /usr/bin
+COPY entrypoint.sh /usr/bin
+COPY start_build.sh /usr/bin
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 
