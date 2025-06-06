@@ -1,6 +1,7 @@
 FROM debian:bookworm-slim AS baseimage
 
-ENV USER=user \
+ENV \
+USER=user \
 HOME=/home/user
 
 RUN \
