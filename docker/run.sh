@@ -15,23 +15,19 @@ volume_check() {
 }
 
 while (( $# != 0 )); do
-
-  case $1 in
-
-  -t|--tag)
-  TAG="${2}"
-  shift 2
-  ;;
-  -*|--*)
-  ARGS+=("${@:1:2}")
-  shift 2
-  ;;
-  *)
-   shift
-  ;;
-
+  case "$1" in
+    -t|--tag)
+      TAG="${2}"
+      shift 2
+    ;;
+    -*|--*)
+      ARGS+=("${@:1:2}")
+      shift 2
+    ;;
+    *)
+      shift
+    ;;
   esac
-
 done
 
 volume_check "${CACHER_VOLUME}" '101:102' '770'
