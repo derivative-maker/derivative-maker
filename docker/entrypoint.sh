@@ -33,6 +33,7 @@ EOF
 
 quoted_args="$(printf " %q" "${@}")"
 printf '%s\n' "${quoted_args}" | tee -- /etc/docker-entrypoint-cmd >/dev/null
+chmod +x /etc/docker-entrypoint-cmd
 
 true "INFO: Create file: /etc/systemd/system/docker-entrypoint.service"
 cat > /etc/systemd/system/docker-entrypoint.service <<EOF
@@ -41,7 +42,7 @@ Description=docker-entrypoint.service
 
 [Service]
 ExecStartPre=/bin/bash -exc "cat -- /etc/docker-entrypoint-cmd"
-ExecStart=/bin/bash -exc "source /etc/docker-entrypoint-cmd"
+ExecStart=/bin/bash -exc /etc/docker-entrypoint-cmd
 # EXIT_STATUS is either an exit code integer or a signal name string, see systemd.exec(5)
 ExecStopPost=/bin/bash -ec "if echo \${EXIT_STATUS} | grep [A-Z] > /dev/null; then echo >&2 \"got signal \${EXIT_STATUS}\"; systemctl exit \$(( 128 + \$( kill -l \${EXIT_STATUS} ) )); else systemctl exit \${EXIT_STATUS}; fi"
 StandardInput=tty-force
