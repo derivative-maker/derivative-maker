@@ -56,20 +56,21 @@ declare -a su_cmd=(
   "${@}"
 )
 
-sudo -- \
-  docker \
-  run \
-  --name derivative-maker-docker \
-  --interactive \
-  --tty \
-  --rm \
-  --privileged \
-  --env "TAG=${TAG}" \
-  --env 'flavor_meta_packages_to_install=' \
-  --env 'install_package_list=' \
-  --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
-  --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
-  --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
+sudo \
   -- \
-  /bin/bash -c \
-  "${su_cmd[@]}"
+    docker \
+      run \
+      --name derivative-maker-docker \
+      --interactive \
+      --tty \
+      --rm \
+      --privileged \
+      --env "TAG=${TAG}" \
+      --env 'flavor_meta_packages_to_install=' \
+      --env 'install_package_list=' \
+      --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
+      --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
+      --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
+      -- \
+      /bin/bash -c \
+        "${su_cmd[@]}"
