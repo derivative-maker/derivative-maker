@@ -7,11 +7,13 @@ CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
 volume_check() {
-  [ -d "${1}" ] || { \
-    mkdir -p -- "${1}"; sleep .1; \
-    sudo chown -R -- "${2}" "${1}"; \
-    sudo chmod -R -- "${3}" "${1}"; \
-  }
+  if [ -d "${1}" ] ; then
+    return 0
+  fi
+  mkdir --parents -- "${1}"
+  sleep -- ".1"
+  sudo -- chown --recursive -- "${2}" "${1}"
+  sudo -- chmod --recursive -- "${3}" "${1}"
 }
 
 while (( $# != 0 )); do
@@ -32,9 +34,9 @@ done
 
 volume_check "${CACHER_VOLUME}" '101:102' '770'
 
-sudo modprobe -a loop dm_mod
+sudo -- modprobe -a loop dm_mod
 
-sudo docker run --name derivative-maker-docker -it --rm --privileged \
+sudo -- docker run --name derivative-maker-docker -it --rm --privileged \
   --env "TAG=${TAG}" \
   --env 'flavor_meta_packages_to_install=' \
   --env 'install_package_list=' \
