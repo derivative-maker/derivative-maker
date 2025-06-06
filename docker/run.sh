@@ -48,7 +48,7 @@ volume_check "${CACHER_VOLUME}" '101:102' '770'
 sudo -- modprobe -a loop dm_mod
 
 sudo \
-  --preserve-environment \
+  --preserve-env \
   -u "${USER}" \
   -- \
     docker \
@@ -65,6 +65,4 @@ sudo \
       --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
       --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
       -- \
-      bash \
-        -c \
-        "${@}"
+      "${@}"
