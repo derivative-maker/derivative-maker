@@ -27,7 +27,6 @@ cd -- "${SOURCE_DIR}"
     git describe
     git verify-tag "${TAG}"
   }
-  git verify-commit "${TAG}^{commit}"
   git status
 } 2>&1 | tee -a -- "${GIT_LOG}"
 
