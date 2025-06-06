@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## Copyright (C) 2025 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
 set -e
 
 SOURCE_DIR="${HOME}/derivative-maker"
