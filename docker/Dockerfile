@@ -13,7 +13,7 @@ RUN \
 	dbus dbus-user-session ca-certificates git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
 	### user account ###
 	adduser --quiet --disabled-password --home ${HOME} --gecos "${USER},,,," ${USER} && \
-	echo "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/passwordless_sudo && \
+	printf '%s\n' "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/passwordless_sudo && \
 	chmod 440 /etc/sudoers.d/passwordless_sudo && \
 	### clean up ###
 	apt-get clean && \
