@@ -67,5 +67,4 @@ sudo \
       --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
       --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
       --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
-      -- \
       "${@}"
