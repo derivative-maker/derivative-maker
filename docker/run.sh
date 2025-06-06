@@ -72,7 +72,7 @@ sudo \
       --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
       --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
       -- \
-      bash
+      bash \
         -c \
         -- \
           "${su_cmd[@]}"
