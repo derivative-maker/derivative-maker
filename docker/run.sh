@@ -66,4 +66,4 @@ sudo \
       --preserve-env \
       -u "${USER}" \
       -- \
-      /usr/bin/start_build.sh "${@}"
+      "${@}"
