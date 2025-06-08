@@ -7,14 +7,12 @@ set -x
 set -e
 
 SOURCE_DIR="${HOME}/derivative-maker"
-## TODO: Why is BINARY_DIR inside SOURCE_DIR? Should be separated.
-BINARY_DIR="${SOURCE_DIR}/derivative-binary"
+BINARY_DIR="${HOME}/derivative-binary"
 LOG_DIR="${BINARY_DIR}/logs"
 GIT_LOG="${LOG_DIR}/git.log"
 BUILD_LOG="${LOG_DIR}/build.log"
 
 mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
-ln -sf -- "${BINARY_DIR}" "${HOME}/derivative-binary"
 
 cd -- "${SOURCE_DIR}"
 
@@ -27,7 +25,6 @@ cd -- "${SOURCE_DIR}"
     git describe
     git verify-tag "${TAG}"
   }
-  git verify-commit "${TAG}^{commit}"
   git status
 } 2>&1 | tee -a -- "${GIT_LOG}"
 
