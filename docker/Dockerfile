@@ -13,7 +13,7 @@ RUN \
 	install \
 	--no-install-recommends \
 	--yes \
-	dbus dbus-user-session ca-certificates git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
+	dbus dbus-user-session ca-certificates gpg git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
 	### user account ###
 	adduser --quiet --disabled-password --home "${HOME}" --gecos "${USER},,,," "${USER}" && \
 	printf '%s\n' "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/passwordless_sudo && \
