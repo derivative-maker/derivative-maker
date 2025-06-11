@@ -10,13 +10,13 @@ container=docker
 export container
 
 if [ $# -eq 0 ]; then
-	printf '%s\n' 'ERROR: No command specified. You probably want to run "journalctl -f", or maybe "bash"?' >&2
-	exit 1
+  printf '%s\n' 'ERROR: No command specified. You probably want to run "journalctl -f", or maybe "bash"?' >&2
+  exit 1
 fi
 
 if [ ! -t 0 ]; then
-	printf '%s\n' 'ERROR: TTY needs to be enabled ("docker run -t ...").' >&2
-	exit 1
+  printf '%s\n' 'ERROR: TTY needs to be enabled ("docker run -t ...").' >&2
+  exit 1
 fi
 
 env | tee -- /etc/docker-entrypoint-env >/dev/null
@@ -65,14 +65,14 @@ systemctl enable docker-entrypoint.service
 
 systemd=
 if [ -x /lib/systemd/systemd ]; then
-	systemd=/lib/systemd/systemd
+  systemd=/lib/systemd/systemd
 elif [ -x /usr/lib/systemd/systemd ]; then
-	systemd=/usr/lib/systemd/systemd
+  systemd=/usr/lib/systemd/systemd
 elif [ -x /sbin/init ]; then
-	systemd=/sbin/init
+  systemd=/sbin/init
 else
-	printf '%s\n' 'ERROR: systemd is not installed' >&2
-	exit 1
+  printf '%s\n' 'ERROR: systemd is not installed' >&2
+  exit 1
 fi
 
 declare -a systemd_args=(
