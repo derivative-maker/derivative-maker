@@ -6,7 +6,10 @@
 set -x
 set -e
 
-BUILDER_VOLUME="$(dirname -- "$PWD")"
+HOST_USER="$(id -u)"
+DOCKER_USER="user"
+SOURCE_VOLUME="$(dirname -- "$PWD")"
+BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
@@ -28,14 +31,10 @@ while true; do
     -t|--tag)
       TAG="${2}"
       shift 2
-    ;;
+      ;;
     --)
       shift
       break
-      ;;
-    -*)
-      printf '%s\n' "$0: ERROR: unknown option: $1" >&2
-      exit 1
       ;;
     *)
       break
@@ -47,12 +46,11 @@ done
 ## will remain in the "$@" positional parameters.
 
 volume_check "${CACHER_VOLUME}" '101:102' '770'
+volume_check "${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" '770'
 
 sudo -- modprobe -a loop dm_mod
 
 sudo \
-  --preserve-env \
-  -u "${USER}" \
   -- \
     docker \
       run \
@@ -65,6 +63,11 @@ sudo \
       --env 'flavor_meta_packages_to_install=' \
       --env 'install_package_list=' \
       --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
-      --volume "${BUILDER_VOLUME}:/home/user/derivative-maker" \
+      --volume "${SOURCE_VOLUME}:/home/${DOCKER_USER}/derivative-maker" \
+      --volume "${BINARY_VOLUME}:/home/${DOCKER_USER}/derivative-binary" \
       --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
+      sudo \
+      --preserve-env \
+      -u "${DOCKER_USER}" \
+      -- \
       "${@}"

@@ -7,20 +7,9 @@ ENV \
 USER=user \
 HOME=/home/user
 
-RUN \
-	apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get \
-	install \
-	--no-install-recommends \
-	--yes \
-	dbus dbus-user-session ca-certificates git time curl lsb-release fakeroot dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng && \
-	### user account ###
-	adduser --quiet --disabled-password --home "${HOME}" --gecos "${USER},,,," "${USER}" && \
-	printf '%s\n' "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/passwordless_sudo && \
-	chmod 440 /etc/sudoers.d/passwordless_sudo && \
-	### clean up ###
-	apt-get clean && \
-	safe-rm -r -f -- /var/lib/apt/lists/* /var/cache/apt/*
+COPY setup.sh /tmp/setup.sh
+
+RUN /tmp/setup.sh
 
 FROM baseimage
 
