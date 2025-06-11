@@ -19,7 +19,7 @@ mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
 
 cd -- "${SOURCE_DIR}"
 
-  gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
+gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
   gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
   gpg --import -- "${KEY}"
   gpg --check-sigs -- "${FINGERPRINT}"
