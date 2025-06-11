@@ -4,7 +4,10 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o errtrace
+set -o pipefail
 
 container=docker
 export container
