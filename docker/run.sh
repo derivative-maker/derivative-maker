@@ -15,6 +15,10 @@ SOURCE_VOLUME="$(dirname -- "$PWD")"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
 IMG="derivative-maker/derivative-maker-docker"
+declare -a -- VOLUMES=(
+"${CACHER_VOLUME}" "101:102" "770"
+"${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" "770"
+)
 
 volume_check() {
   if [ -d "${1}" ] ; then
@@ -48,8 +52,12 @@ done
 ## If there are input files (for example) that follow the options, they
 ## will remain in the "$@" positional parameters.
 
-volume_check "${CACHER_VOLUME}" '101:102' '770'
-volume_check "${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" '770'
+while [ "${#VOLUMES[@]}" -gt "0" ]; do
+
+  volume_check ${VOLUMES[@]:0:3}
+  VOLUMES=("${VOLUMES[@]:3:3}")
+
+done
 
 sudo -- modprobe -a loop dm_mod
 
