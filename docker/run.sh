@@ -44,8 +44,8 @@ while true; do
       shift 2
       ;;
     -c|--custom)
-      unset COMMAND
-      shift
+      COMMAND="${2}"
+      shift 2
       ;;  
     --)
       shift
