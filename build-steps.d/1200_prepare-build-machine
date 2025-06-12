@@ -260,15 +260,21 @@ approx_proxy_setup() {
    #   $SUDO_TO_ROOT systemctl restart approx-derivative-maker.socket
    #fi
 
-   # Install approx proxy configuration
+   ## Install approx proxy configuration
    $SUDO_TO_ROOT mkdir --parents -- '/etc/approx-derivative-maker'
    $SUDO_TO_ROOT mkdir --parents -- '/var/cache/approx-derivative-maker'
    $SUDO_TO_ROOT chown --recursive -- approx:approx '/var/cache/approx-derivative-maker'
+
+   ## Clear out empty files from the cache, approx uses these to mark files
+   ## that could not be fetched, which could cause problems for later builds
+   ## if the fetch failure was transient.
+   $SUDO_TO_ROOT find '/var/cache/approx-derivative-maker' -empty -delete
+
    $SUDO_TO_ROOT cp -- "$source_code_folder_dist/approx/approx-derivative-maker.socket" '/usr/lib/systemd/system/approx-derivative-maker.socket'
    if [ "$dist_build_sources_clearnet_or_onion" = "clearnet" ]; then
       $SUDO_TO_ROOT cp -- "$source_code_folder_dist/approx/approx-derivative-maker@.service" '/usr/lib/systemd/system/approx-derivative-maker@.service'
       $SUDO_TO_ROOT cp -- "$source_code_folder_dist/approx/approx.conf" '/etc/approx-derivative-maker/approx.conf'
-      safe-rm -rf -- '/etc/approx-derivative-maker/curl-home'
+      $SUDO_TO_ROOT safe-rm -r -f -- '/etc/approx-derivative-maker/curl-home'
    else
       $SUDO_TO_ROOT mkdir --parents -- '/etc/approx-derivative-maker/curl-home'
       $SUDO_TO_ROOT cp -- "$source_code_folder_dist/approx/approx-derivative-maker-tor@.service" '/usr/lib/systemd/system/approx-derivative-maker@.service'
