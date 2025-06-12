@@ -5,7 +5,6 @@
 
 set -x
 set -o errexit
-set -o nounset
 set -o errtrace
 set -o pipefail
 
