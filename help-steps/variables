@@ -636,6 +636,17 @@ if [ -n "${APPROX_PROXY_ENABLE}" ]; then
    #LIVEBUILD_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
 fi
 
+## Help update-torbrowser and other software find the Tor server if using
+## '--connection tor'.
+if [ "$dist_build_sources_clearnet_or_onion" = 'onion' ]; then
+   if [ -z "${CURL_PROXY}" ]; then
+      ## TODO: Possibly allow customizing the server and port for this?
+      ## HARDCODED.
+      CURL_PROXY='--proxy socks5h://127.0.0.1:9050'
+      export CURL_PROXY
+   fi
+fi
+
 ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
 export COWBUILDER_PREFIX
 
@@ -1147,6 +1158,7 @@ env_vars_keep_list="
    tpo_downloader_debug
    tb_disable_anon_ws_dnf_conf
    anon_shared_inst_tb
+   CURL_PROXY
    SKIP_SCRIPTS
    SOURCE_DATE_EPOCH
    dist_aptgetopt_file
