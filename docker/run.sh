@@ -11,6 +11,7 @@ set -o pipefail
 
 HOST_USER="$(id -u)"
 DOCKER_USER="user"
+COMMAND="derivative-maker"
 SOURCE_VOLUME="$(dirname -- "$PWD")"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
@@ -39,6 +40,14 @@ while true; do
       TAG="${2}"
       shift 2
       ;;
+    -b|--build-step)
+      COMMAND="build-steps.d/${2}"
+      shift 2
+      ;;
+    -c|--custom)
+      unset COMMAND
+      shift
+      ;;  
     --)
       shift
       break
@@ -53,10 +62,8 @@ done
 ## will remain in the "$@" positional parameters.
 
 while [ "${#VOLUMES[@]}" -gt "0" ]; do
-
   volume_check ${VOLUMES[@]:0:3}
   VOLUMES=("${VOLUMES[@]:3:3}")
-
 done
 
 sudo -- modprobe -a loop dm_mod
@@ -81,4 +88,4 @@ sudo \
       --preserve-env \
       -u "${DOCKER_USER}" \
       -- \
-      "${@}"
+      /usr/bin/start_build.sh "${COMMAND}" "${@}"
