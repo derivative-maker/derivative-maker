@@ -7,9 +7,9 @@ ENV \
 USER=user \
 HOME=/home/user
 
-COPY setup.sh /usr/bin/setup.sh
+COPY derivative-maker-docker-setup /usr/bin
 
-RUN /usr/bin/setup.sh
+RUN /usr/bin/derivative-maker-docker-setup
 
 FROM baseimage
 
@@ -22,7 +22,7 @@ LABEL org.opencontainers.image.version="1.0"
 LABEL org.opencontainers.image.vendor="ENCRYPTED SUPPORT LLC"
 
 COPY entrypoint.sh /usr/bin
-COPY start_build.sh /usr/bin
+COPY derivative-maker-docker-start /usr/bin
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
 
