@@ -5,13 +5,12 @@
 
 set -x
 set -o errexit
-set -o nounset
 set -o errtrace
 set -o pipefail
 
 HOST_USER="$(id -u)"
 DOCKER_USER="user"
-COMMAND="derivative-maker"
+COMMAND="./derivative-maker"
 SOURCE_VOLUME="$(dirname -- "$PWD")"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/apt_cacher_mnt"
@@ -88,4 +87,4 @@ sudo \
       --preserve-env \
       -u "${DOCKER_USER}" \
       -- \
-      /usr/bin/start_build.sh "${COMMAND}" "${@}"
+      "/usr/bin/start_build.sh" "${COMMAND}" "${@}"
