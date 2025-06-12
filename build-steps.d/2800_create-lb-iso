@@ -111,7 +111,6 @@ set -e
 
 lb config noauto \\
    --apt apt-get \\
-   --apt-http-proxy '${REPO_PROXY}' \\
    --apt-indices false \\
    --apt-options '${APTGETOPT[*]} --yes --allow-remove-essential' \\
    --apt-recommends false \\
@@ -162,6 +161,9 @@ lb config noauto \\
    \"\${@}\"" \
    | sponge -- auto/config
 
+   ## Obsolete lb config options:
+   ## --apt-http-proxy '${REPO_PROXY}' # obsolete when using approx proxy
+
    chmod +x -- auto/config
 
    ## Debugging.
@@ -179,7 +181,7 @@ lb config noauto \\
 
    ## Apt archives
    mkdir --parents -- archives
-   printf '%s\n' "deb http://HTTPS///fasttrack.debian.net/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
+   printf '%s\n' "deb http://127.0.0.1:9977/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
       printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
@@ -419,7 +421,7 @@ Pin-Priority: 900"
    #    error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
    # fi
 
-   ## Get rid of a bad sources.list file, this has apt-cacher-ng junk embedded ('http://HTTPS///' / folder 'build_sources/')
+   ## Get rid of a bad sources.list file, this has approx proxy junk embedded ('http://127.0.0.1/debian' / folder 'build_sources/')
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/etc/apt/sources.list"
    ## Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/etc/apt/apt.conf.d/00recommends"

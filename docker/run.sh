@@ -13,7 +13,7 @@ HOST_USER="$(id -u)"
 DOCKER_USER="user"
 SOURCE_VOLUME="$(dirname -- "$PWD")"
 BINARY_VOLUME="$HOME/binary_mnt"
-CACHER_VOLUME="$HOME/apt_cacher_mnt"
+CACHER_VOLUME="$HOME/approx_cache_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
 volume_check() {
@@ -68,7 +68,7 @@ sudo \
       --env 'DERIVATIVE_APT_REPOSITORY_OPTS=' \
       --volume "${SOURCE_VOLUME}:/home/${DOCKER_USER}/derivative-maker" \
       --volume "${BINARY_VOLUME}:/home/${DOCKER_USER}/derivative-binary" \
-      --volume "${CACHER_VOLUME}:/var/cache/apt-cacher-ng" "${IMG}" \
+      --volume "${CACHER_VOLUME}:/var/cache/approx-derivative-maker" "${IMG}" \
       sudo \
       --preserve-env \
       -u "${DOCKER_USER}" \

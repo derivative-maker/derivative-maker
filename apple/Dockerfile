@@ -1,3 +1,5 @@
+## TODO: This is broken because of the approx proxy change.
+
 FROM debian:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -13,7 +15,7 @@ RUN apt-get install --yes \
     curl \
     build-essential \
     lsb-release \
-    apt-cacher-ng \
+    approx \
     procps \
     lsof \
     cpio \

@@ -602,12 +602,14 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
    }
 fi
 
-## use apt-cacher-ng by default
+## use approx by default
 ## required for --connection clearnet
-## for build_sources apt-cacher-ng http://HTTPS///
-[ -n "$REPO_PROXY" ] || REPO_PROXY="http://127.0.0.1:3142"
+## Port 9977 defined by approx/approx.conf
+## REPO_PROXY is no longer used now that we're using approx.
+#[ -n "$REPO_PROXY" ] || REPO_PROXY="http://127.0.0.1:9977"
+[ -n "${APPROX_PROXY_ENABLE}" ] || APPROX_PROXY_ENABLE='yes'
 
-if [ -n "${REPO_PROXY}" ]; then
+if [ -n "${APPROX_PROXY_ENABLE}" ]; then
    ## apt parameters must be without quotes
    ## apt parameters must be without equals sign
    ## apt parameters must be without colon sign
@@ -615,11 +617,12 @@ if [ -n "${REPO_PROXY}" ]; then
    ## apt config file must be without equals sign
    ## apt config file must be trailing colon sign
 
-   aptgetopt_add "Acquire::http::Proxy=${REPO_PROXY}"
-   aptgetopt_conf_add "Acquire::http::Proxy \"${REPO_PROXY}\";"
+   ## Obsolete now that we're using approx.
+   #aptgetopt_add "Acquire::http::Proxy=${REPO_PROXY}"
+   #aptgetopt_conf_add "Acquire::http::Proxy \"${REPO_PROXY}\";"
 
-   aptgetopt_add "Acquire::https::Proxy=${REPO_PROXY}"
-   aptgetopt_conf_add "Acquire::https::Proxy \"${REPO_PROXY}\";"
+   #aptgetopt_add "Acquire::https::Proxy=${REPO_PROXY}"
+   #aptgetopt_conf_add "Acquire::https::Proxy \"${REPO_PROXY}\";"
 
    ## https://forums.whonix.org/t/derivative-maker-fails-with-onion-sources/20200/8
    #aptgetopt_add "Acquire::tor::Proxy=${REPO_PROXY}"
@@ -628,9 +631,9 @@ if [ -n "${REPO_PROXY}" ]; then
    aptgetopt_add "Acquire::BlockDotOnion=false"
    aptgetopt_conf_add "Acquire::BlockDotOnion \"false\";"
 
-   DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
-   COWBUILDER_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
-   LIVEBUILD_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
+   #DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
+   #COWBUILDER_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
+   #LIVEBUILD_PREFIX+=" env http_proxy=${REPO_PROXY} https_proxy=${REPO_PROXY} ALL_PROXY=${REPO_PROXY}"
 fi
 
 ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.

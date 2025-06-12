@@ -16,7 +16,7 @@ DEBIAN_FRONTEND=noninteractive \
     --no-install-recommends \
     --yes \
     dbus gpg dbus-user-session ca-certificates git time curl lsb-release fakeroot \
-    dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo apt-cacher-ng
+    dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo approx
 
 adduser --quiet --disabled-password --home "${HOME}" --gecos "${USER},,,," "${USER}"
 
