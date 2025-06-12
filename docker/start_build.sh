@@ -41,4 +41,4 @@ gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
   git status
 } 2>&1 | tee -a -- "${GIT_LOG}"
 
-"${SOURCE_DIR}/derivative-maker" "$@" | tee -a -- "${BUILD_LOG}"
+"$@" | tee -a -- "${BUILD_LOG}"
