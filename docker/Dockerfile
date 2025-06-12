@@ -7,9 +7,9 @@ ENV \
 USER=user \
 HOME=/home/user
 
-COPY setup.sh /tmp/setup.sh
+COPY setup.sh /usr/bin/setup.sh
 
-RUN /tmp/setup.sh
+RUN /usr/bin/setup.sh
 
 FROM baseimage
 
