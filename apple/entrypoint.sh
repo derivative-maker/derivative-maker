@@ -2,10 +2,11 @@
 
 set -e
 
+## TODO: APPROX: pass config specific to derivative-maker here?
 sleep 10
-sudo --non-interactive /usr/sbin/apt-cacher-ng -c /etc/apt-cacher-ng
+sudo --non-interactive /usr/sbin/approx
 
-echo "Waiting for apt-cacher-ng to start..."
+echo "Waiting for approx to start..."
 sleep 10
 
 /home/builder/derivative-maker/derivative-maker --flavor whonix-gateway-xfce --target utm --arch arm64 --repo true --tb open --vmsize 15g --allow-untagged true --debug
