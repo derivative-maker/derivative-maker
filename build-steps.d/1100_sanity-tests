@@ -374,7 +374,8 @@ check_required_packages_installed() {
    local required_package_item
 
    for required_package_item in $required_packages_list ; do
-      if ! dpkg-query --show --showformat='${Version}' "$required_package_item" ; then
+      ## dpkg-query does not exit non-zero if package is absent on the system.
+      if [ "$(dpkg-query --show --showformat='${Version}' "$required_package_item")" = "" ] ; then
          true "INFO: Required package '$required_package_item' missing."
          install_required_packages
          break
