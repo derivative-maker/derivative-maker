@@ -11,6 +11,10 @@ set -o pipefail
 
 apt-get update
 
+## TODO: remove
+## 'build-steps.d/1100_sanity-tests' function 'check_required_packages_installed' already installs
+## '$required_packages_list' which contains packages such as 'approx'. Any missing packages should
+## be installed using 'build-steps.d/1100_sanity-tests' not using docker.
 DEBIAN_FRONTEND=noninteractive \
   apt-get install \
     --no-install-recommends \
