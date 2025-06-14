@@ -32,11 +32,11 @@ determine_event() {
 
 clean_old_source() {
   if [ -d "/home/ansible/derivative-maker" ]; then
-    rm -rf "/home/ansible/derivative-maker"
+    rm -r -f "/home/ansible/derivative-maker"
   fi
 
   if [ -d "/home/ansible/derivative-binary" ]; then
-    rm -rf "/home/ansible/derivative-binary"
+    rm -r- f "/home/ansible/derivative-binary"
   fi
 }
 
