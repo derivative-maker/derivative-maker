@@ -5,6 +5,7 @@
 
 set -x
 set -e
+
 true "$0: START"
 
 run_cmd() {
@@ -28,6 +29,13 @@ if [ "$CI" = "true" ]; then
   true "INFO: Skipping test if folder ~/.ssh exists on CI."
 else
   run_cmd test -d ~/.ssh
+fi
+
+## Optional testing of docker on CI.
+if [ "$CI" = "true" ]; then
+  ## Minimal test only for now.
+  ./docker/derivative-maker-docker-image
+  ./docker/derivative-maker-docker-run --build-step 1100_sanity-tests --target raw --flavor internal
 fi
 
 ## Ordered as follows for the following reasons:
