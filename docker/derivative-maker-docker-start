@@ -8,7 +8,6 @@
 
 set -x
 set -o errexit
-## TODO: fix
 set -o nounset
 set -o errtrace
 set -o pipefail
@@ -21,6 +20,9 @@ BUILD_LOG="${LOG_DIR}/build.log"
 FINGERPRINT="916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
 KEY="${SOURCE_DIR}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc"
 
+[[ -v GIT ]] || GIT=""
+[[ -v TAG ]] || TAG=""
+
 mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
 
 cd -- "${SOURCE_DIR}"
@@ -32,9 +34,9 @@ gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
 } 2>&1 | tee -a -- "${BUILD_LOG}"
 
 {
-  [ -n "${GIT}" ] || git pull
+  [ -z "${GIT}" ] || git pull
   git fetch --tags --depth=1
-  [ -n "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
+  [ -z "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
   git checkout --recurse-submodules "${TAG}"
   [ "$TAG" = "master" ] || {
     git describe
