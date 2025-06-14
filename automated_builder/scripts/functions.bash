@@ -7,7 +7,7 @@ decrypt_vault() {
   if [ "$ANSIBLE_VAULT_VALUE" == "ANSIBLE_VAULT" ]; then
     write_password
     ansible-vault decrypt --vault-password-file ansible_vault_password automated_builder/roles/common/vars/secrets.yml
-    rm ansible_vault_password
+    rm -- ansible_vault_password
   fi
 }
 
@@ -16,7 +16,7 @@ encrypt_vault() {
   if [ "$ANSIBLE_VAULT_VALUE" != "ANSIBLE_VAULT" ]; then
     write_password
     ansible-vault encrypt --vault-password-file ansible_vault_password automated_builder/roles/common/vars/secrets.yml
-    rm ansible_vault_password
+    rm -- ansible_vault_password
   fi
 }
 
