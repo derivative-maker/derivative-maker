@@ -25,17 +25,15 @@ KEY="${SOURCE_DIR}/packages/kicksecure/repository-dist/usr/share/keyrings/deriva
 [[ -v GIT ]] || GIT=""
 [[ -v TAG ]] || TAG=""
 
-mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
+gpg_key_import() {
+  if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null ; then
+    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
+    gpg --import -- "${KEY}"
+    gpg --check-sigs -- "${FINGERPRINT}"
+  fi
+}
 
-cd -- "${SOURCE_DIR}"
-
-gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
-  gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
-  gpg --import -- "${KEY}"
-  gpg --check-sigs -- "${FINGERPRINT}"
-} 2>&1 | tee -a -- "${BUILD_LOG}"
-
-{
+run_git() {
   [ -z "${GIT}" ] || git pull
   git fetch --tags --depth=1
   [ -z "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
@@ -46,6 +44,14 @@ gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null || {
   }
   git verify-commit -- "${TAG}^{commit}"
   git status
-} 2>&1 | tee -a -- "${GIT_LOG}"
+}
+
+mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
+
+cd -- "${SOURCE_DIR}"
+
+gpg_key_import 2>&1 | tee -a -- "${BUILD_LOG}"
+
+run_git 2>&1 | tee -a -- "${GIT_LOG}"
 
 "$@" | tee -a -- "${BUILD_LOG}"
