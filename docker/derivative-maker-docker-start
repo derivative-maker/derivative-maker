@@ -23,7 +23,7 @@ FINGERPRINT="916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
 KEY="${SOURCE_DIR}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc"
 
 [[ -v GIT ]] || GIT=""
-[[ -v TAG ]] || TAG=""
+[[ -v TAG ]] || TAG="master"
 
 gpg_key_import() {
   if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null ; then
@@ -37,7 +37,8 @@ run_git() {
   [ -z "${GIT}" ] || git pull
   git fetch --tags --depth=1
   [ -z "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
-  git checkout --recurse-submodules -- "${TAG}"
+  ## end-of-options ("--") unsupported.
+  git checkout --recurse-submodules "${TAG}"
   [ "$TAG" = "master" ] || {
     git describe
     git verify-tag -- "${TAG}"
