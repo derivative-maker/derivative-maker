@@ -9,6 +9,8 @@ set -e
 true "INFO: Currently running script: $BASH_SOURCE $@"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+FINGERPRINT="916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
+KEY="./packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc"
 
 cd "$MYDIR"
 cd ..
@@ -86,6 +88,17 @@ build_machine_setup() {
    git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge
 
    true "INFO: Updated git sub modules."
+  
+   if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null; then
+    true "INFO: Importing signing key ${KEY##*/}."
+    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
+    gpg --import -- "${KEY}"
+    gpg --check-sigs -- "${FINGERPRINT}"
+   fi
+  
+   true "INFO: Running git signature verification."
+   git verify-commit -- "${TAG}^{commit}"
+   git verify-tag -- "${TAG}"
 
    $SUDO_TO_ROOT \
       apt-get \
