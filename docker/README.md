@@ -3,7 +3,8 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Unlicense License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+[![whonix][whonix-shield]][whonix-url]
+[![kicksecure][kicksecure-shield]][kicksecure-url]
 
 ![o,age](https://i.postimg.cc/pdQFmfTj/prototypes.png)
 
@@ -81,15 +82,17 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
     <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/badge/CONTRIBUTORS-17-green?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [contributors-url]: https://github.com/derivative-maker/derivative-maker/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/badge/FORKS-17-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [forks-url]: https://github.com/derivative-maker/derivative-maker/forks
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/badge/STARS-5-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [stars-url]: https://github.com/derivative-maker/derivative-maker/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/badge/ISSUES-NONE-orange?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [issues-url]: https://github.com/derivative-maker/derivative-maker/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/LICENSE-AGPL3%2B-green?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [license-url]: https://github.com/derivative-maker/derivative-maker?tab=License-1-ov-file#
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
+[whonix]: https://img.shields.io/badge/HOME-WHONIX-purple?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
+[whonix-url]: https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.whonix.org/&ved=2ahUKEwj9v7Hb0faNAxUHlP0HHUHdFxEQFnoECBoQAQ&usg=AOvVaw0KREWUxsg75R9f2HRyLtPs
+[kicksecure]: https://img.shields.io/badge/HOME-KICKSECURE-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
+[kicksecure-url]: https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.kicksecure.com/&ved=2ahUKEwjCvNiA0vaNAxXq9bsIHYaTPQsQFnoECCAQAQ&usg=AOvVaw21yYxPqNL29HjKNEgjGlM8
