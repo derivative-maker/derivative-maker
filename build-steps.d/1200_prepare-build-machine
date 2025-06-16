@@ -90,17 +90,18 @@ build_machine_setup() {
    true "INFO: Updated git sub modules."
   
    if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null; then
-    true "INFO: Importing signing key ${KEY##*/}."
+    true "INFO: Importing signing key ${KEY##*/}"
     gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
     gpg --import -- "${KEY}"
     gpg --check-sigs -- "${FINGERPRINT}"
    fi
-  
+      
+   true "INFO: Running git signature verification."
    {
-     true "INFO: Running git signature verification."
      git verify-commit -- "${TAG}^{commit}"
      [ "$TAG" = "master" ] || git verify-tag -- "${TAG}"
    } 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/git.log"
+
    $SUDO_TO_ROOT \
       apt-get \
          "${APTGETOPT[@]}" \
