@@ -84,7 +84,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 <!-- MARKDOWN LINKS & IMAGES -->
 [contributors-shield]: https://img.shields.io/badge/CONTRIBUTORS-17-green?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [contributors-url]: https://github.com/derivative-maker/derivative-maker/graphs/contributors
-[forks-shield]: https://img.shields.io/badge/FORKS-17-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
+[forks-shield]: https://img.shields.io/badge/FORKS-18-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [forks-url]: https://github.com/derivative-maker/derivative-maker/forks
 [stars-shield]: https://img.shields.io/badge/STARS-5-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [stars-url]: https://github.com/derivative-maker/derivative-maker/stargazers
