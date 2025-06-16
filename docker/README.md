@@ -3,8 +3,8 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Unlicense License][license-shield]][license-url]
-[![whonix][whonix-shield]][whonix-url]
-[![kicksecure][kicksecure-shield]][kicksecure-url]
+[![whonix-shield]][whonix-url]
+[![kicksecure-shield]][kicksecure-url]
 
 ![o,age](https://i.postimg.cc/pdQFmfTj/prototypes.png)
 
@@ -92,7 +92,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 [issues-url]: https://github.com/derivative-maker/derivative-maker/issues
 [license-shield]: https://img.shields.io/badge/LICENSE-AGPL3%2B-green?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [license-url]: https://github.com/derivative-maker/derivative-maker?tab=License-1-ov-file#
-[whonix]: https://img.shields.io/badge/HOME-WHONIX-purple?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
+[whonix-shield]: https://img.shields.io/badge/HOME-WHONIX-purple?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [whonix-url]: https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.whonix.org/&ved=2ahUKEwj9v7Hb0faNAxUHlP0HHUHdFxEQFnoECBoQAQ&usg=AOvVaw0KREWUxsg75R9f2HRyLtPs
-[kicksecure]: https://img.shields.io/badge/HOME-KICKSECURE-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
+[kicksecure-shield]: https://img.shields.io/badge/HOME-KICKSECURE-blue?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fderivative-maker%2Fderivative-maker
 [kicksecure-url]: https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.kicksecure.com/&ved=2ahUKEwjCvNiA0vaNAxXq9bsIHYaTPQsQFnoECCAQAQ&usg=AOvVaw21yYxPqNL29HjKNEgjGlM8
