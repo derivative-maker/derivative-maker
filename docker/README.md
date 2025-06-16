@@ -14,7 +14,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 - [ ] Install docker engine
 - [ ] Clone derivative-maker
 - [ ] Build the docker image
-- [ ] Choose build parameters
+- [ ] Choose container parameters
 - [ ] Craft a build command
 - [ ] Deploy the container
     - [ ] Standard
@@ -55,8 +55,8 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    docker images
    ```
    <p align="right">(<a href="#readme-top">back to top</a>)</p>
-### Build parameters
-- [x] Choose build parameters
+### Container parameters
+- [x] Choose container parameters
 - [x] Craft a build command
 
 |  Option     | Description              | Example Value                                                                 
