@@ -30,11 +30,15 @@ chown --recursive -- "${USER}:${USER}" "${LOG_DIR}"
 
 cd -- "${SOURCE_DIR}"
 
-[ -z "${GIT}" ] || git pull
 git fetch --tags --depth=1
-[ -n "${TAG}" ] || export TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
-git checkout --recurse-submodules "${TAG}"
-[ "$TAG" = "master" ] || git describe
-git status
 
-"$@" | tee -a -- "${BUILD_LOG}"
+[ -n "${TAG}" ] || export TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
+
+{
+  [ -z "${GIT}" ] || git pull
+  git checkout --recurse-submodules "${TAG}"
+  [ "$TAG" = "master" ] || git describe
+  git status
+} 2>&1 | tee -a -- "${GIT_LOG}"
+
+"$@" 2>&1 | tee -a -- "${BUILD_LOG}"
