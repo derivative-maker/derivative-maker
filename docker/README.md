@@ -1,6 +1,25 @@
-![o,age](https://i.postimg.cc/8zxYmSPV/prototypes.png)
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Unlicense License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
+![o,age](https://i.postimg.cc/pdQFmfTj/prototypes.png)
 
 With the convenience of a debian:bookworm docker container, `derivative-maker-docker` automatically verifies tags, updates source code and builds Whonix/Kicksecure images, incorporating the official derivative-maker build scripts, while including environment variables and intuitive ways to customize every available build option, container behavior and final build command. Additionally, log files of the entire build, git and key verification process are automatically generated. All necessary files already ship with the current derivative-maker source code, allowing for quick and simple deployment with a variety of pre-defined user scripts.
+
+## Roadmap
+- [x] Read documentation
+- [ ] Install docker engine
+- [ ] Clone derivative-maker
+- [ ] Build the docker image
+- [ ] Choose build parameters
+- [ ] Craft a build command
+- [ ] Deploy the container
+    - [ ] Standard
+    - [ ] Custom
+
 
 ## Script Overview
 |  Name                                             | Description              | Location                                                                 
@@ -12,14 +31,10 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 | entrypoint.sh | Initializes systemd and allows services to be started | container:/usr/bin
 
 ## Usage
-- [x] Clone derivative-maker tag
+- [x] Install docker engine
 - [x] Build the docker image
-- [x] Choose build parameters
-- [x] Deploy the container
-    - [x] Standard build
-    - [ ] Custom Command
 ### Docker Image
-1. Find the [latest available tag](https://github.com/Whonix/derivative-maker/tags)
+1. Locate your [desired tag](https://github.com/Whonix/derivative-maker/tags)
 2. Clone it
    ```sh
    git clone --depth=1 --branch 17.3.9.9-stable --jobs=4 --recurse-submodules --shallow-submodules https://github.com/Whonix/derivative-maker.git
@@ -40,3 +55,41 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    docker images
    ```
    <p align="right">(<a href="#readme-top">back to top</a>)</p>
+### Build parameters
+- [x] Choose build parameters
+- [x] Craft a build command
+
+|  Option     | Description              | Example Value                                                                 
+| ------------| -------------------------|------------|
+| `--tag`, `-t` | Builds a specific tag of your choosing | 17.3.9.9-stable
+| `--build-step`, `-b` | Allows execution of specifc build-step |2800_create-lb-iso
+| `--custom`, `-c` | Runs a custom command inside the container | /bin/bash
+| `--git`, `-g`| Grants the ability to skip certain git commands  | none 
+#### Example Commands
+1. Build with a custom tag
+   ```sh
+   ./derivative-maker-docker-run -t 17.3.9.9-stable <build arguments>
+   ```
+2. Execute specific build-step
+   ```sh
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -b 2800_create-lb-iso <build arguments>
+   ```
+3. Running a custom command
+   ```sh
+   ./derivative-maker-docker-run -c /bin/bash
+   ```
+    <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-url]: https://github.com/derivative-maker/derivative-maker/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-url]: https://github.com/derivative-maker/derivative-maker/forks
+[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-url]: https://github.com/derivative-maker/derivative-maker/stargazers
+[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-url]: https://github.com/derivative-maker/derivative-maker/issues
+[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[license-url]: https://github.com/derivative-maker/derivative-maker?tab=License-1-ov-file#
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/othneildrew
