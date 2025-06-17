@@ -23,6 +23,13 @@ GIT_LOG="${LOG_DIR}/git.log"
 ## Move '/usr/bin/dm-git-tag-checkout-latest' from 'developer-meta-files'
 ## to 'help-steps' folder instead, improve?
 
+run_git() {
+  [ -z "${GIT}" ] || git pull
+  git checkout --recurse-submodules "${TAG}"
+  [ "$TAG" = "master" ] || git describe
+  git status
+}
+
 mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
 
 chown --recursive -- "${USER}:${USER}" "${LOG_DIR}"
@@ -33,11 +40,6 @@ git fetch --tags --depth=1
 
 [ -n "${TAG}" ] || export TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
 
-{
-  [ -z "${GIT}" ] || git pull
-  git checkout --recurse-submodules "${TAG}"
-  [ "$TAG" = "master" ] || git describe
-  git status
-} 2>&1 | tee -a -- "${GIT_LOG}"
+run_git 2>&1 | tee -a -- "${GIT_LOG}"
 
 "$@" 2>&1 | tee -a -- "${BUILD_LOG}"
