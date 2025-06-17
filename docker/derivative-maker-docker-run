@@ -18,12 +18,14 @@ COMMAND="./derivative-maker"
 SOURCE_VOLUME="$(dirname -- "$PWD")"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/approx_cache_mnt"
+KEY_VOLUME="$HOME/key_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
 declare {GIT,TAG}=""
 declare -a -- VOLUMES=(
 "${CACHER_VOLUME}" "101:102" "770"
 "${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" "770"
+"${KEY_VOLUME}" "${HOST_USER}:${HOST_USER}" "700"
 )
 
 volume_check() {
@@ -92,6 +94,7 @@ sudo \
       --volume "${SOURCE_VOLUME}:/home/${DOCKER_USER}/derivative-maker" \
       --volume "${BINARY_VOLUME}:/home/${DOCKER_USER}/derivative-binary" \
       --volume "${CACHER_VOLUME}:/var/cache/approx-derivative-maker" \
+      --volume "${KEY_VOLUME}:/home/${DOCKER_USER}/.gnupg" \
       "${IMG}" \
         sudo \
           --non-interactive \
