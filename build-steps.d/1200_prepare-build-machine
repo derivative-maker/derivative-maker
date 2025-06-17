@@ -87,18 +87,15 @@ build_machine_setup() {
 
    true "INFO: Updated git sub modules."
   
-   if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null; then
-    true "INFO: Importing signing key ${KEY##*/}"
-    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
-    gpg --import -- "${KEY}"
-    gpg --check-sigs -- "${FINGERPRINT}"
+   if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint}" &>/dev/null; then
+    true "INFO: Importing signing key ${derivative_signing_key##*/}"
+    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_key}"
+    gpg --import -- "${derivative_signing_key}"
+    gpg --check-sigs -- "${derivative_signing_key_fingerprint}"
    fi
       
    true "INFO: Running git signature verification."
-   {
-     git verify-commit -- "${TAG}^{commit}"
-     [ "$TAG" = "master" ] || git verify-tag -- "${TAG}"
-   } 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/git.log"
+   git_verify 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/git.log"
 
    $SUDO_TO_ROOT \
       apt-get \
@@ -249,6 +246,11 @@ check-git-folder() {
    if ! test -e "$source_code_folder_dist/packages/kicksecure/genmkfile/.git" ; then
       error "$source_code_folder_dist/packages/kicksecure/genmkfile/.git does not exist."
    fi
+}
+
+git_verify() {
+  git verify-commit -- "${TAG}^{commit}"
+  [ "$TAG" = "master" ] || git verify-tag -- "${TAG}"
 }
 
 approx_proxy_setup() {
