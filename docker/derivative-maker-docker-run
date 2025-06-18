@@ -15,7 +15,8 @@ set -o pipefail
 HOST_USER="$(id -u)"
 DOCKER_USER="user"
 COMMAND="./derivative-maker"
-SOURCE_VOLUME="$(dirname -- "$PWD")"
+DOCKER_DIR="$( dirname -- "${BASH_SOURCE[0]}" )"
+SOURCE_VOLUME="$( dirname -- "${DOCKER_DIR}" )"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/approx_cache_mnt"
 KEY_VOLUME="$HOME/key_mnt"
@@ -38,8 +39,19 @@ volume_check() {
   sudo -- chmod --recursive -- "${3}" "${1}"
 }
 
-## Thanks to:
-## http://mywiki.wooledge.org/BashFAQ/035
+build_docker_image() {
+  which docker || exit 1
+  if ! docker images | grep -qw "${IMG}"; then
+    sudo \
+    --non-interactive \
+    -- \
+      docker \
+        build \
+        --tag \
+        "${IMG}:latest" \
+        "${DOCKER_DIR}"
+  fi
+}
 
 while true; do
   case "$1" in
@@ -68,6 +80,8 @@ while true; do
       ;;
   esac
 done
+
+build_docker_image
 
 while [ "${#VOLUMES[@]}" -gt "0" ]; do
   volume_check ${VOLUMES[@]:0:3}
