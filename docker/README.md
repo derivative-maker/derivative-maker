@@ -39,10 +39,6 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```sh
    ./derivative-maker-docker-image
    ```
-3. (Optional) Pull the docker image
-    ```sh
-    docker pull derivative-maker/derivative-maker-docker:latest 
-    ```
 5. Verify successful image creation
    ```sh
    docker images
@@ -58,7 +54,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 | `--build-step`, `-b` | Allows execution of specifc build-step |2800_create-lb-iso
 | `--custom`, `-c` | Runs a custom command inside the container | /bin/bash
 | `--git`, `-g`| Grants the ability to skip certain git commands  | none 
-#### Example Commands
+#### Sample Commands
 1. Build with a custom tag
    ```sh
    ./derivative-maker-docker-run -t 17.3.9.9-stable <build arguments>
