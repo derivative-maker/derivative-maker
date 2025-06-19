@@ -73,29 +73,20 @@ build_machine_setup() {
    true 'INFO: Benchmarking "$SUDO_TO_ROOT echo "This is a test echo." using "time"...'
    time $SUDO_TO_ROOT echo "This is a test echo."
 
-   true "INFO: Updating git sub modules..."
-
-   ## Safe.
-   ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
-   git submodule sync --recursive
-
-   ## Caution.
-   ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
-   ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-   #git submodule update --init --recursive --jobs=200
-   git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge
-
-   true "INFO: Updated git sub modules."
-  
-   if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint}" &>/dev/null; then
-    true "INFO: Importing signing key ${derivative_signing_key##*/}"
-    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_key}"
-    gpg --import -- "${derivative_signing_key}"
-    gpg --check-sigs -- "${derivative_signing_key_fingerprint}"
+   if [ -z "$DOCKER" ]; then
+     true "INFO: Updating git sub modules..."
+     ## Safe.
+     ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
+     git submodule sync --recursive
+     ## Caution.
+     ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
+     ## It modifies the submodule's Git HEAD, potentially overriding local changes.
+     #git submodule update --init --recursive --jobs=200
+     git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge
+     true "INFO: Updated git sub modules."
+   else
+     ./help-steps/git-gpg-verify
    fi
-      
-   true "INFO: Running git signature verification."
-   git_verify 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/git.log"
 
    $SUDO_TO_ROOT \
       apt-get \
@@ -246,11 +237,6 @@ check-git-folder() {
    if ! test -e "$source_code_folder_dist/packages/kicksecure/genmkfile/.git" ; then
       error "$source_code_folder_dist/packages/kicksecure/genmkfile/.git does not exist."
    fi
-}
-
-git_verify() {
-  git verify-commit -- "${TAG}^{commit}"
-  [ "$TAG" = "master" ] || git verify-tag -- "${TAG}"
 }
 
 approx_proxy_setup() {
