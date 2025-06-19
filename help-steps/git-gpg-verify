@@ -11,31 +11,54 @@ true "INFO: Currently running script: $BASH_SOURCE $@"
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
-cd ..
-cd help-steps
-
-dist_build_internal_run="true"
 
 source pre
 source colors
 source variables
 
+cd -- "$(dirname -- "$MYDIR")"
+
+import_key() {
+  if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint}" &>/dev/null; then
+   true "INFO: Importing signing key ${derivative_signing_key##*/}"
+   gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_key}"
+   gpg --import -- "${derivative_signing_key}"
+   gpg --check-sigs -- "${derivative_signing_key_fingerprint}"
+  fi
+}
+
+run_git() {
+  if [ "$(id -u)" = "0" ]; then
+    error "Do not run this as root!"
+  fi
+
+  [ -z "${GIT}" ] || git pull
+
+  git fetch --tags --depth=1
+
+  [ -n "${TAG}" ] || TAG="$(git describe --tags "$(git rev-list --tags --max-count=1)")"
+
+  if [ "$TAG" != "master" ]; then
+    git verify-tag "$TAG"
+    git describe
+  fi
+
+  git verify-commit "${TAG}^{commit}"
+  
+  grep -qw "$(git show --no-patch --pretty=format:%GF "${TAG}^{commit}")" "./buildconfig.d/30_signing_key.conf" || exit 1
+
+  git checkout "$TAG"
+
+  git submodule sync --recursive >/dev/null
+
+  git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge >/dev/null
+
+  git status
+}
+
 main() {
-   true "gpg_bin: $gpg_bin"
-   ## Debugging.
-   pwd
-
-   ## Set up a separate GPG keystore.
-   export GNUPGHOME="$binary_build_folder_dist/temp_gpg"
-   mkdir --parents "$GNUPGHOME"
-   chmod --recursive og-rwx "$GNUPGHOME"
-   gpg --keyid-format 0xlong --fingerprint
-   gpg --keyid-format 0xlong --import ./packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc
-   gpg --keyid-format 0xlong --fingerprint
-
-   git verify-commit --verbose HEAD
-
-   true
+  import_key 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/key.log"
+  run_git 2>&1 | tee -a -- "${HOME}/derivative-binary/logs/git.log"
 }
 
 main "$@"
