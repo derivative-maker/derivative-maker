@@ -19,16 +19,6 @@ BINARY_DIR="${HOME}/derivative-binary"
 LOG_DIR="${BINARY_DIR}/logs"
 BUILD_LOG="${LOG_DIR}/build.log"
 GIT_LOG="${LOG_DIR}/git.log"
-## TODO: refactoring, avoid code duplication
-## Move '/usr/bin/dm-git-tag-checkout-latest' from 'developer-meta-files'
-## to 'help-steps' folder instead, improve?
-
-run_git() {
-  [ -z "${GIT}" ] || git pull
-  git checkout --recurse-submodules "${TAG}"
-  [ "$TAG" = "master" ] || git describe
-  git status
-}
 
 mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
 
@@ -36,12 +26,6 @@ chown --recursive -- "${USER}:${USER}" "${LOG_DIR}"
 
 cd -- "${SOURCE_DIR}"
 
-git fetch --tags --depth=1
-
-[ -n "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
-
-export TAG="${TAG}"
-
-run_git 2>&1 | tee -a -- "${GIT_LOG}"
+export TAG="${TAG}" GIT="${GIT}"
 
 "$@" 2>&1 | tee -a -- "${BUILD_LOG}"
