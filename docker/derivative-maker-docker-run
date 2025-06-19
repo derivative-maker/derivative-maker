@@ -15,7 +15,7 @@ set -o pipefail
 HOST_USER="$(id -u)"
 DOCKER_USER="user"
 COMMAND="./derivative-maker"
-DOCKER_DIR="$( dirname -- "${BASH_SOURCE[0]}" )"
+DOCKER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_VOLUME="$( dirname -- "${DOCKER_DIR}" )"
 BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/approx_cache_mnt"
@@ -67,7 +67,7 @@ while true; do
       shift 2
       ;;
     -g|--git)
-      GIT="1"
+      GIT="true"
       shift
       ;;
     --)
@@ -84,7 +84,7 @@ build_docker_image
 
 while [ "${#VOLUMES[@]}" -gt "0" ]; do
   volume_check ${VOLUMES[@]:0:3}
-  VOLUMES=("${VOLUMES[@]:3:3}")
+  VOLUMES=("${VOLUMES[@]:3}")
 done
 
 sudo --non-interactive -- modprobe -a loop dm_mod
@@ -99,6 +99,7 @@ sudo \
       --tty \
       --rm \
       --privileged \
+      --env "DOCKER=true" \
       --env "TAG=${TAG}" \
       --env "GIT=${GIT}" \
       --env 'flavor_meta_packages_to_install=' \
