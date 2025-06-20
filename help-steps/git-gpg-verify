@@ -8,9 +8,9 @@ set -e
 
 true "INFO: Currently running script: $BASH_SOURCE $@"
 
-MYDIR="$( cd -- "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cd -- "$MYDIR"
+cd "$MYDIR"
 
 source pre
 source colors
@@ -19,12 +19,24 @@ source variables
 cd -- "$(dirname -- "$MYDIR")"
 
 import_key() {
-  if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint}" &>/dev/null; then
+  if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint[0]}" &>/dev/null; then
    true "INFO: Importing signing key ${derivative_signing_key##*/}"
    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_key}"
    gpg --import -- "${derivative_signing_key}"
-   gpg --check-sigs -- "${derivative_signing_key_fingerprint}"
+   gpg --check-sigs -- "${derivative_signing_key_fingerprint[0]}"
   fi
+}
+
+signed_by_fingerprint() {
+  fingerprint=$(git show --no-patch --pretty=format:%GF "${1}")
+  
+  for i in "${derivative_signing_key_fingerprint[@]}"; do
+    [ "${fingerprint}" = "${i}" ]  && return
+  done
+  
+  true "ERROR: Signing key fingerprint does not match!"
+  
+  exit 1
 }
 
 run_git() {
@@ -45,7 +57,7 @@ run_git() {
 
   git verify-commit "${TAG}^{commit}"
   
-  grep -qw "$(git show --no-patch --pretty=format:%GF "${TAG}^{commit}")" "./buildconfig.d/30_signing_key.conf" || exit 1
+  signed_by_fingerprint "${TAG}^{commit}"
 
   git checkout "$TAG"
 
