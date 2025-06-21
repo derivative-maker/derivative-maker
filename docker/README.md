@@ -7,6 +7,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 - [ ] Install docker engine
 - [ ] Clone derivative-maker
 - [ ] Build the docker image
+- [ ] Choose volume folders
 - [ ] Choose container parameters
 - [ ] Craft a build command
 - [ ] Deploy the container
@@ -32,39 +33,57 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```sh
    git clone --depth=1 --branch 17.3.9.9-stable --jobs=4 --recurse-submodules --shallow-submodules https://github.com/Whonix/derivative-maker.git
    ```
-3. Build the docker image
+3. The docker image is automatically generated
+  + Checking image status
+    ```sh
+    docker images
+    ```
+  + Trigger re-creation by deleting the current image
+    ```
+    docker rmi -f derivative-maker/derivative-maker-docker:latest
+    ```
+### Volumes
+1. By default 2 folders are generated in the user's home directory
    ```sh
-   cd derivative-maker/docker 
+   BINARY_VOLUME="$HOME/binary_mnt"
+   CACHER_VOLUME="$HOME/approx_cache_mnt"
    ```
-   ```sh
-   ./derivative-maker-docker-image
-   ```
-5. Verify successful image creation
-   ```sh
-   docker images
-   ```
-   <p align="right">(<a href="#readme-top">back to top</a>)</p>
+  + `BINARY_VOLUME` is the location of build artifacts and logs 
+  + `CACHER_VOLUME` is the mount point of the container's `/var/cache/apt-cacher-ng`
+2. To change folder names or locations use the container param `--name`
 ### Container parameters
 - [x] Choose container parameters
 - [x] Craft a build command
 
-|  Option     | Description              | Example Value                                                                 
+|  Option     | Description              | Sample Value                                                                 
 | ------------| -------------------------|------------|
-| `--tag`, `-t` | Builds a specific tag of your choosing | 17.3.9.9-stable
-| `--build-step`, `-b` | Allows execution of specifc build-step |2800_create-lb-iso
-| `--custom`, `-c` | Runs a custom command inside the container | /bin/bash
-| `--git`, `-g`| Grants the ability to skip certain git commands  | none 
+| `--tag`, `-t` | Build a specific tag of your choosing | 17.3.9.9-stable
+| `--build-step`, `-b` | Allow execution of a specifc build-step |2800_create-lb-iso
+| `--custom`, `-c` | Run a custom command inside the container | /bin/bash
+| `--git`, `-g`| Skip git pull to preserve current state  | none 
+| `--name`, `-n`| Choose custom volume mount points  | /home/user/whonix 
 #### Sample Commands
 1. Build with a custom tag
    ```sh
-   ./derivative-maker-docker-run -t 17.3.9.9-stable <build arguments>
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -- <build arguments>
    ```
-2. Execute specific build-step
+2. Execute specific build-steps
    ```sh
-   ./derivative-maker-docker-run -t 17.3.9.9-stable -b 2800_create-lb-iso <build arguments>
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -- -b 2800_create-lb-iso <build arguments>
    ```
 3. Running a custom command
    ```sh
-   ./derivative-maker-docker-run -c /bin/bash
+   ./derivative-maker-docker-run -c -- /bin/bash
    ```
-    <p align="right">(<a href="#readme-top">back to top</a>)</p>
+4. Choose custom volume mount points
+   ```sh
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -n /home/user/whonix /home/user/apt-cache 
+   ```
+  + The first argument denotes the binary volume while the second refers to apt-cacher
+#### Hints
+* Without usage of `--tag`, the latest tag is automatically chosen
+* `--tag master` is possible and builds directly from master branch
+* Multiple custom commands can be chained with `&&` or `;`
+* Using end of options `--` is recommended
+* If both paths aren't passed with `--name` then defaults apply
+
