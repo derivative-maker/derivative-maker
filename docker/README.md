@@ -18,7 +18,6 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 ## Script Overview
 |  Name                                             | Description              | Location                                                                 
 | --------------------------------------------------| -------------------------|------------|
-| derivative-maker-docker-image | Builds the derivative-maker-docker image | host:derivative-maker/docker
 | derivative-maker-docker-setup | Prepares minimal debian env in the docker image | container:/usr/bin
 | derivative-maker-docker-run| Creates volumes and starts the container | host:derivative-maker/docker
 | derivative-maker-docker-start| Verifies tag and executes any given build command  | container:/usr/bin
