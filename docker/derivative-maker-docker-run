@@ -29,6 +29,20 @@ declare -a -- VOLUMES=(
 "${KEY_VOLUME}" "${HOST_USER}:${HOST_USER}" "700"
 )
 
+print_usage() {
+  cat << EOF
+  Usage: $0 [ -t TAG ] [ -b BUILD-STEP ] [ -c CUSTOM_CMD ] [ -n NAME ] [ -g ] [ -h ]
+
+  General Options:
+    -t|--tag         : tag name in derivative-maker repository
+    -b|--build-step  : build-step in derivative-maker/build-steps.d/
+    -c|--custom      : custom command or shell compliant command chain
+    -g|--git         : execution of git pull before tag checkout 
+    -n|--name        : custom mount points for binary and apt-cacher volumes
+    -h|--help        : print usage dialog
+  EOF
+}
+
 volume_check() {
   if [ -d "${1}" ] ; then
     return 0
@@ -76,8 +90,13 @@ while true; do
         CACHER_VOLUME="${3}"
         shift 3
       else
+        print_usage 
         exit 1
       fi
+      ;;
+    -h|--help)
+      print_usage
+      exit 0
       ;;
     --)
       shift
