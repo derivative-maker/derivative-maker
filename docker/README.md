@@ -49,7 +49,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```
   + `BINARY_VOLUME` is the location of build artifacts and logs 
   + `CACHER_VOLUME` is the mount point of the container's `/var/cache/apt-cacher-ng`
-2. To change folder names or locations use the container param `--name`
+2. To change folder names or locations use the container param `--mount`
 ### Container parameters
 - [x] Choose container parameters
 - [x] Craft a build command
@@ -60,7 +60,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 | `--build-step`, `-b` | Allow execution of a specifc build-step |2800_create-lb-iso
 | `--custom`, `-c` | Run a custom command inside the container | /bin/bash
 | `--git`, `-g`| Skip git pull to preserve current state  | none 
-| `--name`, `-n`| Choose custom volume mount points  | /home/user/whonix 
+| `--mount`, `-m`| Choose custom volume mount points  | /home/user/whonix 
 #### Sample Commands
 1. Build with a custom tag
    ```sh
@@ -84,5 +84,3 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 * `--tag master` is possible and builds directly from master branch
 * Multiple custom commands can be chained with `&&` or `;`
 * Using end of options `--` is recommended
-* If both paths aren't passed with `--name` then defaults apply
-
