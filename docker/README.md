@@ -72,7 +72,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```
 3. Running a custom command
    ```sh
-   ./derivative-maker-docker-run -c -- /bin/bash
+   ./derivative-maker-docker-run -c /bin/bash --
    ```
 4. Choose custom volume mount points
    ```sh
