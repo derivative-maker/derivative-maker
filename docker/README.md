@@ -68,7 +68,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```
 2. Execute specific build-steps
    ```sh
-   ./derivative-maker-docker-run -t 17.3.9.9-stable -- -b 2800_create-lb-iso <build arguments>
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -b 2800_create-lb-iso -- <build arguments>
    ```
 3. Running a custom command
    ```sh
@@ -76,7 +76,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    ```
 4. Choose custom volume mount points
    ```sh
-   ./derivative-maker-docker-run -t 17.3.9.9-stable -n /home/user/whonix /home/user/apt-cache 
+   ./derivative-maker-docker-run -t 17.3.9.9-stable -m /home/user/whonix /home/user/apt-cache -- <build arguments>
    ```
   + The first argument denotes the binary volume while the second refers to apt-cacher
 #### Hints
