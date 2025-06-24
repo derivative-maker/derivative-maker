@@ -17,38 +17,7 @@ set -o pipefail
 SOURCE_DIR="${HOME}/derivative-maker"
 BINARY_DIR="${HOME}/derivative-binary"
 LOG_DIR="${BINARY_DIR}/logs"
-GIT_LOG="${LOG_DIR}/git.log"
 BUILD_LOG="${LOG_DIR}/build.log"
-FINGERPRINT="916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
-KEY="${SOURCE_DIR}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc"
-
-[[ -v GIT ]] || GIT=""
-[[ -v TAG ]] || TAG="master"
-
-gpg_key_import() {
-  if ! gpg --quiet --list-keys -- "${FINGERPRINT}" &>/dev/null ; then
-    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${KEY}"
-    gpg --import -- "${KEY}"
-    gpg --check-sigs -- "${FINGERPRINT}"
-  fi
-}
-
-## TODO: refactoring, avoid code duplication
-## Move '/usr/bin/dm-git-tag-checkout-latest' from 'developer-meta-files'
-## to 'help-steps' folder instead, improve?
-run_git() {
-  [ -z "${GIT}" ] || git pull
-  git fetch --tags --depth=1
-  [ -z "${TAG}" ] || TAG="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
-  ## end-of-options ("--") unsupported.
-  git checkout --recurse-submodules "${TAG}"
-  [ "$TAG" = "master" ] || {
-    git describe
-    git verify-tag -- "${TAG}"
-  }
-  git verify-commit -- "${TAG}^{commit}"
-  git status
-}
 
 mkdir --parents -- "${BINARY_DIR}" "${LOG_DIR}"
 
@@ -56,8 +25,6 @@ chown --recursive -- "${USER}:${USER}" "${LOG_DIR}"
 
 cd -- "${SOURCE_DIR}"
 
-gpg_key_import 2>&1 | tee -a -- "${BUILD_LOG}"
+./help-steps/git-gpg-verify
 
-run_git 2>&1 | tee -a -- "${GIT_LOG}"
-
-"$@" | tee -a -- "${BUILD_LOG}"
+"$@" 2>&1 | tee -a -- "${BUILD_LOG}"
