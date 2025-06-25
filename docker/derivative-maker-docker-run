@@ -23,11 +23,6 @@ KEY_VOLUME="$HOME/.key_mnt"
 IMG="derivative-maker/derivative-maker-docker"
 
 declare {GIT,TAG}=""
-declare -a -- VOLUMES=(
-"${CACHER_VOLUME}" "101:102" "770"
-"${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" "770"
-"${KEY_VOLUME}" "${HOST_USER}:${HOST_USER}" "700"
-)
 
 print_usage() {
   cat << EOF
@@ -44,13 +39,21 @@ EOF
 }
 
 volume_check() {
-  if [ -d "${1}" ] ; then
-    return 0
-  fi
-  mkdir --parents -- "${1}"
-  sleep -- ".1"
-  sudo -- chown --recursive -- "${2}" "${1}"
-  sudo -- chmod --recursive -- "${3}" "${1}"
+declare -a -- VOLUMES=(
+"${CACHER_VOLUME}" "101:102" "770"
+"${BINARY_VOLUME}" "${HOST_USER}:${HOST_USER}" "770"
+"${KEY_VOLUME}" "${HOST_USER}:${HOST_USER}" "700"
+)
+
+  while [ "${#VOLUMES[@]}" -gt "0" ]; do
+    if [ ! -d "${VOLUMES[0]}" ]; then
+      mkdir --parents -- "${VOLUMES[0]}"
+      sleep -- ".1"
+      sudo -- chown --recursive -- "${VOLUMES[1]}" "${VOLUMES[0]}"
+      sudo -- chmod --recursive -- "${VOLUMES[2]}" "${VOLUMES[0]}"
+    fi
+    VOLUMES=("${VOLUMES[@]:3}")
+  done
 }
 
 build_docker_image() {
