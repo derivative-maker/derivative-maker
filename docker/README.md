@@ -1,4 +1,4 @@
-![o,age](https://i.postimg.cc/pdQFmfTj/prototypes.png)
+![o,age](https://i.postimg.cc/VsxgCNmv/prototypes.png)
 
 With the convenience of a debian:bookworm docker container, `derivative-maker-docker` automatically verifies tags, updates source code and builds Whonix/Kicksecure images, incorporating the official derivative-maker build scripts, while including environment variables and intuitive ways to customize every available build option, container behavior and final build command. Additionally, log files of the entire build, git and key verification process are automatically generated. All necessary files already ship with the current derivative-maker source code, allowing for quick and simple deployment with a variety of pre-defined user scripts.
 
