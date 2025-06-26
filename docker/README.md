@@ -1,4 +1,4 @@
-![o,age](https://i.postimg.cc/VsxgCNmv/prototypes.png)
+![o,age](https://i.postimg.cc/1tvBZfYQ/prototypes.png)
 
 With the convenience of a debian:bookworm docker container, `derivative-maker-docker` automatically verifies tags, updates source code and builds Whonix/Kicksecure images, incorporating the official derivative-maker build scripts, while including environment variables and intuitive ways to customize every available build option, container behavior and final build command. Additionally, log files of the entire build, git and key verification process are automatically generated. All necessary files already ship with the current derivative-maker source code, allowing for quick and simple deployment with a variety of pre-defined user scripts.
 
@@ -6,8 +6,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 - [x] Read documentation
 - [ ] Install docker engine
 - [ ] Clone derivative-maker
-- [ ] Build the docker image
-- [ ] Choose volume folders
+- [ ] Docker image
 - [ ] Choose container parameters
 - [ ] Craft a build command
 - [ ] Deploy the container
@@ -25,7 +24,8 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 
 ## Usage
 - [x] Install docker engine
-- [x] Build the docker image
+- [x] Cloning derivative-maker 
+- [x] (Re)build the docker image
 ### Docker Image
 1. Locate your [desired tag](https://github.com/Whonix/derivative-maker/tags)
 2. Clone it
@@ -33,7 +33,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    git clone --depth=1 --branch 17.3.9.9-stable --jobs=4 --recurse-submodules --shallow-submodules https://github.com/Whonix/derivative-maker.git
    ```
 3. The docker image is automatically generated
-  + Checking image status
+  + Checking current image status
     ```sh
     docker images
     ```
@@ -52,7 +52,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 2. To change folder names or locations use the container param `--mount`
 ### Container parameters
 - [x] Choose container parameters
-- [x] Craft a build command
+- [x] (Optional) Add custom volumes 
 
 |  Option     | Description              | Sample Value                                                                 
 | ------------| -------------------------|------------|
@@ -84,3 +84,26 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 * `--tag master` is possible and builds directly from master branch
 * Multiple custom commands can be chained with `&&` or `;`
 * Using end of options `--` is recommended
+### Build Command
+- [x] Read the [Build Documentation](https://www.whonix.org/wiki/Dev/Build_Documentation/VM#Build)
+- [x] Craft a build command
+#### Mandatory Build Parameters
+1. Target
+
+ | Build Target  | Comment | Image Type |                                                     
+ | -------------------------|------------|-----|
+ | VirtualBox | `.vdi` | `--target virtualbox` |
+ | KVM | `.qcow2` |  `--target qcow2`   |  
+ | RAW | `.raw` |  `--target raw`   |  
+ | UTM  | `.raw`  |  `--target utm`   |  
+ | ISO  | `.iso` |   `--target iso`   | 
+
+ 2. Flavor
+
+ | Flavor Name  | Flavor Parameter |                                              
+ | -------------------------|------------|
+ | Whonix-Gateway CLI | `--flavor whonix-gateway-cli` | 
+ | Whonix-Gateway Xfce  | `--flavor whonix-gateway-xfce ` | 
+ | Whonix-Workstation CLI  | `--flavor whonix-workstation-cli` |  
+ | Whonix-Workstation Xfce 	  | `--flavor whonix-workstation-xfce`  | 
+ 
