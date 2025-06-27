@@ -15,7 +15,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 
 
 ## Script Overview
-|  Name                                             | Description              | Location                                                                 
+|  Name                                             | Description              | Location
 | --------------------------------------------------| -------------------------|------------|
 | derivative-maker-docker-setup | Prepares minimal debian env in the docker image | container:/usr/bin
 | derivative-maker-docker-run| Creates volumes and starts the container | host:derivative-maker/docker
@@ -24,7 +24,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 
 ## Usage
 - [x] Install docker engine
-- [x] Cloning derivative-maker 
+- [x] Cloning derivative-maker
 - [x] (Re)build the docker image
 ### Docker Image
 1. Locate your [desired tag](https://github.com/Whonix/derivative-maker/tags)
@@ -47,20 +47,20 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
    BINARY_VOLUME="$HOME/binary_mnt"
    CACHER_VOLUME="$HOME/approx_cache_mnt"
    ```
-  + `BINARY_VOLUME` is the location of build artifacts and logs 
+  + `BINARY_VOLUME` is the location of build artifacts and logs
   + `CACHER_VOLUME` is the mount point of the container's `/var/cache/apt-cacher-ng`
 2. To change folder names or locations use the container param `--mount`
 ### Container parameters
 - [x] Choose container parameters
-- [x] (Optional) Add custom volumes 
+- [x] (Optional) Add custom volumes
 
-|  Option     | Description              | Sample Value                                                                 
+|  Option     | Description              | Sample Value
 | ------------| -------------------------|------------|
 | `--tag`, `-t` | Build a specific tag of your choosing | 17.3.9.9-stable
 | `--build-step`, `-b` | Allow execution of a specifc build-step |2800_create-lb-iso
 | `--custom`, `-c` | Run a custom command inside the container | /bin/bash
-| `--git`, `-g`| Skip git pull to preserve current state  | none 
-| `--mount`, `-m`| Choose custom volume mount points  | /home/user/whonix 
+| `--git`, `-g`| Skip git pull to preserve current state  | none
+| `--mount`, `-m`| Choose custom volume mount points  | /home/user/whonix
 #### Sample Commands
 1. Build with a custom tag
    ```sh
@@ -90,20 +90,20 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 #### Mandatory Build Parameters
 1. Target
 
- | Build Target  | Comment | Image Type |                                                     
+ | Build Target  | Comment | Image Type |
  | -------------------------|------------|-----|
  | VirtualBox | `.vdi` | `--target virtualbox` |
- | KVM | `.qcow2` |  `--target qcow2`   |  
- | RAW | `.raw` |  `--target raw`   |  
- | UTM  | `.raw`  |  `--target utm`   |  
- | ISO  | `.iso` |   `--target iso`   | 
+ | KVM | `.qcow2` |  `--target qcow2`   |
+ | RAW | `.raw` |  `--target raw`   |
+ | UTM  | `.raw`  |  `--target utm`   |
+ | ISO  | `.iso` |   `--target iso`   |
 
  2. Flavor
 
- | Flavor Name  | Flavor Parameter |                                              
+ | Flavor Name  | Flavor Parameter |
  | -------------------------|------------|
- | Whonix-Gateway CLI | `--flavor whonix-gateway-cli` | 
- | Whonix-Gateway Xfce  | `--flavor whonix-gateway-xfce ` | 
- | Whonix-Workstation CLI  | `--flavor whonix-workstation-cli` |  
- | Whonix-Workstation Xfce 	  | `--flavor whonix-workstation-xfce`  | 
- 
+ | Whonix-Gateway CLI | `--flavor whonix-gateway-cli` |
+ | Whonix-Gateway Xfce  | `--flavor whonix-gateway-xfce ` |
+ | Whonix-Workstation CLI  | `--flavor whonix-workstation-cli` |
+ | Whonix-Workstation Xfce 	  | `--flavor whonix-workstation-xfce`  |
+
