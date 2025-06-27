@@ -41,6 +41,8 @@ signed_by_fingerprint() {
 }
 
 run_git() {
+  local latest_git_tag
+
   if [ "$(id -u)" = "0" ]; then
     error "Do not run this as root!"
   fi
@@ -49,7 +51,9 @@ run_git() {
 
   git fetch --tags --depth=1
 
-  [ -n "${TAG}" ] || TAG="$(git describe --tags "$(git rev-list --tags --max-count=1)")"
+  latest_git_tag="$(git rev-list --tags --max-count=1)"
+
+  [ -n "${TAG}" ] || TAG="$(git describe --tags "$latest_git_tag")"
 
   if [ "$TAG" != "master" ]; then
     git verify-tag "$TAG"
