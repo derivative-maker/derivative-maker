@@ -62,9 +62,9 @@ run_git() {
 
   [ -n "${TAG}" ] || TAG="$(git describe --tags "${latest_git_tag}")"
 
-  if [ "$TAG" != "master" ]; then
-    git verify-tag "$TAG"
-    git describe "$TAG"
+  if [ "${TAG}" != "master" ]; then
+    git verify-tag "${TAG}"
+    git describe "${TAG}"
   fi
 
   git verify-commit "${TAG}^{commit}"
@@ -73,12 +73,13 @@ run_git() {
 
   if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
     git pull
-    git checkout "$TAG"
+    git checkout "${TAG}"
   else
     true "INFO: Uncommitted changes found. Skipping upstream merge."
     if [ "${TAG}" != "$(git describe)" ]; then
+      true "INFO: Saving current changes before switch to ${TAG}."
       git stash
-      git checkout "$TAG"
+      git checkout "${TAG}"
     fi
   fi
 
