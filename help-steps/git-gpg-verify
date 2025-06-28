@@ -21,29 +21,26 @@ source variables
 cd -- "$(dirname -- "$MYDIR")"
 
 import_key() {
-  local derivative_signing_key_fingerprint_item
-  for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
-    if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
-      missing_key=true
-    fi
+  local derivative_signing_key_fingerprint_item derivative_signing_key_item key_index
+  for key_index in "${!derivative_signing_public_key_list[@]}"; do
+    for derivative_signing_key_fingerprint_item in ${derivative_signing_key_fingerprint_list["${key_index}"]}; do
+      derivative_signing_key_item="${derivative_signing_public_key_list["${key_index}"]}"
+
+      if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+        gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_key_item}"
+        gpg --import -- "${derivative_signing_key_item}"
+        gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
+        break
+      fi
+    done
   done
-
-  if [ ! "${missing_key}" = "true" ]; then
-    return 0
-  fi
-
-  for derivative_signing_public_key_item in "${derivative_signing_public_key_list[@]}"; do
-    gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
-    gpg --import -- "${derivative_signing_public_key_item}"
-    gpg --check-sigs -- "${derivative_signing_public_key_item}"
-  fi
 }
 
 signed_by_fingerprint() {
   local fingerprint derivative_signing_key_fingerprint_item
   fingerprint=$(git show --no-patch --pretty=format:%GF "${1}")
 
-  for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+  for derivative_signing_key_fingerprint_item in ${derivative_signing_key_fingerprint_list[@]}; do
     if [ "${fingerprint}" = "${derivative_signing_key_fingerprint_item}" ]; then
       return 0
     fi
@@ -58,30 +55,32 @@ run_git() {
   if [ "$(id -u)" = "0" ]; then
     error "Do not run this as root!"
   fi
-
-  ## TODO: review
-  ## - security
-  ## - avoid developer loss of progress
-  return 0
-
-  [ -z "${GIT}" ] || git pull
-
-  git fetch --tags --depth=1
+  ## only fetches tags
+  git fetch https://github.com/derivative-maker/derivative-maker --depth=1 -- 'refs/tags/*:refs/tags/*'
 
   latest_git_tag="$(git rev-list --tags --max-count=1)"
 
   [ -n "${TAG}" ] || TAG="$(git describe --tags "${latest_git_tag}")"
 
-  if [ "${TAG}" != "master" ]; then
-    git verify-tag "${TAG}"
-    git describe "${TAG}"
+  if [ "$TAG" != "master" ]; then
+    git verify-tag "$TAG"
+    git describe "$TAG"
   fi
 
   git verify-commit "${TAG}^{commit}"
 
   signed_by_fingerprint "${TAG}^{commit}"
 
-  git checkout "${TAG}"
+  if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
+    git pull
+    git checkout "$TAG"
+  else
+    true "INFO: Uncommitted changes found. Skipping upstream merge."
+    if [ "${TAG}" != "$(git describe)" ]; then
+      git stash
+      git checkout "$TAG"
+    fi
+  fi
 
   git submodule sync --recursive >/dev/null
 
