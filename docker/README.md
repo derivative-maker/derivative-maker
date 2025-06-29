@@ -59,7 +59,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
 | `--tag`, `-t` | Build a specific tag of your choosing | 17.3.9.9-stable
 | `--build-step`, `-b` | Allow execution of a specifc build-step |2800_create-lb-iso
 | `--custom`, `-c` | Run a custom command inside the container | /bin/bash
-| `--git`, `-g`| Skip git pull to preserve current state  | none
+| `--git`, `-g`| Preserve uncommitted changes before building  | none
 | `--mount`, `-m`| Choose custom volume mount points  | /home/user/whonix
 #### Sample Commands
 1. Build with a custom tag
