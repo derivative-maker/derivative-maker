@@ -76,10 +76,15 @@ run_git() {
     git checkout "${TAG}"
   else
     true "INFO: Uncommitted changes found. Skipping upstream merge."
-    if [ "${TAG}" != "$(git describe)" ]; then
-      true "INFO: Saving current changes before switch to ${TAG}."
-      git stash
-      git checkout "${TAG}"
+    if [ -n "${GIT}" ]; then
+      ## when current tag equals desired - no switch needed
+      if [[ ! "$(git describe --all 2>/dev/null)" =~ "${TAG}" ]]; then
+        true "INFO: Saving current changes before switch to ${TAG}."
+        git stash
+        git switch --detach -- "${TAG}"
+      fi
+    else
+        error "Use option -g|--git to proceed with uncommitted."
     fi
   fi
 
