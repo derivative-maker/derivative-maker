@@ -8,6 +8,9 @@ USER=user \
 HOME=/home/user
 
 COPY derivative-maker-docker-setup /usr/bin
+COPY build-data/docker-entrypoint.target /etc/systemd/system
+COPY build-data/docker-entrypoint.service /etc/systemd/system
+COPY build-data/docker-entrypoint-stop.sh /usr/bin
 
 RUN /usr/bin/derivative-maker-docker-setup
 
