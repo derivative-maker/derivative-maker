@@ -19,11 +19,13 @@ derivative_signing_public_key_list=(
   "./keys/derivative.asc"
 )
 
+## TODO: parse build config
+##       (so buildconfig.d/30_signing_key.conf and other files are parsed)
 ## not needed:
 ## B9D878F0F157C323C36B4C06A709160D73C79109
 derivative_signing_key_fingerprint_group_list=(
-  "916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA
-6E979B28A6F37C43BE30AFA1CB8D50BB77BB3C48"
+  "916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
+  "6E979B28A6F37C43BE30AFA1CB8D50BB77BB3C48"
 )
 
 error_handler_dist_build_one() {
@@ -152,10 +154,10 @@ verify_ref() {
     *) error "ref_type must be one of 'tag' or 'commit'!";;
   esac
 
-  git verify-commit "${ref}^{commit}"
+  git verify-commit -- "${ref}^{commit}"
   signed_by_fingerprint "${ref}^{commit}"
   if [ "${ref_type}" = 'tag' ]; then
-    git verify-tag "${ref}"
+    git verify-tag -- "${ref}"
   fi
 }
 
@@ -211,7 +213,7 @@ update_repo () {
   fi
 
   ## Get the ref (branch or commit) that we're currently at.
-  orig_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+  orig_ref="$(git rev-parse -- HEAD)" || error 'Cannot get head commit ID!'
 
   ## Import any additional needed GPG keys.
   import_keys
@@ -242,25 +244,21 @@ update_repo () {
   ## TODO: Figure out how to detect uncommitted changes in a submodule BEFORE
   ## making changes to the existing repo!
   if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
-    if [ "${do_preserve_uncommitted}" = 'false' ] \
-      && [ "${do_force}" = 'false' ]; then
+    if [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'false' ]; then
       error 'Uncommitted changes are present, and --preserve-uncommitted was not passed!'
-    elif [ "${do_preserve_uncommitted}" = 'false' ] \
-      && [ "${do_force}" = 'true' ]; then
-      git reset --hard HEAD
-    elif [ "${do_preserve_uncommitted}" = 'true' ] \
-      && [ "${do_force}" = 'false' ]; then
+    elif [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'true' ]; then
+      git reset --hard -- HEAD
+    elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'false' ]; then
       confirm_stash_uncommitted || error 'User declined stashing uncommitted changes!'
       git stash
       did_stash_changes='true'
-    elif [ "${do_preserve_uncommitted}" = 'true' ] \
-      && [ "${do_force}" = 'true' ]; then
+    elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'true' ]; then
       git stash
       did_stash_changes='true'
     fi
   fi
   if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
-    error 'Failed to get rid of uncommitted changes, was a submodule modified?'
+    error 'Failed to get rid of uncommitted changes, was a git submodule modified?'
   fi
 
   ## Fetch remote code if and only if the user has requested a remote update.
@@ -269,24 +267,23 @@ update_repo () {
       confirm_remote_update || error 'User declined remote update!'
     fi
 
-    git fetch --recurse-submodules --jobs=100 \
-      || error 'Failed to fetch from remote!'
+    git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
   fi
 
   ## If we were asked to checkout the 'latest' tag, find the latest tag.
   if [ "${target_tag}" = 'latest' ]; then
-    target_tag="$(git describe --tags "$(git rev-list --tags --max-count=1)")"
+    target_tag="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
   fi
 
   ## Verify the specified ref, then check out that ref.
   if [ -n "${target_tag}" ]; then
-    if ! verify_ref "${target_tag}" 'tag'; then
+    if ! verify_ref -- "${target_tag}" 'tag'; then
       if [ "${did_stash_changes}" = 'true' ]; then
         git stash pop || true
       fi
       error 'Tag verification failed!'
     fi
-    git checkout --recurse-submodules "${target_tag}"
+    git checkout --recurse-submodules -- "${target_tag}"
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}^{commit}" 'commit'; then
       if [ "${did_stash_changes}" = 'true' ]; then
@@ -294,11 +291,9 @@ update_repo () {
       fi
       error 'Branch verification failed!'
     fi
-    git checkout --recurse-submodules "${target_ref}"
+    git checkout --recurse-submodules -- "${target_ref}"
 
-    if [ "${do_remote_update}" = 'true' ] \
-      && git show-ref --verify "refs/heads/${target_ref}" \
-      2>/dev/null >/dev/null; then
+    if [ "${do_remote_update}" = 'true' ] && git show-ref --verify -- "refs/heads/${target_ref}" 2>/dev/null >/dev/null; then
       ## The specified ref is a branch, and the user asked us to update from
       ## the remote repository, meaning the user is trying to update to the
       ## latest commit of the specified branch.
@@ -311,17 +306,16 @@ update_repo () {
 
       ## In order to make sure we can undo this merge if it goes wrong, save
       ## the ref first.
-      branch_reset_ref="$(git rev-parse HEAD)" \
-        || error 'Cannot get head commit ID!'
+      branch_reset_ref="$(git rev-parse -- HEAD)" || error 'Cannot get head commit ID!'
 
       ## Do merge and verify. If any of the steps involved fail, trigger a
-      ##rollback.
+      ## rollback.
       ##
       ## TODO: Add -c merge.verifySignatures=true on the submodule update?
       ## This didn't work on Aaron's machine for unknown reasons.
       git merge --ff-only "$(
           git for-each-ref --format='%(upstream:short)' "$(
-            git symbolic-ref -q HEAD
+            git symbolic-ref -q -- HEAD
           )"
         )" \
         && git submodule update --recursive --jobs=100 --merge \
@@ -332,9 +326,9 @@ update_repo () {
         ## Reset the branch to the commit it was on previously. If it fails,
         ## ignore it, it's better to leave the branch compromised than to
         ## leave the working directory compromised.
-        git reset --hard --recurse-submodules "${branch_reset_ref}" || true
+        git reset --hard --recurse-submodules -- "${branch_reset_ref}" || true
         ## Revert back to the ref we came from.
-        git checkout --recurse-submodules "${orig_ref}"
+        git checkout --recurse-submodules -- "${orig_ref}"
         if [ "${did_stash_changes}" = 'true' ]; then
           git stash pop || true
         fi
