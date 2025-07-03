@@ -270,10 +270,16 @@ update_repo () {
     elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'true' ]; then
       git stash
       did_stash_changes='true'
+    else
+      error 'Unknown condition bug.'
+    fi
+    if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
+      error 'Failed to get rid of uncommitted changes, was a git submodule modified?'
     fi
   fi
+
   if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
-    error 'Failed to get rid of uncommitted changes, was a git submodule modified?'
+    error 'Unexpected uncommitted changes bug.'
   fi
 
   ## Fetch remote code if and only if the user has requested a remote update.
@@ -292,7 +298,7 @@ update_repo () {
 
   ## Verify the specified ref, then check out that ref.
   if [ -n "${target_tag}" ]; then
-    if ! verify_ref -- "${target_tag}" 'tag'; then
+    if ! verify_ref "${target_tag}" 'tag'; then
       if [ "${did_stash_changes}" = 'true' ]; then
         git stash pop || true
       fi
