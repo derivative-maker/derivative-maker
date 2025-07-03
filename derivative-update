@@ -4,7 +4,9 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o errtrace
+set -o pipefail
 
 true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
@@ -14,6 +16,8 @@ cd "$MYDIR"
 
 source ./help-steps/pre
 source ./help-steps/colors
+## TODO: use ./help-steps/variables
+set -x
 
 derivative_signing_public_key_list=(
   "./keys/derivative.asc"
@@ -110,7 +114,10 @@ import_keys() {
     derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
 
     for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
-      if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+      if gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+        true "INFO: key already imported."
+      else
+        true "INFO: key not yet already imported. Importing..."
         gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
         gpg --import -- "${derivative_signing_public_key_item}"
         gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
@@ -218,6 +225,8 @@ update_repo () {
 
   ## Import any additional needed GPG keys.
   import_keys
+
+  exit 0
 
   ## Sanity-check; verify the signature of the current ref. If the user has
   ## never verified the repo before, this can be bypassed if the repo is
