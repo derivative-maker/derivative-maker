@@ -1,0 +1,368 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -e
+
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd "$MYDIR"
+
+source ./help-steps/pre
+source ./help-steps/colors
+
+derivative_signing_public_key_list=(
+  "./keys/derivative.asc"
+)
+
+derivative_signing_key_fingerprint_group_list=(
+  "916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA
+6E979B28A6F37C43BE30AFA1CB8D50BB77BB3C48
+B9D878F0F157C323C36B4C06A709160D73C79109"
+)
+
+error_handler_dist_build_one() {
+   true "${red}${bold}ERROR in $0${reset}"
+   true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
+   true "${red}\$@: $*${reset}"
+   true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
+   exit 1
+}
+
+trap "error_handler_dist_build_one" ERR
+
+print_usage() {
+  echo "\
+derivative-update
+
+Syntax:
+  (-t|--tag|-r|--ref ref) [-p|--preserve-uncommitted] [-u|--remote-update]
+
+Description:
+  Updates the derivative-maker repository to the specified ref in a secure
+  fashion. Imports the derivative-maker signing keys if they are not already
+  imported into GPG. Can fetch new commits and refs from the remote repository
+  if desirable.
+
+Parameters:
+  -t|--tag                   : Check out the specified tag. Specify 'latest'
+                               to check out the most recently created tag in
+                               the repository.
+  -r|--ref                   : Check out the specified (branch or commit).
+  -p|--preserve-uncommitted  : Stash uncommitted changes before updating,
+                               then restore them after the update.
+  -u|--remote-update         : Fetch commits and refs from the default remote
+                               repository before updating the repository, if
+                               possible.
+  -f|--force                 : Do not prompt for confirmation before fetching
+                               remote refs or discarding or attempting to
+                               preserve uncommitted changes. This does NOT
+                               override signature checks.
+"
+}
+
+query_user() {
+  local query reply
+
+  query="${1:-}"
+  [ -z "${query}" ] && error "No query given to 'query_user'!"
+
+  printf '%s\n' "${query}"
+
+  read -r reply
+  if [ "${reply,,}" = 'y' ]; then
+    return 0
+  fi
+  return 1
+}
+
+confirm_remote_update() {
+  query_user "\
+NOTICE:
+
+You have requested to update the repository with code from the default remote
+repository. Are you sure you want to do this? [Y/N]
+"
+}
+
+confirm_stash_uncommitted() {
+  query_user "\
+NOTICE:
+
+You have uncommitted changes and have requested to preserve them.
+derivative-update will stash your changes, check out the requested
+ref, then restore them. Are you sure you want to do this? [Y/N]
+"
+}
+
+import_keys() {
+  local key_index derivative_signing_key_fingerprint_list derivative_signing_public_key_item derivative_signing_key_fingerprint_item
+
+  for key_index in "${!derivative_signing_public_key_list[@]}"; do
+    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
+    derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
+
+    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+      if ! gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+        gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
+        gpg --import -- "${derivative_signing_public_key_item}"
+        gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
+        break
+      fi
+    done
+  done
+}
+
+signed_by_fingerprint() {
+  local fingerprint derivative_signing_key_fingerprint_group derivative_signing_key_fingerprint_item derivative_signing_key_fingerprint_list
+  fingerprint=$(git show --no-patch --pretty=format:%GF "${1}")
+
+  for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
+    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group}"
+
+    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+      if [ "${fingerprint}" = "${derivative_signing_key_fingerprint_item}" ]; then
+        return 0
+      fi
+    done
+  done
+
+  error "Signing key fingerprint does not match!"
+}
+
+verify_ref() {
+  local ref ref_type
+
+  ref="${1:-}"
+  ref_type="${2:-}"
+
+  if [ -z "${ref}" ]; then
+    error 'Cannot pass empty ref to verify_ref!'
+  fi
+  if [ -z "${ref_type}" ]; then
+    error 'Cannot pass empty ref_type to verify_ref!'
+  fi
+  case "${ref_type}" in
+    tag|commit) ;;
+    *) error "ref_type must be one of 'tag' or 'commit'!";;
+  esac
+
+  git verify-commit "${ref}^{commit}"
+  signed_by_fingerprint "${ref}^{commit}"
+  if [ "${ref_type}" = 'tag' ]; then
+    git verify-tag "${ref}"
+  fi
+}
+
+update_repo () {
+  local target_tag target_ref do_preserve_uncommitted do_remote_update \
+    do_force orig_ref did_stash_changes branch_reset_ref
+
+  target_tag=""
+  target_ref=""
+  do_preserve_uncommitted='false'
+  do_remote_update='false'
+  do_force='false'
+  orig_ref=""
+  did_stash_changes='false'
+
+  if (( $# < 2 )); then
+    error 'At least two arguments are required!'
+  fi
+
+  while (( $# > 0 )); do
+    case "$1" in
+      -t|--tag)
+        target_tag="$2"
+        shift 2
+        ;;
+      -r|--ref)
+        target_ref="$2"
+        shift 2
+        ;;
+      -p|--preserve-uncommitted)
+        do_preserve_uncommitted='true'
+        shift
+        ;;
+      -u|--remote-update)
+        do_remote_update='true'
+        shift
+        ;;
+      -f|--force)
+        do_force='true'
+        shift
+        ;;
+      *)
+        error "Unrecognized option '$1'!"
+        ;;
+    esac
+  done
+
+  if [ -z "${target_tag}" ] && [ -z "${target_ref}" ]; then
+    error 'Must specify either a target branch or ref!'
+  fi
+  if [ -n "${target_tag}" ] && [ -n "${target_ref}" ]; then
+    error 'Cannot specify both a target branch and a target tag!'
+  fi
+
+  ## Get the ref (branch or commit) that we're currently at.
+  orig_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+
+  ## Import any additional needed GPG keys.
+  import_keys
+
+  ## Sanity-check; verify the signature of the current ref. If the user has
+  ## never verified the repo before, this can be bypassed if the repo is
+  ## compromised, but if the repo is safe, this (in combination with the key
+  ## import above) will do the initial verification, providing "trust on first
+  ## use" security.
+  verify_ref "${orig_ref}^{commit}" 'commit'
+
+  ## "Get rid of" uncommitted changes, we need there to be no uncommitted
+  ## changes in order to robustly verify the repository state. How we do this
+  ## depends on the options we were passed:
+  ##
+  ## * If there aren't uncommitted changes, continue onwards.
+  ## * If do_preserve_uncommitted is false and do_force is false, bail.
+  ## * If do_preserve_uncommitted is false and do_force is true, hard-reset
+  ##   the changes away.
+  ## * If do_preserve_uncommitted is true and do_force is false, ask the user
+  ##   before stashing changes and either bail or stash depending on their
+  ##   response.
+  ## * If do_preserve_uncommitted is true and do_force is true, stash without
+  ##   confirmation.
+  ## * If a stash or hard-reset fails to get rid of all uncommitted changes
+  ##   (because of uncommitted changes in a submodule), bail.
+  ##
+  ## TODO: Figure out how to detect uncommitted changes in a submodule BEFORE
+  ## making changes to the existing repo!
+  if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
+    if [ "${do_preserve_uncommitted}" = 'false' ] \
+      && [ "${do_force}" = 'false' ]; then
+      error 'Uncommitted changes are present, and --preserve-uncommitted was not passed!'
+    elif [ "${do_preserve_uncommitted}" = 'false' ] \
+      && [ "${do_force}" = 'true' ]; then
+      git reset --hard HEAD
+    elif [ "${do_preserve_uncommitted}" = 'true' ] \
+      && [ "${do_force}" = 'false' ]; then
+      confirm_stash_uncommitted || error 'User declined stashing uncommitted changes!'
+      git stash
+      did_stash_changes='true'
+    elif [ "${do_preserve_uncommitted}" = 'true' ] \
+      && [ "${do_force}" = 'true' ]; then
+      git stash
+      did_stash_changes='true'
+    fi
+  fi
+  if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
+    error 'Failed to get rid of uncommitted changes, was a submodule modified?'
+  fi
+
+  ## Fetch remote code if and only if the user has requested a remote update.
+  if [ "${do_remote_update}" = 'true' ]; then
+    if [ "${do_force}" = 'false' ]; then
+      confirm_remote_update || error 'User declined remote update!'
+    fi
+
+    git fetch --recurse-submodules --jobs=100 \
+      || error 'Failed to fetch from remote!'
+  fi
+
+  ## If we were asked to checkout the 'latest' tag, find the latest tag.
+  if [ "${target_tag}" = 'latest' ]; then
+    target_tag="$(git describe --tags "$(git rev-list --tags --max-count=1)")"
+  fi
+
+  ## Verify the specified ref, then check out that ref.
+  if [ -n "${target_tag}" ]; then
+    if ! verify_ref "${target_tag}" 'tag'; then
+      if [ "${did_stash_changes}" = 'true' ]; then
+        git stash pop || true
+      fi
+      error 'Tag verification failed!'
+    fi
+    git checkout --recurse-submodules "${target_tag}"
+  elif [ -n "${target_ref}" ]; then
+    if ! verify_ref "${target_ref}^{commit}" 'commit'; then
+      if [ "${did_stash_changes}" = 'true' ]; then
+        git stash pop || true
+      fi
+      error 'Branch verification failed!'
+    fi
+    git checkout --recurse-submodules "${target_ref}"
+
+    if [ "${do_remote_update}" = 'true' ] \
+      && git show-ref --verify "refs/heads/${target_ref}" \
+      2>/dev/null >/dev/null; then
+      ## The specified ref is a branch, and the user asked us to update from
+      ## the remote repository, meaning the user is trying to update to the
+      ## latest commit of the specified branch.
+      ##
+      ## Merge the branch with its remote (which we fetched earlier), then
+      ## re-verify the branch. If it flunks verification, revert to the
+      ## original ref. Note that if verification flunks here, the user's HEAD
+      ## will be safe, but the target branch will be compromised and the user
+      ## will have to manually fix it.
+
+      ## In order to make sure we can undo this merge if it goes wrong, save
+      ## the ref first.
+      branch_reset_ref="$(git rev-parse HEAD)" \
+        || error 'Cannot get head commit ID!'
+
+      ## Do merge and verify. If any of the steps involved fail, trigger a
+      ##rollback.
+      ##
+      ## TODO: Add -c merge.verifySignatures=true on the submodule update?
+      ## This didn't work on Aaron's machine for unknown reasons.
+      git merge --ff-only "$(
+          git for-each-ref --format='%(upstream:short)' "$(
+            git symbolic-ref -q HEAD
+          )"
+        )" \
+        && git submodule update --recursive --jobs=100 --merge \
+        && verify_ref "${target_ref}^{commit}" 'commit'
+
+      # shellcheck disable=SC2181
+      if [ "$?" != '0' ]; then
+        ## Reset the branch to the commit it was on previously. If it fails,
+        ## ignore it, it's better to leave the branch compromised than to
+        ## leave the working directory compromised.
+        git reset --hard --recurse-submodules "${branch_reset_ref}" || true
+        ## Revert back to the ref we came from.
+        git checkout --recurse-submodules "${orig_ref}"
+        if [ "${did_stash_changes}" = 'true' ]; then
+          git stash pop || true
+        fi
+        error 'Branch verification failed!'
+      fi
+    fi
+  fi
+
+  if [ "${did_stash_changes}" = 'true' ]; then
+    git stash pop
+  fi
+
+  ## Done.
+  true
+}
+
+main() {
+  if [ "$1" = "--help" ]; then
+    print_usage
+    exit 0
+  fi
+
+  if [ "$(id -u)" = "0" ]; then
+    $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
+    exit 1
+  fi
+  true "INFO: Script running as as non-root, ok."
+
+  update_repo "$@"
+}
+
+main "$@"
