@@ -129,13 +129,16 @@ import_keys() {
 
 signed_by_fingerprint() {
   local fingerprint derivative_signing_key_fingerprint_group derivative_signing_key_fingerprint_item derivative_signing_key_fingerprint_list
-  fingerprint=$(git show --no-patch --pretty="format:%GF" -- "${1}")
+
+  ## NOTE: Cannot use end-of-options ("--").
+  fingerprint=$(git show --no-patch --pretty="format:%GF" "${1}")
 
   for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
     readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group}"
 
     for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
       if [ "${fingerprint}" = "${derivative_signing_key_fingerprint_item}" ]; then
+        true "INFO: fingerprint match, ok."
         return 0
       fi
     done
@@ -157,8 +160,12 @@ verify_ref() {
     error 'Cannot pass empty ref_type to verify_ref!'
   fi
   case "${ref_type}" in
-    tag|commit) ;;
-    *) error "ref_type must be one of 'tag' or 'commit'!";;
+    tag|commit)
+      true "INFO: ref_type: tag or commit."
+      ;;
+    *)
+      error "ref_type must be one of 'tag' or 'commit'!"
+      ;;
   esac
 
   git verify-commit -- "${ref}^{commit}"
@@ -226,13 +233,11 @@ update_repo () {
   ## Import any additional needed GPG keys.
   import_keys
 
-  exit 0
-
   ## Sanity-check; verify the signature of the current ref. If the user has
   ## never verified the repo before, this can be bypassed if the repo is
   ## compromised, but if the repo is safe, this (in combination with the key
   ## import above) will do the initial verification, providing "trust on first
-  ## use" security.
+  ## use" (TOFU) security.
   verify_ref "${orig_ref}^{commit}" 'commit'
 
   ## "Get rid of" uncommitted changes, we need there to be no uncommitted
