@@ -14,10 +14,11 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "$MYDIR"
 
+dist_build_internal_run="true"
+
 source ./help-steps/pre
 source ./help-steps/colors
-## TODO: use ./help-steps/variables
-set -x
+source ./help-steps/variables
 
 derivative_signing_public_key_list=(
   "./keys/derivative.asc"
@@ -175,7 +176,7 @@ verify_ref() {
   fi
 }
 
-update_repo () {
+update_repo() {
   local target_tag target_ref do_preserve_uncommitted do_remote_update \
     do_force orig_ref did_stash_changes branch_reset_ref
 
@@ -334,6 +335,10 @@ update_repo () {
       ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
       git submodule sync --recursive
 
+      ## TODO: remove after fixing the code below
+      exit 00
+
+      ## TODO: replace with simpler code
       ## Do merge and verify.
       ## If any of the steps involved fail, trigger a rollback.
       ##
@@ -347,11 +352,26 @@ update_repo () {
         && git submodule update --recursive --jobs=100 --merge \
         && verify_ref "${target_ref}^{commit}" 'commit'
 
+      ## TODO:
+#       current_branch="$(git symbolic-ref -q -- HEAD)"
+#       upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")"
+#
+#       git merge --ff-only "$upstream_branch" || error "Fast-forward merge failed!"
+#       verify_ref "${target_ref}^{commit}" 'commit'
+#
+      ## Caution.
+      ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
+      ## It modifies the submodule's Git HEAD, potentially overriding local changes.
+#       git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge || error "git submodule merge failed!"
+#       verify_ref "${target_ref}^{commit}" 'commit'
+
+      ## TODO: this cannot work due to error_handler. Use custom trap error handler for restoration to last known good version?
       # shellcheck disable=SC2181
       if [ "$?" != '0' ]; then
         ## Reset the branch to the commit it was on previously. If it fails,
         ## ignore it, it's better to leave the branch compromised than to
         ## leave the working directory compromised.
+        ## TODO: variable branch_reset_ref does not exist
         git reset --hard --recurse-submodules -- "${branch_reset_ref}" || true
         ## Revert back to the ref we came from.
         git checkout --recurse-submodules -- "${orig_ref}"
