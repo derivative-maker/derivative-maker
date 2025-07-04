@@ -201,7 +201,8 @@ abort_update() {
 
   if [ "${did_stash_changes}" = 'true' ]; then
     did_stash_changes=""
-    git stash pop || true
+    ## Cannot use 'error' here because we want to use the 'error' below.
+    git stash pop || true 'ERROR: git stash pop - failed!'
   fi
 
   error "${error_msg}"
@@ -429,7 +430,7 @@ update_repo() {
 
   if [ "${did_stash_changes}" = 'true' ]; then
     did_stash_changes=""
-    git stash pop
+    git stash pop || error 'git stash pop - failed!'
   fi
 
   ## Done.
