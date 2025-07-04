@@ -339,7 +339,8 @@ update_repo() {
 
   ## If we were asked to check out the 'latest' tag, find the latest tag.
   if [ "${target_tag}" = 'latest' ]; then
-    latest_tag_commit="$(git rev-list --tags --max-count=1)"
+    latest_tag_commit="$(git rev-list --tags --max-count=1)" || error 'Failed to find latest tag commit.'
+    [[ -z "$latest_tag_commit" ]] && error 'No tags found.'
     target_tag="$(git describe --tags -- "$latest_tag_commit")"
   fi
 
