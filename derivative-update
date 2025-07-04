@@ -160,6 +160,7 @@ verify_ref() {
 
   git verify-commit -- "${ref}^{commit}" || return 1
   signed_by_fingerprint "${ref}^{commit}" || return 1
+
   if [ "${ref_type}" = 'tag' ]; then
     git verify-tag -- "${ref}" || return 1
   fi
@@ -263,7 +264,7 @@ update_repo() {
   ## compromised, but if the repo is safe, this (in combination with the key
   ## import above) will do the initial verification, providing "trust on first
   ## use" (TOFU) security.
-  verify_ref "${orig_ref}^{commit}" 'commit'
+  verify_ref "${orig_ref}" 'commit'
 
   if ! test -f .gitmodules ; then
         error "Missing .gitmodules file."
@@ -346,7 +347,7 @@ update_repo() {
     ## NOTE: Cannot use end-of-options ("--").
     git checkout --recurse-submodules "${target_tag}"
   elif [ -n "${target_ref}" ]; then
-    if ! verify_ref "${target_ref}^{commit}" 'commit'; then
+    if ! verify_ref "${target_ref}" 'commit'; then
       abort_update 'Ref verification failed!' "${did_stash_changes}"
     fi
 
@@ -394,7 +395,7 @@ update_repo() {
           'Merge from remote failed!' \
           "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      verify_ref "${target_ref}^{commit}" 'commit' \
+      verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
           "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
@@ -407,7 +408,7 @@ update_repo() {
           'Submodule update failed!' \
           "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      verify_ref "${target_ref}^{commit}" 'commit' \
+      verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Verification failed after submodule update!' \
           "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
