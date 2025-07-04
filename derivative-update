@@ -162,10 +162,12 @@ verify_ref() {
       ;;
   esac
 
+  ## Policy: All git commits (at least HEAD) is always signed.
   git verify-commit -- "${ref}^{commit}" || return 1
   signed_by_fingerprint "${ref}^{commit}" || return 1
 
   if [ "${ref_type}" = 'tag' ]; then
+    ## Policy: All git tags are always signed.
     git verify-tag -- "${ref}" || return 1
     signed_by_fingerprint "${ref}" || return 1
   fi
