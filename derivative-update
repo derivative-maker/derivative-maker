@@ -15,23 +15,11 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
 
 dist_build_internal_run="true"
+dist_build_one_parsed="true"
 
 source ./help-steps/pre
 source ./help-steps/colors
 source ./help-steps/variables
-
-derivative_signing_public_key_list=(
-  "./keys/derivative.asc"
-)
-
-## TODO: parse build config
-##       (so buildconfig.d/30_signing_key.conf and other files are parsed)
-## not needed:
-## B9D878F0F157C323C36B4C06A709160D73C79109
-derivative_signing_key_fingerprint_group_list=(
-  "916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA"
-  "6E979B28A6F37C43BE30AFA1CB8D50BB77BB3C48"
-)
 
 error_handler_dist_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
@@ -145,7 +133,8 @@ signed_by_fingerprint() {
     done
   done
 
-  error "Signing key fingerprint does not match!"
+  1>&2 printf '%s\n' "Signing key fingerprint does not match!"
+  return 1
 }
 
 verify_ref() {
@@ -169,16 +158,50 @@ verify_ref() {
       ;;
   esac
 
-  git verify-commit -- "${ref}^{commit}"
-  signed_by_fingerprint "${ref}^{commit}"
+  git verify-commit -- "${ref}^{commit}" || return 1
+  signed_by_fingerprint "${ref}^{commit}" || return 1
   if [ "${ref_type}" = 'tag' ]; then
-    git verify-tag -- "${ref}"
+    git verify-tag -- "${ref}" || return 1
   fi
+}
+
+abort_update() {
+  local error_msg did_stash_changes recover_ref branch_reset_ref
+
+  error_msg="${1:-}"
+  did_stash_changes="${2:-}"
+  recover_ref="${3:-}"
+  branch_reset_ref="${4:-}"
+
+  if [ -z "${error_msg}" ]; then
+    error 'no error_msg variable provided to abort_update!'
+  fi
+  if [ -z "${did_stash_changes}" ]; then
+    error 'no did_stash_changes variable provided to abort_update!'
+  fi
+
+  if [ -n "${recover_ref}" ]; then
+    if [ -z "${branch_reset_ref}" ]; then
+      error 'in abort_update, recover_ref was passed, but branch_reset_ref was not!'
+    fi
+
+    ## NOTE: Cannot use end-of-options ("--").
+    git reset --hard --recurse-submodules "${branch_reset_ref}" || true
+    ## NOTE: Cannot use end-of-options ("--").
+    git checkout --recurse-submodules "${recover_ref}"
+  fi
+
+  if [ "${did_stash_changes}" = 'true' ]; then
+    git stash pop || true
+  fi
+
+  error "${error_msg}"
 }
 
 update_repo() {
   local target_tag target_ref do_preserve_uncommitted do_remote_update \
-    do_force orig_ref did_stash_changes branch_reset_ref
+    do_force orig_ref did_stash_changes branch_reset_ref current_branch \
+    upstream_branch submodule_path_list git_status_str submodule_path
 
   target_tag=""
   target_ref=""
@@ -256,14 +279,26 @@ update_repo() {
   ##   confirmation.
   ## * If a stash or hard-reset fails to get rid of all uncommitted changes
   ##   (because of uncommitted changes in a submodule), bail.
-  ##
-  ## TODO: Figure out how to detect uncommitted changes in a submodule BEFORE
-  ## making changes to the existing repo!
-  if [ -n "$(git status --porcelain=v1 2>/dev/null)" ]; then
+  git_status_str="$(git status --porcelain=v1 2>/dev/null)"
+  if [ -n "${git_status_str}" ]; then
+    ## Check submodules for uncommitted changes first. 'git reset' and 'git
+    ## stash' won't remove those changes, so if a submodule has uncommitted
+    ## changes we need to bail now.
+    readarray -t submodule_path_list < <(
+      grep 'path =' .gitmodules | awk '{ print $3 }'
+    )
+    for submodule_path in "${submodule_path_list[@]}"; do
+      # shellcheck disable=SC2076
+      if [[ "${git_status_str}" =~ "${submodule_path}" ]]; then
+        error "Uncommitted changes detected in submodule '${submodule_path}'! Please commit or discard them before updating."
+      fi
+    done
+
     if [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'false' ]; then
       error 'Uncommitted changes are present, and --preserve-uncommitted was not passed!'
     elif [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'true' ]; then
-      git reset --hard -- HEAD
+      ## NOTE: Cannot use end-of-options ("--").
+      git reset --hard HEAD
     elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'false' ]; then
       confirm_stash_uncommitted || error 'User declined stashing uncommitted changes!'
       git stash
@@ -292,7 +327,7 @@ update_repo() {
     git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
   fi
 
-  ## If we were asked to checkout the 'latest' tag, find the latest tag.
+  ## If we were asked to check out the 'latest' tag, find the latest tag.
   if [ "${target_tag}" = 'latest' ]; then
     target_tag="$(git describe --tags -- "$(git rev-list --tags --max-count=1)")"
   fi
@@ -300,20 +335,18 @@ update_repo() {
   ## Verify the specified ref, then check out that ref.
   if [ -n "${target_tag}" ]; then
     if ! verify_ref "${target_tag}" 'tag'; then
-      if [ "${did_stash_changes}" = 'true' ]; then
-        git stash pop || true
-      fi
-      error 'Tag verification failed!'
+      abort_update 'Tag verification failed!' "${did_stash_changes}"
     fi
-    git checkout --recurse-submodules -- "${target_tag}"
+
+    ## NOTE: Cannot use end-of-options ("--").
+    git checkout --recurse-submodules "${target_tag}"
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}^{commit}" 'commit'; then
-      if [ "${did_stash_changes}" = 'true' ]; then
-        git stash pop || true
-      fi
-      error 'Branch verification failed!'
+      abort_update 'Ref verification failed!' "${did_stash_changes}"
     fi
-    git checkout --recurse-submodules -- "${target_ref}"
+
+    ## NOTE: Cannot use end-of-options ("--").
+    git checkout --recurse-submodules "${target_ref}"
 
     if [ "${do_remote_update}" = 'true' ] && git show-ref --verify -- "refs/heads/${target_ref}" 2>/dev/null >/dev/null; then
       ## The specified ref is a branch, and the user asked us to update from
@@ -321,13 +354,17 @@ update_repo() {
       ## latest commit of the specified branch.
       ##
       ## Merge the branch with its remote (which we fetched earlier), then
-      ## re-verify the branch. If it flunks verification, revert to the
-      ## original ref. Note that if verification flunks here, the user's HEAD
-      ## will be safe, but the target branch will be compromised and the user
-      ## will have to manually fix it.
+      ## re-verify the branch. If it flunks verification, try to fix
+      ## the local branch, then revert to the original ref.
+      ##
+      ## Note that we make a best-effort attempt to get the local branch
+      ## back to a known-good state in the event the branch flunks
+      ## verification. If that attempt fails, we ignore the failure since
+      ## it's important to get the working tree back into a known-good state
+      ## if at all possible. Thus it is possible that failed verification
+      ## during a branch update could lead to a compromised local branch.
 
-      ## In order to make sure we can undo this merge if it goes wrong, save
-      ## the ref first.
+      ## Save the ref first so we can undo the merge if it goes wrong.
       ## NOTE: Cannot use end-of-options ("--").
       branch_reset_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
 
@@ -335,51 +372,40 @@ update_repo() {
       ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
       git submodule sync --recursive
 
-      ## TODO: remove after fixing the code below
-      exit 00
-
-      ## TODO: replace with simpler code
       ## Do merge and verify.
       ## If any of the steps involved fail, trigger a rollback.
-      ##
-      ## TODO: Add -c merge.verifySignatures=true on the submodule update?
-      ## This didn't work on Aaron's machine for unknown reasons.
-      git merge --ff-only "$(
-          git for-each-ref --format='%(upstream:short)' "$(
-            git symbolic-ref -q -- HEAD
-          )"
-        )" \
-        && git submodule update --recursive --jobs=100 --merge \
-        && verify_ref "${target_ref}^{commit}" 'commit'
+      current_branch="$(git symbolic-ref -q -- HEAD)" \
+        || abort_update \
+          'Getting current branch name failed!' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      ## TODO:
-#       current_branch="$(git symbolic-ref -q -- HEAD)"
-#       upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")"
-#
-#       git merge --ff-only "$upstream_branch" || error "Fast-forward merge failed!"
-#       verify_ref "${target_ref}^{commit}" 'commit'
-#
+      upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
+        || abort_update \
+          'Getting upstream branch name failed!' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+
+      git merge --ff-only "$upstream_branch" \
+        || abort_update \
+          'Merge from remote failed!' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+
+      verify_ref "${target_ref}^{commit}" 'commit' \
+        || abort_update \
+          'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+
       ## Caution.
       ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
       ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-#       git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge || error "git submodule merge failed!"
-#       verify_ref "${target_ref}^{commit}" 'commit'
+      git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+        || abort_update \
+          'Submodule update failed!' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      ## TODO: this cannot work due to error_handler. Use custom trap error handler for restoration to last known good version?
-      # shellcheck disable=SC2181
-      if [ "$?" != '0' ]; then
-        ## Reset the branch to the commit it was on previously. If it fails,
-        ## ignore it, it's better to leave the branch compromised than to
-        ## leave the working directory compromised.
-        ## TODO: variable branch_reset_ref does not exist
-        git reset --hard --recurse-submodules -- "${branch_reset_ref}" || true
-        ## Revert back to the ref we came from.
-        git checkout --recurse-submodules -- "${orig_ref}"
-        if [ "${did_stash_changes}" = 'true' ]; then
-          git stash pop || true
-        fi
-        error 'Branch verification failed!'
-      fi
+      verify_ref "${target_ref}^{commit}" 'commit' \
+        || abort_update \
+          'Verification failed after submodule update!' \
+          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
     fi
   fi
 
