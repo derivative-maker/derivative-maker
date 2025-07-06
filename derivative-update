@@ -428,6 +428,10 @@ update_repo() {
         "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
   fi
 
+  if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
+    error 'Unexpected uncommitted changes after checkout.'
+  fi
+
   if [ "${did_stash_changes}" = 'true' ]; then
     did_stash_changes=""
     git stash pop || error 'git stash pop - failed!'
