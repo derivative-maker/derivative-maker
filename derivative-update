@@ -371,7 +371,9 @@ update_repo() {
     ## NOTE: Cannot use end-of-options ("--").
     git checkout --recurse-submodules "${target_ref}" || error "'git checkout --recurse-submodules' failed."
 
-    if [ "${do_remote_update}" = 'true' ] && git show-ref --verify -- "refs/heads/${target_ref}" 2>/dev/null >/dev/null; then
+    if [ "${do_remote_update}" = 'true' ]; then
+      git show-ref --verify -- "refs/heads/${target_ref}" || error "'git show-ref --verify' failed."
+
       ## The specified ref is a branch, and the user asked us to update from
       ## the remote repository, meaning the user is trying to update to the
       ## latest commit of the specified branch.
