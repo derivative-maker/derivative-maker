@@ -36,7 +36,7 @@ print_usage() {
 derivative-update
 
 Syntax:
-  (-t|--tag|-r|--ref ref) [-p|--preserve-uncommitted] [-u|--remote-update]
+  (-t|--tag|-r|--ref ref)
 
 Description:
   Updates the derivative-maker repository to the specified ref in a secure
@@ -48,11 +48,6 @@ Parameters:
                                to check out the most recently created tag in
                                the repository.
   -r|--ref                   : Check out the specified (branch or commit).
-  -p|--preserve-uncommitted  : Stash uncommitted changes before updating,
-                               then restore them after the update.
-  -f|--force                 : Do not prompt for confirmation before discarding
-                               or attempting to preserve uncommitted changes.
-                               This does NOT override signature checks.
 "
 }
 
@@ -73,16 +68,6 @@ query_user() {
     return 0
   fi
   return 1
-}
-
-confirm_stash_uncommitted() {
-  query_user "\
-NOTICE:
-
-You have uncommitted changes and have requested to preserve them.
-derivative-update will stash your changes, check out the requested
-ref, then restore them. Are you sure you want to do this? [Y/N]
-"
 }
 
 import_keys() {
@@ -160,18 +145,14 @@ verify_ref() {
 }
 
 abort_update() {
-  local error_msg did_stash_changes recover_ref branch_reset_ref
+  local error_msg recover_ref branch_reset_ref
 
   error_msg="${1:-}"
-  did_stash_changes="${2:-}"
-  recover_ref="${3:-}"
-  branch_reset_ref="${4:-}"
+  recover_ref="${2:-}"
+  branch_reset_ref="${3:-}"
 
   if [ -z "${error_msg}" ]; then
     error 'no error_msg variable provided to abort_update!'
-  fi
-  if [ -z "${did_stash_changes}" ]; then
-    error 'no did_stash_changes variable provided to abort_update!'
   fi
 
   if [ -n "${recover_ref}" ]; then
@@ -186,26 +167,17 @@ abort_update() {
     git checkout --recurse-submodules "${recover_ref}" || true "ERROR: 'git checkout --recurse-submodules' failed."
   fi
 
-  if [ "${did_stash_changes}" = 'true' ]; then
-    did_stash_changes=""
-    ## Cannot use 'error' here because we want to use the 'error' below.
-    git stash pop || true 'ERROR: git stash pop - failed!'
-  fi
-
   error "${error_msg}"
 }
 
 update_repo() {
-  local target_tag target_ref do_preserve_uncommitted \
-    do_force orig_ref did_stash_changes branch_reset_ref current_branch \
+  local target_tag target_ref \
+    orig_ref branch_reset_ref current_branch \
     upstream_branch submodule_path_list git_status_str submodule_path
 
   target_tag=""
   target_ref=""
-  do_preserve_uncommitted='false'
-  do_force='false'
   orig_ref=""
-  did_stash_changes='false'
 
   ## Note, short and combined options such as '-tpu' are unsupported and not planned.
   while (( $# > 0 )); do
@@ -217,14 +189,6 @@ update_repo() {
       -r|--ref)
         target_ref="$2"
         shift 2
-        ;;
-      -p|--preserve-uncommitted)
-        do_preserve_uncommitted='true'
-        shift
-        ;;
-      -f|--force)
-        do_force='true'
-        shift
         ;;
       *)
         error "Unrecognized option '$1'!"
@@ -263,26 +227,11 @@ update_repo() {
     error "Missing '.gitmodules' file."
   fi
 
-  ## "Get rid of" uncommitted changes, we need there to be no uncommitted
-  ## changes in order to robustly verify the repository state. How we do this
-  ## depends on the options we were passed:
-  ##
-  ## * If there aren't uncommitted changes, continue onwards.
-  ## * If do_preserve_uncommitted is false and do_force is false, bail.
-  ## * If do_preserve_uncommitted is false and do_force is true, hard-reset
-  ##   the changes away.
-  ## * If do_preserve_uncommitted is true and do_force is false, ask the user
-  ##   before stashing changes and either bail or stash depending on their
-  ##   response.
-  ## * If do_preserve_uncommitted is true and do_force is true, stash without
-  ##   confirmation.
-  ## * If a stash or hard-reset fails to get rid of all uncommitted changes
-  ##   (because of uncommitted changes in a submodule), bail.
+  ## We need there to be no uncommitted changes in order to robustly verify the repository state.
+  ## If there are uncommitted changes, stop.
   git_status_str="$(git status --porcelain=v1 2>&1)" || error "'git status --porcelain=v1' failed."
   if [ -n "${git_status_str}" ]; then
-    ## Check submodules for uncommitted changes first. 'git reset' and 'git
-    ## stash' won't remove those changes, so if a submodule has uncommitted
-    ## changes we need to bail now.
+    ## Check submodules for uncommitted changes first.
     readarray -t submodule_path_list < <(
       grep 'path =' .gitmodules | awk '{ print $3 }'
     )
@@ -293,21 +242,6 @@ update_repo() {
       fi
     done
 
-    if [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'false' ]; then
-      error 'Uncommitted changes are present, and --preserve-uncommitted was not passed!'
-    elif [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'true' ]; then
-      ## NOTE: Cannot use end-of-options ("--").
-      git reset --hard HEAD || error "'git reset --hard HEAD' failed."
-    elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'false' ]; then
-      confirm_stash_uncommitted || error 'User declined stashing uncommitted changes!'
-      git stash || error "'git stash' failed."
-      did_stash_changes='true'
-    elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'true' ]; then
-      git stash || error "'git stash' failed."
-      did_stash_changes='true'
-    else
-      error 'Unknown condition bug.'
-    fi
     if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
       error 'Failed to get rid of uncommitted changes, was a git submodule modified?'
     fi
@@ -331,14 +265,14 @@ update_repo() {
   ## Verify the specified ref, then check out that ref.
   if [ -n "${target_tag}" ]; then
     if ! verify_ref "${target_tag}" 'tag'; then
-      abort_update 'Tag verification failed!' "${did_stash_changes}"
+      abort_update 'Tag verification failed!'
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
     git checkout --recurse-submodules "${target_tag}" || error "'git checkout --recurse-submodules' failed."
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
-      abort_update 'Ref verification failed!' "${did_stash_changes}"
+      abort_update 'Ref verification failed!'
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
@@ -372,7 +306,7 @@ update_repo() {
   upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
     || abort_update \
       'Getting upstream branch name failed!' \
-      "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+      "${orig_ref}" "${branch_reset_ref}"
 
   if [ -n "${target_tag}" ]; then
     true "Special code path unnecessary for git tag."
@@ -380,12 +314,12 @@ update_repo() {
     git merge --ff-only "$upstream_branch" \
       || abort_update \
         'Merge from remote failed!' \
-        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+        "${orig_ref}" "${branch_reset_ref}"
 
     verify_ref "${target_ref}" 'commit' \
       || abort_update \
         'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
-        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+        "${orig_ref}" "${branch_reset_ref}"
   fi
 
   ## Safe.
@@ -398,27 +332,22 @@ update_repo() {
   git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
     || abort_update \
       'Submodule update failed!' \
-      "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+      "${orig_ref}" "${branch_reset_ref}"
 
   if [ -n "${target_tag}" ]; then
     verify_ref "${target_tag}" 'tag' \
       || abort_update \
         'Verification failed after submodule update!' \
-        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+        "${orig_ref}" "${branch_reset_ref}"
   elif [ -n "${target_ref}" ]; then
     verify_ref "${target_ref}" 'commit' \
       || abort_update \
         'Verification failed after submodule update!' \
-        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+        "${orig_ref}" "${branch_reset_ref}"
   fi
 
   if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
     error 'Unexpected uncommitted changes after checkout.'
-  fi
-
-  if [ "${did_stash_changes}" = 'true' ]; then
-    did_stash_changes=""
-    git stash pop || error 'git stash pop - failed!'
   fi
 
   ## Done.
