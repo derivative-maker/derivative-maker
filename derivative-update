@@ -32,7 +32,7 @@ error_handler_dist_build_one() {
 trap "error_handler_dist_build_one" ERR
 
 print_usage() {
-  echo "\
+  printf '%s\n' "\
 derivative-update
 
 Syntax:
@@ -137,13 +137,12 @@ abort_update() {
   fi
 
   if [ -n "${recover_ref}" ]; then
-    if [ -z "${branch_reset_ref}" ]; then
-      error 'in abort_update, recover_ref was passed, but branch_reset_ref was not!'
+    if [ -n "${branch_reset_ref}" ]; then
+      ## Cannot use 'error' here because we want to use the 'error' below.
+      ## NOTE: Cannot use end-of-options ("--").
+      git reset --hard --recurse-submodules "${branch_reset_ref}" || true "ERROR: 'git reset --hard --recurse-submodules' failed."
     fi
 
-    ## Cannot use 'error' here because we want to use the 'error' below.
-    ## NOTE: Cannot use end-of-options ("--").
-    git reset --hard --recurse-submodules "${branch_reset_ref}" || true "ERROR: 'git reset --hard --recurse-submodules' failed."
     ## NOTE: Cannot use end-of-options ("--").
     git checkout --recurse-submodules "${recover_ref}" || true "ERROR: 'git checkout --recurse-submodules' failed."
   fi
@@ -152,8 +151,7 @@ abort_update() {
 }
 
 update_repo() {
-  local target_tag target_ref \
-    orig_ref branch_reset_ref current_branch \
+  local target_tag target_ref orig_ref branch_reset_ref current_branch \
     upstream_branch submodule_path_list git_status_str submodule_path
 
   target_tag=""
@@ -180,6 +178,7 @@ update_repo() {
   if [ -z "${target_tag}" ] && [ -z "${target_ref}" ]; then
     error 'You did not tell me what to check out.
            * Use --tag <tag>   to move to a signed tag, e.g. --tag 17.4.1.9-developers-only
+           * Or  --tag latest  to move to the latest signed tag
            * Or  --ref <name>  for a branch or commit, e.g.  --ref master
            --help for the full syntax.'
   fi
@@ -204,10 +203,6 @@ update_repo() {
   ## use" (TOFU) security.
   verify_ref "${orig_ref}" 'commit'
 
-  if ! git symbolic-ref -q --short HEAD >/dev/null; then
-    error "Detached HEAD detected. Please check out a trusted branch before running derivative-update."
-  fi
-
   if ! test -f '.gitmodules' ; then
     error "Missing '.gitmodules' file."
   fi
@@ -223,21 +218,14 @@ update_repo() {
     for submodule_path in "${submodule_path_list[@]}"; do
       # shellcheck disable=SC2076
       if [[ "${git_status_str}" =~ "${submodule_path}" ]]; then
-        error "Uncommitted changes detected in git submodule '${submodule_path}'! Please commit or discard them before updating."
+        printf '%s\n' "${red}${bold}ERROR: Uncommitted changes detected in git submodule '${submodule_path}'! Please commit or discard them before updating.${reset}"
       fi
     done
 
-    if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
-      error 'Failed to get rid of uncommitted changes, was a git submodule modified?'
-    fi
-  fi
-
-  if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
     error "Uncommitted changes detected in derivative-maker source code folder! Please commit or discard them before updating."
   fi
 
-  current_branch="$(git symbolic-ref -q -- HEAD)" || error "Cannot get current branch."
-
+  ## Fetch new code from remote.
   git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
 
   ## If we were asked to check out the 'latest' tag, find the latest tag.
@@ -254,7 +242,7 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${target_tag}" || abort_update 'Tag checkout failed!' "$orig_ref" "$orig_ref"
+    git checkout --recurse-submodules "${target_tag}" || abort_update 'Tag checkout failed!'
 
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
@@ -262,74 +250,59 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${target_ref}" || error "'git checkout --recurse-submodules' failed."
+    git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
 
-    git show-ref --verify -- "refs/heads/${target_ref}" || error "'git show-ref --verify' failed."
-  fi
-
-  ## The specified ref is a branch, and the user asked us to update from
-  ## the remote repository, meaning the user is trying to update to the
-  ## latest commit of the specified branch.
-  ##
-  ## Merge the branch with its remote (which we fetched earlier), then
-  ## re-verify the branch. If it flunks verification, try to fix
-  ## the local branch, then revert to the original ref.
-  ##
-  ## Note that we make a best-effort attempt to get the local branch
-  ## back to a known-good state in the event the branch flunks
-  ## verification. If that attempt fails, we ignore the failure since
-  ## it's important to get the working tree back into a known-good state
-  ## if at all possible. Thus it is possible that failed verification
-  ## during a branch update could lead to a compromised local branch.
-
-  ## Save the ref first so we can undo the merge if it goes wrong.
-  ## NOTE: Cannot use end-of-options ("--").
-  branch_reset_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
-
-  ## Do merge and verify.
-  ## If any of the steps involved fail, trigger a rollback.
-
-  upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
-    || abort_update \
-      'Getting upstream branch name failed!' \
-      "${orig_ref}" "${branch_reset_ref}"
-
-  if [ -n "${target_tag}" ]; then
-    true "Special code path unnecessary for git tag."
-  elif [ -n "${target_ref}" ]; then
-    git merge --ff-only "$upstream_branch" \
-      || abort_update \
-        'Merge from remote failed!' \
-        "${orig_ref}" "${branch_reset_ref}"
-
-    verify_ref "${target_ref}" 'commit' \
-      || abort_update \
-        'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
-        "${orig_ref}" "${branch_reset_ref}"
-  fi
-
-  ## Safe.
-  ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
-  git submodule sync --recursive || error "'git submodule sync --recursive' failed."
-
-  ## Caution.
-  ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
-  ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-  git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
-    || abort_update \
-      'Submodule update failed!' \
-      "${orig_ref}" "${branch_reset_ref}"
-
-  if [ -n "${target_tag}" ]; then
-    verify_ref "${target_tag}" 'tag' \
-      || abort_update \
-        'Verification failed after submodule update!' \
-        "${orig_ref}" "${branch_reset_ref}"
-  elif [ -n "${target_ref}" ]; then
-    verify_ref "${target_ref}" 'commit' \
-      || abort_update \
-        'Verification failed after submodule update!' \
-        "${orig_ref}" "${branch_reset_ref}"
+    if git show-ref --verify -- "refs/heads/${target_ref}"; then
+      ## The specified ref is a branch, meaning the user is trying to update
+      ## to the latest commit of the specified branch.
+      ##
+      ## Merge the branch with its remote (which we fetched earlier), then
+      ## re-verify the branch. If it flunks verification, try to fix
+      ## the local branch, then revert to the original ref.
+      ##
+      ## Note that we make a best-effort attempt to get the local branch
+      ## back to a known-good state in the event the branch flunks
+      ## verification. If that attempt fails, we ignore the failure since
+      ## it's important to get the working tree back into a known-good state
+      ## if at all possible. Thus it is possible that failed verification
+      ## during a branch update could lead to a compromised local branch.
+      ##
+      ## Save the ref first so we can undo the merge if it goes wrong.
+      ## NOTE: Cannot use end-of-options ("--").
+      branch_reset_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+      ## Safe.
+      ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
+      git submodule sync --recursive || error "'git submodule sync --recursive' failed."
+      ## Do merge and verify.
+      ## If any of the steps involved fail, trigger a rollback.
+      current_branch="$(git symbolic-ref -q -- HEAD)" \
+        || abort_update \
+          'Getting current branch name failed!' \
+          "${orig_ref}" "${branch_reset_ref}"
+      upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
+        || abort_update \
+          'Getting upstream branch name failed!' \
+          "${orig_ref}" "${branch_reset_ref}"
+      git merge --ff-only "$upstream_branch" \
+        || abort_update \
+          'Merge from remote failed!' \
+          "${orig_ref}" "${branch_reset_ref}"
+      verify_ref "${target_ref}" 'commit' \
+        || abort_update \
+          'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
+          "${orig_ref}" "${branch_reset_ref}"
+      ## Caution.
+      ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
+      ## It modifies the submodule's Git HEAD, potentially overriding local changes.
+      git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+        || abort_update \
+          'Submodule update failed!' \
+          "${orig_ref}" "${branch_reset_ref}"
+      verify_ref "${target_ref}" 'commit' \
+        || abort_update \
+          'Verification failed after submodule update!' \
+          "${orig_ref}" "${branch_reset_ref}"
+    fi
   fi
 
   if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
