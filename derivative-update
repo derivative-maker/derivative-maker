@@ -47,7 +47,7 @@ Parameters:
   -t|--tag                   : Check out the specified tag. Specify 'latest'
                                to check out the most recently created tag in
                                the repository.
-  -r|--ref                   : Check out the specified (branch or commit).
+  -r|--ref                   : Check out the specified branch.
 "
 }
 
@@ -273,7 +273,8 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${target_tag}" || error "'git checkout --recurse-submodules' failed."
+    git checkout --recurse-submodules "${target_tag}" || abort_update 'Tag checkout failed!' "$orig_ref" "$orig_ref"
+
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
       abort_update 'Ref verification failed!'
