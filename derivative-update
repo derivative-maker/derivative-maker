@@ -326,6 +326,8 @@ update_repo() {
     error 'Unexpected uncommitted changes bug.'
   fi
 
+  current_branch="$(git symbolic-ref -q -- HEAD)" || error "Cannot get current branch."
+
   git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
 
   ## If we were asked to check out the 'latest' tag, find the latest tag.
@@ -375,10 +377,6 @@ update_repo() {
 
   ## Do merge and verify.
   ## If any of the steps involved fail, trigger a rollback.
-  current_branch="$(git symbolic-ref -q -- HEAD)" \
-    || abort_update \
-      'Getting current branch name failed!' \
-      "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
   upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
     || abort_update \
