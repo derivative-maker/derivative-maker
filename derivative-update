@@ -193,10 +193,11 @@ abort_update() {
       error 'in abort_update, recover_ref was passed, but branch_reset_ref was not!'
     fi
 
+    ## Cannot use 'error' here because we want to use the 'error' below.
     ## NOTE: Cannot use end-of-options ("--").
-    git reset --hard --recurse-submodules "${branch_reset_ref}" || true
+    git reset --hard --recurse-submodules "${branch_reset_ref}" || true "ERROR: 'git reset --hard --recurse-submodules' failed."
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${recover_ref}"
+    git checkout --recurse-submodules "${recover_ref}" || true "ERROR: 'git checkout --recurse-submodules' failed."
   fi
 
   if [ "${did_stash_changes}" = 'true' ]; then
@@ -296,7 +297,7 @@ update_repo() {
   ##   confirmation.
   ## * If a stash or hard-reset fails to get rid of all uncommitted changes
   ##   (because of uncommitted changes in a submodule), bail.
-  git_status_str="$(git status --porcelain=v1 2>&1)"
+  git_status_str="$(git status --porcelain=v1 2>&1)" || error "'git status --porcelain=v1' failed."
   if [ -n "${git_status_str}" ]; then
     ## Check submodules for uncommitted changes first. 'git reset' and 'git
     ## stash' won't remove those changes, so if a submodule has uncommitted
@@ -315,13 +316,13 @@ update_repo() {
       error 'Uncommitted changes are present, and --preserve-uncommitted was not passed!'
     elif [ "${do_preserve_uncommitted}" = 'false' ] && [ "${do_force}" = 'true' ]; then
       ## NOTE: Cannot use end-of-options ("--").
-      git reset --hard HEAD
+      git reset --hard HEAD || error "'git reset --hard HEAD' failed."
     elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'false' ]; then
       confirm_stash_uncommitted || error 'User declined stashing uncommitted changes!'
-      git stash
+      git stash || error "'git stash' failed."
       did_stash_changes='true'
     elif [ "${do_preserve_uncommitted}" = 'true' ] && [ "${do_force}" = 'true' ]; then
-      git stash
+      git stash || error "'git stash' failed."
       did_stash_changes='true'
     else
       error 'Unknown condition bug.'
@@ -361,14 +362,14 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${target_tag}"
+    git checkout --recurse-submodules "${target_tag}" || error "'git checkout --recurse-submodules' failed."
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
       abort_update 'Ref verification failed!' "${did_stash_changes}"
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    git checkout --recurse-submodules "${target_ref}"
+    git checkout --recurse-submodules "${target_ref}" || error "'git checkout --recurse-submodules' failed."
 
     if [ "${do_remote_update}" = 'true' ] && git show-ref --verify -- "refs/heads/${target_ref}" 2>/dev/null >/dev/null; then
       ## The specified ref is a branch, and the user asked us to update from
@@ -392,7 +393,7 @@ update_repo() {
 
       ## Safe.
       ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
-      git submodule sync --recursive
+      git submodule sync --recursive || error "'git submodule sync --recursive' failed."
 
       ## Do merge and verify.
       ## If any of the steps involved fail, trigger a rollback.
