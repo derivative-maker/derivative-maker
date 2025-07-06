@@ -21,6 +21,14 @@ BINARY_VOLUME="$HOME/binary_mnt"
 CACHER_VOLUME="$HOME/approx_cache_mnt"
 KEY_VOLUME="$HOME/.key_mnt"
 IMG="derivative-maker/derivative-maker-docker"
+[[ -v CI ]] || CI=""
+
+if [ "$CI" = "true" ]; then
+  sudo_options_maybe+=("--non-interactive")
+fi
+[[ -v sudo_options_maybe ]] || sudo_options_maybe=""
+
+sudo "${sudo_options_maybe[@]}" test -d /usr
 
 declare orig_ref exit_code
 orig_ref=""
@@ -52,8 +60,8 @@ volume_prepare() {
   while (( ${#VOLUMES[@]} > 0 )); do
     if [ ! -d "${VOLUMES[0]}" ]; then
       mkdir --parents -- "${VOLUMES[0]}"
-      sudo -- chown --recursive -- "${VOLUMES[1]}" "${VOLUMES[0]}"
-      sudo -- chmod --recursive -- "${VOLUMES[2]}" "${VOLUMES[0]}"
+      sudo "${sudo_options_maybe[@]}" -- chown --recursive -- "${VOLUMES[1]}" "${VOLUMES[0]}"
+      sudo "${sudo_options_maybe[@]}" -- chmod --recursive -- "${VOLUMES[2]}" "${VOLUMES[0]}"
     fi
 
     VOLUMES=("${VOLUMES[@]:3}")
@@ -63,6 +71,7 @@ volume_prepare() {
 build_docker_image() {
   if [ -z "$(docker images --quiet -- "${IMG}" 2> /dev/null)" ]; then
     sudo \
+    "${sudo_options_maybe[@]}" \
     -- \
       docker \
         build \
@@ -125,9 +134,10 @@ build_docker_image
 
 volume_prepare
 
-sudo -- modprobe -a loop dm_mod
+sudo "${sudo_options_maybe[@]}" -- modprobe -a loop dm_mod
 
 sudo \
+  "${sudo_options_maybe[@]}" \
   -- \
     docker \
       run \
