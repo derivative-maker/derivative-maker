@@ -210,14 +210,13 @@ abort_update() {
 }
 
 update_repo() {
-  local target_tag target_ref do_preserve_uncommitted do_remote_update \
+  local target_tag target_ref do_preserve_uncommitted \
     do_force orig_ref did_stash_changes branch_reset_ref current_branch \
     upstream_branch submodule_path_list git_status_str submodule_path
 
   target_tag=""
   target_ref=""
   do_preserve_uncommitted='false'
-  do_remote_update='false'
   do_force='false'
   orig_ref=""
   did_stash_changes='false'
@@ -235,10 +234,6 @@ update_repo() {
         ;;
       -p|--preserve-uncommitted)
         do_preserve_uncommitted='true'
-        shift
-        ;;
-      -u|--remote-update)
-        do_remote_update='true'
         shift
         ;;
       -f|--force)
@@ -336,17 +331,7 @@ update_repo() {
     error 'Unexpected uncommitted changes bug.'
   fi
 
-  ## Fetch remote code if and only if the user has requested a remote update.
-  if [ "${do_remote_update}" = 'true' ]; then
-    ## No longer require use of '--force'.
-    ## Out-commented as per:
-    ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/158
-#     if [ "${do_force}" = 'false' ]; then
-#       confirm_remote_update || error 'User declined remote update!'
-#     fi
-
-    git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
-  fi
+  git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
 
   ## If we were asked to check out the 'latest' tag, find the latest tag.
   if [ "${target_tag}" = 'latest' ]; then
@@ -371,67 +356,65 @@ update_repo() {
     ## NOTE: Cannot use end-of-options ("--").
     git checkout --recurse-submodules "${target_ref}" || error "'git checkout --recurse-submodules' failed."
 
-    if [ "${do_remote_update}" = 'true' ]; then
-      git show-ref --verify -- "refs/heads/${target_ref}" || error "'git show-ref --verify' failed."
+    git show-ref --verify -- "refs/heads/${target_ref}" || error "'git show-ref --verify' failed."
 
-      ## The specified ref is a branch, and the user asked us to update from
-      ## the remote repository, meaning the user is trying to update to the
-      ## latest commit of the specified branch.
-      ##
-      ## Merge the branch with its remote (which we fetched earlier), then
-      ## re-verify the branch. If it flunks verification, try to fix
-      ## the local branch, then revert to the original ref.
-      ##
-      ## Note that we make a best-effort attempt to get the local branch
-      ## back to a known-good state in the event the branch flunks
-      ## verification. If that attempt fails, we ignore the failure since
-      ## it's important to get the working tree back into a known-good state
-      ## if at all possible. Thus it is possible that failed verification
-      ## during a branch update could lead to a compromised local branch.
+    ## The specified ref is a branch, and the user asked us to update from
+    ## the remote repository, meaning the user is trying to update to the
+    ## latest commit of the specified branch.
+    ##
+    ## Merge the branch with its remote (which we fetched earlier), then
+    ## re-verify the branch. If it flunks verification, try to fix
+    ## the local branch, then revert to the original ref.
+    ##
+    ## Note that we make a best-effort attempt to get the local branch
+    ## back to a known-good state in the event the branch flunks
+    ## verification. If that attempt fails, we ignore the failure since
+    ## it's important to get the working tree back into a known-good state
+    ## if at all possible. Thus it is possible that failed verification
+    ## during a branch update could lead to a compromised local branch.
 
-      ## Save the ref first so we can undo the merge if it goes wrong.
-      ## NOTE: Cannot use end-of-options ("--").
-      branch_reset_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+    ## Save the ref first so we can undo the merge if it goes wrong.
+    ## NOTE: Cannot use end-of-options ("--").
+    branch_reset_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
 
-      ## Safe.
-      ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
-      git submodule sync --recursive || error "'git submodule sync --recursive' failed."
+    ## Safe.
+    ## Ensures submodules' remote URL configuration matches the values specified in .gitmodules.
+    git submodule sync --recursive || error "'git submodule sync --recursive' failed."
 
-      ## Do merge and verify.
-      ## If any of the steps involved fail, trigger a rollback.
-      current_branch="$(git symbolic-ref -q -- HEAD)" \
-        || abort_update \
-          'Getting current branch name failed!' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+    ## Do merge and verify.
+    ## If any of the steps involved fail, trigger a rollback.
+    current_branch="$(git symbolic-ref -q -- HEAD)" \
+      || abort_update \
+        'Getting current branch name failed!' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
-        || abort_update \
-          'Getting upstream branch name failed!' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+    upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
+      || abort_update \
+        'Getting upstream branch name failed!' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      git merge --ff-only "$upstream_branch" \
-        || abort_update \
-          'Merge from remote failed!' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+    git merge --ff-only "$upstream_branch" \
+      || abort_update \
+        'Merge from remote failed!' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      verify_ref "${target_ref}" 'commit' \
-        || abort_update \
-          'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+    verify_ref "${target_ref}" 'commit' \
+      || abort_update \
+        'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      ## Caution.
-      ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
-      ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-      git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
-        || abort_update \
-          'Submodule update failed!' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
+    ## Caution.
+    ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
+    ## It modifies the submodule's Git HEAD, potentially overriding local changes.
+    git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+      || abort_update \
+        'Submodule update failed!' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
 
-      verify_ref "${target_ref}" 'commit' \
-        || abort_update \
-          'Verification failed after submodule update!' \
-          "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
-    fi
+    verify_ref "${target_ref}" 'commit' \
+      || abort_update \
+        'Verification failed after submodule update!' \
+        "${did_stash_changes}" "${orig_ref}" "${branch_reset_ref}"
   fi
 
   if [ "${did_stash_changes}" = 'true' ]; then
