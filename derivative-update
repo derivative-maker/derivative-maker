@@ -158,7 +158,7 @@ abort_update() {
 
 update_repo() {
   local target_tag target_ref orig_commit branch_reset_commit current_branch \
-    upstream_branch submodule_path_list git_status_str submodule_path
+    upstream_branch submodule_path_list git_status_str submodule_path_item
 
   target_tag=""
   target_ref=""
@@ -221,14 +221,14 @@ update_repo() {
     readarray -t submodule_path_list < <(
       grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
     )
-    for submodule_path in "${submodule_path_list[@]}"; do
+    for submodule_path_item in "${submodule_path_list[@]}"; do
       ## grep would be better in so far that it supports '--fixed-strings'.
       ## In the worst case, special characters might cause a spurious error message.
       ## Hence, preferring speed (bash built-in string matching) over external utility 'grep'.
-      #if grep --fixed-strings -- "$submodule_path" &>/dev/null <<< "$git_status_str"; then
+      #if grep --fixed-strings -- "$submodule_path_item" &>/dev/null <<< "$git_status_str"; then
       # shellcheck disable=SC2076
-      if [[ "${git_status_str}" =~ "${submodule_path}" ]]; then
-        printf '%s\n' "${red}${bold}ERROR: Uncommitted changes detected in git submodule '${submodule_path}'! Please commit or discard them before updating.${reset}"
+      if [[ "${git_status_str}" =~ "${submodule_path_item}" ]]; then
+        printf '%s\n' "${red}${bold}ERROR: Uncommitted changes detected in git submodule '${submodule_path_item}'! Please commit or discard them before updating.${reset}"
       fi
     done
 
