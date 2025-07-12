@@ -78,7 +78,7 @@ signed_by_fingerprint() {
   ## NOTE: Cannot use end-of-options ("--").
   ##
   ## NOTE: 'tail -n-1' is mandatory, otherwise verifying the fingerprint of a
-  ## a tag will fail.
+  ## tag will fail.
   fingerprint=$(git show --no-patch --pretty="format:%GF" "${1}" | tail -n -1)
 
   for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
@@ -146,12 +146,10 @@ abort_update() {
     if [ -n "${branch_reset_commit}" ]; then
       ## Cannot use 'error' here because we want to use the 'error' below.
       ## NOTE: Cannot use end-of-options ("--").
-      ## TODO: Use 'refs/heads/${branch_reset_commit}'?
       git reset --hard --recurse-submodules "${branch_reset_commit}" || true "ERROR: 'git reset --hard --recurse-submodules' failed."
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-      ## TODO: Use 'refs/heads/${recover_commit}'?
     git checkout --recurse-submodules "${recover_commit}" || true "ERROR: 'git checkout --recurse-submodules' failed."
   fi
 
@@ -160,7 +158,8 @@ abort_update() {
 
 update_repo() {
   local target_tag target_ref orig_commit branch_reset_commit current_branch \
-    upstream_branch submodule_path_list git_status_str submodule_path_item
+    upstream_branch submodule_path_list git_status_str submodule_path_item \
+    latest_tag_commit
 
   target_tag=""
   target_ref=""
@@ -268,7 +267,6 @@ update_repo() {
     ##
     ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when
     ## not using 'refs/tags/'.
-    ## TODO: Use 'refs/remotes/${target_ref}'?
     git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
 
     ## Check if the given target_ref is a local branch name.
@@ -293,25 +291,20 @@ update_repo() {
       ## Safe.
       ## Ensures submodules' remote URL configuration matches the values specified in '.gitmodules'.
       git submodule sync --recursive || error "'git submodule sync --recursive' failed."
-      ## TODO: 'git symbolic-ref -q -- HEAD' will fail if we previously did 'git checkout tag-name'.
-      ##       (Because of detached HEAD.)
       ## Do merge and verify.
       ## If any of the steps involved fail, trigger a rollback.
       current_branch="$(git symbolic-ref -q -- HEAD)" \
         || abort_update \
           'Getting current branch name failed!' \
           "${orig_commit}" "${branch_reset_commit}"
-      ## TODO: Use 'refs/heads/${current_branch}'?
       upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
         || abort_update \
           'Getting upstream branch name failed!' \
           "${orig_commit}" "${branch_reset_commit}"
-      ## TODO: Use 'refs/remotes/${upstream_branch}'?
-      git merge --ff-only "$upstream_branch" \
+      git merge --ff-only "refs/remotes/${upstream_branch}" \
         || abort_update \
           'Merge from remote failed!' \
           "${orig_commit}" "${branch_reset_commit}"
-      ## TODO: Use 'refs/remotes/${target_ref}'?
       verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
