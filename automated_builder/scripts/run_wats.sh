@@ -10,6 +10,7 @@ main() {
 }
 
 prepare_environment() {
+  ## TODO: Why use '--stdin'?
   echo changeme | sudo --non-interactive --stdin apt-get update -q
   sudo --non-interactive -- apt-get install git python3-behave python3-pip python3-pyatspi -yq
   pip3 install dogtail -q
