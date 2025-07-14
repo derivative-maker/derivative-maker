@@ -10,7 +10,7 @@ main() {
 }
 
 prepare_environment() {
-  echo changeme | sudo --non-interactive -S apt-get update -q
+  echo changeme | sudo --non-interactive --stdin apt-get update -q
   sudo --non-interactive -- apt-get install git python3-behave python3-pip python3-pyatspi -yq
   pip3 install dogtail -q
   gsettings set org.gnome.desktop.interface toolkit-accessibility true
