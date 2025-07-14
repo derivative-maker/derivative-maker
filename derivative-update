@@ -146,10 +146,16 @@ abort_update() {
     if [ -n "${branch_reset_commit}" ]; then
       ## Cannot use 'error' here because we want to use the 'error' below.
       ## NOTE: Cannot use end-of-options ("--").
+      ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when
+      ## not using 'refs/tags/'. branch_reset_commit will refer to either a
+      ## commit hash, or a 'ref^{commit}'.
       git reset --hard --recurse-submodules "${branch_reset_commit}" || true "ERROR: 'git reset --hard --recurse-submodules' failed."
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
+      ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when
+      ## not using 'refs/tags/'. recover_commit will refer to either a commit
+      ## hash, or a 'ref^{commit}'.
     git checkout --recurse-submodules "${recover_commit}" || true "ERROR: 'git checkout --recurse-submodules' failed."
   fi
 
@@ -253,7 +259,6 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    ##
     ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
     ## tag with the same name as a branch.
     git checkout --recurse-submodules "refs/tags/${target_tag}" || abort_update 'Tag checkout failed!'
@@ -264,9 +269,11 @@ update_repo() {
     fi
 
     ## NOTE: Cannot use end-of-options ("--").
-    ##
     ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when
-    ## not using 'refs/tags/'.
+    ## not using 'refs/tags/'. 'refs/heads/' cannot be used here as that would
+    ## put the repo into detached HEAD state.
+    ## 'refs/remotes/origin/${target_ref}' would also put the repo into
+    ## detached HEAD state.
     git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
 
     ## Check if the given target_ref is a local branch name.
@@ -293,18 +300,31 @@ update_repo() {
       git submodule sync --recursive || error "'git submodule sync --recursive' failed."
       ## Do merge and verify.
       ## If any of the steps involved fail, trigger a rollback.
+      ## NOTE: This is safe - the script has already checked out target_ref,
+      ## and verified that target_ref is a branch. The only known way this
+      ## command could error out is if the user interrupts the script after
+      ## the ref checkout but before the ref update using Ctrl+Z, puts the git
+      ## repo into an unexpected state (detached HEAD for instance), then
+      ## resumes the script with 'fg'.
       current_branch="$(git symbolic-ref -q -- HEAD)" \
         || abort_update \
           'Getting current branch name failed!' \
           "${orig_commit}" "${branch_reset_commit}"
+      ## NOTE: 'current_branch' format is like 'refs/heads/master',
+      ## 'upstream_branch' format is like 'origin/master'.
       upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
         || abort_update \
           'Getting upstream branch name failed!' \
           "${orig_commit}" "${branch_reset_commit}"
+      ## NOTE: Using 'refs/remotes/' here to avoid any possible ambiguity.
+      ## This is valid here.
       git merge --ff-only "refs/remotes/${upstream_branch}" \
         || abort_update \
           'Merge from remote failed!' \
           "${orig_commit}" "${branch_reset_commit}"
+      ## NOTE: Not using 'refs/remotes/' here because we want to verify the
+      ## state of the locally checked-out-and-updated branch, not the remote
+      ## branch.
       verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
