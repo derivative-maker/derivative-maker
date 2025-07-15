@@ -164,7 +164,7 @@ abort_update() {
 
 update_repo() {
   local orig_commit branch_reset_commit current_branch \
-    upstream_branch submodule_path_list git_status_str submodule_path_item \
+    upstream_branch submodule_path_list submodule_path_item \
     latest_tag_commit
 
   orig_commit=""
@@ -203,31 +203,9 @@ update_repo() {
 
   ## We need there to be no uncommitted changes in order to robustly verify the repository state.
   ## If there are uncommitted changes, stop.
-  git_status_str="$(git status --porcelain=v1 2>&1)" || error "'git status --porcelain=v1' failed."
-  if [ -n "${git_status_str}" ]; then
-    ## Check submodules for uncommitted changes first.
-    readarray -t submodule_path_list < <(
-      grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
-    )
-    for submodule_path_item in "${submodule_path_list[@]}"; do
-      ## grep would be better in so far that it supports '--fixed-strings'.
-      ## In the worst case, special characters might cause a spurious error message.
-      ## Hence, preferring speed (bash built-in string matching) over external utility 'grep'.
-      #if grep --fixed-strings -- "$submodule_path_item" &>/dev/null <<< "$git_status_str"; then
-      # shellcheck disable=SC2076
-      if [[ "${git_status_str}" =~ "${submodule_path_item}" ]]; then
-        printf '%s\n' "${red}${bold}ERROR: Uncommitted changes detected in git submodule '${submodule_path_item}'! Please commit or discard them before updating.${reset}"
-      fi
-    done
-
-    if [ "$dist_build_ignore_uncommitted" = "true" ]; then
-      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
-      ## TODO: Integrate with 'help-steps/git_sanity_tests'?
-      ##       Perhaps run 'help-steps/git_sanity_tests' to avoid code duplication?
-    else
-      error "Uncommitted changes detected in derivative-maker source code folder! Please commit or discard them before updating."
-    fi
-  fi
+  ## (Except if using '--allow-uncommitted true'.)
+  source "$dist_source_help_steps_folder/git_sanity_test"
+  git_sanity_test_main "$@"
 
   ## Fetch new code from remote.
   git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'

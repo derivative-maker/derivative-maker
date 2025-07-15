@@ -65,9 +65,26 @@ git_sanity_test_parse_cmd() {
 }
 
 git_sanity_test_hint() {
-   true "${cyan}$BASH_SOURCE INFO: (As a developer or advanced user you might want to use:)${reset}
+   true "${cyan}$BASH_SOURCE INFO: As a developer or advanced user you might want to use:${reset}
+${cyan}${under}WARNING:${eunder}${reset} This can be ${under}insecure${eunder} if you are unable to audit the uncommitted changes.
 ${bold}${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}${reset}
 "
+}
+
+git_submodule_uncommitted_check() {
+   readarray -t submodule_path_list < <(
+      grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
+   )
+   for submodule_path_item in "${submodule_path_list[@]}"; do
+      ## grep would be better in so far that it supports '--fixed-strings'.
+      ## In the worst case, special characters might cause a spurious error message.
+      ## Hence, preferring speed (bash built-in string matching) over external utility 'grep'.
+      #if grep --fixed-strings -- "$submodule_path_item" &>/dev/null <<< "$git_status_str"; then
+      # shellcheck disable=SC2076
+      if [[ "${git_status_str}" =~ "${submodule_path_item}" ]]; then
+         printf '%s\n' "${cyan}INFO: Uncommitted changes detected in git submodule: '${under}${submodule_path_item}${eunder}'  ${reset}"
+      fi
+   done
 }
 
 git_sanity_test_check_for_untagged_commits() {
@@ -85,57 +102,69 @@ git_sanity_test_check_for_untagged_commits() {
 
    if [ "$git_tag_nearest" == "$git_tag_current" ]; then
       true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
-   else
-      if [ "$dist_build_ignore_untagged" = "true" ]; then
-         true "${bold}${cyan}$BASH_SOURCE INFO: Git reports a untagged commit! But you requested to ignore untagged commits, continuing... ${reset}"
-      else
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-         true "${bold}${red}$BASH_SOURCE ERROR: Git reports a untagged commit! ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-untagged true${eunder}, \
+      return 0
+   fi
+
+   if [ "$dist_build_ignore_untagged" = "true" ]; then
+      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports a untagged commit! But you requested to ignore untagged commits, continuing... ${reset}"
+      return 0
+   fi
+
+   true "${bold}${red}---------------------------------------------------------------------${reset}"
+   true "${bold}${red}$BASH_SOURCE ERROR: Git reports a untagged commit! ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-untagged true${eunder}, \
 which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
 Such as in case you added custom commits.) ${reset}"
-         git_sanity_test_hint
-         true "${cyan}$BASH_SOURCE INFO: (See build documentation on how to verify and checkout git tags.)${reset}"
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
+   git_sanity_test_hint
+   true "${cyan}$BASH_SOURCE INFO: (See build documentation on how to verify and checkout git tags.)${reset}"
+   true "${bold}${red}---------------------------------------------------------------------${reset}"
 
-         error "Untagged commit! See above!"
-         true
-      fi
-   fi
+   error "Untagged commit! See above!"
+   true
 }
 
 git_sanity_test_check_for_uncommitted_changes() {
-   if [ -n "$(git status --porcelain)" ]; then
-      if [ "$dist_build_ignore_uncommitted" = "true" ]; then
-         true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
-         git status
-         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for debugging. ${reset}"
-         git clean -d --force --force --dry-run
-         true
-      else
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
-         true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-uncommitted true${eunder}, \
+   local git_status_str
+   git_status_str="$(git status --porcelain=v1 2>&1)" || error "'git status --porcelain=v1' failed."
+
+   if [ -z "$git_status_str" ]; then
+      true "INFO: No uncommitted changes found, ok."
+      return 0
+   fi
+
+   if [ "$dist_build_ignore_uncommitted" = "true" ]; then
+      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
+      git_sanity_test_hint
+      true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
+      git status
+      true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for debugging. ${reset}"
+      git clean -d --force --force --dry-run
+      true
+      return 0
+   fi
+
+   true "${bold}${red}---------------------------------------------------------------------${reset}"
+   true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
+   true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-uncommitted true${eunder}, \
 which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
 Such as in case you added custom code.) ${reset}"
-         git_sanity_test_hint
-         true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
-         git status
-         true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
-         git clean -d --force --force --dry-run
-         true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
-    ${under}$dist_source_help_steps_folder/cleanup-files${eunder}
+   git_sanity_test_hint
+   true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
+   git status
+   ## Use '2>/dev/null' to hide xtrace.
+   git_submodule_uncommitted_check 2>/dev/null
+   true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
+   git clean -d --force --force --dry-run
+   true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
+${under}$dist_source_help_steps_folder/cleanup-files${eunder}
 ${cyan}or if you know what you are doing:${reset}
-    ${under}git clean -d --force --force${eunder}
-    ${under}git reset --hard${eunder}
+${under}git clean -d --force --force${eunder}
+${under}git reset --hard${eunder}
 "
-         true "${bold}${red}---------------------------------------------------------------------${reset}"
+   true "${bold}${red}---------------------------------------------------------------------${reset}"
 
-         error "Uncommitted changes! See above!"
-         true
-      fi
-   fi
+   error "Uncommitted changes! See above!"
+   true
 }
 
 git_sanity_test_main() {
