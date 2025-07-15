@@ -64,6 +64,86 @@ git_sanity_test_parse_cmd() {
    done
 }
 
+import_keys() {
+  local key_index derivative_signing_key_fingerprint_list derivative_signing_public_key_item derivative_signing_key_fingerprint_item
+
+  for key_index in "${!derivative_signing_public_key_list[@]}"; do
+    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
+    derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
+
+    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+      if gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+        true "INFO: key already imported."
+      else
+        true "INFO: key not yet already imported. Importing..."
+        gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
+        gpg --import -- "${derivative_signing_public_key_item}"
+        gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
+        break
+      fi
+    done
+  done
+}
+
+signed_by_fingerprint() {
+  local fingerprint derivative_signing_key_fingerprint_group derivative_signing_key_fingerprint_item derivative_signing_key_fingerprint_list
+
+  ## NOTE: Cannot use end-of-options ("--").
+  ##
+  ## NOTE: 'tail -n-1' is mandatory, otherwise verifying the fingerprint of a
+  ## tag will fail.
+  fingerprint=$(git show --no-patch --pretty="format:%GF" "${1}" | tail -n -1)
+
+  for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
+    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group}"
+
+    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+      if [ "${fingerprint}" = "${derivative_signing_key_fingerprint_item}" ]; then
+        true "INFO: fingerprint match, ok."
+        return 0
+      fi
+    done
+  done
+
+  1>&2 printf '%s\n' "WARNING: Signing key fingerprint does not match!"
+  return 1
+}
+
+verify_ref() {
+  local ref ref_type
+
+  ref="${1:-}"
+  ref_type="${2:-}"
+
+  if [ -z "${ref}" ]; then
+    error 'Cannot pass empty ref to verify_ref!'
+  fi
+  if [ -z "${ref_type}" ]; then
+    error 'Cannot pass empty ref_type to verify_ref!'
+  fi
+  case "${ref_type}" in
+    tag|commit)
+      true "INFO: ref_type: tag or commit."
+      ;;
+    *)
+      error "ref_type must be one of 'tag' or 'commit'!"
+      ;;
+  esac
+
+  ## Policy: All git commits (at least HEAD) is always signed.
+  git verify-commit -- "${ref}^{commit}" || return 1
+  signed_by_fingerprint "${ref}^{commit}" || return 1
+
+  if [ "${ref_type}" = 'tag' ]; then
+    ## Policy: All git tags are always signed.
+    ##
+    ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
+    ## tag with the same name as a branch or commit.
+    git verify-tag -- "refs/tags/${ref}" || return 1
+    signed_by_fingerprint "${ref}" || return 1
+  fi
+}
+
 git_sanity_test_hint() {
    true "${cyan}$BASH_SOURCE INFO: As a developer or advanced user you might want to use:${reset}
 ${cyan}${under}WARNING:${eunder}${reset} This can be ${under}insecure${eunder} if you are unable to audit the uncommitted changes.
@@ -169,6 +249,17 @@ ${under}git reset --hard${eunder}
 
 git_sanity_test_main() {
    git_sanity_test_parse_cmd "$@"
+
+   ## Import any additional needed GPG keys.
+   import_keys
+
+   ## Sanity-check; verify the signature of the current ref. If the user has
+   ## never verified the repo before, this can be bypassed if the repo is
+   ## compromised, but if the repo is safe, this (in combination with the key
+   ## import above) will do the initial verification, providing "trust on first
+   ## use" (TOFU) security.
+   verify_ref "${dist_build_current_git_head}" 'commit'
+
    git_sanity_test_check_for_untagged_commits
    git_sanity_test_check_for_uncommitted_changes
 }

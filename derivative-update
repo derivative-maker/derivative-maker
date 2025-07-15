@@ -20,6 +20,8 @@ source ./help-steps/pre
 source ./help-steps/colors
 source ./help-steps/variables
 
+source ./help-steps/git_sanity_test
+
 error_handler_dist_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
@@ -51,85 +53,7 @@ Parameters:
 "
 }
 
-import_keys() {
-  local key_index derivative_signing_key_fingerprint_list derivative_signing_public_key_item derivative_signing_key_fingerprint_item
 
-  for key_index in "${!derivative_signing_public_key_list[@]}"; do
-    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
-    derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
-
-    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
-      if gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
-        true "INFO: key already imported."
-      else
-        true "INFO: key not yet already imported. Importing..."
-        gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
-        gpg --import -- "${derivative_signing_public_key_item}"
-        gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
-        break
-      fi
-    done
-  done
-}
-
-signed_by_fingerprint() {
-  local fingerprint derivative_signing_key_fingerprint_group derivative_signing_key_fingerprint_item derivative_signing_key_fingerprint_list
-
-  ## NOTE: Cannot use end-of-options ("--").
-  ##
-  ## NOTE: 'tail -n-1' is mandatory, otherwise verifying the fingerprint of a
-  ## tag will fail.
-  fingerprint=$(git show --no-patch --pretty="format:%GF" "${1}" | tail -n -1)
-
-  for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
-    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group}"
-
-    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
-      if [ "${fingerprint}" = "${derivative_signing_key_fingerprint_item}" ]; then
-        true "INFO: fingerprint match, ok."
-        return 0
-      fi
-    done
-  done
-
-  1>&2 printf '%s\n' "Signing key fingerprint does not match!"
-  return 1
-}
-
-verify_ref() {
-  local ref ref_type
-
-  ref="${1:-}"
-  ref_type="${2:-}"
-
-  if [ -z "${ref}" ]; then
-    error 'Cannot pass empty ref to verify_ref!'
-  fi
-  if [ -z "${ref_type}" ]; then
-    error 'Cannot pass empty ref_type to verify_ref!'
-  fi
-  case "${ref_type}" in
-    tag|commit)
-      true "INFO: ref_type: tag or commit."
-      ;;
-    *)
-      error "ref_type must be one of 'tag' or 'commit'!"
-      ;;
-  esac
-
-  ## Policy: All git commits (at least HEAD) is always signed.
-  git verify-commit -- "${ref}^{commit}" || return 1
-  signed_by_fingerprint "${ref}^{commit}" || return 1
-
-  if [ "${ref_type}" = 'tag' ]; then
-    ## Policy: All git tags are always signed.
-    ##
-    ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
-    ## tag with the same name as a branch or commit.
-    git verify-tag -- "refs/tags/${ref}" || return 1
-    signed_by_fingerprint "${ref}" || return 1
-  fi
-}
 
 abort_update() {
   local error_msg recover_commit branch_reset_commit
@@ -163,11 +87,9 @@ abort_update() {
 }
 
 update_repo() {
-  local orig_commit branch_reset_commit current_branch \
+  local branch_reset_commit current_branch \
     upstream_branch submodule_path_list submodule_path_item \
     latest_tag_commit
-
-  orig_commit=""
 
   if [ -z "${target_tag}" ] && [ -z "${target_ref}" ] && [ -z "${update_only}" ]; then
     error 'You did not tell me what to check out.
@@ -183,20 +105,6 @@ update_repo() {
            derivative-update --ref master'
   fi
 
-  ## Get the ref (branch or commit) that we're currently at.
-  ## NOTE: Cannot use end-of-options ("--").
-  orig_commit="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
-
-  ## Import any additional needed GPG keys.
-  import_keys
-
-  ## Sanity-check; verify the signature of the current ref. If the user has
-  ## never verified the repo before, this can be bypassed if the repo is
-  ## compromised, but if the repo is safe, this (in combination with the key
-  ## import above) will do the initial verification, providing "trust on first
-  ## use" (TOFU) security.
-  verify_ref "${orig_commit}" 'commit'
-
   if ! test -f '.gitmodules' ; then
     error "Missing '.gitmodules' file."
   fi
@@ -204,7 +112,7 @@ update_repo() {
   ## We need there to be no uncommitted changes in order to robustly verify the repository state.
   ## If there are uncommitted changes, stop.
   ## (Except if using '--allow-uncommitted true'.)
-  source "$dist_source_help_steps_folder/git_sanity_test"
+  ## This also performs digital signature (gpg) verification of the current git HEAD.
   git_sanity_test_main "$@"
 
   ## Fetch new code from remote.
@@ -244,7 +152,7 @@ update_repo() {
     git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
       || abort_update \
         'Submodule update failed!' \
-        "${orig_commit}" "${branch_reset_commit}"
+        "${dist_build_current_git_head}" "${branch_reset_commit}"
 
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
@@ -297,37 +205,37 @@ update_repo() {
       current_branch="$(git symbolic-ref -q -- HEAD)" \
         || abort_update \
           'Getting current branch name failed!' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
       ## NOTE: 'current_branch' format is like 'refs/heads/master',
       ## 'upstream_branch' format is like 'origin/master'.
       upstream_branch="$(git for-each-ref --format='%(upstream:short)' "$current_branch")" \
         || abort_update \
           'Getting upstream branch name failed!' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
       ## NOTE: Using 'refs/remotes/' here to avoid any possible ambiguity.
       ## This is valid here.
       git merge --ff-only "refs/remotes/${upstream_branch}" \
         || abort_update \
           'Merge from remote failed!' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
       ## NOTE: Not using 'refs/remotes/' here because we want to verify the
       ## state of the locally checked-out-and-updated branch, not the remote
       ## branch.
       verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
       ## Caution.
       ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
       ## It modifies the submodule's Git HEAD, potentially overriding local changes.
       git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
         || abort_update \
           'Submodule update failed!' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
       verify_ref "${target_ref}" 'commit' \
         || abort_update \
           'Verification failed after submodule update!' \
-          "${orig_commit}" "${branch_reset_commit}"
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
     else
       true "INFO: given target_ref is a local branch name: no"
     fi
