@@ -115,14 +115,24 @@ update_repo() {
   ## This also performs digital signature (gpg) verification of the current git HEAD.
   git_sanity_test_main "$@"
 
+  true "INFO: $BASH_SOURCE continuing..."
+
+  if [ "$update_only" = "true" ]; the
+    ## Variable 'git_tag_exact' is set in 'git_sanity_test'.
+    target_tag="$git_tag_exact"
+  fi
+
   ## Fetch new code from remote.
   git fetch --recurse-submodules --jobs=100 || error 'Failed to fetch from remote!'
 
   ## If we were asked to check out the 'latest' tag, find the latest tag.
   if [ "${target_tag}" = 'latest' ]; then
+    true "INFO: latest tag requested: yes"
     latest_tag_commit="$(git rev-list --tags --max-count=1)" || error 'Failed to find latest tag commit.'
     [[ -z "$latest_tag_commit" ]] && error 'No tags found.'
     target_tag="$(git describe --tags -- "$latest_tag_commit")" || error 'Failed to find latest git tag.'
+  else
+    true "INFO: latest tag requested: no"
   fi
 
   ## Verify the specified ref, then check out that ref.
@@ -239,6 +249,8 @@ update_repo() {
     else
       true "INFO: given target_ref is a local branch name: no"
     fi
+  else
+    error "Neither target_tag nor target_ref is set."
   fi
 
   if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
