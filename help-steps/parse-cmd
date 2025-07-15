@@ -192,6 +192,7 @@ dist_build_one_parse_cmd() {
    ## Using export, so scripts run by run-parts (run by derivative-maker) can read
    ## these variables.
 
+   ## Note, short and combined options such as '-tpu' are unsupported and not planned.
    while :
    do
        case $1 in
@@ -640,6 +641,14 @@ dist_build_one_parse_cmd() {
                export build_freedom_only
                shift 2
                ;;
+            -t|--tag)
+               target_tag="$2"
+               shift 2
+               ;;
+            -r|--ref)
+               target_ref="$2"
+               shift 2
+               ;;
             -u|--update-only)
                update_only="true"
                shift 1
@@ -679,6 +688,8 @@ dist_build_one_parse_cmd() {
        esac
    done
 
+   [[ -v target_tag ]] || target_tag=""
+   [[ -v target_ref ]] || target_ref=""
    [[ -v update_only ]] || update_only=false
 
    if [ "$dist_build_target_arch" = "i386" ]; then
