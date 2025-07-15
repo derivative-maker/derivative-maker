@@ -134,6 +134,7 @@ git_submodule_uncommitted_check() {
 git_sanity_test_check_for_untagged_commits() {
    git_tag_nearest="$(git describe --always --abbrev=0)"
    git_tag_current="$(git describe --always --abbrev=1000000000)"
+   git_tag_exact="$(git describe --exact-match --tags 2>/dev/null)" || true
 
    ## Example git_tag_nearest:
    ## 9.6
@@ -145,8 +146,15 @@ git_sanity_test_check_for_untagged_commits() {
    true "${cyan}$BASH_SOURCE INFO: git_tag_current: $git_tag_current ${reset}"
 
    if [ "$git_tag_nearest" == "$git_tag_current" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
-      return 0
+      true "${cyan}$BASH_SOURCE INFO: git_tag_nearest equals git_tag_current. ${reset}"
+      if [ "$git_tag_current" == "$git_tag_exact" ]; then
+         true "${cyan}$BASH_SOURCE INFO: git_tag_current equals git_tag_exact. ${reset}"
+         true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
+         if ! verify_ref "${git_tag_exact}" 'tag'; then
+            error "git tag is not signed by known fingerprint."
+         fi
+         return 0
+      fi
    fi
 
    if [ "$dist_build_ignore_untagged" = "true" ]; then
