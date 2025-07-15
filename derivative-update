@@ -15,7 +15,6 @@ MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$MYDIR"
 
 dist_build_internal_run="true"
-dist_build_one_parsed="true"
 
 source ./help-steps/pre
 source ./help-steps/colors
@@ -171,28 +170,23 @@ update_repo() {
   target_tag=""
   target_ref=""
   orig_commit=""
-  update_only=""
 
   ## Note, short and combined options such as '-tpu' are unsupported and not planned.
-  while (( $# > 0 )); do
-    case "$1" in
-      -t|--tag)
-        target_tag="$2"
-        shift 2
-        ;;
-      -r|--ref)
-        target_ref="$2"
-        shift 2
-        ;;
-      -u|--update-only)
-        update_only="true"
-        shift 2
-        ;;
-      *)
-        error "Unrecognized option '$1'!"
-        ;;
-    esac
-  done
+  ## TODO: integrate with 'help-steps/parse-cmd'
+  case "$1" in
+    -t|--tag)
+      target_tag="$2"
+      shift 2
+      ;;
+    -r|--ref)
+      target_ref="$2"
+      shift 2
+      ;;
+    ## Actually allow from 'help-steps/parse-cmd'.
+#       *)
+#         error "Unrecognized option '$1'!"
+#         ;;
+  esac
 
   if [ -z "${target_tag}" ] && [ -z "${target_ref}" ] && [ -z "${update_only}" ]; then
     error 'You did not tell me what to check out.
@@ -245,7 +239,13 @@ update_repo() {
       fi
     done
 
-    error "Uncommitted changes detected in derivative-maker source code folder! Please commit or discard them before updating."
+    if [ "$dist_build_ignore_uncommitted" = "true" ]; then
+      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
+      ## TODO: Integrate with 'help-steps/git_sanity_tests'?
+      ##       Perhaps run 'help-steps/git_sanity_tests' to avoid code duplication?
+    else
+      error "Uncommitted changes detected in derivative-maker source code folder! Please commit or discard them before updating."
+    fi
   fi
 
   ## Fetch new code from remote.
@@ -375,7 +375,11 @@ update_repo() {
   fi
 
   if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
-    error 'Unexpected uncommitted changes after checkout.'
+    if [ "$dist_build_ignore_uncommitted" = "true" ]; then
+      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
+    else
+      error 'Unexpected uncommitted changes after checkout.'
+    fi
   fi
 
   true "INFO: Success."
