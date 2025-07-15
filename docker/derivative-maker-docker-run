@@ -130,14 +130,17 @@ done
 ## remote code. This acts as a sanity check, and as a trust-on-first-use
 ## mechanism.
 exit_code='0'
-orig_ref="$(git symbolic-ref HEAD)" || exit_code="$?"
-if [ "${exit_code}" != '0' ]; then
-  orig_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
-else
-  # shellcheck disable=SC2001
-  orig_ref="$(sed 's?^refs/heads/??' <<< "${orig_ref}")"
-fi
-"${SOURCE_VOLUME}/derivative-update" --ref "${orig_ref}"
+
+# orig_ref="$(git symbolic-ref HEAD)" || exit_code="$?"
+# if [ "${exit_code}" != '0' ]; then
+#   orig_ref="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+# else
+#   # shellcheck disable=SC2001
+#   orig_ref="$(sed 's?^refs/heads/??' <<< "${orig_ref}")"
+# fi
+
+## fetch/merge git submodules
+"${SOURCE_VOLUME}/derivative-update" --update-only
 
 build_docker_image
 

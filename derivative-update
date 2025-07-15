@@ -48,6 +48,7 @@ Parameters:
                                to check out the most recently created tag in
                                the repository.
   -r|--ref                   : Check out the specified branch.
+  -u|--update-only           : No check out. Update git submodules only.
 "
 }
 
@@ -170,6 +171,7 @@ update_repo() {
   target_tag=""
   target_ref=""
   orig_commit=""
+  update_only=""
 
   ## Note, short and combined options such as '-tpu' are unsupported and not planned.
   while (( $# > 0 )); do
@@ -182,13 +184,17 @@ update_repo() {
         target_ref="$2"
         shift 2
         ;;
+      -u|--update-only)
+        update_only="true"
+        shift 2
+        ;;
       *)
         error "Unrecognized option '$1'!"
         ;;
     esac
   done
 
-  if [ -z "${target_tag}" ] && [ -z "${target_ref}" ]; then
+  if [ -z "${target_tag}" ] && [ -z "${target_ref}" ] && [ -z "${update_only}" ]; then
     error 'You did not tell me what to check out.
            * Use --tag <tag>   to move to a signed tag, e.g. --tag 17.4.1.9-developers-only
            * Or  --tag latest  to move to the latest signed tag
@@ -258,24 +264,47 @@ update_repo() {
       abort_update 'Tag verification failed!'
     fi
 
-    ## NOTE: Cannot use end-of-options ("--").
-    ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
-    ## tag with the same name as a branch.
-    git checkout --recurse-submodules "refs/tags/${target_tag}" || abort_update 'Tag checkout failed!'
+    if [ "$update_only" = "true" ]; then
+      true "INFO: --update-only. Not running git checkout."
+    else
+      ## NOTE: Cannot use end-of-options ("--").
+      ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
+      ## tag with the same name as a branch.
+      git checkout --recurse-submodules "refs/tags/${target_tag}" || abort_update 'Tag checkout failed!'
+    fi
+
+    branch_reset_commit="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+
+    ## Safe.
+    ## Ensures submodules' remote URL configuration matches the values specified in '.gitmodules'.
+    git submodule sync --recursive || error "'git submodule sync --recursive' failed."
+
+    ## Caution.
+    ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
+    ## It modifies the submodule's Git HEAD, potentially overriding local changes.
+    git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+      || abort_update \
+        'Submodule update failed!' \
+        "${orig_commit}" "${branch_reset_commit}"
 
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
       abort_update 'Ref verification failed!'
     fi
 
-    ## NOTE: Cannot use end-of-options ("--").
-    ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when not using 'refs/tags/'.
-    ## NOTE: 'refs/heads/' cannot be used here as that would put the repo into detached HEAD state.
-    ## NOTE: 'refs/remotes/origin/${target_ref}' would also put the repo into detached HEAD state.
-    git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
+    if [ "$update_only" = "true" ]; then
+      true "INFO: --update-only. Not running git checkout."
+    else
+      ## NOTE: Cannot use end-of-options ("--").
+      ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when not using 'refs/tags/'.
+      ## NOTE: 'refs/heads/' cannot be used here as that would put the repo into detached HEAD state.
+      ## NOTE: 'refs/remotes/origin/${target_ref}' would also put the repo into detached HEAD state.
+      git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
+    fi
 
     ## Check if the given target_ref is a local branch name.
     if git show-ref --verify -- "refs/heads/${target_ref}"; then
+      true "INFO: given target_ref is a local branch name: yes"
       ## The specified ref is a branch, meaning the user is trying to update
       ## to the latest commit of the specified branch.
       ##
@@ -289,10 +318,12 @@ update_repo() {
       ## it's important to get the working tree back into a known-good state
       ## if at all possible. Thus it is possible that failed verification
       ## during a branch update could lead to a compromised local branch.
-      ##
+
       ## Save the ref first so we can undo the merge if it goes wrong.
+      ## NOTE: This must be run after 'git checkout'.
       ## NOTE: Cannot use end-of-options ("--").
       branch_reset_commit="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
+
       ## Safe.
       ## Ensures submodules' remote URL configuration matches the values specified in '.gitmodules'.
       git submodule sync --recursive || error "'git submodule sync --recursive' failed."
@@ -338,6 +369,8 @@ update_repo() {
         || abort_update \
           'Verification failed after submodule update!' \
           "${orig_commit}" "${branch_reset_commit}"
+    else
+      true "INFO: given target_ref is a local branch name: no"
     fi
   fi
 
