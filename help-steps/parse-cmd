@@ -53,7 +53,15 @@ ${reset}"
 }
 
 dist_build_one_script_help() {
-   echo "\
+   local cmd_name
+
+   cmd_name="${1:-}";
+   if [ -n "${cmd_name}" ]; then
+      cmd_name="$(basename "$(realpath "${cmd_name}")")"
+   fi
+
+   if [ "${cmd_name}" = 'derivative-maker' ]; then
+      printf '%s\n' "\
 derivative-maker
 
 Syntax:
@@ -170,7 +178,27 @@ Miscellaneous:
 
 Please use the options as per your requirements. For any assistance, refer to the full documentation.
 "
-    exit 0
+   elif [ "${cmd_name}" = 'derivative-update' ]; then
+      printf '%s\n' "\
+derivative-update
+
+Syntax:
+  (-t|--tag|-r|--ref ref)
+
+Description:
+  Updates the derivative-maker repository to the specified ref in a secure
+  fashion. Imports the derivative-maker signing keys if they are not already
+  imported into GPG. Fetches new commits and refs from the remote repository.
+
+Parameters:
+  -t|--tag                   : Check out the specified tag. Specify 'latest'
+                               to check out the most recently created tag in
+                               the repository.
+  -r|--ref                   : Check out the specified branch.
+  -u|--update-only           : No check out. Update git submodules only.
+"
+   fi
+   exit 0
 }
 
 dist_build_one_parse_cmd() {
@@ -197,7 +225,12 @@ dist_build_one_parse_cmd() {
    do
        case $1 in
            -h | --help | -\?)
-               dist_build_one_script_help
+               if [ "${BASH_SOURCE}" != "${0}" ]; then
+                   ## Script was sourced.
+                   dist_build_one_script_help "$0"
+               else
+                   dist_build_one_script_help "derivative-maker"
+               fi
                ;;
            --flavor)
                true "${cyan}INFO: --flavor $2 chosen.${reset}"
@@ -690,7 +723,7 @@ dist_build_one_parse_cmd() {
 
    [[ -v target_tag ]] || target_tag=""
    [[ -v target_ref ]] || target_ref=""
-   [[ -v update_only ]] || update_only=false
+   [[ -v update_only ]] || update_only=""
 
    if [ "$dist_build_target_arch" = "i386" ]; then
       [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"

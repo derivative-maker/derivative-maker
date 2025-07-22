@@ -32,29 +32,6 @@ error_handler_dist_build_one() {
 
 trap "error_handler_dist_build_one" ERR
 
-print_usage() {
-  printf '%s\n' "\
-derivative-update
-
-Syntax:
-  (-t|--tag|-r|--ref ref)
-
-Description:
-  Updates the derivative-maker repository to the specified ref in a secure
-  fashion. Imports the derivative-maker signing keys if they are not already
-  imported into GPG. Fetches new commits and refs from the remote repository.
-
-Parameters:
-  -t|--tag                   : Check out the specified tag. Specify 'latest'
-                               to check out the most recently created tag in
-                               the repository.
-  -r|--ref                   : Check out the specified branch.
-  -u|--update-only           : No check out. Update git submodules only.
-"
-}
-
-
-
 abort_update() {
   local error_msg recover_commit branch_reset_commit
 
@@ -96,13 +73,22 @@ update_repo() {
            * Use --tag <tag>   to move to a signed tag, e.g. --tag 17.4.1.9-developers-only
            * Or  --tag latest  to move to the latest signed tag
            * Or  --ref <name>  for a branch or commit, e.g.  --ref master
-           --help for the full syntax.'
+           --help for the full syntax.
+           * Or --update-only to only update submodules.'
   fi
   if [ -n "${target_tag}" ] && [ -n "${target_ref}" ]; then
     error 'Options --tag and --ref are mutually exclusive.
            Choose exactly one of them; for example:
            derivative-update --tag 17.4.1.9-developers-only
            derivative-update --ref master'
+  fi
+  if [ -n "${target_tag}" ] && [ -n "${update_only}" ]; then
+    error 'Options --tag and --update-only are mutually exclusive.
+           Use --update-only alone while a tag is checked out.'
+  fi
+  if [ -n "${target_ref}" ] && [ -n "${update_only}" ]; then
+    error 'Options --ref and --update-only are mutually exclusive.
+           Use --update-only alone while a tag is checked out.'
   fi
 
   if ! test -f '.gitmodules' ; then
@@ -120,6 +106,9 @@ update_repo() {
   if [ "$update_only" = "true" ]; then
     ## Variable 'git_tag_exact' is set in 'git_sanity_test'.
     target_tag="$git_tag_exact"
+    if [ -z "${target_tag}" ]; then
+      error '--update-only used, but no tag was checked out in advance!'
+    fi
   fi
 
   ## Fetch new code from remote.
@@ -150,8 +139,6 @@ update_repo() {
       git checkout --recurse-submodules "refs/tags/${target_tag}" || abort_update 'Tag checkout failed!'
     fi
 
-    branch_reset_commit="$(git rev-parse HEAD)" || error 'Cannot get head commit ID!'
-
     ## Safe.
     ## Ensures submodules' remote URL configuration matches the values specified in '.gitmodules'.
     git submodule sync --recursive || error "'git submodule sync --recursive' failed."
@@ -162,22 +149,18 @@ update_repo() {
     git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
       || abort_update \
         'Submodule update failed!' \
-        "${dist_build_current_git_head}" "${branch_reset_commit}"
+        "${dist_build_current_git_head}"
 
   elif [ -n "${target_ref}" ]; then
     if ! verify_ref "${target_ref}" 'commit'; then
       abort_update 'Ref verification failed!'
     fi
 
-    if [ "$update_only" = "true" ]; then
-      true "INFO: --update-only. Not running git checkout."
-    else
-      ## NOTE: Cannot use end-of-options ("--").
-      ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when not using 'refs/tags/'.
-      ## NOTE: 'refs/heads/' cannot be used here as that would put the repo into detached HEAD state.
-      ## NOTE: 'refs/remotes/origin/${target_ref}' would also put the repo into detached HEAD state.
-      git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
-    fi
+    ## NOTE: Cannot use end-of-options ("--").
+    ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when not using 'refs/tags/'.
+    ## NOTE: 'refs/heads/' cannot be used here as that would put the repo into detached HEAD state.
+    ## NOTE: 'refs/remotes/origin/${target_ref}' would also put the repo into detached HEAD state.
+    git checkout --recurse-submodules "${target_ref}" || abort_update 'Ref checkout failed!'
 
     ## Check if the given target_ref is a local branch name.
     if git show-ref --verify -- "refs/heads/${target_ref}"; then
@@ -268,11 +251,6 @@ update_repo() {
 }
 
 main() {
-  if [ "$1" = "--help" ]; then
-    print_usage
-    exit 0
-  fi
-
   if [ "$(id -u)" = "0" ]; then
     true "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
     exit 1
