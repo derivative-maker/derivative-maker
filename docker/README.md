@@ -1,6 +1,6 @@
 ![o,age](https://i.postimg.cc/1tvBZfYQ/prototypes.png)
 
-With the convenience of a debian:bookworm docker container, `derivative-maker-docker` automatically builds Whonix/Kicksecure images, incorporating the official derivative-maker build scripts, while including environment variables and intuitive ways to customize every available build option, container behavior and final build command. Additionally, log files of the entire build, git and key verification process are automatically generated. All necessary files already ship with the current derivative-maker source code, allowing for quick and simple deployment with a variety of pre-defined user scripts.
+With the convenience of a debian:trixie docker container, `derivative-maker-docker` automatically builds Whonix/Kicksecure images, incorporating the official derivative-maker build scripts, while including environment variables and intuitive ways to customize every available build option, container behavior and final build command. Additionally, log files of the entire build, git and key verification process are automatically generated. All necessary files already ship with the current derivative-maker source code, allowing for quick and simple deployment with a variety of pre-defined user scripts.
 
 ## Roadmap
 - [x] Read documentation
@@ -102,7 +102,7 @@ With the convenience of a debian:bookworm docker container, `derivative-maker-do
  | Flavor Name  | Flavor Parameter |
  | -------------------------|------------|
  | Whonix-Gateway CLI | `--flavor whonix-gateway-cli` |
- | Whonix-Gateway Xfce  | `--flavor whonix-gateway-xfce ` |
+ | Whonix-Gateway LXQt | `--flavor whonix-gateway-lxqt ` |
  | Whonix-Workstation CLI  | `--flavor whonix-workstation-cli` |
- | Whonix-Workstation Xfce 	  | `--flavor whonix-workstation-xfce`  |
+ | Whonix-Workstation LXQt 	  | `--flavor whonix-workstation-lxqt`  |
 

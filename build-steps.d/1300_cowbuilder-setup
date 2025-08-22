@@ -122,7 +122,7 @@ cowbuilder_setup_do() {
                   --mirror "$dist_build_apt_sources_mirror" \
                   --debootstrap "$dist_source_help_steps_folder/mmdebstrap" \
                   --hookdir "$dist_source_help_steps_folder/pbuilder-hooks" \
-                  --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring" \
+                  --extrapackages "sudo devscripts debhelper strip-nondeterminism fakeroot apt-transport-tor eatmydata aptitude cowdancer fasttrack-archive-keyring adduser" \
                   || { cowbuilder_exit_code="$?" ; true; };
 
          if [ -d "$base_folder" ]; then
@@ -143,9 +143,12 @@ cowbuilder_setup_do() {
       ## unfortunately runs function `installaptlines` after `${DEBOOTSTRAP}`,
       ## which uses a different sources list. This pbuilder hook script restores
       ## derivative-maker build APT sources list.
-      true "INFO: Sanity test. Security critical. Comparing derivative-maker build sources list with chroot sources list."
-      $SUDO_TO_ROOT diff -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
-      $SUDO_TO_ROOT cp -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list"
+      ##
+      ## Out-commented. No longer necessary in Trixie as we now use deb822
+      ## format sources files and delete sources.list.
+      #true "INFO: Sanity test. Security critical. Comparing derivative-maker build sources list with chroot sources list."
+      #$SUDO_TO_ROOT diff -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list.d/derivative.sources"
+      #$SUDO_TO_ROOT cp -- "$dist_build_sources_list_primary" "$base_folder/etc/apt/sources.list.d/derivative.sources"
 
       $SUDO_TO_ROOT mkdir --parents -- "$base_folder/home/$user_name"
       $SUDO_TO_ROOT cp -- "$dist_build_pbuilder_config_file" "$base_folder/home/$user_name/pbuilder_config_file"

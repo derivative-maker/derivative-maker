@@ -200,7 +200,7 @@ install-packages() {
    ## https://www.kicksecure.com/wiki/Grub#/etc/default/grub.d/20_dist-base-files.cfg
    $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/dist-base-files/usr/share/derivative-base-files/20_dist-base-files.cfg" "$CHROOT_FOLDER/etc/default/grub.d/20_dist-base-files.cfg"
 
-   $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/usability-misc/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
+   $SUDO_TO_ROOT cp -- "$source_code_folder_dist/packages/kicksecure/helper-scripts/usr/bin/apt-get-noninteractive" "$CHROOT_FOLDER/usr/bin/apt-get-noninteractive"
 
    "$dist_source_help_steps_folder/prevent-daemons-from-starting" "$@"
 
@@ -263,6 +263,12 @@ install-packages() {
       fi
    else
       error "ERROR: Invalid dist_build_type_short '$dist_build_type_short'. Please report this bug!"
+   fi
+
+   ## Install lxqt-policykit before we install anything GUI-related, since
+   ## otherwise ukui-polkit will attempt to insert itself into the image
+   if [ "$dist_build_desktop" = 'LXQt' ]; then
+     pkg-install lxqt-policykit
    fi
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
@@ -348,7 +354,6 @@ $dist_build_script_skip_package_install${reset}"
       ## See also build-steps.d/*_create-debian-packages function
       ## download_virtualbox_packages_from_debian_sid
 
-      ## At time of writing, available for architectures amd64 i386 only.
       if [ "$dist_build_target_arch" = "amd64" ] || [ "$dist_build_target_arch" = "i386" ]; then
          pkg-add-to-install-list virtualbox-guest-utils
          pkg-add-to-install-list virtualbox-guest-x11
@@ -501,9 +506,15 @@ $dist_build_script_skip_package_install${reset}"
                $INITRD_GENERATOR_OPTS
    fi
 
-   ## Debugging.
    ## grub-mkconfig does this.
-   chroot_run grub-probe --target=device / || true
+   local grub_probe_main_device_output grub_probe_boot_device_output grub_probe_target_device
+   grub_probe_main_device_output="$(chroot_run grub-probe --target=device /)" || true
+   grub_probe_boot_device_output="$(chroot_run grub-probe --target=device /boot)" || true
+
+   ## Debugging.
+   printf '%s\n' "${grub_probe_main_device_output}"
+   printf '%s\n' "${grub_probe_boot_device_output}"
+
    ## Sometimes this outputs:
    ## /dev/mapper/loop0p2
    ## Which results in:
@@ -511,7 +522,6 @@ $dist_build_script_skip_package_install${reset}"
    ## which results in:
    ## root=/dev/mapper/loop0p2
    ## which then results in an unbootable system.
-   chroot_run grub-probe --target=device /boot || true
 
    ## TODO: comment in
    #chroot_run update-grub
@@ -533,10 +543,23 @@ $dist_build_script_skip_package_install${reset}"
 
    ## Sanity test.
    if chroot_run cat -- /boot/grub/grub.cfg | grep --quiet "root=/dev/mapper" ; then
-      ## If an issue in the future, the following code from grml-debootstrap could be adjusted for derivative-maker.
-      ## XXX: TARGET_UUID=todo
-      #$SUDO_TO_ROOT sed -i "s;root=[^ ]\\+;root=UUID=$TARGET_UUID;" /boot/grub/grub.cfg
-      error "chroot /boot/grub/grub.cfg contains root=/dev/mapper - image most likely unbootable!"
+      ## Attempt to fix /dev/mapper issue.
+      if [ "${grub_probe_main_device_output}" = "${grub_probe_boot_device_output}" ]; then
+        grub_probe_target_device="${grub_probe_main_device_output}"
+      else
+        grub_probe_target_device="${grub_probe_boot_device_output}"
+      fi
+      if ! [[ "${grub_probe_target_device}" =~ /dev/mapper ]]; then
+        error '/boot/grub/grub.cfg contains root=/dev/mapper and cannot find proper boot device - image most likely unbootable!'
+      fi
+      grub_probe_target_device="$(cut -d'/' -f4 <<< "${grub_probe_target_device}")"
+      grub_probe_target_device="$(lsblk -rno NAME,UUID | grep "${grub_probe_target_device}")"
+      grub_probe_target_device="$(cut -d' ' -f2 <<< "${grub_probe_target_device}")"
+      grub_probe_target_device="$(head -n1 <<< "${grub_probe_target_device}")"
+      if [ -z "${grub_probe_target_device}" ]; then
+        error '/boot/grub/grub.cfg contains root=/dev/mapper and cannot find boot device UUID - image most likely unbootable!'
+      fi
+      $SUDO_TO_ROOT sed -i "s;root=[^ ]\\+;root=UUID=${grub_probe_target_device};" $CHROOT_FOLDER/boot/grub/grub.cfg
    fi
 
    "$dist_source_help_steps_folder/remove-local-temp-apt-repo" "$@"

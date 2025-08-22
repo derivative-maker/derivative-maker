@@ -42,13 +42,15 @@ create-live-build-image() {
 
    ## Install basic live-build configuration
    live_build_localrepo_location=""
-   live_build_localrepo_list=""
+   live_build_localrepo_suite=""
+   live_build_localrepo_components=""
 
    if [ "${build_remote_derivative_pkgs}" != 'true' ]; then
       derivative_repository_name='kicksecure'
       set_dist_build_reprepro_folder_options
       live_build_localrepo_location="${dist_apt_repository_folder}"
-      live_build_localrepo_list="local main contrib non-free"
+      live_build_localrepo_suite="local"
+      live_build_localrepo_components="main contrib non-free"
    fi
 
    $SUDO_TO_ROOT lb clean # In case there's a leftover build tree present.
@@ -99,6 +101,40 @@ create-live-build-image() {
       live_build_initramfs_type='none'
    fi
 
+   live_build_bootstrap_mirror_file="$(mktemp)"
+   live_build_bootstrap_mirror_security_file="$(mktemp)"
+   live_build_parent_bootstrap_mirror_file="$(mktemp)"
+   live_build_parent_bootstrap_mirror_security_file="$(mktemp)"
+
+   printf '%s\n' "\
+Types: deb
+URIs: ${dist_build_apt_sources_mirror}
+Suites: ${dist_build_apt_stable_release}
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
+      | sponge "${live_build_bootstrap_mirror_file}"
+   printf '%s\n' "\
+Types: deb
+URIs: ${dist_build_apt_sources_security_mirror}
+Suites: ${dist_build_apt_stable_release}-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
+      | sponge "${live_build_bootstrap_mirror_security_file}"
+   printf '%s\n' "\
+Types: deb
+URIs: ${dist_build_apt_sources_mirror}
+Suites: ${dist_build_apt_stable_release}
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
+      | sponge "${live_build_parent_bootstrap_mirror_file}"
+   printf '%s\n' "\
+Types: deb
+URIs: ${dist_build_apt_sources_security_mirror}
+Suites: ${dist_build_apt_stable_release}-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
+      | sponge "${live_build_parent_bootstrap_mirror_security_file}"
+
    ## TODO: Should quote...? ${APTGETOPT[*]}
 
    ## NOTE: If changing '--bootappend-live' parameter 'rd.live.overlay.overlayfs=1'
@@ -140,15 +176,15 @@ lb config noauto \\
    --memtest 'memtest86+' \\
    --mirror-binary '${dist_build_apt_sources_mirror}' \\
    --mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
-   --mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
-   --mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
+   --mirror-bootstrap '${live_build_bootstrap_mirror_file}' \\
+   --mirror-bootstrap-security '${live_build_bootstrap_mirror_security_file}' \\
    --mirror-chroot '${dist_build_apt_sources_mirror}' \\
    --mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
    --mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
    --parent-mirror-binary '${dist_build_apt_sources_mirror}' \\
    --parent-mirror-binary-security '${dist_build_apt_sources_security_mirror}' \\
-   --parent-mirror-bootstrap 'deb ${dist_build_apt_sources_mirror} ${dist_build_apt_stable_release} main' \\
-   --parent-mirror-bootstrap-security 'deb ${dist_build_apt_sources_security_mirror} ${dist_build_apt_stable_release}-security main' \\
+   --parent-mirror-bootstrap '${live_build_parent_bootstrap_mirror_file}' \\
+   --parent-mirror-bootstrap-security '${live_build_parent_bootstrap_mirror_security_file}' \\
    --parent-mirror-chroot '${dist_build_apt_sources_mirror}' \\
    --parent-mirror-chroot-security '${dist_build_apt_sources_security_mirror}' \\
    --parent-mirror-debian-installer '${dist_build_apt_sources_mirror}' \\
@@ -181,12 +217,22 @@ lb config noauto \\
 
    ## Apt archives
    mkdir --parents -- archives
-   printf '%s\n' "deb http://127.0.0.1:9977/debian-fasttrack/ ${dist_build_apt_stable_release}-fasttrack main contrib" | sponge -- archives/fasttrack.list.chroot
+   printf '%s\n' "Types: deb
+URIs: http://127.0.0.1:9977/debian-fasttrack/
+Suites: ${dist_build_apt_stable_release}-fasttrack
+Components: main contrib
+Enabled: yes
+Signed-By: /usr/share/keyrings/fasttrack-archive-keyring.gpg" | sponge -- archives/fasttrack.sources.chroot
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
-      printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.list.chroot
+      printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.sources.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    else
-      printf '%s\n' "deb [trusted=yes] file://$(readlink -f "${live_build_localrepo_location}") ${live_build_localrepo_list}" > archives/derivative-localrepo.list.chroot
+      printf '%s\n' "Types: deb
+URIs: file://$(readlink -f "${live_build_localrepo_location}")
+Suites: ${live_build_localrepo_suite}
+Components: ${live_build_localrepo_components}
+Enabled: yes
+Trusted: yes" > archives/derivative-localrepo.sources.chroot
    fi
 
    ## Apt configuration
@@ -272,6 +318,7 @@ Pin-Priority: 900"
          sed -i 's/XXX_GRUB_EFI_SIGNED_XXX//' package-lists/z-kicksecure.list.chroot
          ;;
       i386)
+         ## TODO: Full i386 installations are officially unsupported on Debian Trixie and higher, remove this architecture?
          ## firmware-nonfreedom supported, intel-microcode and amd64-microcode both exist
          ## Yes, amd64-microcode exists on i386.
          ## VirtualBox utilities exist
@@ -281,7 +328,9 @@ Pin-Priority: 900"
          ## has shim-signed
          ## has signed grub-efi
          sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
-         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         ## TODO: No VirtualBox packages available from fasttrack yet
+         #sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX/dummy-dependency-tirdad/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_GRUB_PC_XXX/grub-pc-bin/' package-lists/z-kicksecure.list.chroot
@@ -291,7 +340,9 @@ Pin-Priority: 900"
       amd64)
          ## Supports everything
          sed -i 's/XXX_FIRMWARE_XXX/firmware-nonfreedom/' package-lists/z-kicksecure.list.chroot
-         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         ## TODO: No VirtualBox packages available from fasttrack yet
+         #sed -i 's/XXX_VIRTUALBOX_UTILS_XXX/virtualbox-guest-utils\nvirtualbox-guest-x11/' package-lists/z-kicksecure.list.chroot
+         sed -i 's/XXX_VIRTUALBOX_UTILS_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_DUMMY_TIRDAD_XXX//' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          sed -i 's/XXX_GRUB_PC_XXX/grub-pc-bin/' package-lists/z-kicksecure.list.chroot
@@ -348,6 +399,11 @@ Pin-Priority: 900"
       error "${bold}${red}ERROR: Live build bootstrap stage failed!${reset}"
    fi
 
+   safe-rm -f -- "${live_build_bootstrap_mirror_file}"
+   safe-rm -f -- "${live_build_bootstrap_mirror_security_file}"
+   safe-rm -f -- "${live_build_parent_bootstrap_mirror_file}"
+   safe-rm -f -- "${live_build_parent_bootstrap_mirror_security_file}"
+
    ## TODO: Set this centrally in 'help-steps/variables'? Because 'help-steps/variables' already sets variable 'CHROOT_FOLDER'.
    CHROOT_FOLDER="$(realpath -- chroot)"
    target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-derivative-maker-build.conf"
@@ -380,7 +436,7 @@ Pin-Priority: 900"
 
    if [ "${build_remote_derivative_pkgs}" = 'true' ]; then
       ## Deleting of temporary APT sources list file and keyring.
-      safe-rm -- config/archives/derivative-temp.list.chroot
+      safe-rm -- config/archives/derivative-temp.sources.chroot
       safe-rm -- config/archives/derivative-temp.key.chroot
    fi
 
@@ -421,8 +477,9 @@ Pin-Priority: 900"
    #    error "${bold}${red}ERROR: Live build debian-installer stage failed!${reset}"
    # fi
 
-   ## Get rid of a bad sources.list file, this has approx proxy junk embedded ('http://127.0.0.1/debian' / folder 'build_sources/')
-   $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/etc/apt/sources.list"
+   ## Get rid of bad sources files, they have approx proxy junk embedded ('http://127.0.0.1/debian' / folder 'build_sources/')
+   $SUDO_TO_ROOT safe-rm -f -- "${CHROOT_FOLDER}/etc/apt/sources.list"
+   $SUDO_TO_ROOT safe-rm -f -- "${CHROOT_FOLDER}/etc/apt/sources.list.d"/*
    ## Don't keep recommended packages from installing, apparently live-build's way of doing this ends up persistent!
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/etc/apt/apt.conf.d/00recommends"
    ## Don't force Dracut to make reproducible images, the default is to not use reproducible mode, this is most likely a live-build artifact
@@ -435,9 +492,9 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT safe-rm -- "${CHROOT_FOLDER}/var/lib/security-misc/skip_install_check"
 
    if [ "$(chroot_run dpkg-query --show --showformat='${Status}\n' anon-apt-sources-list)" = 'install ok installed' ]; then
-      ## 'live-build' appropriates file '/etc/apt/sources.list.d/debian.list' and then deletes it.
-      ## Restore the debian.list file.
-      $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/packages/kicksecure/anon-apt-sources-list/etc/apt/sources.list.d/debian.list" "${CHROOT_FOLDER}/etc/apt/sources.list.d/debian.list"
+      ## '/etc/apt/sources.list.d/debian.sources' gets overwritten and then deleted during the build.
+      ## Restore the debian.sources file.
+      $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/packages/kicksecure/anon-apt-sources-list/etc/apt/sources.list.d/debian.sources" "${CHROOT_FOLDER}/etc/apt/sources.list.d/debian.sources"
    fi
 
    ## Run chroot post-install scripts from initializer-dist, TODO consider moving these file removes to there?

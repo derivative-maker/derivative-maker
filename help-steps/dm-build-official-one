@@ -39,11 +39,11 @@ if [ "$CI" = "true" ]; then
 fi
 
 ## Ordered as follows for the following reasons:
-## - 1) Build '--flavor kicksecure-xfce' because building ISO, which is newer,
+## - 1) Build '--flavor kicksecure-lxqt' because building ISO, which is newer,
 ##      therefore more prone to build issues. Error out quicker is better.
-## - 2) Build '--flavor whonix-gateway-xfce' because it is required to be able to
+## - 2) Build '--flavor whonix-gateway-lxqt' because it is required to be able to
 ##      run dm-prepare-release due to unified ova files.
-## - 3) Build '--flavor whonix-workstation-xfce' because it is the most
+## - 3) Build '--flavor whonix-workstation-lxqt' because it is the most
 ##   complex, because of downloading Tor Browser as well as when used with
 ##   '--target windows', because:
 ##     - *_prepare-build-machine downloads VirtualBox-*-Win.exe
@@ -58,21 +58,21 @@ if [ "$CI" = "true" ]; then
 
   ## Build fewer flavors on CI to save build time.
   ## - Specifically cross-builds (using AMD64 to build ARM64) is hitting GitHub CI timeout.
-  ## - It is unlikely that building an Xfce flavor would succeed while the CLI flavor would fail.
+  ## - It is unlikely that building an LXQt flavor would succeed while the CLI flavor would fail.
 #   [ -n "$flavors_list" ] || flavors_list=(
-#     kicksecure-xfce
-#     whonix-gateway-xfce
-#     whonix-workstation-xfce
+#     kicksecure-lxqt
+#     whonix-gateway-lxqt
+#     whonix-workstation-lxqt
 #   )
   [ -n "$flavors_list" ] || flavors_list=(
     kicksecure-cli
   )
 else
   [ -n "$flavors_list" ] || flavors_list=(
-    kicksecure-xfce
+    kicksecure-lxqt
     kicksecure-cli
-    whonix-gateway-xfce
-    whonix-workstation-xfce
+    whonix-gateway-lxqt
+    whonix-workstation-lxqt
     whonix-gateway-cli
     whonix-workstation-cli
   )
@@ -137,7 +137,7 @@ esac
 ## * 2) "${multi_target_args[@]}"
 ## because no ISO should be build for Whonix-Gateway, Whonix-Workstation.
 ## (Maybe in the future for Whonix-Host.)
-## The ISO should only be built for Kicksecure-Xfce for now.
+## The ISO should only be built for Kicksecure-LXQt for now.
 
 for flavor_item in "${flavors_list[@]}"; do
   ## Not yet using multi_target_args as the sanity test for Whonix-Gateway ISO would complain that the VMs
@@ -183,8 +183,8 @@ export dist_build_use_cached_raw_base_image
 ## Build and dm-prepare-release.
 for flavor_item in "${flavors_list[@]}"; do
   case $flavor_item in
-    kicksecure-xfce)
-      ## For now, create an ISO only for Kicksecure Xfce.
+    kicksecure-lxqt)
+      ## For now, create an ISO only for Kicksecure LXQt.
       ## Not for Kicksecure CLI.
       ## Not yet for Whonix.
       true "INFO: ISO build flavor."
@@ -198,15 +198,15 @@ for flavor_item in "${flavors_list[@]}"; do
   run_cmd ./derivative-maker "${build_args[@]}" "${multi_target_args[@]}" --flavor "$flavor_item" "$@"
 done
 
-## Same source code for all of the following: Xfce vs CLI and Kicksecure vs Whonix.
-run_cmd dm-prepare-release --target source --flavor "kicksecure-xfce" "$@"
-run_cmd dm-upload-images --target source --flavor "kicksecure-xfce" "$@"
-run_cmd dm-upload-images --target source --flavor "whonix-workstation-xfce" "$@"
+## Same source code for all of the following: LXQt vs CLI and Kicksecure vs Whonix.
+run_cmd dm-prepare-release --target source --flavor "kicksecure-lxqt" "$@"
+run_cmd dm-upload-images --target source --flavor "kicksecure-lxqt" "$@"
+run_cmd dm-upload-images --target source --flavor "whonix-workstation-lxqt" "$@"
 
 if [ "$architecture" = "amd64" ]; then
   ## Also build the Whonix-Windows-Installer.
-  run_cmd dm-prepare-release --target windows --flavor whonix-workstation-xfce
-  run_cmd dm-upload-images --target windows --flavor whonix-workstation-xfce
+  run_cmd dm-prepare-release --target windows --flavor whonix-workstation-lxqt
+  run_cmd dm-upload-images --target windows --flavor whonix-workstation-lxqt
 fi
 
 ## Uploading.
@@ -217,7 +217,7 @@ for flavor_item in "${flavors_list[@]}"; do
   fi
 
   case $flavor_item in
-    kicksecure-xfce)
+    kicksecure-lxqt)
       true "INFO: ISO build flavor."
       run_cmd dm-upload-images "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"
       ;;

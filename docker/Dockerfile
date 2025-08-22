@@ -1,7 +1,7 @@
 ## Copyright (C) 2025 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-FROM debian:bookworm-slim AS baseimage
+FROM debian:trixie-slim AS baseimage
 
 ENV \
 USER=user \

@@ -6,22 +6,25 @@
 ## `pbuilder` component `/usr/lib/pbuilder/pbuilder-createbuildenv`
 ## unfortunately runs function `installaptlines` after `${DEBOOTSTRAP}`,
 ## which uses a different sources list. This pbuilder hook script restores
-## derivative-maker build APT sources list.
+## derivative-maker build APT sources list.d/debian.sources.
 
 set -x
 set -e
 
 true "${bold}INFO: Currently running $0.${reset}"
 
-echo "$dist_build_sources_list_primary_contents" > "/etc/apt/sources.list"
+echo "$dist_build_sources_list_primary_contents" > "/etc/apt/sources.list.d/debian.sources"
 
 ## Debugging.
-cat -- "/etc/apt/sources.list"
+cat -- "/etc/apt/sources.list.d/debian.sources"
 
-## Delete extraneous, duplicate /etc/apt/sources.list.d/0000debian_stable_current_clearnet.list by mmdebstrap.
+## Delete extraneous, duplicate /etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources by mmdebstrap.
 ## Use --force in case the file does not exist.
 ## - mmdebstrap might start to delete this file itself in a future version.
 ## - A different bootstrap utility is being used such as debootstrap (such as in case for other architecture builds).
 rm --force --verbose -- "$dist_mmdebstrap_build_sources_list_primary"
+
+## Delete obsolete sources.list file
+rm --force --verbose -- /etc/apt/sources.list
 
 true "${bold}INFO: End of script $0.${reset}"
