@@ -54,7 +54,7 @@ path_variable_remove_help_steps
 export PATH="$new_path"
 
 ## Example $@ when called by cowbuilder:
-## --arch=amd64 --include=apt --variant=buildd --force-check-gpg bookworm /var/cache/pbuilder/base.cow_amd64 http://HTTPS///deb.debian.org/debian
+## --arch=amd64 --include=apt --variant=buildd --force-check-gpg trixie /var/cache/pbuilder/base.cow_amd64 http://HTTPS///deb.debian.org/debian
 
 ### }}}
 
@@ -150,9 +150,9 @@ true "FINAL args_filtered: $args_filtered"
 ## mmdebstrap needs 3 positional arguments.
 ## suite buildplace path-to-sources-list
 ## For example when using grml-debootstrap:
-## bookworm /mnt/debootstrap.15557 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
+## trixie /mnt/debootstrap.15557 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.sources
 ## For example when using cowbuilder:
-## bookworm /var/cache/pbuilder/base.cow_amd64 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
+## trixie /var/cache/pbuilder/base.cow_amd64 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.sources
 
 ## - locales:
 ##   XXX: Workaround for:
@@ -179,7 +179,7 @@ if [ "$BUILDPLACE" = "" ]; then
    include_opt="--include=eatmydata,apt-transport-tor,gpg,gpg-agent,fasttrack-archive-keyring,zstd,libpam-systemd,dracut-live"
 
    ## example:
-   ## /home/user/derivative_dot/derivative-maker/help-steps/mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/user/derivative-binary/30_derivative-maker.conf --include=eatmydata,apt-transport-tor,gpg,gpg-agent,fasttrack-archive-keyring bookworm /mnt/debootstrap.33132 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
+   ## /home/user/derivative_dot/derivative-maker/help-steps/mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/user/derivative-binary/30_derivative-maker.conf --include=eatmydata,apt-transport-tor,gpg,gpg-agent,fasttrack-archive-keyring trixie /mnt/debootstrap.33132 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.sources
 else
    ## For cowbuilder.
 
@@ -190,7 +190,7 @@ else
    include_opt="--include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring"
 
    ## example:
-   ## /home/user/derivative-maker/help-steps/mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/user/derivative-binary/30_derivative-maker.conf --include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring bookworm /var/cache/pbuilder/base.cow_amd64 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.list
+   ## /home/user/derivative-maker/help-steps/mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/user/derivative-binary/30_derivative-maker.conf --include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring trixie /var/cache/pbuilder/base.cow_amd64 /home/user/derivative-maker/build_sources/debian_stable_current_clearnet.sources
 fi
 
 ## Sanity tests.
@@ -219,10 +219,10 @@ mmdebstrap \
    --customize-hook='ls -la "$1" || true' \
    --customize-hook='realpath "$1" || true' \
    --customize-hook='echo "----------"' \
-   --customize-hook='cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list" || true' \
+   --customize-hook='cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources" || true' \
    --customize-hook='cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' \
    --customize-hook='echo "----------"' \
-   --customize-hook='rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list"' \
+   --customize-hook='rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources"' \
    --customize-hook='rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' \
    --customize-hook='echo "----------"' \
    --customize-hook='echo "mmdebstrap hooks END"' \
@@ -236,7 +236,7 @@ true "${bold}INFO: End of script: $0 (derivative-maker help-steps/mmdebstrap wra
 ## Example execution when cross-buidling ARM64 on AMD64:
 
 ## pbuilder:
-## + mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/ansible/derivative-binary/30_derivative-maker.conf '--customize-hook=echo "mmdebstrap hooks START"' '--customize-hook=echo "----------"' '--customize-hook=ls -la "$1" || true' '--customize-hook=realpath "$1" || true' '--customize-hook=echo "----------"' '--customize-hook=cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list" || true' '--customize-hook=cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' '--customize-hook=echo "----------"' '--customize-hook=rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list"' '--customize-hook=rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' '--customize-hook=echo "----------"' '--customize-hook=echo "mmdebstrap hooks END"' --include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring bookworm /var/cache/pbuilder/base.cow_amd64 /home/ansible/derivative-maker/build_sources/debian_stable_current_clearnet.list
+## + mmdebstrap --verbose --debug --format directory --variant=required --architectures=amd64 --aptopt=/home/ansible/derivative-binary/30_derivative-maker.conf '--customize-hook=echo "mmdebstrap hooks START"' '--customize-hook=echo "----------"' '--customize-hook=ls -la "$1" || true' '--customize-hook=realpath "$1" || true' '--customize-hook=echo "----------"' '--customize-hook=cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources" || true' '--customize-hook=cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' '--customize-hook=echo "----------"' '--customize-hook=rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources"' '--customize-hook=rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' '--customize-hook=echo "----------"' '--customize-hook=echo "mmdebstrap hooks END"' --include=apt,sudo,devscripts,debhelper,strip-nondeterminism,fakeroot,apt-transport-tor,eatmydata,aptitude,cowdancer,fasttrack-archive-keyring trixie /var/cache/pbuilder/base.cow_amd64 /home/ansible/derivative-maker/build_sources/debian_stable_current_clearnet.sources
 
 ## grml-debootstrap v0.111:
-## + mmdebstrap --verbose --debug --format directory --variant=required --architectures=arm64 --aptopt=/home/ansible/derivative-binary/30_derivative-maker.conf '--customize-hook=echo "mmdebstrap hooks START"' '--customize-hook=echo "----------"' '--customize-hook=ls -la "$1" || true' '--customize-hook=realpath "$1" || true' '--customize-hook=echo "----------"' '--customize-hook=cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list" || true' '--customize-hook=cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' '--customize-hook=echo "----------"' '--customize-hook=rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.list"' '--customize-hook=rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' '--customize-hook=echo "----------"' '--customize-hook=echo "mmdebstrap hooks END"' --include=eatmydata,apt-transport-tor,gpg,gpg-agent,fasttrack-archive-keyring,zstd,libpam-systemd,dracut-live bookworm /mnt/derivative-maker-grml-debootstrap.49847 /home/ansible/derivative-maker/build_sources/debian_stable_current_clearnet.list
+## + mmdebstrap --verbose --debug --format directory --variant=required --architectures=arm64 --aptopt=/home/ansible/derivative-binary/30_derivative-maker.conf '--customize-hook=echo "mmdebstrap hooks START"' '--customize-hook=echo "----------"' '--customize-hook=ls -la "$1" || true' '--customize-hook=realpath "$1" || true' '--customize-hook=echo "----------"' '--customize-hook=cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources" || true' '--customize-hook=cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' '--customize-hook=echo "----------"' '--customize-hook=rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources"' '--customize-hook=rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' '--customize-hook=echo "----------"' '--customize-hook=echo "mmdebstrap hooks END"' --include=eatmydata,apt-transport-tor,gpg,gpg-agent,fasttrack-archive-keyring,zstd,libpam-systemd,dracut-live trixie /mnt/derivative-maker-grml-debootstrap.49847 /home/ansible/derivative-maker/build_sources/debian_stable_current_clearnet.sources

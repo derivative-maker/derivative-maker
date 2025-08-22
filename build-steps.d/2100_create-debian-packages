@@ -5,7 +5,7 @@
 
 ## general example usage:
 
-## TODO: always check packages/kicksecure/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.list first!
+## TODO: always check packages/kicksecure/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.sources first!
 
 ## 1)
 #make_cross_build_platform_list="i386 amd64 arm64" ./build-steps.d/*_cowbuilder-setup --allow-untagged true --allow-uncommitted true --flavor internal --target root
@@ -73,7 +73,9 @@ download_virtualbox_packages_virtualbox_org() {
    available_architectures_for_download_only_list="i386 amd64"
    dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="$source_code_folder_dist/build_sources/oracle_vbox_2016.asc"
-   repo_sources_list="$source_code_folder_dist/build_sources/debian_buster_backport_virtualbox_org.list"
+   ## TODO: The file in the line below doesn't exist and never has, plus
+   ## Buster is very old now.
+   repo_sources_list="$source_code_folder_dist/build_sources/debian_buster_backport_virtualbox_org.sources"
    temp_newer_packages="$binary_build_folder_dist/temp_packages_virtualbox_org"
    ## Not available from that repository but from Debian directly.
    export download_source_package="false"
@@ -104,13 +106,13 @@ download_packages_from_debian_sid() {
    #if [ ! "$dist_build_iso" = "true" ]; then
       #return 0
    #fi
-   ## On Debian bookworm, installing calamares from sid has lead to (dependency or other?) issues
+   ## On Debian trixie, installing calamares from sid has lead to (dependency or other?) issues
    ## A proper backport would be required.
    #if [ "$dist_build_iso" = "true" ]; then
       #newer_package_list="calamares"
    #fi
 
-   #if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "$dist_build_virtualbox" = "true" ]; then
       ## See:
       ## https://forums.whonix.org/t/challenges-installing-virtualbox/9984/7
       ##
@@ -131,7 +133,7 @@ download_packages_from_debian_sid() {
       ## https://www.virtualbox.org/ticket/19751
 
       ## Selected packages we want to mirror from repo_sources_list to derivative local/remote repository.
-      #newer_package_list="virtualbox-guest-additions-iso"
+      newer_package_list="virtualbox-guest-additions-iso"
 
       ## quote debian/changelog
       ## * Drop virtualbox guest modules dkms and sources, as in Ubuntu and Debian,
@@ -142,37 +144,43 @@ download_packages_from_debian_sid() {
       ## please drop virtualbox-guest-dkms virtualbox-guest-source
       ## https://bugs.launchpad.net/ubuntu/+source/virtualbox/+bug/1933248
 
-      #newer_package_list+=" virtualbox "
-      #newer_package_list+=" virtualbox-dkms "
-      #newer_package_list+=" virtualbox-guest-utils "
-      #newer_package_list+=" virtualbox-guest-x11 "
-      #newer_package_list+=" virtualbox-qt "
-      #newer_package_list+=" virtualbox-source "
-      #newer_package_list+=" virtualbox-guest-additions-iso "
-   #fi
+      newer_package_list+=" virtualbox "
+      newer_package_list+=" virtualbox-dkms "
+      newer_package_list+=" virtualbox-guest-utils "
+      newer_package_list+=" virtualbox-guest-x11 "
+      newer_package_list+=" virtualbox-qt "
+      newer_package_list+=" virtualbox-source "
+      newer_package_list+=" virtualbox-guest-additions-iso "
+   fi
 
-   build_run_function get_newer_packages_from_third_party_repositories "$@"
+   if [ -n "${newer_package_list}" ]; then
+      build_run_function get_newer_packages_from_third_party_repositories "$@"
+   fi
 }
 
 ## usage example for manual testing:
-#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target iso --function download_packages_from_debian_bookworm_backports
-download_packages_from_debian_bookworm_backports() {
+#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target iso --function download_packages_from_debian_forky_backports
+download_packages_from_debian_forky_backports() {
    available_architectures_for_download_only_list="all"
    dist_build_special_packages_chroot_script="$dist_source_help_steps_folder/repo_download_chroot_script"
    repo_signing_key="none"
-   repo_sources_list="$dist_build_sources_list_debian_bookworm_backports"
-   temp_newer_packages="$binary_build_folder_dist/temp_packages_debian_bookworm_backports"
+   repo_sources_list="$dist_build_sources_list_debian_forky_backports"
+   temp_newer_packages="$binary_build_folder_dist/temp_packages_debian_forky_backports"
    export download_source_package="false"
 
    newer_package_list=""
 
-   if [ "$dist_build_iso" = "true" ]; then
-      true "INFO: Download package from backports for ISO build..."
-      newer_package_list="calamares"
-   else
-      true "INFO: No packages from backports required for non-ISO builds at this time, skipping, ok."
-      return 0
-   fi
+   ## No need for calamares from debian.backports in Trixie at the moment.
+   #if [ "$dist_build_iso" = "true" ]; then
+   #   true "INFO: Download package from backports for ISO build..."
+   #   newer_package_list="calamares"
+   #else
+   #   true "INFO: No packages from backports required for non-ISO builds at this time, skipping, ok."
+   #   return 0
+   #fi
+
+   true "INFO: No packages from backports required for non-ISO builds at this time, skipping, ok."
+   return 0
 
    build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
@@ -242,9 +250,9 @@ is not included in available_architectures_for_download_only_list: $available_ar
       fi
 
       if [ "$repo_sources_list" = "none" ]; then
-         $SUDO_TO_ROOT safe-rm -f -- "$base_folder/tmp/temporary-repository/newer.list"
+         $SUDO_TO_ROOT safe-rm -f -- "$base_folder/tmp/temporary-repository/newer.sources"
       else
-         $SUDO_TO_ROOT cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.list"
+         $SUDO_TO_ROOT cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.sources"
       fi
 
       $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "$base_folder/tmp/"
@@ -436,8 +444,8 @@ create-debian-packages() {
    fi
 
    #build_run_function download_virtualbox_packages_virtualbox_org "$@"
-   #build_run_function download_packages_from_debian_sid "$@"
-   build_run_function download_packages_from_debian_bookworm_backports "$@"
+   build_run_function download_packages_from_debian_sid "$@"
+   build_run_function download_packages_from_debian_forky_backports "$@"
 
    ## https://www.whonix.org/wiki/Dev/Tor
    ## https://forums.whonix.org/t/tor-integration-in-whonix/10593/57

@@ -47,12 +47,12 @@ create-debian-raw-image() {
    true "${cyan}$BASH_SOURCE INFO: Architecture $ARCH detected.${reset}"
    true "${cyan}INFO: dist_build_target_arch set to: $dist_build_target_arch${reset}"
 
-   $SUDO_TO_ROOT mkdir --parents "/etc/debootstrap/etc/apt/"
-   $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list"
+   $SUDO_TO_ROOT mkdir --parents "/etc/debootstrap/etc/apt/sources.list.d"
+   $SUDO_TO_ROOT cp "$dist_build_sources_list_primary" "/etc/debootstrap/etc/apt/sources.list.d/derivative.sources"
 
    ## Info.
-   true "${cyan}INFO: Using the following /etc/apt/sources.list for grml-debootstrap: ${reset}"
-   $SUDO_TO_ROOT cat "/etc/debootstrap/etc/apt/sources.list"
+   true "${cyan}INFO: Using the following /etc/apt/sources.list.d/derivative.sources for grml-debootstrap: ${reset}"
+   $SUDO_TO_ROOT cat "/etc/debootstrap/etc/apt/sources.list.d/derivative.sources"
 
    ## TODO
    ## /etc/resolv.conf of host leaks into image.
@@ -154,8 +154,8 @@ create-debian-raw-image() {
    ## - Cannot be combined with mmdebstrap.
    ## - Cannot bootstrap from multiple (regular and security) repositories
    ##   at the same time aka "multistrap".
-   ## - Does not support APT sources in a sources.list file such as for example
-   ##   build_sources/debian_stable_current_clearnet.list
+   ## - Does not support APT sources in a sources  file such as for example
+   ##   build_sources/debian_stable_current_clearnet.sources
    ##   (variable: dist_build_sources_list_primary)
    ##   but requires an APT URI such as for example.
    ##   http://HTTPS///deb.debian.org/debian
@@ -224,33 +224,6 @@ create-debian-raw-image() {
                   --packages "$grml_packages_file" \
                   --mntpoint "$dist_grml_mount_point" \
                   --target "$binary_image_raw_file"
-
-   ## Change the partition type of the root partition so systemd identifies it
-   ## as a root partition.
-   ##
-   ## The type code used for the root partition differs depending on machine
-   ## architecture. See
-   ## https://www.toomanyatoms.com/computer/gpt_partition_type_guids.html for
-   ## info on what code to use for which architecture.
-   ##
-   ## grml-debootstrap's generated partition layout will also depend on the
-   ## architecture, so we may have to change a different partition depending
-   ## on the CPU type we're building for.
-   ##
-   ## TODO: Remove once ported to Trixie, as grml-debootstrap will do this for
-   ## us then. We have to do this ourselves for now, since grml-debootstrap
-   ## uses parted to do this step and parted lacks the necessary command for
-   ## changing a partition type UUID in Bookworm.
-
-   type_code=""
-   case "$dist_build_target_arch" in
-      amd64)
-         $SUDO_TO_ROOT sgdisk --typecode='3:4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709' "$binary_image_raw_file"
-         ;;
-      arm64)
-         $SUDO_TO_ROOT sgdisk --typecode='2:B921B045-1DF0-41C3-AF44-4C6F280D3FAE' "$binary_image_raw_file"
-         ;;
-   esac
 }
 
 create-empty-raw-image() {
