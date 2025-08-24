@@ -237,10 +237,6 @@ install-packages() {
 #       chroot_run initramfs-debug-enable
 #    fi
 
-   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
-      true "INFO: Prevent running initramfs-tools needlessly. Will be run at the end. This is only to speed up the build."
-      export INITRD=No
-   fi
    if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
       $SUDO_TO_ROOT -- mkdir --parents -- "$(dirname "$target_dracut_disable_config_snippet")"
@@ -461,12 +457,6 @@ $dist_build_script_skip_package_install${reset}"
    ## Related to systemd-repart configuration.
    ## Hard dependency on package 'initializer-dist'.
    chroot_run /usr/libexec/initializer-dist/75_growfs
-
-   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q initramfs-tools ; then
-      true "INFO: Undo above 'export INITRD=No' by unsetting the INITRD environment variable. In other words, allow running initramfs-tools."
-      unset INITRD
-      chroot_run update-initramfs -u
-   fi
 
    if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
