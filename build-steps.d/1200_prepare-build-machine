@@ -85,6 +85,11 @@ build_machine_setup() {
    #git -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge
    #true "INFO: Updated git sub modules."
 
+   ## TODO: remove after porting to Debian trixie
+   $SUDO_TO_ROOT repository-dist --disable || true
+   $SUDO_TO_ROOT safe-rm -f -- /etc/apt/sources.list.d/extrepo_kicksecure.sources
+   $SUDO_TO_ROOT "$str_replace_many_tool" bookworm trixie /etc/apt/sources.list.d/* || true
+
    $SUDO_TO_ROOT \
       apt-get \
          "${APTGETOPT[@]}" \
@@ -92,6 +97,7 @@ build_machine_setup() {
          -o Dir::Etc::sourceparts="-" \
          update
 
+   true "dist_build_upgrade_build_machine: $dist_build_upgrade_build_machine"
    if [ ! "$dist_build_upgrade_build_machine" = "0" ]; then
       ## Update package lists and upgrade.
       $SUDO_TO_ROOT \
