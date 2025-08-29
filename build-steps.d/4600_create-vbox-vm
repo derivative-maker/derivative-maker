@@ -307,6 +307,7 @@ whonix-gateway_specific() {
    ## Disable Audio
    ## was: --audio none
    $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-driver=none
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-enabled=off
 
    ## Leave Adapter 1 as NAT.
    $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --nic1 nat
@@ -360,14 +361,17 @@ audio_enable() {
    ## ac97:
    ## Older. Issues have been reported:
    ## https://forums.whonix.org/t/choppy-sound-on-workstation-change-virtualbox-audio-settings-to-virtualbox-defaults-ac97-versus-intel-hd/17876
-   ## But overall still better than Intel HD in combination with PipeWire.
+   ## But overall was still better than Intel HD in combination with PipeWire.
+   ## As of 2025-08-29, ac97 is now playing back audio at below-normal speeds and pitches.
    ##
    ## hda:
    ## Completely broken in combination with PipeWire.
    ## https://forums.whonix.org/t/virtualbox-intel-hd-audio-and-pipewire-incompatibility-audio-broken-after-increasing-ram-to-5-gb-no-sound-after-latest-updates-pipewire-bug/18211
    ## https://gitlab.freedesktop.org/pipewire/pipewire/-/issues/4263
-   #$SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-controller=hda
-   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-controller=ac97
+   #
+   ## These issues now seem to be resolved, thus Intel HD is better than ac97 for the time being.
+   #$SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-controller=ac97
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-controller=hda
 
    ## Host audio driver can be oss, alsa or pulse.
    ## Unfortunately, no auto detection available.
