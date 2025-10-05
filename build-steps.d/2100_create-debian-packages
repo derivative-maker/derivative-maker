@@ -5,8 +5,6 @@
 
 ## general example usage:
 
-## TODO: always check packages/kicksecure/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.sources first!
-
 ## 1)
 #make_cross_build_platform_list="i386 amd64 arm64" ./build-steps.d/*_cowbuilder-setup --allow-untagged true --allow-uncommitted true --flavor internal --target root
 
@@ -17,7 +15,9 @@
 
 #make_cross_build_platform_list="i386 amd64 arm64" ./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target root --function download_tpo_packages
 
-#temp_newer_packages=~/derivative-binary/temp_packages_tpo ./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target virtualbox --function reprepro_add_newer_packages_from_third_party_repositories
+#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target virtualbox --function download_packages_from_debian_sid
+
+## TODO: always check packages/kicksecure/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.sources first!
 
 set -x
 set -e
@@ -55,8 +55,6 @@ download_tpo_packages() {
    build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
-## https://forums.whonix.org/t/missing-dependencies-on-buster-for-virtualbox-6-1-6/9634
-#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target virtualbox --function download_virtualbox_packages_virtualbox_org
 download_virtualbox_packages_virtualbox_org() {
    ## Only when using '--target virtualbox'.
    if [ ! "$dist_build_virtualbox" = "true" ]; then
@@ -90,13 +88,6 @@ download_virtualbox_packages_virtualbox_org() {
    build_run_function get_newer_packages_from_third_party_repositories "$@"
 }
 
-## NEW usage example for manual testing:
-#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target iso --function download_packages_from_debian_sid
-##
-## OLD usage examples:
-#./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target virtualbox --function download_packages_from_debian_sid
-#
-#dist_build_apt_codename=trixie-developers ./build-steps.d/*_create-debian-packages --allow-untagged true --allow-uncommitted true --flavor internal --target virtualbox --function download_packages_from_debian_sid
 download_packages_from_debian_sid() {
    ## Using 'sid' instead of 'unstable'.
    ## github.com/grml/grml-debootstrap/issues/37
