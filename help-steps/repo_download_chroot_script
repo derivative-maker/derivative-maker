@@ -20,6 +20,8 @@ fi
 
 #declare -p | awk '{print $3}' | sort
 
+[ -n "$TEMPDIR" ] || TEMPDIR="/tmp"
+
 ## Debugging.
 cat "/home/$user_name/pbuilder_config_file"
 
@@ -34,15 +36,15 @@ true "---------------"
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
 printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
 
-test -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources"
+test -f "${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources"
 
-cat -- "$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources"
+cat -- "${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources"
 
 ## Delete the binary version in case it is there.
 rm -f -- "/etc/apt/trusted.gpg.d/newer.asc"
 
-if [ -f "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" ]; then
-   cp --verbose "$if_no_pbuilder_base_folder/tmp/temporary-repository/repo_signing_key.asc" "/etc/apt/trusted.gpg.d/newer.asc"
+if [ -f "${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/repo_signing_key.asc" ]; then
+   cp --verbose "${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/repo_signing_key.asc" "/etc/apt/trusted.gpg.d/newer.asc"
    ## Fix for:
    ## The key(s) in the keyring /etc/apt/trusted.gpg.d/newer.asc are ignored as the file is not readable by user '_apt' executing apt-key.
    chmod o+r "/etc/apt/trusted.gpg.d/newer.asc"
@@ -62,29 +64,29 @@ for architecture in $architecture_list ; do
    dpkg --add-architecture "$architecture"
 done
 
-mkdir --parents -- "$if_no_pbuilder_base_folder/tmp/temporary-repository/state"
+mkdir --parents -- "${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state"
 
 apt-get \
    "${APTGETOPT[@]}" \
    $apt_unattended_opts \
-   -o Dir::State::lists="$if_no_pbuilder_base_folder/tmp/temporary-repository/state" \
-   -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources" \
+   -o Dir::State::lists="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state" \
+   -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources" \
    -o Dir::Etc::sourceparts="-" \
    update
 
 # apt-cache \
 #    "${APTGETOPT[@]}" \
 #    $apt_unattended_opts \
-#   -o Dir::State::lists="$if_no_pbuilder_base_folder/tmp/temporary-repository/state" \
-#    -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources" \
+#   -o Dir::State::lists="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state" \
+#    -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources" \
 #    -o Dir::Etc::sourceparts="-" \
 #    show $newer_package_list || true
 
 #apt-config \
    #"${APTGETOPT[@]}" \
    #$apt_unattended_opts \
-   #-o Dir::State::lists="$if_no_pbuilder_base_folder/tmp/temporary-repository/state" \
-   #-o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources" \
+   #-o Dir::State::lists="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state" \
+   #-o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources" \
    #-o Dir::Etc::sourceparts="-"
    #dump
 
@@ -93,8 +95,8 @@ apt-get \
 apt-get \
    "${APTGETOPT[@]}" \
    $apt_unattended_opts \
-   -o Dir::State::lists="$if_no_pbuilder_base_folder/tmp/temporary-repository/state" \
-   -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources" \
+   -o Dir::State::lists="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state" \
+   -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources" \
    -o Dir::Etc::sourceparts="-" \
    download \
    $newer_package_list
@@ -105,8 +107,8 @@ if [ "$download_source_package" = "true" ]; then
       $apt_unattended_opts \
       --yes \
       --download-only \
-      -o Dir::State::lists="$if_no_pbuilder_base_folder/tmp/temporary-repository/state" \
-      -o Dir::Etc::sourcelist="$if_no_pbuilder_base_folder/tmp/temporary-repository/newer.sources" \
+      -o Dir::State::lists="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/state" \
+      -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/${TEMPDIR}/temporary-repository/newer.sources" \
       -o Dir::Etc::sourceparts="-" \
       source \
       $newer_package_list
