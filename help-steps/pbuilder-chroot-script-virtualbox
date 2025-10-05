@@ -65,23 +65,29 @@ printf '%s\n' "--------------------"
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
 printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
 
+## NOTE: Code duplication in build-step prepare-build-machine
+## NOTE: Code duplication in help-step pbuilder-chroot-script-virtualbox
 dist_installer_cli_arguments=()
 dist_installer_cli_arguments+=("--non-interactive")
 dist_installer_cli_arguments+=("--virtualbox-only")
 dist_installer_cli_arguments+=("--log-level=debug")
-## Speed up the build.
-## Running 'apt-get update' is pointless as this is a freshly created chroot.
-## TODO: Disabled because `apt-get update` is actually needed to fetch
-## VirtualBox from Debian Sid repo. Uncomment when we switch back to
-## fasttrack.
+## Speed up the build? Not possible.
+## `apt-get update` is actually needed to fetch
+## VirtualBox from Debian 'unstable' repository.
+## Option '--noupdate' should is not safe here, because if the installer adds a repository,
+## then running 'apt update' is crucial for APT to learn about the new packages.
 #dist_installer_cli_arguments+=("--noupdate")
+##
+## Run virtualbox-installer with '--noupgrade' because the system has been updated earlier.
+## This is to avoid a race condition where an update is made available shortly after
+## to avoid breaking the build.
+dist_installer_cli_arguments+=("--noupgrade")
+dist_installer_cli_arguments+=("--ci")
 ## Redundant.
 dist_installer_cli_arguments+=("--no-boot")
 ## Redundant.
 dist_installer_cli_arguments+=("--no-import")
-
-## If needed, should enable the approx proxy version of it manually.
-#dist_installer_cli_arguments+=("--oracle-repo")
+## NOTE: End code duplication.
 
 success="true"
 if ! sudo --non-interactive -u "$user_name" APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" bash -x /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then

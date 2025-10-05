@@ -315,16 +315,37 @@ virtualbox-installation() {
    true "INFO: Checking if VirtualBox is already installed..."
    if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
       true "INFO: virtualbox is already installed."
+      return 0
    elif virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox-7.2")" ; then
       true "INFO: virtualbox-7.2 is already installed."
-   else
-      ## Run virtualbox-installer with '--noupgrade' because the system has been updated earlier.
-      ## This is to avoid a race condition where an update is made available shortly after
-      ## to avoid breaking the build.
-      ## Option '--noupdate' should is not safe here, because if the installer adds a repository,
-      ## then running 'apt update' is crucial for APT to learn about the new packages.
-      "$binary_image_installer_dist_source" --non-interactive --virtualbox-only --log-level=debug --noupgrade --ci
+      return 0
    fi
+
+   ## NOTE: Code duplication in build-step prepare-build-machine
+   ## NOTE: Code duplication in help-step pbuilder-chroot-script-virtualbox
+   dist_installer_cli_arguments=()
+   dist_installer_cli_arguments+=("--non-interactive")
+   dist_installer_cli_arguments+=("--virtualbox-only")
+   dist_installer_cli_arguments+=("--log-level=debug")
+   ## Speed up the build? Not possible.
+   ## `apt-get update` is actually needed to fetch
+   ## VirtualBox from Debian 'unstable' repository.
+   ## Option '--noupdate' should is not safe here, because if the installer adds a repository,
+   ## then running 'apt update' is crucial for APT to learn about the new packages.
+   #dist_installer_cli_arguments+=("--noupdate")
+   ##
+   ## Run virtualbox-installer with '--noupgrade' because the system has been updated earlier.
+   ## This is to avoid a race condition where an update is made available shortly after
+   ## to avoid breaking the build.
+   dist_installer_cli_arguments+=("--noupgrade")
+   dist_installer_cli_arguments+=("--ci")
+   ## Redundant.
+   dist_installer_cli_arguments+=("--no-boot")
+   ## Redundant.
+   dist_installer_cli_arguments+=("--no-import")
+   ## NOTE: End code duplication.
+
+   "$binary_image_installer_dist_source" "${dist_installer_cli_arguments[@]}"
 
    true
 }
