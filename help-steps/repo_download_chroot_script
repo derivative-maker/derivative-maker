@@ -55,6 +55,15 @@ if [ "$temp_newer_packages" = "" ]; then
    exit 1
 fi
 
+if [ "$apt_target_release" = "" ]; then
+   echo "ERROR $0: apt_target_release is empty!"
+   exit 1
+elif [ "$apt_target_release" = "none" ]; then
+   target_release_option=""
+else
+   target_release_option="--target-release=${apt_target_release}"
+fi
+
 pushd "$temp_newer_packages"
 
 ## Use dpkg multiarch so we can download other architectures than the build host's one using apt-get.
@@ -62,12 +71,10 @@ for architecture in $architecture_list ; do
    dpkg --add-architecture "$architecture"
 done
 
-mkdir --parents -- "${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state"
-
 apt-get \
    "${APTGETOPT[@]}" \
    $apt_unattended_opts \
-   -o Dir::State::lists="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state" \
+   $target_release_option \
    -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources" \
    -o Dir::Etc::sourceparts="-" \
    update
@@ -75,7 +82,7 @@ apt-get \
 # apt-cache \
 #    "${APTGETOPT[@]}" \
 #    $apt_unattended_opts \
-#   -o Dir::State::lists="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state" \
+#    $target_release_option \
 #    -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources" \
 #    -o Dir::Etc::sourceparts="-" \
 #    show $newer_package_list || true
@@ -83,7 +90,7 @@ apt-get \
 #apt-config \
    #"${APTGETOPT[@]}" \
    #$apt_unattended_opts \
-   #-o Dir::State::lists="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state" \
+   #$target_release_option \
    #-o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources" \
    #-o Dir::Etc::sourceparts="-"
    #dump
@@ -93,7 +100,7 @@ apt-get \
 apt-get \
    "${APTGETOPT[@]}" \
    $apt_unattended_opts \
-   -o Dir::State::lists="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state" \
+   $target_release_option \
    -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources" \
    -o Dir::Etc::sourceparts="-" \
    download \
@@ -103,9 +110,9 @@ if [ "$download_source_package" = "true" ]; then
    apt-get \
       "${APTGETOPT[@]}" \
       $apt_unattended_opts \
+      $target_release_option \
       --yes \
       --download-only \
-      -o Dir::State::lists="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/state" \
       -o Dir::Etc::sourcelist="${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources" \
       -o Dir::Etc::sourceparts="-" \
       source \
