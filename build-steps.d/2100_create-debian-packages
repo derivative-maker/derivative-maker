@@ -232,32 +232,32 @@ is not included in available_architectures_for_download_only_list: $available_ar
          ## base_folder
          set_cowbuilder_folders
 
-         $SUDO_TO_ROOT test -d "$base_folder"
-         $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
+         $SUDO_TO_ROOT test -d "${base_folder}"
+         $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "${base_folder}"
       else
          base_folder="$binary_build_folder_dist/no-pbuilder/base"
          ## Not needed. For completeness sake. Just in case.
          cow_folder="$binary_build_folder_dist/no-pbuilder/cow"
 
-         if_no_pbuilder_base_folder="$base_folder"
+         if_no_pbuilder_base_folder="${base_folder}"
          export if_no_pbuilder_base_folder
       fi
 
-      $SUDO_TO_ROOT mkdir -p "$base_folder/tmp/temporary-repository"
+      $SUDO_TO_ROOT mkdir -p "${base_folder}/${TEMPDIR}/temporary-repository"
 
       if [ "$repo_signing_key" = "none" ]; then
-         $SUDO_TO_ROOT safe-rm -f -- "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
+         $SUDO_TO_ROOT safe-rm -f -- "${base_folder}/${TEMPDIR}/temporary-repository/repo_signing_key.asc"
       else
-         $SUDO_TO_ROOT cp "$repo_signing_key" "$base_folder/tmp/temporary-repository/repo_signing_key.asc"
+         $SUDO_TO_ROOT cp "$repo_signing_key" "${base_folder}/${TEMPDIR}/temporary-repository/repo_signing_key.asc"
       fi
 
       if [ "$repo_sources_list" = "none" ]; then
-         $SUDO_TO_ROOT safe-rm -f -- "$base_folder/tmp/temporary-repository/newer.sources"
+         $SUDO_TO_ROOT safe-rm -f -- "${base_folder}/${TEMPDIR}/temporary-repository/newer.sources"
       else
-         $SUDO_TO_ROOT cp "$repo_sources_list" "$base_folder/tmp/temporary-repository/newer.sources"
+         $SUDO_TO_ROOT cp "$repo_sources_list" "${base_folder}/${TEMPDIR}/temporary-repository/newer.sources"
       fi
 
-      $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "$base_folder/tmp/"
+      $SUDO_TO_ROOT cp "$dist_build_pbuilder_config_file" "${base_folder}/${TEMPDIR}/"
 
       local benchmark_time_start benchmark_took_time
       benchmark_time_start="$(date +%s)" || true
@@ -275,13 +275,13 @@ is not included in available_architectures_for_download_only_list: $available_ar
                      --architecture "$dist_build_target_arch" \
                      --configfile "$dist_build_pbuilder_config_file" \
                      --execute "$dist_build_special_packages_chroot_script" \
-                     --basepath "$base_folder" \
+                     --basepath "${base_folder}" \
                      --buildplace "$cow_folder" \
                      --bindmounts "$temp_newer_packages" \
                      || { dist_build_download_script_exit_code="$?" ; true; };
 
-            if [ -d "$base_folder" ]; then
-               $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
+            if [ -d "${base_folder}" ]; then
+               $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "${base_folder}"
             fi
       else
          export newer_package_list
