@@ -479,71 +479,6 @@ grml-debootstrap_installation() {
    true
 }
 
-packages_installation_from_newer_check() {
-   local package_item
-   for package_item in $dist_build_script_build_dependency_debian_testing ; do
-      dpkg --list | grep --fixed-strings -- "$package_item"
-   done
-}
-
-packages_installation_from_newer_repository() {
-   if [ ! "$dist_build_windows_installer" = "true" ]; then
-      true "INFO: No packages from testing are currently required if not building Windows Installer."
-      return 0
-   fi
-
-   ## TODO: No longer required on Debian trixie?
-
-   ## Hardcoding the versioned package name fp-units-win-rtl-3.2.2 is being avoided.
-   ## fp-units-win-rtl is a virtual package.
-   ## It is not possible to directly check if a virtual package is already installed.
-   ## This is because virtual package are not actually installed.
-   local real_fp_units_win_rtl_package
-   #real_fp_units_win_rtl_package=$(grep-status --field=Provides,Package --show-field=Package,Provides,Status "fp-units-win-rtl" | grep --fixed-strings -- "Package:" | cut --delimiter=" " -f2) || true
-   real_fp_units_win_rtl_package=$(grep-status --field=Package --show-field=Package "fp-units-win-rtl" | grep --fixed-strings -- "Package:" | cut --delimiter=" " -f2) || true
-   ## example real_fp_units_win_rtl_package:
-   ## fp-units-win-rtl-3.2.2
-
-   if [ "$real_fp_units_win_rtl_package" = "" ]; then
-      ## Fallback. This will result in the 'dpkg --status' command to fail,
-      ## which will then result in package installation.
-      real_fp_units_win_rtl_package="fp-units-win-rtl"
-   fi
-
-   local without_virtual_rtl
-   without_virtual_rtl=$(echo "$dist_build_script_build_dependency_debian_testing" | $str_replace_tool "fp-units-win-rtl" "")
-
-   local with_real_package_rtl
-   with_real_package_rtl="$without_virtual_rtl $real_fp_units_win_rtl_package"
-
-   ## Avoid running "apt-get update" again from testing repository if all dependencies are already installed.
-   if dpkg --status $with_real_package_rtl >/dev/null ; then
-      true "INFO: All packages required for building Windows Installer are already installed."
-      packages_installation_from_newer_check
-      return 0
-   fi
-
-   $SUDO_TO_ROOT \
-      apt-get \
-         "${APTGETOPT[@]}" \
-         -o Dir::Etc::sourcelist="$dist_build_sources_list_newer" \
-         -o Dir::Etc::sourceparts="-" \
-         update
-
-   $SUDO_TO_ROOT \
-      apt-get \
-         "${APTGETOPT[@]}" \
-         -o Dir::Etc::sourcelist="$dist_build_sources_list_newer" \
-         -o Dir::Etc::sourceparts="-" \
-         $apt_unattended_opts \
-         --no-install-recommends \
-         --yes \
-         install \
-         $dist_build_script_build_dependency_debian_testing
-
-   packages_installation_from_newer_check
-}
-
 packages_installation_from_backports_repository() {
    if [ "$dist_build_script_build_dependency_debian_backports" = "" ]; then
       return 0
@@ -642,7 +577,6 @@ main() {
    check-virtualbox-installed "$@"
    check-vm-exists "$@"
    grml-debootstrap_installation "$@"
-   packages_installation_from_newer_repository "$@"
    packages_installation_from_backports_repository "$@"
    signing_key "$@"
    sudo_setup "$@"
