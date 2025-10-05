@@ -241,6 +241,11 @@ check-stray-mounts() {
 
    local chroot_folder_base_name proc_mounts_grep_result
 
+   if [ "$CHROOT_FOLDER" = "" ]; then
+      true "INFO: CHROOT_FOLDER variable is empty (probably --target root). Skip test for stray mounts, OK."
+      return 0
+   fi
+
    chroot_folder_base_name="$(basename "$CHROOT_FOLDER")"
 
    proc_mounts_grep_result=$($SUDO_TO_ROOT cat /proc/mounts | grep -i -- "$chroot_folder_base_name") || true
