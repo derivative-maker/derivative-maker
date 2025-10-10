@@ -111,7 +111,7 @@ download_packages_from_debian_sid() {
       #newer_package_list="calamares"
    #fi
 
-   if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "$dist_build_virtualbox" = "true" ] || [ "$dist_build_iso" = "true" ]; then
       ## See:
       ## https://forums.whonix.org/t/challenges-installing-virtualbox/9984/7
       ##
@@ -132,7 +132,6 @@ download_packages_from_debian_sid() {
       ## https://www.virtualbox.org/ticket/19751
 
       ## Selected packages we want to mirror from repo_sources_list to derivative local/remote repository.
-      newer_package_list="virtualbox-guest-additions-iso"
 
       ## quote debian/changelog
       ## * Drop virtualbox guest modules dkms and sources, as in Ubuntu and Debian,
@@ -143,13 +142,20 @@ download_packages_from_debian_sid() {
       ## please drop virtualbox-guest-dkms virtualbox-guest-source
       ## https://bugs.launchpad.net/ubuntu/+source/virtualbox/+bug/1933248
 
-      newer_package_list+=" virtualbox "
-      newer_package_list+=" virtualbox-dkms "
-      newer_package_list+=" virtualbox-guest-utils "
-      newer_package_list+=" virtualbox-guest-x11 "
-      newer_package_list+=" virtualbox-qt "
-      newer_package_list+=" virtualbox-source "
-      newer_package_list+=" virtualbox-guest-additions-iso "
+      newer_package_list="virtualbox-guest-additions-iso"
+
+      if [ "$dist_build_target_arch" = "amd64" ] || [ "$dist_build_target_arch" = "i386" ]; then
+         newer_package_list+=" virtualbox-guest-utils "
+         newer_package_list+=" virtualbox-guest-x11 "
+
+         if [ "$dist_build_virtualbox" = "true" ]; then
+            ## These packages are not needed for the ISO.
+            newer_package_list+=" virtualbox "
+            newer_package_list+=" virtualbox-dkms "
+            newer_package_list+=" virtualbox-qt "
+            newer_package_list+=" virtualbox-source "
+         fi
+      fi
    fi
 
    if [ -n "${newer_package_list}" ]; then
