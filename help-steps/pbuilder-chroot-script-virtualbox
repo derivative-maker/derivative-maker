@@ -29,42 +29,35 @@ cat "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
-## XXX
-user_name="dm-vbox-temp"
-
 ## virtualbox-installer / dist-installer-cli refuses to run as 'root'.
 ## Hence run virtualbox-installer / dist-installer-cli under account 'dm-vbox-temp'.
-
-## TODO: remove
-#adduser --quiet --group --system --home "/home/$user_name" "$user_name"
-#usermod -d "/home/$user_name" "$user_name"
-
-chown --recursive -- "$user_name" "/home/$user_name"
-
-adduser "$user_name" sudo
-printf "%s\n" "$user_name ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f "/etc/sudoers.d/${user_name}_nopassword" >/dev/null
 
 ## {{ code duplication
 ##    - prepare-build-machine
 ##    - pbuilder-chroot-script-virtualbox
-adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "$user_name"
+adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "dm-vbox-temp" || true
 mkdir --parents -- "$HOMEVAR_VBOX_TEMP"
-chown --recursive -- "$user_name:$user_name" "$HOMEVAR_VBOX_TEMP"
+chown --recursive -- "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP"
 ## Debugging.
-groups -- "$user_name" || true
+groups -- "dm-vbox-temp" || true
 ls -la -- "$HOMEVAR_VBOX_TEMP"
 ## Sanity test.
 test -d "/"
 ls -la -- "$HOMEVAR_VBOX_TEMP"
 ## }}
 
+chown --recursive -- "dm-vbox-temp" "/home/dm-vbox-temp"
+
+adduser "dm-vbox-temp" sudo
+printf "%s\n" "dm-vbox-temp ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f "/etc/sudoers.d/dm-vbox-temp_nopassword" >/dev/null
+
 ## Debugging.
 ## sudo test.
 sudo --non-interactive test -d /usr
 
 ## Debugging.
-sudo --non-interactive -u "$user_name" -- test -x /usr/bin/dist-installer-cli-standalone
-sudo --non-interactive -u "$user_name" -- ls -la /usr/bin/dist-installer-cli-standalone
+sudo --non-interactive -u "dm-vbox-temp" -- test -x /usr/bin/dist-installer-cli-standalone
+sudo --non-interactive -u "dm-vbox-temp" -- ls -la /usr/bin/dist-installer-cli-standalone
 
 printf '%s\n' "APTGETOPT_SERIALIZED:"
 printf '%s\n' "--------------------"
@@ -101,20 +94,20 @@ dist_installer_cli_arguments+=("--no-import")
 
 success="true"
 ## virtualbox-installer / dist-installer-cli
-if ! sudo --non-interactive -u "$user_name" APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" bash -x /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
+if ! sudo --non-interactive -u "dm-vbox-temp" APTGETOPT_SERIALIZED="$APTGETOPT_SERIALIZED" bash -x /usr/bin/dist-installer-cli-standalone "${dist_installer_cli_arguments[@]}" ; then
   success=false
 fi
 
-#last_run_integer="$(printf '%s ' "/home/$user_name/dist-installer-cli-download/logs/"/* | awk '{print NF}')"
+#last_run_integer="$(printf '%s ' "/home/dm-vbox-temp/dist-installer-cli-download/logs/"/* | awk '{print NF}')"
 
 ## Debugging.
-ls -la -- "/home/$user_name/dist-installer-cli-download" || true
-#ls -la -- "/home/$user_name/dist-installer-cli-download/logs" || true
-#ls -la -- "/home/$user_name/dist-installer-cli-download/logs/$last_run_integer" || true
+ls -la -- "/home/dm-vbox-temp/dist-installer-cli-download" || true
+#ls -la -- "/home/dm-vbox-temp/dist-installer-cli-download/logs" || true
+#ls -la -- "/home/dm-vbox-temp/dist-installer-cli-download/logs/$last_run_integer" || true
 
 ## No longer required because running 'dist-installer-cli-standalone' using 'bash -x'.
-#cat -- "/home/$user_name/dist-installer-cli-download/logs/$last_run_integer/debug.log"
-#cat -- "/home/$user_name/dist-installer-cli-download/logs/$last_run_integer/user.log"
+#cat -- "/home/dm-vbox-temp/dist-installer-cli-download/logs/$last_run_integer/debug.log"
+#cat -- "/home/dm-vbox-temp/dist-installer-cli-download/logs/$last_run_integer/user.log"
 
 true "INFO: dist-installer-cli-standalone success: $success"
 if [ "$success" = "false" ];then
@@ -124,6 +117,6 @@ fi
 ## Check if VirtualBox really got installed.
 command -v vboxmanage >/dev/null
 
-rm -f -- "/etc/sudoers.d/${user_name}_nopassword"
+rm -f -- "/etc/sudoers.d/dm-vbox-temp_nopassword"
 
 true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"
