@@ -29,6 +29,12 @@ cat "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
+## XXX
+user_name="dm-vbox-temp"
+
+## virtualbox-installer / dist-installer-cli refuses to run as 'root'.
+## Hence run virtualbox-installer / dist-installer-cli under account 'dm-vbox-temp'.
+
 ## TODO: remove
 #adduser --quiet --group --system --home "/home/$user_name" "$user_name"
 #usermod -d "/home/$user_name" "$user_name"
@@ -36,16 +42,16 @@ source "/home/$user_name/pbuilder_config_file"
 chown --recursive -- "$user_name" "/home/$user_name"
 
 adduser "$user_name" sudo
-printf "%s\n" "$user_name ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f /etc/sudoers.d/nopassword >/dev/null
+printf "%s\n" "$user_name ALL=(ALL:ALL) NOPASSWD:ALL" | SUDO_EDITOR="" VISUAL="" EDITOR=tee visudo -f "/etc/sudoers.d/${user_name}_nopassword" >/dev/null
 
 ## {{ code duplication
 ##    - prepare-build-machine
 ##    - pbuilder-chroot-script-virtualbox
-adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "dm-vbox-temp"
+adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "$user_name"
 mkdir --parents -- "$HOMEVAR_VBOX_TEMP"
-chown --recursive -- "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP"
+chown --recursive -- "$user_name:$user_name" "$HOMEVAR_VBOX_TEMP"
 ## Debugging.
-groups -- "dm-vbox-temp" || true
+groups -- "$user_name" || true
 ls -la -- "$HOMEVAR_VBOX_TEMP"
 ## Sanity test.
 test -d "/"
@@ -117,5 +123,7 @@ fi
 
 ## Check if VirtualBox really got installed.
 command -v vboxmanage >/dev/null
+
+rm -f -- "/etc/sudoers.d/${user_name}_nopassword"
 
 true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"
