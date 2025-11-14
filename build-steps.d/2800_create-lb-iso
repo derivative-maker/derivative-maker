@@ -143,6 +143,9 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
    ##       also update at the same time grub-live:
    ##       /usr/lib/systemd/system/systemd-repart.service.d/30_grub-live.conf
 
+   ## Sanity test.
+   test -n "${dist_build_hostname}"
+
    printf '%s\n' "#!/bin/sh
 
 set -e
@@ -536,6 +539,10 @@ Not running any chroot scripts.${reset}"
 
    ## Network configuration
    printf '%s\n' "${dist_build_hostname}" | $SUDO_TO_ROOT sponge -- chroot/etc/hostname
+   ## Sanity test.
+   hostname_set_inside_chroot="$($SUDO_TO_ROOT cat -- chroot/etc/hostname)"
+   test -n "${hostname_set_inside_chroot}"
+
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
 
    ## Re-enable dracut initrd builds, then run dracut to build initrd.
