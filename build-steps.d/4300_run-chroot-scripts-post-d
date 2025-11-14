@@ -47,6 +47,13 @@ hostname_check() {
    true
 }
 
+generate_grub_keyboard_layouts() {
+  ## This cannot be done with a chroot in folder /usr/libexec/initializer-dist/chroot-scripts-post.d,
+  ## because the list of keyboard layouts comes from locatectl. localectl is not usable in a chroot,
+  ## so we have to run localectl on the host and pipe the list of keyboard layouts to the chroot.
+  localectl list-x11-keymap-layouts | chroot_run set-grub-keymap --build-all --read-stdin
+}
+
 run-chroot-scripts-post-d() {
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
@@ -87,6 +94,8 @@ Not running any chroot scripts.${reset}"
 
    "$dist_source_help_steps_folder"/remove-local-temp-apt-repo "$@"
 
+   generate_grub_keyboard_layouts
+
    "$dist_source_help_steps_folder"/unchroot-raw "$@"
 
    hostname_check
@@ -115,15 +124,15 @@ main() {
    fi
 
    if [ "$dist_build_type_long" = "gateway" ]; then
-      run-chroot-scripts-post-d
+      run-chroot-scripts-post-d "$@"
    elif [ "$dist_build_type_long" = "workstation" ]; then
-      run-chroot-scripts-post-d
+      run-chroot-scripts-post-d "$@"
    elif [ "$dist_build_type_long" = "custom-workstation" ]; then
       true "${cyan}INFO: Skipping running chroot-post.d scripts for $VMNAME.${reset}"
    elif [ "$dist_build_type_long" = "whonix-host" ]; then
-      run-chroot-scripts-post-d
+      run-chroot-scripts-post-d "$@"
    elif [ "$dist_build_type_short" = "kicksecure" ]; then
-      run-chroot-scripts-post-d
+      run-chroot-scripts-post-d "$@"
    else
       error "ERROR: Invalid dist_build_flavor '$dist_build_flavor'. Please report this bug!"
    fi
