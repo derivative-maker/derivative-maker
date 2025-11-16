@@ -237,6 +237,13 @@ chroot_mount_files() {
             fi
          done
 
+         if [ "$is_ok" = "no" ] && [ "$mount_base_file" = 'etc/hostname' ]; then
+            mount_base_file_etc_hostname_contents="$(cat "$CHROOT_FOLDER/$mount_base_file")"
+            if [ "$mount_base_file_etc_hostname_contents" = "$dist_build_hostname" ]; then
+               is_ok='yes'
+            fi
+         fi
+
          if [ "$is_ok" = "no" ]; then
             true "INFO: Shredding '$CHROOT_FOLDER/$mount_base_file'."
             ## Remove leaked host $mount_base_file inside the image.
