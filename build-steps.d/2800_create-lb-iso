@@ -570,6 +570,18 @@ Not running any chroot scripts.${reset}"
          --verbose \
          $INITRD_GENERATOR_OPTS
 
+   ## Add keyboard layout options to the ISO.
+   localectl list-x11-keymap-layouts | chroot_run set-grub-keymap --build-all --read-stdin --no-update-grub
+   ## /etc/grub.d/44_kb_layout is provided by package 'usability-misc'
+   chroot_run /etc/grub.d/44_kb_layout | sponge -a config/bootloaders/grub-pc/grub.cfg
+   ## Fix the theme in the keyboard layout selection menu
+   sed -i "s/\(submenu 'Keyboard layout options'.*\)/\1\n  source \/boot\/grub\/theme.cfg/" config/bootloaders/grub-pc/grub.cfg
+   ## The layouts themselves have to appear on the binary image, so copy them
+   ## out of the chroot into a binary includes dir where live-build will pick
+   ## them up.
+   $SUDO_TO_ROOT mkdir --parents -- config/includes.binary/boot/grub/
+   $SUDO_TO_ROOT cp -r -- chroot/boot/grub/kb_layouts config/includes.binary/boot/grub/kb_layouts
+
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/proc"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/sys"
    $SUDO_TO_ROOT umount "${CHROOT_FOLDER}/dev/pts"
