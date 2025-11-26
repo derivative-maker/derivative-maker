@@ -417,7 +417,10 @@ fi
 
 [ -n "$build_freedom_only" ] || build_freedom_only="false"
 
+## firmware packages are only relevant if building a host operating system.
+## Check if building a host operating system.
 if printf "%s\n" "$dist_build_type_long" | grep --quiet -- "host" ; then
+   ## Yes, building a host operating system.
    if [ "$build_freedom_only" = "true" ]; then
       true "$BASH_SOURCE INFO: --freedom true, therefore omitting firmware-nonfreedom and only adding firmware-freedom, ok."
       [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-freedom "
@@ -428,6 +431,7 @@ if printf "%s\n" "$dist_build_type_long" | grep --quiet -- "host" ; then
       error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
    fi
 else
+   ## No, not building a host operating system. Probably building a VM image.
    [ -n "$meta_package_firmware" ] || meta_package_firmware="none"
 fi
 
