@@ -415,28 +415,6 @@ if [ "$dist_build_flavor" = "kicksecure-lxqt" ]; then
    fi
 fi
 
-[ -n "$build_freedom_only" ] || build_freedom_only="false"
-
-## firmware packages are only relevant if building a host operating system.
-## Check if building a host operating system.
-if printf "%s\n" "$dist_build_type_long" | grep --quiet -- "host" ; then
-   ## Yes, building a host operating system.
-   if [ "$build_freedom_only" = "true" ]; then
-      true "$BASH_SOURCE INFO: --freedom true, therefore omitting firmware-nonfreedom and only adding firmware-freedom, ok."
-      [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-freedom "
-   elif [ "$build_freedom_only" = "false" ]; then
-      true "$BASH_SOURCE INFO: --freedom false, therefore adding firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
-      [ -n "$meta_package_firmware" ] || meta_package_firmware=" firmware-nonfreedom "
-   else
-      error "${red}${bold}You need to add either '--freedom true' or '--freedom false'!${reset}"
-   fi
-else
-   ## No, not building a host operating system. Probably building a VM image.
-   [ -n "$meta_package_firmware" ] || meta_package_firmware="none"
-fi
-
-true "meta_package_firmware: $meta_package_firmware"
-
 ## derivative_name_list is used by:
 ## - help-steps/variables to identify valid derivative names.
 ## - help-steps/create-local-temp-apt-repo to create one or multiple local APT repositories.
