@@ -473,6 +473,12 @@ $dist_build_script_skip_package_install${reset}"
    ## Hard dependency on package 'initializer-dist'.
    chroot_run /usr/libexec/initializer-dist/75_growfs
 
+   ## Generate GRUB keyboard layouts.
+   ## 'set-grub-keymap' is provided by package 'helper-scripts'.
+   ## Use '--no-update-grub' because GRUB is handled by 'build-steps.d/*_install-packages'.
+   ## NOTE: 'build-steps.d/*_create-lb-iso' also uses 'set-grub-keymap'. Should use the same/similar options.
+   chroot_run set-grub-keymap --build-all --no-update-grub
+
    if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
       ## dracut is automatically run during above package installation through the usual
       ## Debian package triggers might break the boot process. Re-running dracut with
