@@ -3,6 +3,8 @@
 set -x
 set -e
 
+true "$0: START"
+
 REPO_URL="$1"
 COMMIT_BRANCH="$2"
 VERSION_TAG="$3"
@@ -16,17 +18,30 @@ main() {
 }
 
 determine_event() {
-  echo "Determining source code ref"
-  echo "REPO_URL: $REPO_URL"
-  echo "COMMIT_BRANCH: $COMMIT_BRANCH"
-  echo "VERSION_TAG: $VERSION_TAG"
-  echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
+  true "Determining source code ref"
+  true "REPO_URL: $REPO_URL"
+  true "COMMIT_BRANCH: $COMMIT_BRANCH"
+  true "VERSION_TAG: $VERSION_TAG"
+  true "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
+
+  ## Debugging.
+  true "----------"
+  env
+  true "----------"
+  whoami
+  true "----------"
+  pwd
+  true "----------"
+  ls -la || true
+  true "----------"
+  ls -la ../ || true
+  true "----------"
 
   if [[ "${GITHUB_EVENT_NAME}" = "pull_request" ]]; then
-      SKIP_TAG=1
-      echo "Detected pull request. SKIP_TAG set to true"
+    SKIP_TAG=true
+    true "Detected pull request. SKIP_TAG set to true"
   else
-      echo "Tag or commit push. Using provided ref: $VERSION_TAG"
+    true "Tag or commit push. Using provided ref: $VERSION_TAG"
   fi
 }
 
@@ -41,15 +56,15 @@ clean_old_source() {
 }
 
 install_source_code() {
-  cd "/home/ansible"
+  cd -- "/home/ansible"
   git clone --depth=1 "https://github.com/$REPO_URL"
-  cd "/home/ansible/derivative-maker"
+  cd -- "/home/ansible/derivative-maker"
   git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   git fetch --all --tags
 }
 
 checkout_code(){
-  if [ -z "$skip_tag" ]; then
+  if [ -z "$SKIP_TAG" ]; then
     git checkout "$COMMIT_BRANCH"
   else
     git checkout "$VERSION_TAG"
@@ -57,3 +72,5 @@ checkout_code(){
 }
 
 main
+
+true "$0: END"
