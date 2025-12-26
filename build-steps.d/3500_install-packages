@@ -216,8 +216,14 @@ install-packages() {
    "$dist_source_help_steps_folder/create-local-temp-apt-repo" "$@"
 
    ## Debugging.
-   chroot_run ls -la -- /mnt/initialdeb/dists/local/ || true
-   chroot_run ls -la -- /mnt/initialdeb/dists/local/main/binary-*/ || true
+   ## XXX: hardcoded
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/InRelease" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/main/" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/non-free/" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/non-free/source" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/non-free/binary-$dist_build_target_arch/" || true
+   chroot_run ls -la -- "/$DEB_INSTALL_FOLDER/kicksecure/dists/local/non-free/binary-$dist_build_target_arch/Packages" || true
 
    "$dist_source_help_steps_folder/unchroot-raw" "$@"
 
@@ -237,7 +243,7 @@ install-packages() {
 #       chroot_run initramfs-debug-enable
 #    fi
 
-   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep -q dracut ; then
+   if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep "dracut" >/dev/null ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
       $SUDO_TO_ROOT -- mkdir --parents -- "$(dirname "$target_dracut_disable_config_snippet")"
       $SUDO_TO_ROOT -- cp --verbose -- "$source_dracut_disable_config_snippet" "$target_dracut_disable_config_snippet"
