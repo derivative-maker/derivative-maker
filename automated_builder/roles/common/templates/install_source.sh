@@ -18,6 +18,11 @@ main() {
 }
 
 determine_event() {
+  ## Examples:
+  #REPO_URL: Whonix/derivative-maker
+  #COMMIT_BRANCH: 18.0.9.4-developers-only
+  #VERSION_TAG: 18.0.9.4-developers-only
+  #GITHUB_EVENT_NAME: push
   true "Determining source code ref"
   true "REPO_URL: $REPO_URL"
   true "COMMIT_BRANCH: $COMMIT_BRANCH"
@@ -25,8 +30,8 @@ determine_event() {
   true "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
 
   ## Debugging.
-  true "----------"
-  env
+  #true "----------"
+  #env
   true "----------"
   whoami
   true "----------"
@@ -57,10 +62,17 @@ clean_old_source() {
 
 install_source_code() {
   cd -- "/home/ansible"
-  git clone --depth=1 "https://github.com/$REPO_URL"
+
+  ## Old.
+  #git clone --depth=1 "https://github.com/$REPO_URL"
+
+  git clone --depth=1 --branch "$VERSION_TAG" --jobs=4 --recurse-submodules --shallow-submodules "git@github.com:$REPO_URL"
+
   cd -- "/home/ansible/derivative-maker"
-  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-  git fetch --all --tags
+
+  ## Old.
+  #git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+  #git fetch --all --tags
 }
 
 checkout_code(){
