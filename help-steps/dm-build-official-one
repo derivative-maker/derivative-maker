@@ -49,11 +49,16 @@ fi
 ## - *_prepare-build-machine downloads VirtualBox-*-Win.exe
 ## - dm-prepare-release builds Whonix Windows Installer
 ## - 4) Build CLI flavors because these are the least likely to have build issues.
-if [ "$CI" = "true" ]; then
+if ! [ "$dist_build_target_arch" = "" ]; then
+  architecture="$dist_build_target_arch"
+elif [ "$CI" = "true" ]; then
   architecture=arm64
   build_args+=(--remote-derivative-packages true)
   export dist_build_upgrade_build_machine=1
+else
+  architecture="amd64"
 fi
+build_args+=(--arch "$architecture")
 
 ## NOTE: Fewer flavors are build on CI. If 'CI=true', 'help-steps/parse-cmd'
 ##       will inject 'build_dry_run="true"' (equivalent of '--dry-run true').
@@ -96,10 +101,6 @@ if [ "$remote_derivative_packages" = "true" ]; then
   rsync_cmd="true simulate-only"
   export rsync_cmd
 fi
-
-## If variable '$architecture' is unset, use build machine architecture.
-[ -n "$architecture" ] || architecture="$(dpkg --print-architecture)"
-build_args+=(--arch "$architecture")
 
 multi_target_args=()
 
