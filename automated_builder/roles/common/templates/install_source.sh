@@ -66,7 +66,7 @@ install_source_code() {
   ## Old.
   #git clone --depth=1 "https://github.com/$REPO_URL"
 
-  git clone --depth=1 --branch "$VERSION_TAG" --jobs=4 --recurse-submodules --shallow-submodules "https://github.com/$REPO_URL"
+  timeout --kill-after=20 10m git clone --depth=1 --branch "$VERSION_TAG" --jobs=4 --recurse-submodules --shallow-submodules "https://github.com/$REPO_URL"
 
   cd -- "/home/ansible/derivative-maker"
 
