@@ -38,17 +38,6 @@ if [ "$CI" = "true" ]; then
   ./docker/derivative-maker-docker-run --build-step 1100_sanity-tests --target raw --flavor internal
 fi
 
-## Ordered as follows for the following reasons:
-## - 1) Build '--flavor kicksecure-lxqt' because building ISO, which is newer,
-##      therefore more prone to build issues. Error out quicker is better.
-## - 2) Build '--flavor whonix-gateway-lxqt' because it is required to be able to
-##      run dm-prepare-release due to unified ova files.
-## - 3) Build '--flavor whonix-workstation-lxqt' because it is the most
-##      complex, because of downloading Tor Browser as well as when used with
-##      '--target windows', because:
-## - *_prepare-build-machine downloads VirtualBox-*-Win.exe
-## - dm-prepare-release builds Whonix Windows Installer
-## - 4) Build CLI flavors because these are the least likely to have build issues.
 if ! [ "$dist_build_target_arch" = "" ]; then
   architecture="$dist_build_target_arch"
 elif [ "$CI" = "true" ]; then
@@ -60,6 +49,18 @@ else
 fi
 build_args+=(--arch "$architecture")
 
+## Ordered as follows for the following reasons:
+## - 1) Build '--flavor kicksecure-lxqt' because building ISO, which is newer,
+##      therefore more prone to build issues. Error out quicker is better.
+## - 2) Build '--flavor whonix-gateway-lxqt' because it is required to be able to
+##      run dm-prepare-release due to unified ova files.
+## - 3) Build '--flavor whonix-workstation-lxqt' because it is the most
+##      complex, because of downloading Tor Browser as well as when used with
+##      '--target windows', because:
+## - *_prepare-build-machine downloads VirtualBox-*-Win.exe
+## - dm-prepare-release builds Whonix Windows Installer
+## - 4) Build CLI flavors because these are the least likely to have build issues.
+##
 ## NOTE: Fewer flavors are build on CI. If 'CI=true', 'help-steps/parse-cmd'
 ##       will inject 'build_dry_run="true"' (equivalent of '--dry-run true').
 [ -n "$flavors_list" ] || flavors_list=(
