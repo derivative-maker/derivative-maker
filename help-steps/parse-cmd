@@ -58,7 +58,7 @@ parse_cmd_freedom_versus_nonfreedom_firmware_choice_check() {
    elif [ "$build_freedom_only" = "false" ]; then
       true "$BASH_SOURCE INFO: --freedom false, therefore adding package firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
    else
-      error "${red}${bold}When building --arch amd64 (or i386), you must select firmware. Add either '--freedom true' or '--freedom false'!${reset}"
+      error "${red}${bold}When building '--arch amd64' (or 'i386'), you must select firmware. Add either '--freedom true' or '--freedom false'!${reset}"
    fi
 }
 
@@ -165,8 +165,9 @@ Advanced Options:
   --headers [packages]            : Specify kernel header packages.
   --remote-derivative-packages    : Choose to use remote derivative packages instead of building derivative packages from source code. (default: false).
   --release [unsupported_option]  : Set release option (unsupported). (trixie|bookworm|xenial|bionic)
-  --arch [architecture]           : Set architecture (e.g., i386, amd64, kfreebsd-i386, kfreebsd-amd64) (default: amd64).
-  (Note: amd64 also works with most Intel CPUs.)
+  --arch [architecture]           : Set architecture (pick one of the following)
+    ${architecture_all_list[@]}
+    (Note: amd64 also works with most Intel CPUs.)
   --debug                         : Does not disable verbose/debug (xtrace) during help-steps pre, variables and parse-cmd.
   --dry-run [true|false]          : Does not actually build real images. Just an empty text file. Useful for debugging dm-prepare-release script.
 
@@ -735,7 +736,23 @@ dist_build_one_parse_cmd() {
    [[ -v target_ref ]] || target_ref=""
    [[ -v update_only ]] || update_only=""
 
-   if [ "$dist_build_target_arch" = "i386" ]; then
+   if [ "$dist_build_target_arch" = "" ]; then
+      error "\
+${red}${bold}Missing '--arch' option!
+
+Choosing a target architecture is mandatory! Pick one of the following.${reset}
+${architecture_all_list[@]}
+
+For example for Intel CPUs (yes, this is correct!):
+${bold}--arch amd64${reset}
+
+For example for AMD CPUs:
+${bold}--arch amd64${reset}
+
+For ARM CPUs:
+${bold}--arch arm64${reset}
+${reset}"
+   elif [ "$dist_build_target_arch" = "i386" ]; then
       [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
    elif [ "$dist_build_target_arch" = "amd64" ]; then
       [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
@@ -760,12 +777,31 @@ Should VirtualBox meanwhile support other architectures such as 'ppc64el', then 
       fi
    fi
 
+   architecture_valid=""
+   for architecture_all_item in "${architecture_all_list[@]}"; do
+      if [ "$dist_build_target_arch" = "$architecture_all_item" ]; then
+        architecture_valid=true
+        break
+      fi
+   done
+   if ! [ "$architecture_valid" = true ]; then
+         error "\
+${red}${bold}Invalid '--arch' option!${reset}
+
+Chosen architecture ${red}${under}'$dist_build_target_arch'${reset} is invalid!
+
+Choosing a target architecture is mandatory! Pick one of the following.${reset}
+${architecture_all_list[@]}
+${reset}"
+   fi
+
    [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="$dist_build_target_arch"
 
    [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-${dist_build_target_arch}"
    [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-${dist_build_target_arch}"
 
    export BUILD_INITRAMFS_PKGS
+   ## Using export, so it can be read by chroot-post.d scripts.
    export dist_build_target_arch
    export BUILD_KERNEL_PKGS
    export BUILD_HEADER_PKGS
