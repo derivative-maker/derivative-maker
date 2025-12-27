@@ -213,20 +213,24 @@ if [ "$dist_build_redistributable" = "true" ]; then
    ## Needs to be set before parsing buildconfig.d folder / dist_build_source_config_dir function!
    build_remote_repo_enable="true"
    export build_remote_repo_enable
-
    if [ "$dist_build_target_arch" = "amd64" ]; then
       ## Make sure official builds for the Intel/AMD64 architecture
-      ## come with a downloaded browser (Tor Browser) installed by default.
+      ## come with Tor Browser installed by default.
       ## Fail closed by default in case of Tor Browser download issues.
       ## Same as: '--tb closed'
-      anon_shared_inst_tb="closed"
+      [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="closed"
    else
       ## Tor Browser is not yet available at time of writing for ARM64 and
       ## other architecture.
-      anon_shared_inst_tb="open"
+      ## TODO: reproducible builds
+      [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
    fi
-   export anon_shared_inst_tb
+else
+   ## Non-redistributable builds use '--tb open' by default.
+   [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
 fi
+## Variable 'anon_shared_inst_tb' only has an effect if package 'tb-updater' is installed.
+export anon_shared_inst_tb
 
 ## repository-dist-initializer
 repository_dist_initializer_setup() {
