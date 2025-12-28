@@ -737,7 +737,8 @@ dist_build_one_parse_cmd() {
    [[ -v update_only ]] || update_only=""
 
    if [ "$dist_build_target_arch" = "" ]; then
-      error "\
+      if ! [ "$dist_build_internal_run" = "true" ]; then
+         error "\
 ${red}${bold}Missing '--arch' option!
 
 Choosing a target architecture is mandatory! Pick one of the following.${reset}
@@ -752,6 +753,7 @@ ${bold}--arch amd64${reset}
 For ARM CPUs:
 ${bold}--arch arm64${reset}
 ${reset}"
+      fi
    elif [ "$dist_build_target_arch" = "i386" ]; then
       [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
    elif [ "$dist_build_target_arch" = "amd64" ]; then
@@ -784,15 +786,17 @@ Should VirtualBox meanwhile support other architectures such as 'ppc64el', then 
         break
       fi
    done
-   if ! [ "$architecture_valid" = true ]; then
+   if ! [ "$dist_build_internal_run" = "true" ]; then
+      if ! [ "$architecture_valid" = true ]; then
          error "\
-${red}${bold}Invalid '--arch' option!${reset}
+    ${red}${bold}Invalid '--arch' option!${reset}
 
-Chosen architecture ${red}${under}'$dist_build_target_arch'${reset} is invalid!
+    Chosen architecture ${red}${under}'$dist_build_target_arch'${reset} is invalid!
 
-Choosing a target architecture is mandatory! Pick one of the following.${reset}
-${architecture_all_list[*]}
-${reset}"
+    Choosing a target architecture is mandatory! Pick one of the following.${reset}
+    ${architecture_all_list[*]}
+    ${reset}"
+      fi
    fi
 
    [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="$dist_build_target_arch"
