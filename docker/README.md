@@ -58,7 +58,7 @@ With the convenience of a debian:trixie docker container, `derivative-maker-dock
 
 |  Option     | Description              | Sample Value
 | ------------| -------------------------|------------|
-| `--build-step`, `-b` | Allow execution of a specifc build-step |2800_create-lb-iso
+| `--build-step`, `-b` | Allow execution of a specific build-step |2800_create-lb-iso
 | `--custom`, `-c` | Run a custom command inside the container | /bin/bash
 | `--binary-mount` | Configure custom binary artifact directory | /home/user/whonix/dm-binary
 | `--cacher-mount` | Configure custom package cache directory | /home/user/whonix/apt-cache
