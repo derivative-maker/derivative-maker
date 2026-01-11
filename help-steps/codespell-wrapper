@@ -1,0 +1,60 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+set -x
+set -o errexit
+set -o errtrace
+set -o pipefail
+
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
+
+## XXX: hardcoded
+cd -- ~/derivative-maker
+
+skip_patterns=(
+  COPYING
+  copyright
+  changelog
+  changelog.upstream
+  colors
+  Banners.ai # binary
+  50_common
+  derivative.asc # ggp key
+  control.authcookie # binary
+  mw-wiki-link-archiver # domain name
+  archive.today # domain name
+  repo-add-dist # contains gpg key
+  localectl-list-x11-keymap-layouts-static.txt # auto-generated
+  '*/grub.d/*' # forked by upstream. keep diff small.
+  '*/auto-generated-man-pages/*' # auto generated
+  '*/keys/*' # gpg keys
+  '*/tpoarchive-keys.d/*' # gpg keys
+  '*/torbrowser-updater-keys.d/*' # gpg keys
+  '*/grml-debootstrap/*' # upstream project
+  '*/live-build/*' # upstream project
+  '*/get-bitcoin-keys*' # a real name
+)
+
+ignore_words=(
+  te          # color
+  ue          # color
+  fpr         # fingerprint
+  buildd      # build daemon
+  SME         # security-misc
+  hda         # hard drive
+  MERCHANTIBILITY # copyright
+  chage       # an application name
+  DeVault     # a real name
+  DoubleClick # a configuration value
+  shotcut     # an actual application
+  Commad-Line # style choice
+  Ende        # German
+  readby      # AppArmor keyword
+  bootup      # Acceptable spelling.
+)
+
+codespell \
+  --skip "$(IFS=,; echo "${skip_patterns[*]}")" \
+  --ignore-words-list "$(IFS=,; echo "${ignore_words[*]}")"
