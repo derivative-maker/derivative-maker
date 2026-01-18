@@ -243,6 +243,10 @@ install-packages() {
 #       chroot_run initramfs-debug-enable
 #    fi
 
+   true "INFO: Prevent Secure Boot MOK keys from being generated. This avoids a situation where all users use the same MOK keys."
+   $SUDO_TO_ROOT -- mkdir --parents -- "$(dirname "$target_dkms_suppress_mok_snippet")"
+   $SUDO_TO_ROOT -- cp --verbose -- "$source_dkms_suppress_mok_snippet" "$target_dkms_suppress_mok_snippet"
+
    if printf "%s\n" "${BUILD_INITRAMFS_PKGS}" | grep "dracut" >/dev/null ; then
       true "INFO: Prevent running dracut needlessly. Will be run at the end. This is only to speed up the build."
       $SUDO_TO_ROOT -- mkdir --parents -- "$(dirname "$target_dracut_disable_config_snippet")"
@@ -522,6 +526,10 @@ $dist_build_script_skip_package_install${reset}"
                --verbose \
                $INITRD_GENERATOR_OPTS
    fi
+
+   ## Undo disabling of DKMS MOK generation, so MOK keys will be generated for
+   ## the end user.
+   $SUDO_TO_ROOT safe-rm --force --verbose -- "$target_dkms_suppress_mok_snippet"
 
    ## grub-mkconfig does this.
    local grub_probe_main_device_output grub_probe_boot_device_output grub_probe_target_device
