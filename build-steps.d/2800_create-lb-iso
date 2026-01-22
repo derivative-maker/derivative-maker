@@ -418,6 +418,7 @@ Pin-Priority: 900"
 
    ## TODO: Set this centrally in 'help-steps/variables'? Because 'help-steps/variables' already sets variable 'CHROOT_FOLDER'.
    CHROOT_FOLDER="$(realpath -- chroot)"
+   target_dkms_suppress_mok_snippet="$CHROOT_FOLDER/etc/dkms/framework.conf.d/90-derivative-maker-build.conf"
    target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-derivative-maker-build.conf"
 
    ## Keep security-misc from erroring out during installation
@@ -433,8 +434,12 @@ Pin-Priority: 900"
    $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/etc"
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_kernel_img_conf" "${CHROOT_FOLDER}/etc/kernel-img.conf"
 
+   ## Suppress generation of a MOK when DKMS modules are installed.
+   $SUDO_TO_ROOT mkdir --parents -- "${target_dkms_suppress_mok_snippet%/*}"
+   $SUDO_TO_ROOT cp --verbose -- "$source_dkms_suppress_mok_snippet" "$target_dkms_suppress_mok_snippet"
+
    ## Prevent needless initramfs builds.
-   $SUDO_TO_ROOT mkdir --parents -- "$CHROOT_FOLDER/etc/dracut.conf.d"
+   $SUDO_TO_ROOT mkdir --parents -- "${target_dracut_disable_config_snippet%/*}"
    $SUDO_TO_ROOT cp --verbose -- "$source_dracut_disable_config_snippet" "$target_dracut_disable_config_snippet"
 
    ## Build ISO chroot
@@ -555,6 +560,9 @@ Not running any chroot scripts.${reset}"
    test -n "${hostname_set_inside_chroot}"
 
    $SUDO_TO_ROOT cp -- "${source_code_folder_dist}/live-build-data/live-build-config/live_build_etc_hosts" "${CHROOT_FOLDER}/etc/hosts"
+
+   ## Re-enable MOK key generation.
+   $SUDO_TO_ROOT safe-rm --force --verbose -- "$target_dkms_suppress_mok_snippet"
 
    ## Re-enable dracut initrd builds, then run dracut to build initrd.
    $SUDO_TO_ROOT safe-rm --force --verbose -- "$target_dracut_disable_config_snippet"
