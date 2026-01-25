@@ -444,12 +444,18 @@ $dist_build_script_skip_package_install${reset}"
       true "${cyan}INFO: skipping installation of weak recommended guest additions packages spice-vdagent because not using --target qcow2, ok.${reset}"
    fi
 
+   ## kicksecure-network-conf{,-gui} cannot be listed in metapackages, as it
+   ## can break networking in some situations.
    if [ "$dist_build_type_short" = "kicksecure" ]; then
       pkg-add-to-install-list kicksecure-network-conf
       if [ "$dist_build_desktop" = 'LXQt' ]; then
          pkg-add-to-install-list kicksecure-network-conf-gui
       fi
    fi
+
+   ## tirdad cannot be listed in metapackages, as it will result in the
+   ## installation of a kernel, which is undesirable in containers.
+   pkg-add-to-install-list tirdad
 
    ## Debugging.
    #pkg-add-to-install-list debug-misc
