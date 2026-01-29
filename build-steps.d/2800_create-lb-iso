@@ -232,7 +232,12 @@ Signed-By: /usr/share/keyrings/fasttrack-archive-keyring.gpg" | sponge -- archiv
       printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.sources.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    else
-      readlink_result_live_build_localrepo_location="$(readlink -f "${live_build_localrepo_location}"
+      if [ "$build_dry_run" = "true" ]; then
+         true "${bold}${cyan}INFO: Dry-run, skipping setting readlink_result_live_build_localrepo_location. ${reset}"
+         readlink_result_live_build_localrepo_location="/nonexisting/build_dry_run"
+      else
+         readlink_result_live_build_localrepo_location="$(readlink -f "${live_build_localrepo_location}"
+      fi
       printf '%s\n' "Types: deb
 URIs: file://${readlink_result_live_build_localrepo_location}")
 Suites: ${live_build_localrepo_suite}
