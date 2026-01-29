@@ -735,13 +735,16 @@ dist_build_one_parse_cmd() {
    [[ -v target_tag ]] || target_tag=""
    [[ -v target_ref ]] || target_ref=""
    [[ -v update_only ]] || update_only=""
+   [[ -v architecture_valid ]] || architecture_valid=""
 
    if [ "$dist_build_target_arch" = "" ]; then
       if [ "$dist_build_source_archive" = "true" ]; then
-         true
+         architecture_valid=true
       elif [ "$dist_build_windows_installer" = "true" ]; then
-         true
+         architecture_valid=true
       elif ! [ "$dist_build_internal_run" = "true" ]; then
+         architecture_valid=true
+      else
          error "\
 ${red}${bold}Missing '--arch' option!
 
@@ -783,18 +786,14 @@ Should VirtualBox meanwhile support other architectures such as 'ppc64el', then 
       fi
    fi
 
-   architecture_valid=""
    for architecture_all_item in "${architecture_all_list[@]}"; do
       if [ "$dist_build_target_arch" = "$architecture_all_item" ]; then
         architecture_valid=true
         break
       fi
    done
-   if [ "$dist_build_internal_run" = "true" ]; then
-      true
-   elif [ "$dist_build_source_archive" = "true" ]; then
-      true
-   elif [ "$architecture_valid" = "" ]; then
+
+   if ! [ "$architecture_valid" = "true" ]; then
       error "\
 ${red}${bold}Invalid '--arch' option!${reset}
 
