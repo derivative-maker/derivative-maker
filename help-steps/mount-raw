@@ -3,13 +3,16 @@
 ## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-   script_was_sourced="true"
+# shellcheck source=../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh"
+
+if was_executed "${BASH_SOURCE[0]}"; then
+   mount_raw_was_sourced='false'
 else
-   script_was_sourced="false"
+   mount_raw_was_sourced='true'
 fi
 
-if [ "$script_was_sourced" = "false" ]; then
+if [ "${mount_raw_was_sourced}" = 'false' ]; then
    set -x
    set -e
 
@@ -31,7 +34,7 @@ if [ "$script_was_sourced" = "false" ]; then
 fi
 
 mount_raw() {
-   if [ "$script_was_sourced" = "false" ]; then
+   if [ "${mount_raw_was_sourced}" = 'false' ]; then
       trap "error_handler_mount-raw" ERR INT TERM
    fi
 
@@ -114,7 +117,7 @@ mount_raw() {
    sync
 }
 
-if [ "$script_was_sourced" = "false" ]; then
+if [ "${mount_raw_was_sourced}" = 'false' ]; then
    main() {
       if [ "$dist_build_install_to_root" = "true" ]; then
          true "${green}INFO: Skipping script, because dist_build_install_to_root is set to true: $BASH_SOURCE${reset}"
