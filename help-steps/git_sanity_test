@@ -3,13 +3,16 @@
 ## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-   script_was_sourced="true"
+# shellcheck source=../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh"
+
+if was_executed "${BASH_SOURCE[0]}"; then
+   git_sanity_test_was_sourced='false'
 else
-   script_was_sourced="false"
+   git_sanity_test_was_sourced='true'
 fi
 
-if [ "$script_was_sourced" = "false" ]; then
+if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
    set -x
    set -e
 
@@ -238,7 +241,7 @@ git_sanity_test_main() {
    git_sanity_test_check_for_uncommitted_changes
 }
 
-if [ "$script_was_sourced" = "false" ]; then
+if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
    main() {
       git_sanity_test_main "$@"
    }
