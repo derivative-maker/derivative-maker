@@ -31,26 +31,28 @@ if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
    source variables
 fi
 
-import_keys() {
-  local key_index derivative_signing_key_fingerprint_list derivative_signing_public_key_item derivative_signing_key_fingerprint_item
-
-  for key_index in "${!derivative_signing_public_key_list[@]}"; do
-    readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
-    derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
-
-    for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
-      if gpg --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
-        true "INFO: key already imported."
-      else
-        true "INFO: key not yet already imported. Importing..."
-        gpg --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
-        gpg --import -- "${derivative_signing_public_key_item}"
-        gpg --check-sigs -- "${derivative_signing_key_fingerprint_item}"
-        break
-      fi
-    done
-  done
-}
+## GnuPG ('gpg') required local keystore.
+## sequoia-gpg ('sq') does not require local keystore.
+# import_keys() {
+#   local key_index derivative_signing_key_fingerprint_list derivative_signing_public_key_item derivative_signing_key_fingerprint_item
+#
+#   for key_index in "${!derivative_signing_public_key_list[@]}"; do
+#     readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
+#     derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
+#
+#     for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
+#       if $gpg_bin --quiet --list-keys -- "${derivative_signing_key_fingerprint_item}" &>/dev/null; then
+#         true "INFO: key already imported."
+#       else
+#         true "INFO: key not yet already imported. Importing..."
+#         $gpg_bin --keyid-format long --import --import-options show-only --with-fingerprint -- "${derivative_signing_public_key_item}"
+#         $gpg_bin --import -- "${derivative_signing_public_key_item}"
+#         $gpg_bin --check-sigs -- "${derivative_signing_key_fingerprint_item}"
+#         break
+#       fi
+#     done
+#   done
+# }
 
 signed_by_fingerprint() {
   local fingerprint derivative_signing_key_fingerprint_group derivative_signing_key_fingerprint_item derivative_signing_key_fingerprint_list
@@ -59,7 +61,7 @@ signed_by_fingerprint() {
   ##
   ## NOTE: 'tail -n-1' is mandatory, otherwise verifying the fingerprint of a
   ## tag will fail.
-  fingerprint=$(git show --no-patch --pretty="format:%GF" "${1}" | tail -n -1)
+  fingerprint="$(git show --no-patch --pretty="format:%GF" "${1}" | tail -n -1)"
 
   for derivative_signing_key_fingerprint_group in "${derivative_signing_key_fingerprint_group_list[@]}"; do
     readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group}"
@@ -228,7 +230,7 @@ ${under}git reset --hard${eunder}
 
 git_sanity_test_main() {
    ## Import any additional needed GPG keys.
-   import_keys
+   #import_keys
 
    ## Sanity-check; verify the signature of the current ref. If the user has
    ## never verified the repo before, this can be bypassed if the repo is
