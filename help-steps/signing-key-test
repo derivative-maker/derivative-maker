@@ -60,18 +60,20 @@ main() {
          chown -- "$user_name:$user_name" "$binary_build_folder_dist/test_sign_file"
 
          test -r "${derivative_signing_public_key_item}"
-         sq cert lint --cert-file "${derivative_signing_public_key_item}"
+
+         sq inspect -- "${derivative_signing_public_key_item}" &>/dev/null
+         sq cert lint --cert-file "${derivative_signing_public_key_item}" &>/dev/null
 
          #$gpg_bin --keyid-format 0xlong --detach-sign --armor --yes --output "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
          ## Not possible to use 'sqop' (stateless). derivative_signing_public_key_item is only the public key. Not the private key.
          #sqop sign "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file" > "$binary_build_folder_dist/test_sign_file.asc"
          ## 'sqop' (stateless) cannot be used. 'sq' (keystore) must be used for 'split-gpg-2' compatibility.
-         sq sign --signature-notation testvar testcontent --signer "$derivative_signing_key_fingerprint_item" --signature-file="$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
+         sq sign --signature-notation testvar testcontent --signer "$derivative_signing_key_fingerprint_item" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file"
 
          ## Functional but omitted since it requires local keystore folder '~/.gnupg'.
          #$gpg_bin --keyid-format 0xlong --verify "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
-         sq verify --signer-file="${derivative_signing_public_key_item}" --signature-file="$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
-         sqop verify "$binary_build_folder_dist/test_sign_file.asc" "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file"
+         sq verify --signer-file="${derivative_signing_public_key_item}" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file"
+         sqop verify "$binary_build_folder_dist/test_sign_file.asc" -- "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file"
 
          ## gpgv:   error: Key resource "/home/user/.gnupg/trustedkeys.kbx" does not exist
          #$gpgv_bin "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"

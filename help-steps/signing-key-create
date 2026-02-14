@@ -41,10 +41,10 @@ gpg_key_create() {
    ## Debugging.
    pwd
 
-   ## Set up a separate GPG keystore.
+   ## Set up a separate OpenPGP keystore.
    #export GNUPGHOME="$dist_local_signing_key_folder"
    #mkdir --parents -- "$dist_local_signing_key_folder"
-   ## chmod 700, so gpg will not complain about folder permissions
+   ## chmod 700, so 'gpg' will not complain about folder permissions
    #chmod --recursive og-rwx -- "$dist_local_signing_key_folder"
    ## Initialize.
    #$gpg_bin --fingerprint --keyid-format 0xlong &>/dev/null
@@ -52,15 +52,15 @@ gpg_key_create() {
    ## https://github.com/ioerror/torbirdy/blob/master/gpg.conf
 
 #    if $gpg_bin --fingerprint --keyid-format 0xlong "$DEBEMAIL" &>/dev/null ; then
-#       true "INFO: gpg key with uid DEBEMAIL $DEBEMAIL already exists. Skipping."
+#       true "INFO: OpenPGP key with uid DEBEMAIL $DEBEMAIL already exists. Skipping."
 #       return 0
 #    fi
    if sq cert list --cert-email "$DEBEMAIL" &>/dev/null ; then
-      true "INFO: gpg key with uid DEBEMAIL $DEBEMAIL already exists. Skipping."
+      true "INFO: OpenPGP key with uid DEBEMAIL $DEBEMAIL already exists. Skipping."
       return 0
    fi
 
-   true "INFO: gpg key with uid DEBEMAIL $DEBEMAIL does not exist yet. Generating..."
+   true "INFO: OpenPGP key with uid DEBEMAIL $DEBEMAIL does not exist yet. Generating..."
 
    ## https://unix.stackexchange.com/questions/318385/no-such-file-or-directory-when-generating-a-gpg-key
    ## gpg: agent_genkey failed: No such file or directory
@@ -101,7 +101,7 @@ gpg_key_create() {
 }
 
 gpg_key_debugging() {
-   true "INFO: show gpg secret key fingerprint for uid DEBEMAIL"
+   true "INFO: show OpenPGP key fingerprint for uid DEBEMAIL"
    ## Just output list of secret keys in that very folder in case that ever breaks and someone ever sends
    ## a build log, this will help with debugging.
    ## Idempotent.
@@ -111,6 +111,7 @@ gpg_key_debugging() {
 #       --list-secret-keys \
 #       "$DEBEMAIL"
    sq cert list --cert-email "$DEBEMAIL"
+   sq cert lint --cert-email "$DEBEMAIL"
 }
 
 gpgv_key_import() {
@@ -119,7 +120,7 @@ gpgv_key_import() {
 
 #    true "INFO: Create ~/.gnupg/trustedkeys.gpg for dpkg-source."
    ## `dpkg-source` uses `gpgv` which uses file '~/.gnupg/trustedkeys.gpg'
-   ## '--trust-model always' is required otherwise gpg exists non-zero.
+   ## '--trust-model always' is required otherwise 'gpg' exits non-zero.
    ## Idempotent.
 #    $gpg_bin \
 #       --keyid-format 0xlong \
@@ -149,7 +150,7 @@ gpgv_key_import() {
 }
 
 gpgv_key_debugging() {
-#    true "INFO: show signing key uid DEBEMAIL using for keyring ~/.gnupg/trustedkeys.gpg (for gpgv / dpkg-source))"
+#    true "INFO: show signing key uid DEBEMAIL using for keyring ~/.gnupg/trustedkeys.gpg (for 'gpgv' / 'dpkg-source'))"
 #    ## Idempotent.
 #    $gpg_bin \
 #       --no-default-keyring \
