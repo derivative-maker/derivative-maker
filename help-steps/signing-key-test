@@ -47,9 +47,7 @@ main() {
 #       "$DEBEMAIL" \
 #       | awk -F: '$1 == "pub" {print $2}'
 
-   ## TODO: When extending 'buildconfig.d/30_signing_key.conf' variable 'derivative_signing_public_key_list' or
-   ##       variable 'derivative_signing_key_fingerprint_group_list' we might need to stop at first success but make sure there
-   ##       was at least one successful test.
+   found_working_key='false'
    for key_index in "${!derivative_signing_public_key_list[@]}"; do
       readarray -t derivative_signing_key_fingerprint_list <<< "${derivative_signing_key_fingerprint_group_list[key_index]}"
       derivative_signing_public_key_item="${derivative_signing_public_key_list[key_index]}"
@@ -68,7 +66,7 @@ main() {
          ## Not possible to use 'sqop' (stateless). derivative_signing_public_key_item is only the public key. Not the private key.
          #sqop sign "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file" > "$binary_build_folder_dist/test_sign_file.asc"
          ## 'sqop' (stateless) cannot be used. 'sq' (keystore) must be used for 'split-gpg-2' compatibility.
-         sq sign --signature-notation testvar testcontent --signer "$derivative_signing_key_fingerprint_item" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file"
+         sq sign --signature-notation testvar testcontent --signer "$derivative_signing_key_fingerprint_item" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file" || continue
 
          ## Functional but omitted since it requires local keystore folder '~/.gnupg'.
          #$gpg_bin --keyid-format 0xlong --verify "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
@@ -80,8 +78,17 @@ main() {
 
          safe-rm -- "$binary_build_folder_dist/test_sign_file"
          safe-rm -- "$binary_build_folder_dist/test_sign_file.asc"
+         found_working_key='true'
+         break
       done
+      if [ "${found_working_key}" = 'true' ]; then
+         break
+      fi
    done
+
+   if [ "${found_working_key}" = 'false' ]; then
+      return 1
+   fi
 
    ## TODO: stub
    test -d ~/.signify
