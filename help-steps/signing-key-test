@@ -56,7 +56,7 @@ main() {
       current_key_number=0
       for derivative_signing_key_fingerprint_item in "${derivative_signing_key_fingerprint_list[@]}"; do
          current_key_number=$((current_key_number + 1))
-         true "INFO: Using key ${current_key_number} of total key number ${total_key_number}."
+         true "INFO: Attempting to test digital signature creation using key number ${current_key_number} of total key number ${total_key_number}..."
 
          printf '%s\n' "test" | tee -- "$binary_build_folder_dist/test_sign_file" >/dev/null
          safe-rm --force -- "$binary_build_folder_dist/test_sign_file.asc"
@@ -80,6 +80,7 @@ main() {
                continue
             fi
          fi
+         true "INFO: Key ${current_key_number} / ${total_key_number} functional. Attempting digital signature verification..."
 
          ## Functional but omitted since it requires local keystore folder '~/.gnupg'.
          #$gpg_bin --keyid-format 0xlong --verify "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
@@ -101,8 +102,11 @@ main() {
    done
 
    if [ "${found_working_key}" = 'false' ]; then
+      true "ERROR: Digital signature verification test: FAIL"
       return 1
    fi
+
+   true "INFO: Digital signature verification test: SUCCESS"
 
    ## TODO: stub
    test -d ~/.signify
