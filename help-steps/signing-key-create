@@ -87,10 +87,15 @@ gpg_key_create() {
 #       --passphrase '' \
 #       --quick-generate-key "$DEBEMAIL" default default 0
 
-   ## Useful for CI to test dm-prepare-release image signing.
-   ## sqop: Not stateful.
-   #sqop generate-key | tee -- TODO-private-key-path-TODO >/dev/null
-   ## sq: Stateful.
+   ## Useful for CI to test 'dm-prepare-release' image signing.
+   ##
+   ## 'sqop': Not stateful.
+   ## * In theory, sqop would be more suitable. 'sqop' does not use 'gpg-agent'.
+   ## * In practice, redistributable builds are created using Qubes 'split-gpt-2',
+   ##   which is using 'gpg-agent'. Hence, 'sq' is being used.
+   ## 'sqop generate-key | tee -- private-key-path >/dev/null'
+   ##
+   ## 'sq': Stateful.
    ## '--without-password' / '--expiration never':
    ##  * Not useful on CI.
    ## -* Users who did not study 'sq' have no benefit.
