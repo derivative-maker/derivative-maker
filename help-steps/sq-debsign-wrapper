@@ -1,0 +1,89 @@
+#!/bin/bash
+
+## Copyright (C) 2026 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+#set -x
+set -o nounset
+set -o errexit
+set -o errtrace
+set -o pipefail
+
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
+
+## This is what 'debsign' passes:
+## --no-auto-check-trustdb --local-user derivative-distribution@local-signing.key --clearsign --openpgp --personal-digest-preferences SHA512 SHA384 SHA256 SHA224 --list-options no-show-policy-urls --armor --textmode --output /tmp/user/1000/debsign.dbyCFnm7/anon-apt-sources-list_7.5-1.dsc.asc /tmp/user/1000/debsign.dbyCFnm7/anon-apt-sources-list_7.5-1.dsc
+
+sq_bin="${SQ_BIN:-sq}"
+
+die() {
+  printf '%s\n' "$0: $*" >&2
+  exit 2
+}
+
+while (($#)); do
+  case "$1" in
+  --no-auto-check-trustdb | --openpgp | --armor)
+    shift
+    ;;
+  --clearsign)
+    shift
+    ;;
+  --textmode)
+    shift
+    ;;
+  --local-user)
+    (($# >= 2)) || die "--local-user requires an argument"
+    shift 2
+    ;;
+  --local-user=*)
+    shift
+    ;;
+  --output)
+    (($# >= 2)) || die "--output requires an argument"
+    output="$2"
+    shift 2
+    ;;
+  --output=*)
+    output="${1#*=}"
+    shift
+    ;;
+  --personal-digest-preferences | --list-options)
+    (($# >= 2)) || die "$1 requires an argument"
+    shift 2
+    ;;
+  --personal-digest-preferences=* | --list-options=*)
+    shift
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    shift
+    die "unexpected option: '$1'"
+    ;;
+  *)
+    break
+    ;;
+  esac
+done
+
+[[ -v output ]] || die "no --output path supplied"
+input="$1"
+[[ -v input ]] || die "no input file supplied"
+
+cmd=(
+  "$sq_bin" sign
+  --cleartext
+  --signer-email "$DEBEMAIL"
+  --output "$output"
+  --
+  "$input"
+)
+
+printf '%s\n' "$0: ${cmd[*]}"
+
+"${cmd[@]}"
+
+true "$0: END"
