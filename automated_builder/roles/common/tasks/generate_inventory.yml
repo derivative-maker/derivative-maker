@@ -17,7 +17,6 @@
         name: automated-builder-vps
         size: s-4vcpu-8gb
         region: nyc3
-        ## TODO: Debian forky
         image: debian-13-x64
         wait_timeout: 500
         ssh_keys: ["{{ public_key.data.ssh_key.id }}"]
@@ -27,3 +26,7 @@
     - name: set VPS_IP
       set_fact:
         VPS_IP: "{{ automated_builder_vps.data.droplet.networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
+
+    - name: Set ansible_host to VPS IP for SSH connection
+      set_fact:
+        ansible_host: "{{ VPS_IP }}"

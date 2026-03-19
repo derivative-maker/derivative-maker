@@ -7,17 +7,15 @@
     - ./roles/common/vars/secrets.yml
 
   tasks:
-    - name: Get droplet IP
+    - name: Get droplet info
       community.digitalocean.digital_ocean_droplet_info:
         oauth_token: "{{ DO_API_TOKEN }}"
-        name: "automated-builder-vps"
       delegate_to: localhost
-      register: automated_builder_vps
+      register: all_droplets
 
-    - name: Set VPS_IP
+    - name: Set ansible_host to VPS IP for SSH connection
       set_fact:
-        VPS_IP: "{{ automated_builder_vps.data[0].networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
-      delegate_to: localhost
+        ansible_host: "{{ (all_droplets.data | selectattr('name', 'equalto', 'automated-builder-vps') | first).networks.v4 | selectattr('type', 'equalto', 'public') | map(attribute='ip_address') | first }}"
 
     - name: Gather facts
       setup:

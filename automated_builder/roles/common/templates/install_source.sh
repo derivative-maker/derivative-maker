@@ -56,7 +56,7 @@ clean_old_source() {
   fi
 
   if [ -d "/home/ansible/derivative-binary" ]; then
-    rm -r- f -- "/home/ansible/derivative-binary"
+    rm -rf -- "/home/ansible/derivative-binary"
   fi
 }
 
