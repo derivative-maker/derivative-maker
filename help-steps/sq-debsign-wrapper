@@ -17,7 +17,7 @@ true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 sq_bin="${SQ_BIN:-sq}"
 
 die() {
-  printf '%s\n' "$0: $*" >&2
+  printf '%s\n' "$0: ERROR: $*" >&2
   exit 2
 }
 
@@ -49,7 +49,7 @@ while (($#)); do
     shift
     ;;
   --personal-digest-preferences | --list-options)
-    (($# >= 2)) || die "$1 requires an argument"
+    (($# >= 2)) || die "'$1' requires an argument"
     shift 2
     ;;
   --personal-digest-preferences=* | --list-options=*)
@@ -74,7 +74,8 @@ input="$1"
 [[ -v input ]] || die "no input file supplied"
 
 cmd=(
-  "$sq_bin" sign
+  "$sq_bin"
+  sign
   --cleartext
   --signer-email "$DEBEMAIL"
   --output "$output"
@@ -82,7 +83,7 @@ cmd=(
   "$input"
 )
 
-printf '%s\n' "$0: ${cmd[*]}"
+printf '%s\n' "$0: INFO: ${cmd[*]}"
 
 "${cmd[@]}"
 

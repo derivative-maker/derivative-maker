@@ -118,7 +118,7 @@ export dist_source_help_steps_folder
 
 [ -n "$architecture_all_list" ] || architecture_all_list=( amd64 arm64 armel armhf hurd-i386 hurd-amd64 i386 kfreebsd-amd64 kfreebsd-i386 mips mipsel powerpc ppc64 ppc64el s390x sparc source )
 
-cd "$source_code_folder_dist"
+cd -- "$source_code_folder_dist"
 
 [ -n "$dist_aptgetopt_file" ] || dist_aptgetopt_file="$binary_build_folder_dist/30_derivative-maker.conf"
 export dist_aptgetopt_file
@@ -989,23 +989,24 @@ signing_gpg_key_fingerprint_function() {
    ## Unfortunately there is no simple way to get the fingerprint for a key id (e-mail address)
    ## using gpg command line.
    ## https://unix.stackexchange.com/questions/743982/how-to-use-grep-to-get-the-gpg-key-fingerprint-values
-   ## Overwriting with '|| true' because a signing key might not have been created by the time
-   ## this script is sourced. Sanity testing is done outside help-steps/variables.
    ## 2026: Functional with 'gpg-sq'. 'sq' at the time of writing in Debian did not support '--json' or '--output-format=json' yet.
-   signing_gpg_key_fingerprint="$($gpg_bin --list-secret-keys --keyid-format 0xlong --with-colons "$DEBEMAIL" 2>/dev/null | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -1)" || true
+   signing_gpg_key_fingerprint="$($gpg_bin --list-secret-keys --keyid-format 0xlong --with-colons "$DEBEMAIL" 2>/dev/null | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -1)"
 }
 
-if [ "$DEBSIGN_KEYID" = "" ]; then
-   ## sets: signing_gpg_key_fingerprint
-   signing_gpg_key_fingerprint_function
-   export DEBSIGN_KEYID="$signing_gpg_key_fingerprint"
-fi
+#if [ "$DEBSIGN_KEYID" = "" ]; then
+#   ## sets: signing_gpg_key_fingerprint
+## Overwriting with '|| true' because a signing key might not have been created by the time
+## this script is sourced. Sanity testing is done outside help-steps/variables.
+#   signing_gpg_key_fingerprint_function || true
+#   export DEBSIGN_KEYID="$signing_gpg_key_fingerprint"
+#fi
 
 ## Not a duplicate. Useful for lkrg "dpkg-buildpackage -us -uc -ui -sa" since
 ## it its debian/changelog file is created by a different author.
-export DEB_SIGN_KEYID="$DEBSIGN_KEYID"
+#export DEB_SIGN_KEYID="$DEBSIGN_KEYID"
 
-export make_debsign_opts="-k$DEBSIGN_KEYID"
+debsign_wrapper="$dist_source_help_steps_folder/help-steps/sq-debsign-wrapper"
+export make_debsign_opts="-p $debsign_wrapper"
 
 ## For whatever it may be worth.
 ## https://forums.whonix.org/t/end-to-end-signed-debs-debsign-debsig-and-dpkg-sig
