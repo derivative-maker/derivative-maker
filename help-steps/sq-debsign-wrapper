@@ -3,6 +3,30 @@
 ## Copyright (C) 2026 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
+## sequoia-pgp ('sq') wrapper for debsign
+## Usage: debsign -p /path/to/sq-debsign-wrapper
+## When using this wrapper, 'sq' will be used rather than 'gpg'.
+
+## Quote 'man debsign':
+## -pprogname
+## When debsign needs to execute GPG to sign it will run progname
+## (searching the PATH if necessary), instead of gpg.
+
+## In practice, what will run is, sample log:
+#/usr/share/genmkfile/make-helper-one.bsh: running: debsign -p /home/user/derivative-maker/help-steps/sq-debsign-wrapper /home/user/derivative-binary/genmkfile-packages-result/helper-scripts_48.9-1_amd64.changes
+
+## * 'debsign' is executing 'gpg' directly.
+## * At the time of writing 'debsign' did not have native 'sq' support yet.
+## * Both, 'gpg' ('gpg-g10-code') and 'gpg-sq' require use of 'gpg's native
+##   keystore folder. (Typically the '~/.gnupg' folder.)
+## * Without this wrapper script,
+##   * it would be required to export the private
+##     signing key from 'sq' keystore and import it into 'gpg' (or 'gpg-sq')
+##     keystore. That is considered unclean / legacy.
+##   * both, 'gpg-g10-code' and 'gpg-sq' lacked support for v6 keys.
+##   * usage of earlier key format versions would be required.
+## * In conclusion, this wrapper is preferred.
+
 #set -x
 set -o nounset
 set -o errexit
