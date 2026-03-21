@@ -91,15 +91,21 @@ signed_by_fingerprint() {
 
   command -v sq-git >/dev/null
 
+  cmd=( sq-git log --policy-file "${sq_git_policy_file}" --trust-root "${sq_git_trust_root}" -- "${1}" )
+
   ## sq-git allows to offload the complexity of OpenPGP signing key import.
   ## File 'openpgp-policy.toml' contains authorized signing key(s).
-  if sq-git log --policy-file "${sq_git_policy_file}" --trust-root "${sq_git_trust_root}" -- "${1}"; then
+  if "${cmd[@]}"; then
     true "INFO: sq-git verification, ok."
     return 0
   fi
 
   1>&2 printf '%s\n' "\
-WARNING: Signing key fingerprint does not match!
+WARNING: sq-git verification commmand failed!
+
+sq-git verification commmand:
+${cmd[*]}
+
 (INFO: If this is intentional, could:
 - A) preferably: configure your own sq-git policy file, see file 'buildconfig.d/30_signing_key.conf'; or,
 - B) crude: out-comment this check.)"
