@@ -1,0 +1,190 @@
+#!/bin/bash
+
+## Copyright (C) 2026 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+#set -x
+set -o nounset
+set -o errexit
+set -o errtrace
+set -o pipefail
+
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
+
+## This is what 'git' passes:
+## verification:
+#--keyid-format=long --status-fd=1 --verify /tmp/user/1000/.git_vtag_tmp75DXqK -
+##
+## signing:
+# --status-fd=2 -bsau Some Real Name <email@example.com>'
+## Meaning:
+## -b --detach-sign
+## -s --sign
+## -a --armor
+## -u --local-user
+
+sq_bin="${SQ_BIN:-sq}"
+debug="${SQ_GIT_WRAPPER_DEBUG:-}"
+
+die() {
+  printf '%s\n' "$0: ERROR: $*" >&2
+  exit 2
+}
+
+log() {
+  printf '%s\n' "$0: $*" >&2
+}
+
+mode=""
+sigfile=""
+signing_key=""
+status_fd=""
+
+while (($#)); do
+  case "$1" in
+    --keyid-format)
+      [ "$#" -ge 2 ] || die "missing value for --keyid-format '$1'"
+      shift 2
+      ;;
+    --keyid-format=*)
+      shift
+      ;;
+    --status-fd)
+      [ "$#" -ge 2 ] || die "missing value for --status-fd"
+      status_fd="$2"
+      shift 2
+      ;;
+    --status-fd=*)
+      status_fd="${1#--status-fd=}"
+      shift
+      ;;
+    --verify)
+      [ "$#" -ge 3 ] || die "missing arguments for --verify option"
+      mode="verify"
+      sigfile="$2"
+      [ "$3" = "-" ] || die "expected '-' after signature file, got '$3'"
+      shift 3
+      ;;
+    -bsau)
+      [ "$#" -ge 2 ] || die "missing signing key after -bsau option"
+      mode="sign"
+      signing_key="$2"
+      shift 2
+      ;;
+    -bsau?*)
+      mode="sign"
+      signing_key="${1#-bsau}"
+      shift
+      ;;
+    -u)
+      [ "$#" -ge 2 ] || die "missing signing key after -u option"
+      mode="sign"
+      signing_key="$2"
+      shift 2
+      ;;
+    -u?*)
+      mode="sign"
+      signing_key="${1#-u}"
+      shift
+      ;;
+    --local-user)
+      [ "$#" -ge 2 ] || die "missing signing key after --local-user option"
+      mode="sign"
+      signing_key="$2"
+      shift 2
+      ;;
+    --local-user=*)
+      mode="sign"
+      signing_key="${1#--local-user=}"
+      shift
+      ;;
+    -b|-s|-a|--detach-sign|--sign|--armor)
+      mode="sign"
+      shift
+      ;;
+    -)
+      shift
+      break
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      die "unexpected option: '$1'"
+      ;;
+    *)
+      ## Be tolerant if a caller passes the signing key as a leftover arg.
+      if [ "$mode" = "sign" ] && [ -z "$signing_key" ]; then
+        signing_key="$1"
+        shift
+      else
+        die "unexpected argument: '$1'"
+      fi
+      ;;
+  esac
+done
+
+case "$mode" in
+  verify)
+    [ -n "$sigfile" ] || die "no signature file supplied"
+
+    ## Git provides the signed payload on stdin.
+    ## TODO: Use '--signer-email "$DEBEMAIL"' here?
+    cmd=( "$sq_bin" verify --signer-email "$DEBEMAIL" --signature-file "$sigfile" - )
+
+    log "${cmd[*]}"
+
+    if "${cmd[@]}" >/dev/null; then
+      ## Git's verification code looks for a GNUPG status line on stdout.
+      ## Emit a minimal success status and nothing else.
+      ## https://github.com/git/git/blob/master/gpg-interface.c
+      printf '[GNUPG:] NEWSIG\n[GNUPG:] GOODSIG dummy dummy\n' >&"$status_fd"
+      exit 0
+    else
+      printf '[GNUPG:] NEWSIG\n[GNUPG:] BADSIG dummy dummy\n' >&"$status_fd"
+      log "ERROR: sq sign failed"
+      exit 1
+    fi
+    ;;
+
+  sign)
+    [ -n "$signing_key" ] || die "no signing key supplied"
+
+    cmd=( "$sq_bin" sign )
+
+    case "$signing_key" in
+      *'<'*'>'*)
+        cmd+=( --signer-userid "$signing_key" )
+        ;;
+      *@*)
+        cmd+=( --signer-email "$signing_key" )
+        ;;
+      *[[:space:]]*)
+        cmd+=( --signer-userid "$signing_key" )
+        ;;
+      *)
+        cmd+=( --signer "$signing_key" )
+        ;;
+    esac
+
+    ## Detached signature to stdout, payload from stdin.
+    cmd+=( --signature-file=- - )
+
+    log "${cmd[*]}"
+
+    if "${cmd[@]}"; then
+      ## Git expects GnuPG status on stderr for signing.
+      printf '[GNUPG:] SIG_CREATED D 1 0 00 0 0 0\n' >&"$status_fd"
+      exit 0
+    else
+      printf '[GNUPG:] FAILURE sign 1\n' >&"$status_fd"
+      log "ERROR: sq sign failed for signer: $signing_key"
+      exit 1
+    fi
+    ;;
+
+  *)
+    die "could not detect sign or verify mode"
+    ;;
+esac
