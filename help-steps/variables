@@ -206,13 +206,17 @@ if [ ! "$dist_build_one_parsed" = "true" ]; then
    export dist_build_one_parsed
 fi
 
-## dist_build_redistributable=true is set in help-steps/dm-build-official
+[[ -v sq_git_policy_file ]] || sq_git_policy_file="${source_code_folder_dist}/openpgp-policy.toml"
+
+## Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
 if [ "$dist_build_redistributable" = "true" ]; then
    ## Use "safer" 'sq-git log' root of trust ('--trust-root').
    ## Requires full (not shallow) git clone.
    ## Incompatible with shallow git clone.
+   ## Using the git commit ID where derivative-maker 'openpgp-policy.toml' file
+   ## was first introduced.
    ## See also: buildconfig.d/30_signing_key.conf
-   sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
+   [[ -v sq_git_trust_root ]] || sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
 
    ## Enable binary derivative repository by default for official builds.
    ## Same as: '--repo true'
@@ -233,6 +237,9 @@ if [ "$dist_build_redistributable" = "true" ]; then
       [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
    fi
 else
+   ## Compatible with git shallow clone.
+   [[ -v sq_git_trust_root ]] || sq_git_trust_root="HEAD"
+
    ## Non-redistributable builds use '--tb open' by default.
    [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
 fi
