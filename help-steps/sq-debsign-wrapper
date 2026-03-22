@@ -45,60 +45,55 @@ die() {
   exit 2
 }
 
-output=""
-input=""
+output=''
 
 while (($#)); do
   case "$1" in
-  --no-auto-check-trustdb | --openpgp | --armor)
-    shift
-    ;;
-  --clearsign)
-    shift
-    ;;
-  --textmode)
-    shift
-    ;;
-  --local-user)
-    (($# >= 2)) || die "--local-user requires an argument"
-    shift 2
-    ;;
-  --local-user=*)
-    shift
-    ;;
-  --output)
-    (($# >= 2)) || die "--output requires an argument"
-    output="$2"
-    shift 2
-    ;;
-  --output=*)
-    output="${1#*=}"
-    shift
-    ;;
-  --personal-digest-preferences | --list-options)
-    (($# >= 2)) || die "'$1' requires an argument"
-    shift 2
-    ;;
-  --personal-digest-preferences=* | --list-options=*)
-    shift
-    ;;
-  --)
-    shift
-    break
-    ;;
-  -*)
-    shift
-    die "unexpected option: '$1'"
-    ;;
-  *)
-    break
-    ;;
+    --no-auto-check-trustdb|--openpgp|--armor|--clearsign|--textmode)
+      shift
+      ;;
+    --local-user|--personal-digest-preferences|--list-options)
+      (($# >= 2)) || die "'$1' requires an argument"
+      shift 2
+      ;;
+    --local-user=*|--personal-digest-preferences=*|--list-options=*)
+      shift
+      ;;
+    --output)
+      (($# >= 2)) || die "--output requires an argument"
+      output="$2"
+      shift 2
+      ;;
+    --output=*)
+      output="${1#*=}"
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      bad_opt="$1"
+      shift
+      die "unexpected option: '$bad_opt'"
+      ;;
+    *)
+      break
+      ;;
   esac
 done
 
-[ -n "${output:-}" ] || die "no --output path supplied"
+[ -n "$output" ] || die "no --output path supplied"
+
+(($# >= 1)) || die "no input file supplied"
 input="$1"
-[ -n "${input:-}" ] || die "no input file supplied"
+shift
+
+[ -n "$input" ] || die "input file must not be empty"
+
+(($# == 0)) || die "unexpected extra argument(s): '$*'"
+
+[ -n "${DEBEMAIL-}" ] || die "DEBEMAIL is not set or empty"
 
 cmd=(
   "$sq_bin"
