@@ -208,11 +208,18 @@ fi
 
 ## dist_build_redistributable=true is set in help-steps/dm-build-official
 if [ "$dist_build_redistributable" = "true" ]; then
+   ## Use "safer" 'sq-git log' root of trust ('--trust-root').
+   ## Requires full (not shallow) git clone.
+   ## Incompatible with shallow git clone.
+   ## See also: buildconfig.d/30_signing_key.conf
+   sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
+
    ## Enable binary derivative repository by default for official builds.
    ## Same as: '--repo true'
    ## Needs to be set before parsing buildconfig.d folder / dist_build_source_config_dir function!
    build_remote_repo_enable="true"
    export build_remote_repo_enable
+
    if [ "$dist_build_target_arch" = "amd64" ]; then
       ## Make sure official builds for the Intel/AMD64 architecture
       ## come with Tor Browser installed by default.
