@@ -959,11 +959,6 @@ export make_use_lintian
 export genmkfile_make_cmd
 export make_use_cowbuilder
 
-[ -n "$gpg_bin" ] || gpg_bin="gpg-sq"
-## 'qubes-gpg-client-wrapper' is for 'split-gpg-1' only. Not for 'split-gpg-2'.
-#[ -n "$gpg_bin" ] || gpg_bin="qubes-gpg-client-wrapper"
-[ -n "$gpgv_bin" ] || gpgv_bin="gpgv-sq"
-
 [ -n "$signify_folder" ] || signify_folder="/home/$user_name/.signify"
 [ -n "$signify_private_key" ] || signify_private_key="$signify_folder/keyname.sec"
 [ -n "$signify_public_key" ] || signify_public_key="$signify_folder/keyname.pub"
@@ -984,27 +979,6 @@ export DEBFULLNAME
 
 [ -n "$DEBEMAIL" ] || DEBEMAIL="derivative-distribution@local-signing.key"
 export DEBEMAIL
-
-## Probably no longer required. Consider moving to helper-scripts.
-signing_gpg_key_fingerprint_function() {
-   ## Unfortunately there is no simple way to get the fingerprint for a key id (e-mail address)
-   ## using gpg command line.
-   ## https://unix.stackexchange.com/questions/743982/how-to-use-grep-to-get-the-gpg-key-fingerprint-values
-   ## 2026: Functional with 'gpg-sq'. 'sq' at the time of writing in Debian did not support '--json' or '--output-format=json' yet.
-   signing_gpg_key_fingerprint="$($gpg_bin --list-secret-keys --keyid-format 0xlong --with-colons "$DEBEMAIL" 2>/dev/null | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -1)"
-}
-
-#if [ "$DEBSIGN_KEYID" = "" ]; then
-#   ## sets: signing_gpg_key_fingerprint
-## Overwriting with '|| true' because a signing key might not have been created by the time
-## this script is sourced. Sanity testing is done outside help-steps/variables.
-#   signing_gpg_key_fingerprint_function || true
-#   export DEBSIGN_KEYID="$signing_gpg_key_fingerprint"
-#fi
-
-## Not a duplicate. Useful for lkrg "dpkg-buildpackage -us -uc -ui -sa" since
-## it its debian/changelog file is created by a different author.
-#export DEB_SIGN_KEYID="$DEBSIGN_KEYID"
 
 [ -n "$debsign_wrapper" ] || debsign_wrapper="$dist_source_help_steps_folder/sq-debsign-wrapper"
 [ -n "$sq_git_wrapper" ] || sq_git_wrapper="$dist_source_help_steps_folder/sq-git-wrapper"

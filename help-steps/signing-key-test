@@ -21,31 +21,9 @@ source colors
 source variables
 
 main() {
-   true "gpg_bin: $gpg_bin"
    true "dist_local_signing_key_folder: $dist_local_signing_key_folder"
    true "dist_build_reprepro_signing_options: $dist_build_reprepro_signing_options"
    true "make_use_debsign: $make_use_debsign"
-
-   ## Debugging. Was functional. No longer required.
-   ## Omitted for simplicity since it requires local keystore folder '~/.gnupg'.
-#    $gpg_bin \
-#       --keyid-format 0xlong \
-#       --fingerprint \
-#       --list-secret-keys \
-#       "$DEBEMAIL"
-#    $gpg_bin \
-#       --with-colons \
-#       --keyid-format 0xlong \
-#       --fingerprint \
-#       --list-secret-keys \
-#       "$DEBEMAIL"
-#    $gpg_bin \
-#       --with-colons \
-#       --keyid-format 0xlong \
-#       --fingerprint \
-#       --list-secret-keys \
-#       "$DEBEMAIL" \
-#       | awk -F: '$1 == "pub" {print $2}'
 
    sq-git policy describe &>/dev/null
 
@@ -58,20 +36,14 @@ main() {
    sq inspect --cert-email "$DEBEMAIL" &>/dev/null
    sq cert lint --cert-email "$DEBEMAIL" &>/dev/null
 
-   #$gpg_bin --keyid-format 0xlong --detach-sign --armor --yes --output "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
    ## Not possible to use 'sqop' (stateless). derivative_signing_public_key_item is only the public key. Not the private key.
    #sqop sign "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file" > "$binary_build_folder_dist/test_sign_file.asc"
    ## 'sqop' (stateless) cannot be used. 'sq' (keystore) must be used for 'split-gpg-2' compatibility.
    sq sign --signature-notation testvar testcontent --signer-email "$DEBEMAIL" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file"
 
-   ## Functional but omitted since it requires local keystore folder '~/.gnupg'.
-   #$gpg_bin --keyid-format 0xlong --verify "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
    sq verify --signer-email "$DEBEMAIL" --signature-file="$binary_build_folder_dist/test_sign_file.asc" -- "$binary_build_folder_dist/test_sign_file"
    ## Not possible when using '--signer-email'.
    #sqop verify "$binary_build_folder_dist/test_sign_file.asc" -- "${derivative_signing_public_key_item}" < "$binary_build_folder_dist/test_sign_file"
-
-   ## gpgv:   error: Key resource "/home/user/.gnupg/trustedkeys.kbx" does not exist
-   #$gpgv_bin "$binary_build_folder_dist/test_sign_file.asc" "$binary_build_folder_dist/test_sign_file"
 
    safe-rm -- "$binary_build_folder_dist/test_sign_file"
    safe-rm -- "$binary_build_folder_dist/test_sign_file.asc"
