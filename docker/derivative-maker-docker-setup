@@ -24,17 +24,20 @@ apt-get update
 ## dependencies like 'sudo' are already installed. 'ca-certificates' may also
 ## be required before packages can be installed in some configurations.
 ## TODO: Debian forky: gpg-from-sq gpgv-from-sq
+## TODO: Package 'docker-cli' as of Debian trixie ships '/usr/bin/docker' - Is package 'docker.io'
+##       still required?
 DEBIAN_FRONTEND=noninteractive \
   apt-get install \
     --no-install-recommends \
     --yes \
     sq sqv sqop sequoia-git sequoia-chameleon-gnupg gpg-agent \
     dbus dbus-user-session ca-certificates git time curl lsb-release fakeroot \
-    dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo approx docker.io
+    dpkg-dev fasttrack-archive-keyring safe-rm adduser sudo approx docker.io \
+    docker-cli
 
+## TODO: BUG: Since this is run with 'sudo', environment variable 'USER=root'.
 ## Fails if '${USER}' already exists, hence overwriting with '|| true'.
 adduser --quiet --disabled-password --home "${HOME}" --gecos "${USER},,,," "${USER}" || true
-
 printf '%s\n' "${USER} ALL=(ALL) NOPASSWD:ALL" | tee -- /etc/sudoers.d/passwordless_sudo >/dev/null
 
 chmod 440 -- /etc/sudoers.d/passwordless_sudo
