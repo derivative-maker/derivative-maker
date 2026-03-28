@@ -210,13 +210,18 @@ fi
 
 ## Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
 if [ "$dist_build_redistributable" = "true" ]; then
-   ## Use "safer" 'sq-git log' root of trust ('--trust-root').
-   ## Requires full (not shallow) git clone.
-   ## Incompatible with shallow git clone.
-   ## Using the git commit ID where derivative-maker 'openpgp-policy.toml' file
-   ## was first introduced.
-   ## See also: buildconfig.d/30_signing_key.conf
-   [[ -v sq_git_trust_root ]] || sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
+   if [ "$CI" = "true" ]; then
+      ## Compatible with git shallow clone.
+      [[ -v sq_git_trust_root ]] || sq_git_trust_root="HEAD"
+   else
+      ## Use "safer" 'sq-git log' root of trust ('--trust-root').
+      ## Requires full (not shallow) git clone.
+      ## Incompatible with shallow git clone.
+      ## Using the git commit ID where derivative-maker 'openpgp-policy.toml' file
+      ## was first introduced.
+      ## See also: buildconfig.d/30_signing_key.conf
+      [[ -v sq_git_trust_root ]] || sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
+   fi
 
    ## Enable binary derivative repository by default for official builds.
    ## Same as: '--repo true'
