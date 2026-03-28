@@ -31,7 +31,7 @@ cat -- /etc/docker-entrypoint-env
 
 quoted_args="$(printf " %q" "${@}")"
 printf '%s\n' "${quoted_args}" | tee -- /etc/docker-entrypoint-cmd >/dev/null
-chmod +x /etc/docker-entrypoint-cmd
+chmod +x -- /etc/docker-entrypoint-cmd
 
 systemctl mask systemd-firstboot.service systemd-udevd.service systemd-modules-load.service
 systemctl unmask systemd-logind
