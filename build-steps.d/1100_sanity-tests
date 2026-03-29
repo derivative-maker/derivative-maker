@@ -67,6 +67,8 @@ check-git-folder() {
 }
 
 check-operating-system-version() {
+   local codename
+
    if ! test -r /etc/os-release ; then
       error "file /etc/os-release does not exist!
 
@@ -76,10 +78,9 @@ sudo apt install base-files
 Are you building on Debian? Only building on Debian is supported."
    fi
 
-   local codename
-   codename=$(cat /etc/os-release)
-   codename=$(echo "$codename" | grep VERSION_CODENAME)
-   codename=$(echo "$codename" | cut -d= -f2)
+   codename=$(cat -- /etc/os-release)
+   codename=$(printf '%s\n' "$codename" | grep VERSION_CODENAME)
+   codename=$(printf '%s\n' "$codename" | cut -d= -f2)
 
    ## TODO: Debian forky
    #if [ "forky" = "$codename" ]; then
