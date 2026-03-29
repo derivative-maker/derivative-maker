@@ -208,7 +208,8 @@ fi
 
 [[ -v sq_git_policy_file ]] || sq_git_policy_file="${source_code_folder_dist}/openpgp-policy.toml"
 
-## Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
+## TODO BUG: 'buildconfig.d' is being parsed after, not before this?
+## NOTE: Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
 if [ "$dist_build_redistributable" = "true" ]; then
    if [ "$CI" = "true" ]; then
       ## Compatible with git shallow clone.
@@ -219,13 +220,13 @@ if [ "$dist_build_redistributable" = "true" ]; then
       ## Incompatible with shallow git clone.
       ## Using the git commit ID where derivative-maker 'openpgp-policy.toml' file
       ## was first introduced.
-      ## See also: buildconfig.d/30_signing_key.conf
+      ## See also: 'buildconfig.d/30_signing_key.conf'
       [[ -v sq_git_trust_root ]] || sq_git_trust_root="93d79d25ad28539a0fea503fcf9ea9f12b683d72"
    fi
 
    ## Enable binary derivative repository by default for official builds.
    ## Same as: '--repo true'
-   ## Needs to be set before parsing buildconfig.d folder / dist_build_source_config_dir function!
+   ## NOTE: Needs to be set before parsing 'buildconfig.d' folder / 'dist_build_source_config_dir' function!
    build_remote_repo_enable="true"
    export build_remote_repo_enable
 
