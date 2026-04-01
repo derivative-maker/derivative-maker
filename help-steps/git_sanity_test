@@ -200,6 +200,35 @@ ${under}git reset --hard${eunder}
    true
 }
 
+git_submodule_verify() {
+   ## Submodule repositories intentionally do not include their own sq-git
+   ## policy file (openpgp-policy.toml). A single policy file in the parent
+   ## repository (derivative-maker) is used for all verification, keeping
+   ## signing policy centralized and avoiding duplication across repositories.
+
+   readarray -t submodule_path_list < <(
+      grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
+   )
+   local submodule_path_item submodule_head
+   for submodule_path_item in "${submodule_path_list[@]}"; do
+      if [ ! -d "${submodule_path_item}/.git" ]; then
+         true "INFO: Submodule '${submodule_path_item}' is not initialized, skipping verification."
+         continue
+      fi
+      pushd "${submodule_path_item}" >/dev/null || error "Failed to enter submodule directory '${submodule_path_item}'!"
+      submodule_head="$(git rev-parse HEAD)" || {
+         popd >/dev/null
+         error "Failed to get HEAD commit for submodule '${submodule_path_item}'!"
+      }
+      true "INFO: Verifying submodule '${submodule_path_item}' at commit '${submodule_head}'..."
+      if ! verify_ref "${submodule_head}" 'commit'; then
+         popd >/dev/null
+         error "Verification failed for submodule '${submodule_path_item}'!"
+      fi
+      popd >/dev/null
+   done
+}
+
 git_sanity_test_main() {
    ## Sanity-check; verify the signature of the current ref. If the user has
    ## never verified the repo before, this can be bypassed if the repo is
@@ -214,6 +243,8 @@ git_sanity_test_main() {
 
    git_sanity_test_check_for_untagged_commits
    git_sanity_test_check_for_uncommitted_changes
+
+   git_submodule_verify
 }
 
 if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
