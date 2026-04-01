@@ -215,7 +215,10 @@ git_submodule_verify() {
    )
 
    for submodule_path_item in "${submodule_path_list[@]}"; do
-      if [ ! -d "${submodule_path_item}/.git" ]; then
+      ## Not using '-d'. Can either be a folder or a file.
+      ## cat /home/user/derivative-maker/packages/kicksecure/anon-apt-sources-list/.git
+      ## > gitdir: ../../../.git/modules/packages/anon-apt-sources-list
+      if ! [ -e "${submodule_path_item}/.git" ]; then
          error "INFO: Submodule '${submodule_path_item}' is not initialized."
       fi
       pushd "${submodule_path_item}" >/dev/null || error "Failed to enter submodule directory '${submodule_path_item}'!"
