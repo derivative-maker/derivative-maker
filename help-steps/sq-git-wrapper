@@ -134,8 +134,18 @@ case "$mode" in
     [ -n "$sigfile" ] || die "no signature file supplied"
 
     ## Git provides the signed payload on stdin.
-    ## TODO: Use '--signer-email "$DEBEMAIL"' here?
-    cmd=( "$sq_bin" verify --signer-email "$DEBEMAIL" --signature-file "$sigfile" - )
+    ##
+    ## TODO: AUDIT: Use '--signer-email "$DEBEMAIL"' here?
+    ##
+    ## Using '--signer-email "$DEBEMAIL"':
+    ## - Useful enforcing that only a specific signing key has been used.
+    ##   Should be unnecessary as that is a task for 'sq-git'.
+    ##
+    ## Not using '--signer-email "$DEBEMAIL"':
+    ## - Verification will pass if the key is in sq keystore and trusted,
+    ##   which is useful for developers 'git verify-commit' or 'git merge'.
+    #cmd=( "$sq_bin" verify --signer-email "$DEBEMAIL" --signature-file "$sigfile" - )
+    cmd=( "$sq_bin" verify --signature-file "$sigfile" - )
 
     log "${cmd[*]}"
 
