@@ -185,13 +185,15 @@ case "$mode" in
     log "${cmd[*]}"
 
     if "${cmd[@]}" >/dev/null; then
-      ## Git's verification code looks for a GNUPG status line on stdout.
-      ## Emit a minimal success status and nothing else.
-      ## https://github.com/git/git/blob/master/gpg-interface.c
-      printf '[GNUPG:] NEWSIG\n[GNUPG:] GOODSIG dummy dummy\n' >&"$status_fd"
+      printf '%s\n' \
+        '[GNUPG:] NEWSIG' \
+        '[GNUPG:] GOODSIG UNKNOWN signer-unavailable-via-sq-git-wrapper' \
+        '[GNUPG:] TRUST_FULLY 0' >&"$status_fd"
       exit 0
     else
-      printf '[GNUPG:] NEWSIG\n[GNUPG:] BADSIG dummy dummy\n' >&"$status_fd"
+      printf '%s\n' \
+        '[GNUPG:] NEWSIG' \
+        '[GNUPG:] ERRSIG UNKNOWN 0 0 00 0 1 UNKNOWN' >&"$status_fd"
       log "ERROR: '$sq_bin' verify failed"
       exit 1
     fi
