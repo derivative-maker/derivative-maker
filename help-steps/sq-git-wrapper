@@ -7,6 +7,41 @@
 ## 'help-steps/variables') for submodule signature verification in
 ## 'derivative-update'.
 
+## NOTE SECURITY:
+##
+## Do NOT parse `sq verify`'s human-readable output.
+##
+## Why this is unsafe:
+##
+## 1) Sequoia explicitly warned that `sq` output is "not machine readable",
+##    and recommended JSON output modes to avoid "common security-sensitive
+##    bugs" from manual parsing.
+##    Source:
+##    https://sequoia-pgp.org/blog/2021/01/26/202101-sq-release/
+##
+## 2) `sq verify` applies authentication rules that depend on OpenPGP data,
+##    not on a stable machine-readable text format. In particular:
+##      - "If the signature includes a Signer User ID subpacket, then only
+##        that User ID is considered."
+##      - "Note: the User ID need not be self signed."
+##    So a parser that tries to scrape signer identity from output may
+##    be confused by signature contents and policy decisions.
+##    Source:
+##    https://sequoia-pgp.gitlab.io/sequoia-sq/man/sq.1.html
+##
+## 3) `sq sign` supports signature notations, and Sequoia documents them as
+##    "human readable". Free-text signature metadata is therefore a bad input
+##    source for a security-sensitive parser.
+##    Source:
+##    https://sequoia-pgp.gitlab.io/sequoia-sq/man/sq-sign.1.html
+##
+## Therefore:
+## - treat `sq verify` text as diagnostic text for humans only;
+## - use only the process exit status for automation, unless Sequoia provides
+##   a documented stable machine-readable format;
+## - do not derive GnuPG status fields like keyid, userid, fingerprint, or
+##   primary_fpr by parsing `sq verify` output.
+
 #set -x
 set -o nounset
 set -o errexit
