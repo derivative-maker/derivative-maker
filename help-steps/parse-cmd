@@ -35,7 +35,7 @@ implicit_dist_type_host() {
 }
 
 parse_cmd_type_error() {
-   echo "${red}${bold}ERROR: --type must be either 'vm' or 'host' and cannot be used multiple times.${reset}"
+   echo "${red}${bold}ERROR: --type must be either 'vm' or 'host'.${reset}"
    exit 1
 }
 
@@ -194,7 +194,7 @@ Miscellaneous:
   --tb [none|closed|open]         : Configure Tor Browser installation options (default: open).
   none: Do not install Tor Browser.
   closed: Abort build, fail closed if Tor Browser cannot be installed.
-  open: Do not abort build, fail open if Tor Browser cannot and installed.
+  open: Do not abort build, fail open if Tor Browser cannot be installed.
 
 Please use the options as per your requirements. For any assistance, refer to the full documentation.
 "
@@ -383,7 +383,7 @@ dist_build_one_parse_cmd() {
                ;;
            --freshness)
                if [ "$2" = "frozen" ]; then
-                  true "${red}ERROR: Using frozen sources currently not implement!${reset}"
+                  echo "${red}${bold}ERROR: Using frozen sources is currently not implemented!${reset}"
                   exit 1
                elif [ "$2" = "current" ]; then
                   ## default
@@ -545,9 +545,9 @@ dist_build_one_parse_cmd() {
                ;;
            --allow-untagged)
                if [ "$2" = "false" ]; then
-                  true "${cyan}INFO: Would stop if building form untagged commits.${reset}"
+                  true "${cyan}INFO: Would stop if building from untagged commits.${reset}"
                elif [ "$2" = "true" ]; then
-                  true "${cyan}INFO: Would build form untagged commits.${reset}"
+                  true "${cyan}INFO: Would build from untagged commits.${reset}"
                   export dist_build_ignore_untagged="true"
                else
                   echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
@@ -669,7 +669,7 @@ dist_build_one_parse_cmd() {
            --dry-run)
                if [ "$2" = "false" ]; then
                   build_dry_run="false"
-                  true "${cyan}INFO:not  --dry-run${eunder}${reset}"
+                  true "${cyan}INFO: ${under}not${eunder} --dry-run${reset}"
                elif [ "$2" = "true" ]; then
                   build_dry_run="true"
                   true "${cyan}INFO: ${under}--dry-run${eunder}${reset}"
@@ -769,22 +769,22 @@ ${bold}--arch arm64${reset}
 ${reset}"
       fi
    elif [ "$dist_build_target_arch" = "i386" ]; then
-      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
+      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
    elif [ "$dist_build_target_arch" = "amd64" ]; then
-      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
+      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
       ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
       [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
    elif [ "$dist_build_target_arch" = "arm64" ]; then
-      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="true"
+      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
    else
-      [ -n "$virtualbox_suppported_architecture" ] || virtualbox_suppported_architecture="false"
+      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="false"
    fi
 
    if [ "$dist_build_virtualbox" = "true" ]; then
-      if [ "$virtualbox_suppported_architecture" = "false" ]; then
+      if [ "$virtualbox_supported_architecture" = "false" ]; then
          error "\
 ${red}${bold}VirtualBox architecture support test failed!
-virtualbox_suppported_architecture: '$virtualbox_suppported_architecture'
+virtualbox_supported_architecture: '$virtualbox_supported_architecture'
 dist_build_target_arch is not 'i386', 'amd64' or 'arm64'.
 dist_build_target_arch is '$dist_build_target_arch'.
 You cannot build '--target virtualbox' if not using '--arch i386', '--arch amd64' or '--arch arm64'.
@@ -924,7 +924,7 @@ ${reset}"
          ## equivalent of '--dry-run true'
          build_dry_run="true"
          export build_dry_run
-         true "$BASH_SOURCE INFO: CI=$CI and dist_build_flavor is NOT $dist_build_flavor, therefore setting: build_dry_run=$build_dry_run"
+         true "$BASH_SOURCE INFO: CI=$CI and dist_build_flavor ($dist_build_flavor) is NOT kicksecure-cli, therefore setting: build_dry_run=$build_dry_run"
       fi
    fi
 }
