@@ -23,18 +23,20 @@ variables_script_sanity_test() {
    local dist_build_programs_to_check_installed_list programs_to_check_installed_item
    dist_build_programs_to_check_installed_list="logname whoami dirname basename awk grep"
 
+   ## None of the programs below need root, so do not invoke them via sudo.
+   ## Using '$SUDO_TO_ROOT' here would also be wrong because SUDO_TO_ROOT
+   ## is only initialized further down in this file.
    for programs_to_check_installed_item in $dist_build_programs_to_check_installed_list ; do
-      $SUDO_TO_ROOT command -v "$programs_to_check_installed_item" >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
+      command -v "$programs_to_check_installed_item" >/dev/null || dist_build_missing_dependency "$programs_to_check_installed_item"
    done
 }
 
 variables_script_sanity_test
-bash -n "$BASH_SOURCE"
 
 ## }}
 
 path_variable_adjustments() {
-   local path_part path_array local_sbin_found standard_sbin_found
+   local path_part path_array local_sbin_found standard_sbin_found old_path new_path
 
    ## Manual testing.
    ## CI has the following and lacks any mention of 'sbin' in the PATH variable.
@@ -66,20 +68,29 @@ path_variable_adjustments() {
    if [ ! "$standard_sbin_found" = "yes" ]; then
       new_path="$new_path:/usr/sbin"
    fi
+
+   export PATH="$new_path"
+   true "INFO: new_path: $PATH"
 }
 
 path_variable_adjustments
-export PATH="$new_path"
-true "INFO: new_path: $PATH"
 ## Example PATH:
 ## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-MYDIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-
-[ -n "$user_name" ] || user_name=$(whoami) || true
-[ -n "$user_name" ] || user_name="$USER"
-[ -n "$user_name" ] || user_name="$(logname)" || true
+## Determine the invoking (non-root) user. Order of precedence matters:
+## 1. Honor a caller-provided 'user_name'.
+## 2. '$SUDO_USER' - correct when the script is run via 'sudo'.
+## 3. 'logname' - reads the controlling tty's owner; correct on an
+##    interactive terminal but fails without a tty (e.g. some CI jobs).
+## 4. 'whoami' / '$USER' - only trusted if we're not currently root,
+##    because otherwise they would yield 'root' and 'HOMEVAR=/home/root'
+##    would silently point at a nonexistent home directory.
 [ -n "$user_name" ] || user_name="$SUDO_USER"
+[ -n "$user_name" ] || user_name="$(logname 2>/dev/null)" || true
+if [ -z "$user_name" ] && [ "$(id -u)" != "0" ]; then
+   user_name="$(whoami)" || true
+   [ -n "$user_name" ] || user_name="$USER"
+fi
 if [ "$user_name" = "" ]; then
    error "Variable user_name is empty."
 fi
@@ -102,8 +113,6 @@ MYDIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 [ -n "$source_code_folder_dist" ] || source_code_folder_dist="$(dirname -- "$MYDIR")"
 export source_code_folder_dist
 
-build_script_main="${source_code_folder_dist}/derivative-maker"
-
 [ -n "$dist_parent_folder" ] || dist_parent_folder="$(dirname -- "$source_code_folder_dist")"
 [ -n "$dist_developer_meta_files_folder" ] || dist_developer_meta_files_folder="${source_code_folder_dist}/packages/kicksecure/developer-meta-files"
 
@@ -116,14 +125,25 @@ export dist_source_help_steps_folder
 [ -n "$str_replace_tool" ] || str_replace_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str_replace"
 [ -n "$str_replace_many_tool" ] || str_replace_many_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str-replace-many"
 
+## All Debian architectures plus the literal 'source'. 'source' is a
+## valid Debian "architecture" value referring to source packages (see
+## 'dpkg-architecture', 'sources.list' Architectures= field). It is not
+## a typo and it is not shadowing the bash 'source' builtin because
+## 'architecture_all_list' is an array.
 [ -n "$architecture_all_list" ] || architecture_all_list=( amd64 arm64 armel armhf hurd-i386 hurd-amd64 i386 kfreebsd-amd64 kfreebsd-i386 mips mipsel powerpc ppc64 ppc64el s390x sparc source )
 
+## NOTE: This 'cd' is by design. Sourcing 'variables' intentionally
+## changes the caller's working directory to 'source_code_folder_dist'.
+## Several subsequent commands in this file (e.g. 'dpkg-parsechangelog'
+## reading debian/changelog, 'git describe' reading the repo HEAD) and
+## downstream build-step scripts rely on being in the derivative-maker
+## source tree. Callers that source 'variables' must be aware of this
+## side effect and either accept it or save/restore their own CWD.
 cd -- "$source_code_folder_dist"
 
 [ -n "$dist_aptgetopt_file" ] || dist_aptgetopt_file="$binary_build_folder_dist/30_derivative-maker.conf"
 export dist_aptgetopt_file
-## XXX: sudo with '--'
-$SUDO_TO_ROOT rm -f -- "$dist_aptgetopt_file"
+$SUDO_TO_ROOT rm --force -- "$dist_aptgetopt_file"
 
 ## Cannot export bash array.
 #APTGETOPT=()
@@ -135,7 +155,7 @@ export APTGETOPT_SERIALIZED
 #printf "%s\n" "$APTGETOPT_SERIALIZED"
 
 aptgetopt_add() {
-   local opt opt_file
+   local opt
    opt="$1"
 
    APTGETOPT+=("-o")
@@ -163,9 +183,8 @@ LC_ALL="C"
 export LC_ALL
 
 ## Deterministic.
-LC_ALL=C.UTF-8
 TZ=UTC
-export LC_ALL TZ
+export TZ
 
 ## Disable uwt while building Whonix,
 ## because it is not functional while building Whonix from source code.
@@ -175,7 +194,7 @@ export UWT_DEV_PASSTHROUGH
 ## used by mmdebstrap
 ## dpkg-parsechangelog (from package dpkg-dev) is not available before dependencies are installed.
 if command -v dpkg-parsechangelog &>/dev/null ; then
-   SOURCE_DATE_EPOCH="$(dpkg-parsechangelog -STimestamp)"
+   SOURCE_DATE_EPOCH="$(dpkg-parsechangelog --show-field=Timestamp)"
 else
    true "INFO: SOURCE_DATE_EPOCH not available yet because dpkg-parsechangelog has not been installed yet."
 fi
@@ -192,13 +211,17 @@ if [ ! "$dist_build_one_parsed" = "true" ]; then
    MINUS_X_SET="0"
    test -o xtrace || { MINUS_X_SET="$?" ; true; };
    if [ "$MINUS_X_SET" = "0" ]; then
-      ## -x was set
-      bash -n "${source_code_folder_dist}/help-steps/parse-cmd"
+      ## -x was set - temporarily disable xtrace while sourcing parse-cmd
+      ## and running the parser to avoid flooding output with irrelevant
+      ## bash trace lines from the parser itself. Restore -x afterwards.
+      set +x
+      bash -n -- "${source_code_folder_dist}/help-steps/parse-cmd"
       source "${source_code_folder_dist}/help-steps/parse-cmd"
       dist_build_one_parse_cmd "$@"
+      set -x
    else
-      ## -x was not set
-      bash -n "${source_code_folder_dist}/help-steps/parse-cmd"
+      ## -x was not set - parse normally.
+      bash -n -- "${source_code_folder_dist}/help-steps/parse-cmd"
       source "${source_code_folder_dist}/help-steps/parse-cmd"
       dist_build_one_parse_cmd "$@"
    fi
@@ -278,7 +301,7 @@ repository_dist_initializer_setup() {
       $SUDO_TO_ROOT mkdir --parents -- "${CHROOT_FOLDER}/var/lib/repository-dist/"
       $SUDO_TO_ROOT cp -- "${binary_build_folder_dist}/derivative_apt_repository_opts" "${CHROOT_FOLDER}/var/lib/repository-dist/derivative_apt_repository_opts"
    else
-      rm -f -- "${binary_build_folder_dist}/derivative_apt_repository_opts"
+      rm --force -- "${binary_build_folder_dist}/derivative_apt_repository_opts"
    fi
 }
 
@@ -470,6 +493,7 @@ export dist_build_type_long
 
 export VMNAME VMRAM VRAM
 
+## Used by: developer-meta-files /usr/bin/dm-prepare-release
 vm_multiple=false
 if [ "${dist_build_type_long}" = "workstation" ]; then
    vm_multiple=true
@@ -511,6 +535,7 @@ elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
    [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
    true "$BASH_SOURCE INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
+   ## Hardcoded.
    VMNAME=dist-installer-cli
 elif [ "$dist_build_type_short" = "internalrun" ]; then
    true
@@ -520,7 +545,7 @@ fi
 
 ## example dist_build_desktop_lowercase:
 ## lxqt
-[ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase=$(printf "%s\n" "$dist_build_desktop" | tr '[:upper:]' '[:lower:]')
+[ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase="${dist_build_desktop,,}"
 
 if [ ! "$dist_build_desktop_lowercase" = "lxqt" ] ; then
    true "$BASH_SOURCE INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'lxqt'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
@@ -601,7 +626,6 @@ fi
 
 if [ "$VMNAME" = "" ]; then
    MSG="${red}${bold}variables ERROR: VMNAME is empty! Please report this bug!${reset}"
-   printf "%s\n" "$MSG"
    error "$MSG"
 fi
 
@@ -612,8 +636,23 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
    eatmydata_install="true"
    aptgetopt_add "Dpkg::Options::=--force-unsafe-io"
    aptgetopt_conf_add "Dpkg::Options:: \"--force-unsafe-io\";"
-   libeatmydata_file=/usr/lib/*-linux-gnu/libeatmydata.so
-   if test -f "$libeatmydata_file" ; then
+   ## Resolve the host multiarch triplet deterministically rather than
+   ## globbing '/usr/lib/*-linux-gnu/libeatmydata.so'. On a multiarch host
+   ## (e.g. amd64 with i386 foreign), the glob returns both paths; the
+   ## first is chosen by alphabetic order which can be the wrong ABI,
+   ## causing ld.so to reject the preload or silently skip it.
+   libeatmydata_multiarch=""
+   if command -v dpkg-architecture >/dev/null 2>&1 ; then
+      libeatmydata_multiarch="$(dpkg-architecture --query=DEB_HOST_MULTIARCH 2>/dev/null)"
+   fi
+   if [ -z "$libeatmydata_multiarch" ] && command -v gcc >/dev/null 2>&1 ; then
+      libeatmydata_multiarch="$(gcc -print-multiarch 2>/dev/null)"
+   fi
+   libeatmydata_file=""
+   if [ -n "$libeatmydata_multiarch" ] && test -f "/usr/lib/${libeatmydata_multiarch}/libeatmydata.so" ; then
+      libeatmydata_file="/usr/lib/${libeatmydata_multiarch}/libeatmydata.so"
+   fi
+   if [ -n "$libeatmydata_file" ] && test -f "$libeatmydata_file" ; then
       true "INFO: eatmydata installed, preloading."
       if [ -z "$LD_PRELOAD" ]; then
          LD_PRELOAD="$libeatmydata_file"
@@ -621,10 +660,26 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
          LD_PRELOAD="${LD_PRELOAD}:${libeatmydata_file}"
       fi
       export LD_PRELOAD
+      ## Inject LD_PRELOAD as a sudo command-line environment assignment
+      ## (not just via --preserve-env) so that sudo actually passes it
+      ## into the child process. 'export LD_PRELOAD' on the parent is
+      ## not enough: by default sudo strips LD_* variables from the
+      ## environment for security reasons. 'sudo FOO=bar cmd' runs 'cmd'
+      ## with FOO=bar set directly, bypassing the strip. LD_PRELOAD is
+      ## additionally listed in 'env_vars_keep_list' so that
+      ## '--preserve-env=...' (appended to SUDO_TO_ROOT further below)
+      ## keeps it alive for any nested sudo invocations.
       SUDO_TO_ROOT="$SUDO_TO_ROOT LD_PRELOAD=$LD_PRELOAD"
    else
       true "INFO: eatmydata not yet installed, not yet preloading."
    fi
+   ## Shadow the 'sync' command with a no-op function. Bash resolves
+   ## function names before external commands, so in this shell and all
+   ## its subshells 'sync' becomes a no-op. The goal of '--unsafe-io' is
+   ## to speed up the build by letting the kernel defer writes; calling
+   ## '/bin/sync' would defeat that. This only affects processes that
+   ## inherit this shell's function table (i.e. subshells of 'bash'),
+   ## not spawned binaries that directly exec '/bin/sync' themselves.
    sync() {
       true "$FUNCNAME: Not running $FUNCNAME, because using '--unsafe-io true'."
    }
@@ -637,7 +692,7 @@ fi
 #[ -n "$REPO_PROXY" ] || REPO_PROXY="http://127.0.0.1:9977"
 [ -n "${APPROX_PROXY_ENABLE}" ] || APPROX_PROXY_ENABLE='yes'
 
-if [ -n "${APPROX_PROXY_ENABLE}" ]; then
+if [ "${APPROX_PROXY_ENABLE}" = "yes" ]; then
    ## apt parameters must be without quotes
    ## apt parameters must be without equals sign
    ## apt parameters must be without colon sign
@@ -678,24 +733,22 @@ fi
 ## Export COWBUILDER_PREFIX so it is available in make-helper.bsh.
 export COWBUILDER_PREFIX
 
-chroot_env_vars_var_remove_item="
+chroot_env_vars_var_remove_list="
    TEMP
    TEMPDIR
    TMP
    TMPDIR
 "
 
-for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_item ; do
-   if [ "$chroot_env_vars_var_remove_item" = "" ]; then
-      true "INFO: variable $chroot_env_vars_var_remove_item is empty."
-      continue
-   fi
+chroot_remove_env_list=""
+for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_list ; do
    if [ "$chroot_remove_env_list" = "" ]; then
       chroot_remove_env_list="--unset $chroot_env_vars_var_remove_item"
    else
       chroot_remove_env_list+=" --unset $chroot_env_vars_var_remove_item"
    fi
 done
+unset chroot_env_vars_var_remove_item
 
 if [ "$dist_build_install_to_root" = "true" ]; then
    chroot_run() {
@@ -703,7 +756,7 @@ if [ "$dist_build_install_to_root" = "true" ]; then
    }
 else
    chroot_run() {
-      $SUDO_TO_ROOT env $chroot_remove_env_list chroot "$CHROOT_FOLDER" "$@"
+      $SUDO_TO_ROOT env $chroot_remove_env_list -- chroot -- "$CHROOT_FOLDER" "$@"
 
       #$SUDO_TO_ROOT env $chroot_remove_env_list systemd-nspawn --directory="$CHROOT_FOLDER"
    }
@@ -769,7 +822,7 @@ if [ "$dist_build_on_operating_system_detect_skip" = "1" ]; then
    true "Probably run by prepare-build-machine script. lsb_release may not yet installed. Skipping setting dist_build_on_operating_system."
 else
    ## Let's find out on which host operating system the build script is running.
-   [ -n "$dist_build_on_operating_system" ] || dist_build_on_operating_system="$(lsb_release --short --i)"
+   [ -n "$dist_build_on_operating_system" ] || dist_build_on_operating_system="$(lsb_release --short --id)"
    ## Converting dist_build_on_operating_system to lower case to make later if comparison easier.
    dist_build_on_operating_system="${dist_build_on_operating_system,,}"
    ## Example dist_build_on_operating_system: debian
@@ -806,11 +859,12 @@ if [ "$dist_build_version" = "" ]; then
 else
    true "${cyan}INFO: Variable dist_build_version was already set to: dist_build_version=${dist_build_version}${reset}"
 fi
-unset temp
 
-dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-developers-only||g")"
-dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-testers-only||g")"
-dist_build_version="$(printf "%s\n" "$dist_build_version" | sed "s|-stable||g")"
+## Strip channel suffixes ('-developers-only', '-testers-only', '-stable')
+## that may be attached to the git tag so that 'dist_build_version' is a
+## clean version string regardless of which release channel we are on.
+## Single sed invocation with alternation instead of three pipelines.
+dist_build_version="$(printf "%s\n" "$dist_build_version" | sed -E "s|-(developers-only|testers-only|stable)||g")"
 
 ## Using `export`, so 70_log_build_version can read it.
 export dist_build_version
@@ -827,7 +881,10 @@ set_default_variable() {
 
   if [ -z "${!var_name:-}" ]; then
     #printf "%s\n" "INFO: Variable '$var_name' is already set? No. - Setting: $var_name='$var_content'"
-    eval "$var_name='$var_content'"
+    ## Use 'printf -v' instead of 'eval' so single quotes or other shell
+    ## metacharacters inside "$var_content" are stored literally and cannot
+    ## be reinterpreted by the shell parser.
+    printf -v "$var_name" '%s' "$var_content"
     return 0
   fi
   #printf "%s\n" "INFO: Variable '$var_name' is already set? Yes. - Already: $var_name='${!var_name}'"
@@ -839,6 +896,12 @@ elif [ "$dist_build_type_short" = "kicksecure" ]; then
     set_default_variable dist_unified_name "Kicksecure-${dist_build_desktop}"
 elif [ "$dist_build_type_short" = "whonix" ]; then
     set_default_variable dist_unified_name "Whonix-${dist_build_desktop}"
+elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
+    set_default_variable dist_unified_name "dist-installer-cli"
+elif [ "$dist_build_type_short" = "internalrun" ]; then
+    set_default_variable dist_unified_name "internalrun"
+else
+    error "dist_unified_name: unhandled dist_build_type_short '$dist_build_type_short'"
 fi
 
 set_default_variable dist_binary_build_folder "${binary_build_folder_dist}/${dist_build_version}"
@@ -846,13 +909,30 @@ set_default_variable dist_binary_build_folder "${binary_build_folder_dist}/${dis
 set_default_variable binary_image_raw_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.raw"
 set_default_variable binary_image_qcow2_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.qcow2"
 
+## NOTE: 'binary_image_{raw,qcow2}_file_for_unified' reads like a list but
+## is singular by construction. For a unified (multi-VM) build such as
+## Whonix, 'vm_names_to_be_exported' contains exactly two names (Gateway
+## and Workstation); the 'continue' below skips the one matching the
+## current 'dist_build_type_long', leaving exactly one "other" VM whose
+## image path is stored here. Consumers (dm-prepare-release,
+## 1200_prepare-build-machine) treat it as a single path - e.g. the
+## error message reads "missing other VM for unified builds". Do not
+## convert this to an array without updating those callers.
 for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
-   if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
-      continue
-   fi
+   ## Compare case-insensitively but as exact substrings, not regex, to
+   ## avoid regex metacharacters in 'dist_build_type_long' matching
+   ## unintended VM names.
+   vm_name_item_lower="${vm_name_item_to_be_exported,,}"
+   dist_build_type_long_lower="${dist_build_type_long,,}"
+   case "$vm_name_item_lower" in
+      *"$dist_build_type_long_lower"*)
+         continue
+         ;;
+   esac
    set_default_variable binary_image_raw_file_for_unified "${dist_binary_build_folder}/${vm_name_item_to_be_exported}-${dist_build_version}.${target_architecture_pretty_name}.raw"
    set_default_variable binary_image_qcow2_file_for_unified "${dist_binary_build_folder}/${vm_name_item_to_be_exported}-${dist_build_version}.${target_architecture_pretty_name}.qcow2"
 done
+unset vm_name_item_lower dist_build_type_long_lower
 
 set_default_variable binary_image_ova_file "${dist_binary_build_folder}/${dist_unified_name}-${dist_build_version}.${target_architecture_pretty_name}.ova"
 set_default_variable binary_image_iso_file "${dist_binary_build_folder}/${SHORT_VMNAME}-${dist_build_desktop}-${dist_build_version}.${target_architecture_pretty_name}.iso"
@@ -958,7 +1038,7 @@ dist_build_source_config_dir() {
       shopt -s nullglob
       local i
       for i in "$1/"*".conf"; do
-         bash -n "$i"
+         bash -n -- "$i"
          source "$i"
       done
    else
@@ -976,7 +1056,7 @@ fi
 
 if [ ! "$dist_build_conf_file" = "" ]; then
    if [ -f "$dist_build_conf_file" ]; then
-      bash -n "$dist_build_conf_file"
+      bash -n -- "$dist_build_conf_file"
       source "$dist_build_conf_file"
    fi
 fi
@@ -987,7 +1067,7 @@ export make_use_lintian
 export genmkfile_make_cmd
 export make_use_cowbuilder
 
-[ -n "$signify_folder" ] || signify_folder="/home/$user_name/.signify"
+[ -n "$signify_folder" ] || signify_folder="$HOMEVAR/.signify"
 [ -n "$signify_private_key" ] || signify_private_key="$signify_folder/keyname.sec"
 [ -n "$signify_public_key" ] || signify_public_key="$signify_folder/keyname.pub"
 
@@ -1027,6 +1107,8 @@ export dist_build_apt_codename
 
 set_dist_build_reprepro_folder_options() {
    ## derivative_repository_name gets set by packages/kicksecure/genmkfile/usr/share/genmkfile/make-helper-one.bsh
+   local derivative_name_item valid_repository_name
+   valid_repository_name=false
    true "derivative_repository_name: $derivative_repository_name"
    true "make_reprepro_codename_item: $make_reprepro_codename_item"
    if [ "$derivative_repository_name" = "" ]; then
@@ -1055,12 +1137,17 @@ set_dist_build_reprepro_folder_options() {
    dist_apt_repository_folder="$binary_build_folder_dist/$apt_repo_sub_folder"
    export dist_apt_repository_folder
 
-   dist_build_reprepro_folder_options="\
-      --basedir ${source_code_folder_dist}/$apt_repo_sub_folder \
-      --outdir $binary_build_folder_dist/$apt_repo_sub_folder \
-      --dbdir $binary_build_folder_dist/$apt_repo_sub_folder/db \
-      --logdir $binary_build_folder_dist/$apt_repo_sub_folder/log"
-   export dist_build_reprepro_folder_options
+   ## Use an array so path components containing whitespace are preserved
+   ## correctly. Callers must expand as "${dist_build_reprepro_folder_options[@]}".
+   ## Note: bash cannot export arrays. The previous 'export' of a whitespace
+   ## joined scalar was a no-op for all practical purposes; no caller was
+   ## consuming it anyway.
+   dist_build_reprepro_folder_options=(
+      --basedir "${source_code_folder_dist}/$apt_repo_sub_folder"
+      --outdir  "$binary_build_folder_dist/$apt_repo_sub_folder"
+      --dbdir   "$binary_build_folder_dist/$apt_repo_sub_folder/db"
+      --logdir  "$binary_build_folder_dist/$apt_repo_sub_folder/log"
+   )
 }
 
 ## }}}
@@ -1097,11 +1184,14 @@ mkdir --parents -- "$make_cowbuilder_dist_folder"
 
 printf "%s\n" "\
 ## This is an auto generated file.
-## Auto generated by: '$dist_source_help_steps_folder/$BASH_SOURCE'
+## Auto generated by: '$dist_source_help_steps_folder/$(basename -- "$BASH_SOURCE")'
 ## Edits will be lost!
 
-## build-step cowbuilder-setup copies this file into cowbuilder chroot to:
-## '/home/$user_name/pbuilder_config_file'
+## build-step cowbuilder-setup copies this file into the cowbuilder chroot to:
+## '/home/\$user_name/pbuilder_config_file'
+## NOTE: The in-chroot path is hardcoded (not derived from \$HOMEVAR) because
+## 'pbuilder-chroot-script-main' creates the in-chroot user via 'adduser'
+## with '--home /home/\$user_name' regardless of the host's HOMEVAR setting.
 
 ## dist_build_pbuilder_config_file is passed to cowbuilder. example:
 ## '--configfile /home/user/derivative-binary/pbuilder.conf'
@@ -1151,15 +1241,28 @@ export tb_disable_anon_ws_dns_conf
 
 ## Would be nicer to have this in the 'pre' script, but the 'variables' script
 ## runs after 'pre' to provide pretty color functions.
+##
+## NOTE: '$0' refers to the outer build-step script that sourced 'pre'
+## (which in turn sources this file), not to 'variables' itself. Matching
+## '$0' against SKIP_SCRIPTS is intentional: it lets the caller skip an
+## entire build step via e.g. 'SKIP_SCRIPTS+=" 70_log_build_version "'.
+##
+## NOTE: 'exit 0' (not 'return 0') is intentional and correct. This file is
+## sourced from the outer build-step script via 'pre', so 'exit 0' here
+## terminates that build step cleanly, which is exactly what skipping
+## means. 'return 0' would only stop sourcing 'variables' and let the rest
+## of the skipped script continue to run.
 own_filename="$(basename -- "$0")"
 for skip_script in $SKIP_SCRIPTS; do
-   if matched_word=$(printf "%s\n" "$own_filename" | grep -- "$skip_script") ; then
-      unset skip_script
+   ## '--fixed-strings' so SKIP_SCRIPTS entries are treated as literal
+   ## substrings, not regular expressions. Otherwise a '.' or other regex
+   ## metacharacter in SKIP_SCRIPTS could match unintended scripts.
+   if matched_word=$(printf "%s\n" "$own_filename" | grep --fixed-strings -- "$skip_script") ; then
       printf "%s\n" "${bold}${green}$BASH_SOURCE INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
       exit 0
    fi
 done
-unset skip_script
+unset skip_script matched_word
 
 ## }}}
 
@@ -1210,16 +1313,27 @@ env_vars_keep_list="
 
 true "INFO: Environment variables that will be passed..."
 
-for env_vars_var_keep_item in $env_vars_keep_list ; do
-   if [ "$sudo_preserve_env_list" = "" ]; then
-      sudo_preserve_env_list="$env_vars_var_keep_item"
-   else
-      sudo_preserve_env_list+=",$env_vars_var_keep_item"
-   fi
-done
+## Re-entrance guard: this block appends to 'sudo_preserve_env_list' and
+## 'SUDO_TO_ROOT'. If 'variables' is sourced twice in the same shell (e.g.
+## from nested build-step scripts), without this guard '--preserve-env=...'
+## would be appended to SUDO_TO_ROOT once per sourcing, producing
+## duplicated flags and an ever-growing SUDO_TO_ROOT string.
+if [ ! "$variables_sudo_to_root_finalized" = "true" ]; then
+   sudo_preserve_env_list=""
+   for env_vars_var_keep_item in $env_vars_keep_list ; do
+      if [ "$sudo_preserve_env_list" = "" ]; then
+         sudo_preserve_env_list="$env_vars_var_keep_item"
+      else
+         sudo_preserve_env_list+=",$env_vars_var_keep_item"
+      fi
+   done
 
-SUDO_TO_ROOT+=" "
-SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
+   SUDO_TO_ROOT+=" "
+   SUDO_TO_ROOT+="--preserve-env=$sudo_preserve_env_list"
+
+   variables_sudo_to_root_finalized="true"
+   export variables_sudo_to_root_finalized
+fi
 
 ## XXX: Not possible because some scripts use extra sudo arguments such as "--preserve-env".
 #SUDO_TO_ROOT+=" "
