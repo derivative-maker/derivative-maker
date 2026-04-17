@@ -1,261 +1,721 @@
 #!/bin/bash
 
-## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## Copyright (C) 2012 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-# shellcheck source=../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh"
+## Single-source git verification tool. Verifies signatures, tag status, and
+## working-tree cleanliness for the main repo and recursively for all
+## submodules. Used by 'derivative-update' and 'build-steps.d/1100_sanity-tests',
+## and runnable standalone by developers.
 
-if was_executed "${BASH_SOURCE[0]}"; then
-   git_sanity_test_was_sourced='false'
-else
-   git_sanity_test_was_sourced='true'
-fi
+set -e
+set -o pipefail
 
-if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
-   set -x
-   set -e
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-   true "INFO: Currently running script: $BASH_SOURCE $@"
+source "$MYDIR/colors"
 
-   MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+## This function is defined up here to avoid redundancy between comments and
+## documentation.
+print_help() {
+   printf '%s\n' "
+Usage:
+  help-steps/git_sanity_test [--mode MODE] [options]
 
-   cd "$MYDIR"
-   cd ..
-   cd help-steps
+  With no arguments, defaults to '--mode all --context \"main repo\"',
+  which verifies the current repository (main repo + all submodules)
+  with the standard set of checks (signature, tag status, uncommitted).
 
+Modes:
+
+  --mode all --context LABEL
+    'working-tree' on the current directory, then 'submodules'.
+    This is the default when no '--mode' is given.
+
+  --mode working-tree --context LABEL
+    Verify the current working directory's git repo:
+      1. Authenticate HEAD commit against sq_git_trust_root via
+         'sq-git log' (walks the commit chain, validates each
+         commit signature against openpgp-policy.toml). This is
+         the cryptographic trust gate.
+      2. Tag policy. The only valid tag states for this repo are:
+           A) no tag at HEAD        (allowed under --allow-untagged)
+           B) exactly one annotated SIGNED tag at HEAD
+         Everything else is a hard error, regardless of
+         --allow-untagged:
+           - lightweight tag at HEAD
+           - annotated but unsigned tag at HEAD
+           - multiple tags at HEAD
+         --allow-untagged is a narrow escape hatch for case A only;
+         it means \"it is OK that there is NO tag here\" and not \"it
+         is OK that tag state is broken\".
+      3. Uncommitted changes check.
+    Exit codes: 0=ok, 1=signature, 2=tag/untagged, 3=uncommitted
+
+  --mode ref --ref REF --ref-type {tag|commit}
+    Authenticate a specific ref's target commit.
+    - Resolves REF to a commit (tag -> its target commit).
+    - Authenticates that commit via 'sq-git log' from the trust
+      root, the same as --mode working-tree step 1.
+    - For --ref-type tag: REF must exist under refs/tags/, and
+      the tag must be annotated-and-signed per the three-way
+      classify_tag check. --allow-untagged is NOT honoured here -
+      when the caller explicitly names a specific ref and declares
+      its type, they mean it, and the declaration is enforced
+      strictly. A caller who wants to build from a commit without
+      tag enforcement should use --mode working-tree with
+      --allow-untagged instead.
+    Exit codes: 0=ok, 1=verification failed
+
+  --mode submodules
+    Recursively run 'working-tree' on every submodule via
+    'git submodule foreach --recursive'. Submodules use --trust-root HEAD
+    because the parent repo (already verified) pins each submodule commit.
+    Exit codes: 0=ok, non-zero=at least one submodule failed
+
+  --help, -h
+    Print this usage information and exit.
+
+Forwarded arguments:
+  Any argument that is not in the script-specific list above
+  (--mode/--context/--ref/--ref-type/--help) is forwarded to
+  'help-steps/parse-cmd' via 'help-steps/variables' during the
+  standalone bootstrap. This is the same parser the build-steps.d
+  scripts use, so you can pass e.g.:
+
+    ./help-steps/git_sanity_test --allow-untagged true
+    ./help-steps/git_sanity_test --allow-uncommitted true
+"
+}
+
+## Argument forwarding only takes effect when the script is invoked
+## standalone (env vars not yet set). When invoked from a build context
+## where the parent has already populated the env vars, passing forwarded
+## arguments is an error. Set --allow-* on the parent build invocation
+## instead (e.g. 'derivative-update --allow-untagged true').
+##
+## Environment variables (all REQUIRED when using within build infrastructure;
+## no implicit defaults):
+##
+##   sq_git_policy_file
+##     Absolute path to the openpgp-policy.toml policy file. Set in
+##     'help-steps/variables'.
+##
+##   sq_git_trust_root
+##     Trust root for 'sq-git log --trust-root'. Caller must
+##     decide explicitly. 'help-steps/variables' sets this based on build
+##     mode (HEAD for CI / non-redistributable, a fixed commit hash for
+##     redistributable builds). For --mode submodules, this script
+##     internally overrides to "HEAD" because the parent repo (already
+##     verified) pins each submodule commit.
+##
+##   dist_build_ignore_untagged
+##     "true" or "false". Narrow escape hatch for --mode
+##     working-tree that covers ONE failure mode only:
+##       - "no tag at HEAD" (i.e. building from a non-release commit)
+##     When "true", that case passes with an INFO message. It does NOT
+##     cover any other tag-hygiene failure, see above.
+##
+##     sq-git log commit authentication (the cryptographic gate) runs
+##     in all cases and is never affected by this setting.
+##
+##     --mode ref does not consult this variable at all.
+##
+##     Set by 'help-steps/parse-cmd' from --allow-untagged; defaulted
+##     to "false" by 'help-steps/variables' otherwise.
+##
+##   dist_build_ignore_uncommitted
+##     "true" or "false". Whether to skip the uncommitted check.
+##     Set by 'help-steps/parse-cmd' from --allow-uncommitted; defaulted to
+##     "false" by 'help-steps/variables' otherwise.
+##
+## Optional environment variables:
+##
+##   dist_source_help_steps_folder
+##     Used only to print a 'cleanup-files' hint on uncommitted-changes
+##     failure. If unset, the hint is omitted.
+##
+## Standalone use:
+##   When invoked directly by a developer (env vars not yet set), this
+##   script sources 'help-steps/pre' and 'help-steps/variables' to populate
+##   the required env vars - the same way 'derivative-update' and
+##   'build-steps.d/*' do. This makes the script work when run from a freshly
+##   cloned working tree:
+##
+##     cd derivative-maker
+##     ./help-steps/git_sanity_test
+##
+##   When invoked from a build context (env vars already set), this
+##   script does NOT re-source the build infrastructure.
+##
+## Trust model:
+##
+##   sq-git log authenticates a commit range from 'sq_git_trust_root'
+##   to a target commit against the authorized signers listed in
+##   'openpgp-policy.toml'. The trust root is the anchor: sq-git does
+##   NOT cryptographically re-verify the trust root itself; it is
+##   accepted as definitionally trusted.
+##
+##   TOFU (trust-on-first-use) model:
+##     CI builds and non-redistributable builds set
+##     'sq_git_trust_root="HEAD"' in help-steps/variables. In that
+##     case sq-git log's "chain" is the single commit HEAD itself and
+##     authentication is definitional (the script accepts HEAD because
+##     the caller declared HEAD as the trust root, not because sq-git
+##     walked any signatures). On first run the operator must verify
+##     the checkout manually - see:
+##     https://www.kicksecure.com/wiki/Dev/Build_Documentation/images
+##     On subsequent runs, 'derivative-update' plus this script keep
+##     the checkout pinned to a verified state as long as the trust
+##     root declaration itself is not tampered with.
+##
+##   Redistributable builds (non-CI) pin 'sq_git_trust_root' to a
+##   specific historical commit in help-steps/variables. sq-git log
+##   then walks the chain from that commit to HEAD, validating every
+##   commit signature in between; this is strictly stronger than TOFU.
+##
+## Submodule trust model:
+##
+##   '--mode submodules' iterates every submodule via 'git submodule
+##   foreach --recursive' and runs '--mode working-tree' on each.
+##   Every submodule invocation forces 'sq_git_trust_root=HEAD' (the
+##   submodule's HEAD), which is the TOFU case described above. The
+##   real integrity guarantee for submodule commits comes from the
+##   SUPERPROJECT's verification: the parent repo was already
+##   authenticated by the main '--mode working-tree' pass, and the
+##   parent repo pins each submodule's gitlink (commit SHA). Anyone
+##   able to tamper with a submodule's HEAD without also tampering
+##   with the superproject commit would be caught at the superproject
+##   level. The per-submodule sq-git log call here is definitional,
+##   plus the tag / uncommitted-changes checks.
+##
+## sq-git version assumption:
+##
+##   This script targets sequoia-git 0.4.0+ as shipped in Debian
+##   trixie ('sequoia-git' package). It does NOT carry workarounds
+##   for older sq-git behaviours by design. Specifically:
+##
+##     - sequoia-git issue #37 ('sq-git log --trust-root=HEAD HEAD'
+##       errored with "The given range contains no commits") was
+##       fixed in 2023. We rely on the fixed behaviour where sq-git
+##       log accepts trust_root == target and prints:
+##         "Verified that there is an authenticated path from the
+##          trust root <sha> to <sha>."
+##
+##   If you hit an sq-git issue that predates 0.4.0, please upgrade
+##   sequoia-git rather than adding a workaround here.
+
+## Define 'die' early, BEFORE the standalone bootstrap below, because the
+## bootstrap's cwd-restore step ('cd -- "$orig_pwd" || die ...') would
+## otherwise reference a not-yet-defined function. Shell functions are
+## not hoisted, so calling die before its definition would fail with a
+## "command not found" instead of our intended error.
+die() {
+   printf '%s\n' "${bold}${red}${0##*/}: ERROR: $*${reset}" >&2
+   exit 1
+}
+
+## ----------------------------------------------------------------------------
+## Argument parsing
+## ----------------------------------------------------------------------------
+##
+## Two layers:
+##  1. Script-specific args (--mode/--context/--ref/--ref-type/--help)
+##     are parsed here and consumed.
+##  2. Anything else (e.g. --allow-untagged true, --allow-uncommitted true,
+##     --debug) is forwarded to 'help-steps/parse-cmd' via 'help-steps/
+##     variables' during the standalone bootstrap below. This avoids
+##     duplicating parse-cmd's argument vocabulary in this script.
+##
+## NOTE: Forwarding only takes effect during the standalone bootstrap, i.e.
+## when the build infrastructure has not yet been set up in a parent. When
+## invoked from a build context, passing forwarded args directly to this
+## script is a hard error.
+
+mode=""
+context=""
+ref=""
+ref_type=""
+forwarded_args=()
+
+while [ $# -gt 0 ]; do
+   case "$1" in
+      --mode)      mode="$2";     shift 2 ;;
+      --context)   context="$2";  shift 2 ;;
+      --ref)       ref="$2";      shift 2 ;;
+      --ref-type)  ref_type="$2"; shift 2 ;;
+      --help|-h)   print_help;    exit  0 ;;
+      ## Everything else: forward to parse-cmd via the standalone bootstrap.
+      ## Forward ONE TOKEN at a time (preserving order). parse-cmd itself
+      ## knows how many arguments each of its flags takes and will consume
+      ## the values from the positional parameters on its side. Forwarding
+      ## pairs here would miscount for bare flags (e.g. '--debug') and
+      ## accidentally swallow subsequent tokens.
+      *)
+         forwarded_args+=("$1")
+         shift
+         ;;
+   esac
+done
+
+## Default mode: when run with no '--mode', do the most thorough check
+## (main repo + all submodules). This is the safest default.
+[ -n "$mode" ] || mode="all"
+case "$mode" in
+   all|working-tree)
+      [ -n "$context" ] || context="main repo"
+      ;;
+esac
+
+## ----------------------------------------------------------------------------
+## Standalone-use bootstrap: source build infrastructure if not already done.
+## ----------------------------------------------------------------------------
+##
+## Detection: 'dist_build_one_parsed' is the flag 'help-steps/variables' sets
+## and exports after it has sourced parse-cmd and run
+## 'dist_build_one_parse_cmd'. When we see it inherited as "true", the build
+## infrastructure has already been set up in a parent process and the env
+## vars we need (sq_git_policy_file, sq_git_trust_root, ...) are exported and
+## visible to us.
+##
+## When invoked from 'derivative-update' or 'build-steps.d/1100_sanity-tests',
+## the build infrastructure has already been sourced and the env vars are
+## inherited. When invoked directly by a developer from a fresh shell,
+## 'dist_build_one_parsed' is unset; we source 'pre' and 'variables' here to
+## populate the env vars - the same scripts the normal callers source.
+##
+## Why conditional (and not the standard help-steps unconditional pattern):
+## sourcing 'help-steps/variables' executes 'cd "$source_code_folder_dist"',
+## which moves the cwd to the main repo. Two consequences are handled:
+##
+##   1. 'git submodule foreach --recursive' re-invokes this script from
+##      each submodule directory. In that case the env vars are already
+##      inherited from the parent ('dist_build_one_parsed=true'), the
+##      bootstrap is skipped, and the cwd stays in the submodule where
+##      'git rev-parse HEAD' / 'git status' operate on the submodule.
+##
+##   2. In the standalone bootstrap path, we save $PWD before sourcing
+##      and restore it afterwards so that '--mode working-tree' keeps
+##      verifying the repo at the caller's original cwd - matching the
+##      documented behaviour "Verify the current working directory's
+##      git repo".
+##
+## We forward unrecognized command-line args (e.g. --allow-untagged true,
+## --allow-uncommitted true, --debug) to 'help-steps/parse-cmd' via 'help-
+## steps/variables'. variables sources parse-cmd and calls
+## 'dist_build_one_parse_cmd "$@"' with whatever positional parameters are
+## set when variables is sourced - so we 'set --' to our forwarded_args
+## first. This avoids duplicating parse-cmd's argument parsing here.
+##
+## 'dist_build_internal_run="true"' tells parse-cmd to accept being
+## invoked with zero or unknown args without exiting (it would otherwise
+## reject empty argv as "No option chosen!").
+##
+## NOTE: 'pre' disables 'set -e' and installs ERR/EXIT traps for build-step
+## error handling. Our explicit 'exit N' calls still propagate via pre's
+## EXIT trap. Unexpected command failures are caught by pre's ERR trap.
+if [ "${dist_build_one_parsed:-}" != "true" ]; then
+   orig_pwd="$PWD"
+   set -- "${forwarded_args[@]}"
    dist_build_internal_run="true"
-
-   source pre
-   source colors
-   source variables
+   source "$MYDIR/pre"
+   source "$MYDIR/variables"
+   cd -- "$orig_pwd" || die "cannot restore original cwd: $orig_pwd"
+   unset orig_pwd
+elif [ "${#forwarded_args[@]}" -gt 0 ]; then
+   ## Build-context invocation: env vars are already set, but the user
+   ## passed extra args meant for parse-cmd. We cannot re-run parse-cmd
+   ## here without re-sourcing the build infrastructure (which would
+   ## change cwd and break the recursive submodule case). Erroring out
+   ## is the safe choice: the user expected the args to take effect,
+   ## but they would not.
+   printf '%s\n' "${0##*/}: ERROR: extra args cannot be honoured in build context (env vars already set by parent): ${forwarded_args[*]}" >&2
+   printf '%s\n' "${0##*/}:        pass --allow-untagged / --allow-uncommitted etc. on the parent build invocation instead." >&2
+   exit 1
 fi
 
-signed_by_fingerprint() {
-  command -v sq-git >/dev/null
+## ----------------------------------------------------------------------------
+## Env var validation (all REQUIRED, no implicit defaults)
+## ----------------------------------------------------------------------------
 
-  cmd=( sq-git log --policy-file "${sq_git_policy_file}" --trust-root "${sq_git_trust_root}" -- "${1}" )
+[ -n "${sq_git_policy_file:-}" ]            || die "env var sq_git_policy_file must be set"
+[ -n "${sq_git_trust_root:-}" ]             || die "env var sq_git_trust_root must be set"
+[ -n "${dist_build_ignore_untagged:-}" ]    || die "env var dist_build_ignore_untagged must be set ('true' or 'false')"
+[ -n "${dist_build_ignore_uncommitted:-}" ] || die "env var dist_build_ignore_uncommitted must be set ('true' or 'false')"
 
-  ## sq-git allows to offload the complexity of OpenPGP signing key import.
-  ## File 'openpgp-policy.toml' contains authorized signing key(s).
-  if "${cmd[@]}"; then
-    true "INFO: sq-git verification, ok."
-    return 0
-  fi
+## sq_git_policy_file must be an absolute path. Relative paths would
+## break in --mode submodules (where 'git submodule foreach --recursive'
+## runs per-submodule with a changed cwd).
+if ! [[ "${sq_git_policy_file}" =~ ^/ ]]; then
+   die "sq_git_policy_file must be an absolute path, got: '${sq_git_policy_file}'"
+fi
+[ -r "${sq_git_policy_file}" ] || die "sq_git_policy_file is not readable: '${sq_git_policy_file}'"
 
-  1>&2 printf '%s\n' "\
-WARNING: sq-git verification command failed!
+case "${dist_build_ignore_untagged}" in
+   true|false) ;;
+   *) die "dist_build_ignore_untagged must be 'true' or 'false', got: '${dist_build_ignore_untagged}'" ;;
+esac
+case "${dist_build_ignore_uncommitted}" in
+   true|false) ;;
+   *) die "dist_build_ignore_uncommitted must be 'true' or 'false', got: '${dist_build_ignore_uncommitted}'" ;;
+esac
 
-sq-git verification command:
-${cmd[*]}
+## ----------------------------------------------------------------------------
+## Verification primitives
+## ----------------------------------------------------------------------------
 
-(INFO: If this is intentional, could:
-- A) preferably: configure your own sq-git policy file, see file 'buildconfig.d/30_signing_key.conf'; or,
-- B) crude: out-comment this check.)"
-  ## This can be skipped by replacing 'return 1' with 'return 0'.
-  return 1
-}
-
-verify_ref() {
-  local ref ref_type
-
-  ref="${1:-}"
-  ref_type="${2:-}"
-
-  if [ -z "${ref}" ]; then
-    error 'Cannot pass empty ref to verify_ref!'
-  fi
-  if [ -z "${ref_type}" ]; then
-    error 'Cannot pass empty ref_type to verify_ref!'
-  fi
-  case "${ref_type}" in
-    tag|commit)
-      true "INFO: ref_type: tag or commit."
-      ;;
-    *)
-      error "ref_type must be one of 'tag' or 'commit'!"
-      ;;
-  esac
-
-  ## Policy: All git commits (at least HEAD) is always signed.
-  #"${git_verify_command_wrapper[@]}" verify-commit -- "${ref}^{commit}" || return 1
-  signed_by_fingerprint "${ref}^{commit}" || return 1
-
-  if [ "${ref_type}" = 'tag' ]; then
-    ## Policy: All git tags are always signed.
-    ##
-    ## NOTE: 'refs/tags/' is necessary to prevent ambiguity in the event of a
-    ## tag with the same name as a branch or commit.
-    #"${git_verify_command_wrapper[@]}" verify-tag -- "refs/tags/${ref}" || return 1
-    signed_by_fingerprint "${ref}" || return 1
-  fi
-}
-
-git_sanity_test_hint() {
-   true "${cyan}$BASH_SOURCE INFO: As a developer or advanced user you might want to use:${reset}
-${cyan}${under}WARNING:${eunder}${reset} This can be ${under}insecure${eunder} if you are unable to audit the uncommitted changes.
-${bold}${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}${reset}
-"
-}
-
-git_submodule_uncommitted_check() {
-   local submodule_path_list submodule_path_item
-
-   readarray -t submodule_path_list < <(
-      grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
-   )
-   for submodule_path_item in "${submodule_path_list[@]}"; do
-      ## grep would be better in so far that it supports '--fixed-strings'.
-      ## In the worst case, special characters might cause a spurious error message.
-      ## Hence, preferring speed (bash built-in string matching) over external utility 'grep'.
-      #if grep --fixed-strings -- "$submodule_path_item" &>/dev/null <<< "$git_status_str"; then
-      # shellcheck disable=SC2076
-      if [[ "${git_status_str}" =~ "${submodule_path_item}" ]]; then
-         printf '%s\n' "${cyan}INFO: Uncommitted changes detected in git submodule: '${under}${submodule_path_item}${eunder}'  ${reset}"
-      fi
-   done
-}
-
-git_sanity_test_check_for_untagged_commits() {
-   git_tag_nearest="$(git describe --always --abbrev=0)"
-   git_tag_current="$(git describe --always --abbrev=1000000000)"
-   git_tag_exact="$(git describe --exact-match --tags 2>/dev/null)" || true
-
-   ## Example git_tag_nearest:
-   ## 9.6
-
-   ## Example git_tag_current:
-   ## 10.0.0.3.7-developers-only-6-g505c39d44d2a08451f7ff53ce67d78745e05816b
-
-   true "${cyan}$BASH_SOURCE INFO: git_tag_nearest: $git_tag_nearest ${reset}"
-   true "${cyan}$BASH_SOURCE INFO: git_tag_current: $git_tag_current ${reset}"
-
-   if [ "$git_tag_nearest" == "$git_tag_current" ]; then
-      true "${cyan}$BASH_SOURCE INFO: git_tag_nearest equals git_tag_current. ${reset}"
-      if [ "$git_tag_current" == "$git_tag_exact" ]; then
-         true "${cyan}$BASH_SOURCE INFO: git_tag_current equals git_tag_exact. ${reset}"
-         true "${cyan}$BASH_SOURCE INFO: Git reports tagged commit. ${reset}"
-         verify_ref "${git_tag_exact}" 'tag'
-         return 0
-      fi
-   fi
-
-   if [ "$dist_build_ignore_untagged" = "true" ]; then
-      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports a untagged commit! But you requested to ignore untagged commits, continuing... ${reset}"
+## sq-git allows offloading the complexity of OpenPGP signing key import.
+## File 'openpgp-policy.toml' contains authorized signing key(s) and supports
+## multiple authorized signers natively.
+sq_git_verify() {
+   local target_ref="$1"
+   local label="$2"
+   ## sq-git log --trust-root HEAD -- HEAD is unsafe when used without
+   ## --policy-file, even if an openpgp-policy.toml file exists in the
+   ## repository root directory. Because the trust root and target ref are the
+   ## same, it will assume the target ref is authenticated even if it is
+   ## unsigned. However, when a policy file is explicitly passed, sq-git will
+   ## verify the trust root's commit and exit non-zero if validation fails.
+   if sq-git log --policy-file "${sq_git_policy_file}" --trust-root "${sq_git_trust_root}" -- "${target_ref}"; then
+      true "INFO: sq-git verification ok: ${label}"
       return 0
    fi
-
-   true "${bold}${red}---------------------------------------------------------------------${reset}"
-   true "${bold}${red}$BASH_SOURCE ERROR: Git reports an untagged commit! ${reset}"
-   true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-untagged true${eunder}, \
-which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
-Such as in case you added custom commits.) ${reset}"
-   git_sanity_test_hint
-   true "${cyan}$BASH_SOURCE INFO: (See build documentation on how to verify and checkout git tags.)${reset}"
-   true "${bold}${red}---------------------------------------------------------------------${reset}"
-
-   error "Untagged commit! See above!"
-   true
+   printf '%s\n' "${bold}${red}ERROR: sq-git verification failed: ${label}${reset}" >&2
+   printf '%s\n' "${cyan}INFO: If this is intentional, configure your own sq-git policy file." >&2
+   printf '%s\n' "${cyan}      See 'buildconfig.d/30_signing_key.conf'.${reset}" >&2
+   return 1
 }
 
-git_sanity_test_check_for_uncommitted_changes() {
-   local git_status_str
-   git_status_str="$(git status --porcelain=v1 2>&1)" || error "'git status --porcelain=v1' failed."
+print_allow_hint() {
+   printf '%s\n' "${cyan}INFO: As a developer or advanced user you might want to use:" >&2
+   printf '%s\n' "${under}WARNING:${eunder} This can be ${under}insecure${eunder} if you cannot audit the changes." >&2
+   printf '%s\n' "${bold}${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}${reset}" >&2
+}
 
-   if [ -z "$git_status_str" ]; then
-      true "INFO: No uncommitted changes found, ok."
-      return 0
+split_tag() {
+  local tag_contents output_dir tag_lines tag_line tag_line_idx sig_start_idx
+
+  tag_contents="${1:-}";
+  [ -z "${tag_contents}" ] && return 1;
+  output_dir="${2:-}";
+  [ -z "${output_dir}" ] && return 1;
+
+  readarray -t tag_lines <<< "${tag_contents}"
+
+  if [ "${tag_lines[ ${#tag_lines[@]} - 1 ]}" != '-----END PGP SIGNATURE-----' ]; then
+    ## Commit is or appears unsigned
+    return 1
+  fi
+
+  ## Scan backwards for the '-----BEGIN PGP SIGNATURE-----' line, to reduce
+  ## the risk of spoofing
+  sig_start_idx=-1
+  for (( tag_line_idx=${#tag_lines[@]}; tag_line_idx >= 0; tag_line_idx-- )); do
+    if [ "${tag_lines[tag_line_idx]}" = '-----BEGIN PGP SIGNATURE-----' ]; then
+      sig_start_idx="${tag_line_idx}"
+      break
+    fi
+  done
+
+  if [ "${sig_start_idx}" = '-1' ]; then
+    return 1
+  fi
+
+  printf '%s\n' "${tag_lines[@]:0:sig_start_idx}" > "${output_dir}/tag-text"
+  printf '%s\n' "${tag_lines[@]:sig_start_idx:${#tag_lines[@]}}" > "${output_dir}/tag-sig"
+}
+
+## Classify a tag ref into one of three states:
+##
+##    lightweight        - no tag object at all (ref points directly at a
+##                         commit). Cannot carry a signature by definition.
+##    annotated-unsigned - tag object exists but has no PGP signature block
+##                         or the signature block cannot verify the tag for
+##                         any reason.
+##    annotated-signed   - tag object exists and is signed by a trusted
+##                         developer.
+##
+## Exit status semantics (the caller decides what to do):
+##    0 - annotated-signed
+##    1 - lightweight
+##    2 - annotated-unsigned
+##    (die() on internal errors like 'cannot inspect tag')
+classify_tag() {
+   local tag_ref="$1"
+   local context_label="$2"
+   local tag_objtype tag_body
+
+   if ! tag_objtype="$(git cat-file -t "${tag_ref}")"; then
+      die "cannot inspect tag ref '${tag_ref}' in ${context_label}"
    fi
 
-   if [ "$dist_build_ignore_uncommitted" = "true" ]; then
-      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
-      git_sanity_test_hint
-      true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for debugging. ${reset}"
-      git status
-      true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for debugging. ${reset}"
-      git clean -d --force --force --dry-run
-      true
-      return 0
+   case "$tag_objtype" in
+      commit)
+         ## lightweight
+         return 1
+         ;;
+      tag)
+         ;;
+      *)
+         die "tag ref '${tag_ref}' resolves to unrecognized object type '${tag_objtype}' in ${context_label}"
+         ;;
+   esac
+
+   if ! tag_body="$(git cat-file tag "${tag_ref}")"; then
+      die "cannot read tag object for '${tag_ref}' in ${context_label}"
    fi
+   case "$tag_body" in
+      *'-----BEGIN PGP SIGNATURE-----'*|*'-----BEGIN PGP MESSAGE-----'*|*'-----BEGIN SSH SIGNATURE-----'*)
+         ## annotated and signed, but not yet verified
+         ;;
+      *)
+         ## annotated-unsigned
+         return 2
+         ;;
+   esac
 
-   true "${bold}${red}---------------------------------------------------------------------${reset}"
-   true "${bold}${red}$BASH_SOURCE ERROR: Git reports uncommitted changes! ${reset}"
-   true "${cyan}$BASH_SOURCE INFO: (And you are not using ${under}--allow-uncommitted true${eunder}, \
-which you also should not do for security reasons, unless you are a developer or advanced user and know what you are doing. \
-Such as in case you added custom code.) ${reset}"
-   git_sanity_test_hint
-   true "${cyan}$BASH_SOURCE INFO: Running \"git status\" for your convenience. ${reset}"
-   git status
-   ## Use '2>/dev/null' to hide xtrace.
-   git_submodule_uncommitted_check 2>/dev/null
-   true "${cyan}$BASH_SOURCE INFO: Running git \"clean -d --force --force --dry-run\" for your convenience. ${reset}"
-   git clean -d --force --force --dry-run
-   true "${cyan}$BASH_SOURCE You most likely like to run:${reset}
-${under}$dist_source_help_steps_folder/cleanup-files${eunder}
-${cyan}or if you know what you are doing:${reset}
-${under}git clean -d --force --force${eunder}
-${under}git reset --hard${eunder}
-"
-   true "${bold}${red}---------------------------------------------------------------------${reset}"
-
-   error "Uncommitted changes! See above!"
-   true
-}
-
-git_submodule_verify() {
-   local submodule_path_list submodule_path_item submodule_head
-
-   ## Submodule repositories intentionally do not include their own 'sq-git'
-   ## policy file ('openpgp-policy.toml'). A single policy file in the parent
-   ## repository ('derivative-maker') is used for all verification, keeping
-   ## signing policy centralized and avoiding duplication across repositories.
-
-   readarray -t submodule_path_list < <(
-      grep --fixed-strings 'path =' -- '.gitmodules' | awk -- '{ print $3 }'
-   )
-
-   for submodule_path_item in "${submodule_path_list[@]}"; do
-      ## Not using '-d'. Can either be a folder or a file.
-      ## cat /home/user/derivative-maker/packages/kicksecure/anon-apt-sources-list/.git
-      ## > gitdir: ../../../.git/modules/packages/anon-apt-sources-list
-      if ! [ -e "${submodule_path_item}/.git" ]; then
-         error "INFO: Submodule '${submodule_path_item}' is not initialized."
-      fi
-      pushd "${submodule_path_item}" >/dev/null || error "Failed to enter submodule directory '${submodule_path_item}'!"
-      submodule_head="$(git rev-parse HEAD)" || {
-         popd >/dev/null
-         error "Failed to get HEAD commit for submodule '${submodule_path_item}'!"
-      }
-      true "INFO: Verifying submodule '${submodule_path_item}' at commit '${submodule_head}'..."
-      if ! verify_ref "${submodule_head}" 'commit'; then
-         popd >/dev/null
-         error "Verification failed for submodule '${submodule_path_item}'!"
-      fi
-      popd >/dev/null
-   done
-}
-
-git_sanity_test_main() {
-   ## Sanity-check; verify the signature of the current ref. If the user has
-   ## never verified the repo before, this can be bypassed if the repo is
-   ## compromised, but if the repo is safe, this (in combination with the key
-   ## import above) will do the initial verification, providing "trust on first
-   ## use" (TOFU) security.
+   ## Extract tag signing keys from sq_git_policy_file
    ##
-   ## TOFU threat model: Initial digital software verification must be done
-   ## manually for stronger-than-TOFU security. See:
-   ## https://www.kicksecure.com/wiki/Dev/Build_Documentation/images
-   verify_ref "${dist_build_current_git_head}" 'commit'
+   ## TODO: verify_tag_dir will be leaked if the script errors out. Unsure
+   ## how to make this interact with the 'help-steps/pre' error handler.
+   local verify_tag_dir
+   verify_tag_dir="$(mktemp -d)"
+   chmod 0700 -- "${verify_tag_dir}"
+   mkdir --parents -- "${verify_tag_dir}/certs"
+   ## Populates "${verify_tag_dir}/certs" with certificate files
+   "$MYDIR/extract-openpgp-policy-trusted-certs" "${sq_git_policy_file}" 'sign_tag' "${verify_tag_dir}/certs"
 
-   git_sanity_test_check_for_untagged_commits
-   git_sanity_test_check_for_uncommitted_changes
+   ## Extract tag text and signature
+   local tag_contents
+   tag_contents="$(git cat-file tag "${tag_ref}")"
+   mkdir --parents -- "${verify_tag_dir}/tag"
+   ## Populates "${verify_tag_dir}/tag" with files 'tag-text' and 'tag-sig'
+   split_tag "${tag_contents}" "${verify_tag_dir}/tag"
 
-   git_submodule_verify
+   ## Verify the tag against any one of the extracted certs
+   local verify_tag_cert
+   for verify_tag_cert in "${verify_tag_dir}/certs/"/*; do
+     if ! [ -r "${verify_tag_cert}" ]; then
+       continue
+     fi
+     if sqop verify "${verify_tag_dir}/tag/tag-sig" "${verify_tag_cert}" < "${verify_tag_dir}/tag/tag-text" >/dev/null 2>&1; then
+       safe-rm --recursive --force -- "${verify_tag_dir}"
+       ## annotated and signed by a trusted developer
+       return 0
+     fi
+   done
+
+   safe-rm --recursive --force -- "${verify_tag_dir}"
+   ## annotated, signed but not by a trusted developer
+   return 2
 }
 
-if [ "${git_sanity_test_was_sourced}" = 'false' ]; then
-   main() {
-      git_sanity_test_main "$@"
-   }
-   main "$@"
-fi
+## ----------------------------------------------------------------------------
+## Modes
+## ----------------------------------------------------------------------------
+
+mode_working_tree() {
+   [ -n "$context" ] || die "--context is required for --mode working-tree"
+
+   local head git_status git_tags_output
+   local -a tags_at_head git_tags_cmd
+
+   head="$(git rev-parse HEAD)" || die "Failed to get HEAD for: ${context}"
+
+   ## Commit authentication via sq-git log.
+   sq_git_verify "${head}^{commit}" "${context} (commit ${head})" || exit 1
+
+   ## Tag policy check.
+   ##
+   ## We use %(refname) not %(refname:short) to avoid branch/tag
+   ## naming collisions when the value is fed back into git commands.
+   git_tags_cmd=( git for-each-ref --points-at=HEAD --format='%(refname)' refs/tags )
+   if ! git_tags_output="$( "${git_tags_cmd[@]}" )"; then
+      die "'${git_tags_cmd[*]}' failed in ${context}"
+   fi
+   if [ -n "$git_tags_output" ]; then
+      readarray -t tags_at_head <<< "$git_tags_output"
+   else
+      tags_at_head=()
+   fi
+
+   case "${#tags_at_head[@]}" in
+      0)
+         ## No tag at HEAD. This is the ONLY case --allow-untagged
+         ## covers.
+         if [ "${dist_build_ignore_untagged}" = "true" ]; then
+            printf '%s\n' "${cyan}INFO: Untagged commit in ${context}, --allow-untagged set, continuing.${reset}"
+         else
+            printf '%s\n' "${bold}${red}ERROR: Untagged commit in: ${context}${reset}" >&2
+            print_allow_hint
+            printf '%s\n' "${cyan}INFO: See build documentation on how to verify and checkout git tags.${reset}" >&2
+            exit 2
+         fi
+         ;;
+      1)
+         ## Exactly one tag at HEAD. Must be annotated+signed.
+         ## --allow-untagged is NOT honoured here (see block comment
+         ## above).
+         local cls=0
+         classify_tag "${tags_at_head[0]}" "${context}" || cls=$?
+         case "$cls" in
+            0)
+               ## annotated-signed: accept
+               ;;
+            1)
+               printf '%s\n' "${bold}${red}ERROR: Tag '${tags_at_head[0]}' in ${context} is a lightweight tag${reset}" >&2
+               printf '%s\n' "${cyan}INFO: Lightweight tags have no tag object and cannot carry a signature. Policy: all tags in this repo must be annotated signed tags. Remove the tag ('git tag -d ...') or recreate it as annotated and signed ('git tag -a -s ...'). If you need a local bookmark, use a branch instead.${reset}" >&2
+               printf '%s\n' "${cyan}INFO: --allow-untagged does NOT bypass this check - it only covers the 'no tag at all' case.${reset}" >&2
+               exit 2
+               ;;
+            2)
+               printf '%s\n' "${bold}${red}ERROR: Tag '${tags_at_head[0]}' in ${context} is annotated but is not signed by a trusted developer, possible downgrade attack?${reset}" >&2
+               printf '%s\n' "${cyan}INFO: Policy: all tags in this repo must be signed by a trusted developer.${reset}" >&2
+               printf '%s\n' "${cyan}INFO: If you are a developer, you might have forgotten to use 'git tag -a -s ...'.${reset}" >&2
+               printf '%s\n' "${cyan}INFO: --allow-untagged does NOT bypass this check - it only covers the 'no tag at all' case.${reset}" >&2
+               exit 2
+               ;;
+         esac
+         ;;
+      *)
+         ## Multiple tags at HEAD. --allow-untagged is NOT honoured.
+         printf '%s\n' "${bold}${red}ERROR: Multiple tags point at HEAD in ${context}: ${tags_at_head[*]}${reset}" >&2
+         printf '%s\n' "${cyan}INFO: Policy: at most one tag per commit so release identity is unambiguous. Remove the extras with 'git tag -d ...'.${reset}" >&2
+         printf '%s\n' "${cyan}INFO: --allow-untagged does NOT bypass this check - it only covers the 'no tag at all' case.${reset}" >&2
+         exit 2
+         ;;
+   esac
+
+   ## Uncommitted changes check.
+   ##
+   ## NOTE: No '2>&1' here. Merging git's stderr into the dirty-tree
+   ## signal would let unrelated warnings (e.g. advice messages, index
+   ## version warnings) be misinterpreted as uncommitted changes.
+   git_status="$(git status --porcelain=v1)"
+   if [ -n "$git_status" ]; then
+      if [ "${dist_build_ignore_uncommitted}" = "true" ]; then
+         printf '%s\n' "${cyan}INFO: Uncommitted changes in ${context}, --allow-uncommitted set, continuing.${reset}"
+         ## Debugging.
+         git status
+      else
+         printf '%s\n' "${bold}${red}ERROR: Uncommitted changes in: ${context}${reset}" >&2
+         git status >&2
+         print_allow_hint
+         ## Non-destructively print untracked files.
+         ##
+         ## TODO: This doesn't really show uncommitted changes. `git diff --compact-summary HEAD` will.
+         printf '%s\n' "${cyan}INFO: Non-destructively listing untracked files with 'git clean -d --force --force --dry-run':${reset}" >&2
+         git clean -d --force --force --dry-run >&2 || true
+         printf '%s\n' "${cyan}INFO: Displaying uncommitted changes to tracked files with 'git diff --compact-summary ${head}':${reset}" >&2
+         git diff --compact-summary "${head}" >&2
+         if [ -n "${dist_source_help_steps_folder:-}" ]; then
+            printf '%s\n' "${cyan}You most likely like to run:${reset}" >&2
+            printf '%s\n' "${under}${dist_source_help_steps_folder}/cleanup-files${eunder}" >&2
+            printf '%s\n' "${cyan}or if you know what you are doing:${reset}" >&2
+            printf '%s\n' "${under}git clean -d --force --force${eunder}" >&2
+            printf '%s\n' "${under}git reset --hard${eunder}" >&2
+         fi
+         exit 3
+      fi
+   fi
+}
+
+mode_ref() {
+   [ -n "$ref" ]      || die "--ref is required for --mode ref"
+   [ -n "$ref_type" ] || die "--ref-type is required for --mode ref"
+   case "$ref_type" in
+      tag|commit) ;;
+      *) die "--ref-type must be 'tag' or 'commit'" ;;
+   esac
+
+   local resolve_ref ref_commit
+
+   ## For --ref-type tag:
+   ##   - Normalize to a fully qualified 'refs/tags/...' ref. Callers
+   ##     may pass either a short tag name ('v1.2.3') or the fully
+   ##     qualified form ('refs/tags/v1.2.3'); both are accepted.
+   ##   - Require the ref to exist under refs/tags/. Other refs cannot
+   ##     be tags and are rejected.
+   ##   - Require the tag to be annotated-and-signed according to
+   ##     classify_tag.
+   ##
+   ## For --ref-type commit, accept any valid commit-ish (branch name,
+   ## commit SHA, etc.) and skip the tag classification.
+   if [ "$ref_type" = 'tag' ]; then
+      case "$ref" in
+         refs/tags/*)  resolve_ref="$ref" ;;
+         refs/*)       die "ref '${ref}' is declared as --ref-type tag but is not under refs/tags/" ;;
+         *)            resolve_ref="refs/tags/${ref}" ;;
+      esac
+      git show-ref --verify --quiet "${resolve_ref}" \
+         || die "tag ref not found: '${resolve_ref}'"
+      local cls=0
+      classify_tag "${resolve_ref}" "ref '${ref}'" || cls=$?
+      case "$cls" in
+         0) : ;;
+         1) die "ref '${resolve_ref}' is a lightweight tag - not an annotated signed tag" ;;
+         2) die "ref '${resolve_ref}' is annotated but not signed by a trusted developer - release tags must be signed" ;;
+      esac
+   else
+      resolve_ref="${ref}"
+   fi
+
+   ## Resolve to the target commit SHA.
+   if ! ref_commit="$(git rev-parse --verify "${resolve_ref}^{commit}" 2>/dev/null)"; then
+      die "could not resolve ref '${ref}' to a commit"
+   fi
+
+   ## Authenticate the target commit via sq-git log. When
+   ## sq_git_trust_root == ref_commit, sq-git log authenticates the
+   ## single-commit 'chain' trivially; see 'mode_working_tree'.
+   sq_git_verify "${ref_commit}" "ref '${ref}' (commit ${ref_commit})" || exit 1
+}
+
+mode_submodules() {
+   ## Comprehensive submodule checks via 'git submodule foreach --recursive'.
+   ## Handles nested submodules, paths with special characters, moved paths.
+   ##
+   ## Submodule repositories intentionally do not include their own 'sq-git'
+   ## policy file ('openpgp-policy.toml'). The parent repo's policy file is
+   ## used for all verification, keeping signing policy centralized.
+   ##
+   ## NOTE: 'git submodule foreach' runs commands under /bin/sh, not bash.
+   ## We re-invoke this script (under bash) per submodule to keep strict
+   ## shell options and shared verification logic.
+   ##
+   ## Helper path: use '$MYDIR' (the absolute path to THIS script's
+   ## directory, computed at startup from $BASH_SOURCE). Earlier
+   ## revisions used '$(git rev-parse --show-toplevel)/help-steps/...'
+   ## which broke when the caller ran the script from inside a
+   ## nested git repo (e.g. a submodule) - '--show-toplevel' then
+   ## points at the nested repo, which doesn't contain this helper.
+   ## $MYDIR always points at this script's own directory regardless
+   ## of the caller's cwd.
+   ##
+   ## We export MYDIR so the foreach subshell (POSIX sh) can expand it.
+   ## '$displaypath' is set by 'git submodule foreach' itself.
+   ##
+   ## Submodules are not always tagged, and the superproject associates
+   ## specific submodule commits with superproject tags, therefore we set
+   ## dist_build_ignore_untagged here.
+   [ -r "${MYDIR}/git_sanity_test" ] || die "helper script not found or not readable: '${MYDIR}/git_sanity_test'"
+
+   export MYDIR
+   sq_git_trust_root=HEAD dist_build_ignore_untagged='true' \
+      git submodule foreach --recursive \
+         'bash "$MYDIR/git_sanity_test" --mode working-tree --context "$displaypath"'
+}
+
+mode_all() {
+   [ -n "$context" ] || die "--context is required for --mode all"
+   mode_working_tree
+   mode_submodules
+}
+
+case "$mode" in
+   working-tree) mode_working_tree ;;
+   ref)          mode_ref ;;
+   submodules)   mode_submodules ;;
+   all)          mode_all ;;
+   *) die "unknown mode '$mode' (expected one of working-tree, ref, submodules, all)" ;;
+esac

@@ -142,16 +142,18 @@ case "$mode" in
 
     ## Git provides the signed payload on stdin.
     ##
-    ## TODO: AUDIT: Use '--signer-email "$DEBEMAIL"' here?
-    ##
-    ## Using '--signer-email "$DEBEMAIL"':
-    ## - Useful enforcing that only a specific signing key has been used.
-    ##   Should be unnecessary as that is a task for 'sq-git'.
+    ## LIMITATION: This wrapper's verify mode is inherently weaker than
+    ## 'sq-git log' for policy-based verification. git's gpg.openpgp.program
+    ## interface only passes a raw signature file and payload -- it does NOT
+    ## pass the commit hash. Therefore this wrapper cannot call 'sq-git log'
+    ## (which needs a commit ref and natively understands openpgp-policy.toml).
+    ## Policy-based submodule verification is handled separately by
+    ## 'help-steps/git_sanity_test --mode submodules' using
+    ## 'sq-git log' directly.
     ##
     ## Not using '--signer-email "$DEBEMAIL"':
     ## - Verification will pass if the key is in sq keystore and trusted,
     ##   which is useful for developers 'git verify-commit' or 'git merge'.
-    #cmd=( "$sq_bin" verify --signer-email "$DEBEMAIL" --signature-file "$sigfile" - )
     cmd=( "$sq_bin" verify --signature-file "$sigfile" - )
 
     log "${cmd[*]}"

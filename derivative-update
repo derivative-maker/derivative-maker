@@ -20,18 +20,27 @@ source ./help-steps/pre
 source ./help-steps/colors
 source ./help-steps/variables
 
-source ./help-steps/git_sanity_test
+## Path to the unified git verification helper. All git verification
+## (main repo + submodules + arbitrary refs) goes through this script.
+git_sanity_test="${dist_source_help_steps_folder}/git_sanity_test"
 
 error_handler_dist_build_one() {
    true "${red}${bold}ERROR in $0${reset}"
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND"
-   true "${red}\$@: $*${reset}"
+   true "${red}\$*: $*${reset}"
    true "${red}${bold}INFO: Now exiting from $0 (because error was detected, see above).${reset}"
    exit 1
 }
 
 trap "error_handler_dist_build_one" ERR
 
+## abort_update: roll back to a known-good state on verification failure.
+##
+## Callers pass '${dist_build_current_git_head}' as 'recover_commit'. That
+## variable is set by 'help-steps/variables' (sourced above) from
+## 'git rev-parse HEAD' at script start; it is NOT set by the git
+## verification helper. It remains available in this (parent) shell even
+## though 'git_sanity_test' now runs as a child process.
 abort_update() {
   local error_msg recover_commit branch_reset_commit
 
@@ -44,7 +53,11 @@ abort_update() {
   fi
 
   if [ -n "${recover_commit}" ]; then
+    ## Prevent malicious branch name attacks. See:
+    ## https://security.stackexchange.com/q/225411
+    recover_commit="${recover_commit}^{commit}"
     if [ -n "${branch_reset_commit}" ]; then
+      branch_reset_commit="${branch_reset_commit}^{commit}"
       ## Cannot use 'error' here because we want to use the 'error' below.
       ## NOTE: Cannot use end-of-options ("--").
       ## NOTE: 'git checkout' will prefer branch or commit IDs over tags when
@@ -98,14 +111,16 @@ update_repo() {
   ## We need there to be no uncommitted changes in order to robustly verify the repository state.
   ## If there are uncommitted changes, stop.
   ## (Except if using '--allow-uncommitted true'.)
-  ## This also performs digital signature (OpenPGP) verification of the current git HEAD.
-  git_sanity_test_main "$@"
+  ## This also performs digital signature (OpenPGP) verification of the current git HEAD,
+  ## and recursively verifies all submodules.
+  "${git_sanity_test}" --mode all --context "main repo"
 
   true "INFO: $BASH_SOURCE continuing..."
 
   if [ "$update_only" = "true" ]; then
-    ## Variable 'git_tag_exact' is set in 'git_sanity_test'.
-    target_tag="$git_tag_exact"
+    ## --update-only requires HEAD to be on an exact tag. (The signature
+    ## of HEAD and the tag itself were already verified above.)
+    target_tag="$(git describe --exact-match --tags HEAD 2>/dev/null)" || target_tag=""
     if [ -z "${target_tag}" ]; then
       error '--update-only used, but no tag was checked out in advance!'
     fi
@@ -126,7 +141,7 @@ update_repo() {
 
   ## Verify the specified ref, then check out that ref.
   if [ -n "${target_tag}" ]; then
-    if ! verify_ref "${target_tag}" 'tag'; then
+    if ! "${git_sanity_test}" --mode ref --ref "${target_tag}" --ref-type tag; then
       abort_update 'Tag verification failed!'
     fi
 
@@ -146,15 +161,26 @@ update_repo() {
     ## Caution.
     ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
     ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-    "${git_verify_command_wrapper[@]}" -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+    ##
+    ## NOTE: Not using 'merge.verifySignatures=true' here. git's GPG shim
+    ## interface (gpg.openpgp.program / sq-git-wrapper) cannot perform
+    ## policy-based verification because git only passes raw signature data,
+    ## not the commit ref that 'sq-git log' needs.
+    ## Instead, 'git_sanity_test --mode submodules' verifies each submodule
+    ## commit directly via 'sq-git log' after the update completes.
+    #"${git_verify_command_wrapper[@]}" -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+    git submodule update --init --recursive --jobs=200 --merge \
       || abort_update \
         'Submodule update failed!' \
         "${dist_build_current_git_head}"
 
-    git_submodule_verify
+    "${git_sanity_test}" --mode submodules \
+      || abort_update \
+        'Submodule verification failed!' \
+        "${dist_build_current_git_head}"
 
   elif [ -n "${target_ref}" ]; then
-    if ! verify_ref "${target_ref}" 'commit'; then
+    if ! "${git_sanity_test}" --mode ref --ref "${target_ref}" --ref-type commit; then
       abort_update 'Ref verification failed!'
     fi
 
@@ -180,6 +206,9 @@ update_repo() {
       ## it's important to get the working tree back into a known-good state
       ## if at all possible. Thus it is possible that failed verification
       ## during a branch update could lead to a compromised local branch.
+      ##
+      ## TODO: Why don't we verify the remote branch before merging in
+      ## addition to verifying after?
 
       ## Save the ref first so we can undo the merge if it goes wrong.
       ## NOTE: This must be run after 'git checkout'.
@@ -216,19 +245,24 @@ update_repo() {
       ## NOTE: Not using 'refs/remotes/' here because we want to verify the
       ## state of the locally checked-out-and-updated branch, not the remote
       ## branch.
-      verify_ref "${target_ref}" 'commit' \
+      "${git_sanity_test}" --mode ref --ref "${target_ref}" --ref-type commit \
         || abort_update \
           'Remote commit verification failed! You are now in detached HEAD state, you will need to check out a branch you trust manually.' \
           "${dist_build_current_git_head}" "${branch_reset_commit}"
       ## Caution.
       ## This command updates Git submodules to the commit recorded in the parent repository. (derivative-maker)
       ## It modifies the submodule's Git HEAD, potentially overriding local changes.
-      "${git_verify_command_wrapper[@]}" -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+      ## See note in tag path above re: merge.verifySignatures.
+      #"${git_verify_command_wrapper[@]}" -c merge.verifySignatures=true submodule update --init --recursive --jobs=200 --merge \
+      git submodule update --init --recursive --jobs=200 --merge \
         || abort_update \
           'Submodule update failed!' \
           "${dist_build_current_git_head}" "${branch_reset_commit}"
-      git_submodule_verify
-      verify_ref "${target_ref}" 'commit' \
+      "${git_sanity_test}" --mode submodules \
+        || abort_update \
+          'Submodule verification failed!' \
+          "${dist_build_current_git_head}" "${branch_reset_commit}"
+      "${git_sanity_test}" --mode ref --ref "${target_ref}" --ref-type commit \
         || abort_update \
           'Verification failed after submodule update!' \
           "${dist_build_current_git_head}" "${branch_reset_commit}"
@@ -258,9 +292,10 @@ main() {
     true "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
     exit 1
   fi
-  true "INFO: Script running as as non-root, ok."
+  true "INFO: Script running as non-root, ok."
 
-  command -v "$git_bin" >/dev/null
+  ## TODO: Is this obsolete?
+  #command -v "$git_bin" >/dev/null
 
   update_repo "$@"
 }
