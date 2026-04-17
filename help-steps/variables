@@ -230,6 +230,17 @@ if [ ! "$dist_build_one_parsed" = "true" ]; then
 fi
 
 [[ -v sq_git_policy_file ]] || sq_git_policy_file="${source_code_folder_dist}/openpgp-policy.toml"
+export sq_git_policy_file
+
+## Default the user-overridable verification flags to "false" so that
+## 'help-steps/git_sanity_test' can require them to be set explicitly
+## (security: caller must make an explicit decision; no implicit defaults
+## inside the verification script). 'parse-cmd' sets them to "true" when
+## --allow-untagged / --allow-uncommitted are passed.
+[ -n "${dist_build_ignore_untagged:-}" ]    || dist_build_ignore_untagged="false"
+[ -n "${dist_build_ignore_uncommitted:-}" ] || dist_build_ignore_uncommitted="false"
+export dist_build_ignore_untagged
+export dist_build_ignore_uncommitted
 
 ## TODO BUG: 'buildconfig.d' is being parsed after, not before this?
 ## NOTE: Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
@@ -281,6 +292,9 @@ else
    ## Non-redistributable builds use '--tb open' by default.
    [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
 fi
+## Export sq_git_trust_root so 'help-steps/git_sanity_test' can read it.
+export sq_git_trust_root
+
 ## Variable 'anon_shared_inst_tb' only has an effect if package 'tb-updater' is installed.
 export anon_shared_inst_tb
 
@@ -838,8 +852,16 @@ fi
 ## {{{ dist_build_current_git_head
 
 ## Get the ref (branch or commit) that we're currently at.
+##
+## Unconditionally recompute from 'git rev-parse HEAD'. There isn't a
+## plausible situation where being able to customize this is useful. (It also
+## technically allow an attacker with the ability to modify the environment to
+## fool derivative-update into checking out the wrong commit, but an attacker
+## that can modify the environment can likely do much worse things, so this
+## isn't a real concern.)
+##
 ## NOTE: Cannot use end-of-options ("--").
-[ -n "$dist_build_current_git_head" ] || dist_build_current_git_head="$($git_bin rev-parse HEAD)" || error 'Cannot get head commit ID!'
+dist_build_current_git_head="$($git_bin rev-parse HEAD)" || error 'Cannot get head commit ID!'
 
 #printf "%s\n" "dist_build_current_git_head: $dist_build_current_git_head"
 
