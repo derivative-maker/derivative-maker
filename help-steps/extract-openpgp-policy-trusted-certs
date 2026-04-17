@@ -23,6 +23,7 @@ import traceback
 from pathlib import Path
 from typing import NoReturn, Any
 
+
 def error_msg(msg: str) -> NoReturn:
     """
     Outputs an error message and exits 1.
@@ -30,6 +31,7 @@ def error_msg(msg: str) -> NoReturn:
 
     print(msg, file=sys.stderr)
     sys.exit(1)
+
 
 # pylint: disable=too-many-branches
 def main() -> NoReturn:
@@ -60,16 +62,16 @@ def main() -> NoReturn:
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
-    if not "version" in policy_map:
+    if "version" not in policy_map:
         error_msg("Policy file does not include version key!")
     if not isinstance(policy_map["version"], int):
         error_msg("Policy file version key is not an integer!")
     if policy_map["version"] != 0:
         error_msg(
-            f"Unexpected policy file version '{policy_map["version"]}'!"
+            f"Unexpected policy file version '{policy_map['version']}'!"
         )
 
-    if not "authorization" in policy_map:
+    if "authorization" not in policy_map:
         error_msg("Policy file does not include authorization key!")
     if not isinstance(policy_map["authorization"], dict):
         error_msg("Policy file authorization key is not a dictionary!")
@@ -82,6 +84,11 @@ def main() -> NoReturn:
                 "Policy file contains a non-string item in the 'authorization' group!"
             )
 
+        if not isinstance(auth_dict, dict):
+            error_msg(
+                f"Policy file authorization entry for user '{auth_key}' is not a dictionary!"
+            )
+
         if trust_key not in auth_dict:
             continue
         if not isinstance(auth_dict[trust_key], bool):
@@ -92,7 +99,7 @@ def main() -> NoReturn:
         if not auth_dict[trust_key]:
             continue
 
-        if not "keyring" in auth_dict:
+        if "keyring" not in auth_dict:
             continue
         if not isinstance(auth_dict["keyring"], str):
             error_msg(
@@ -118,6 +125,7 @@ def main() -> NoReturn:
         key_count += 1
 
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
