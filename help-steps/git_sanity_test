@@ -1,12 +1,17 @@
 #!/bin/bash
 
-## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## Copyright (C) 2012 - 2026 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
 ## Single-source git verification tool. Verifies signatures, tag status, and
 ## working-tree cleanliness for the main repo and recursively for all
 ## submodules. Used by 'derivative-update' and 'build-steps.d/1100_sanity-tests',
 ## and runnable standalone by developers.
+
+set -e
+set -o pipefail
+
+MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source "$MYDIR/colors"
 
@@ -43,10 +48,7 @@ Modes:
            - multiple tags at HEAD
          --allow-untagged is a narrow escape hatch for case A only;
          it means \"it is OK that there is NO tag here\" and not \"it
-         is OK that tag state is broken\". sq-git log authenticates
-         commit ranges, not tag objects, so the tag-state check is
-         release-workflow HYGIENE rather than cryptographic
-         verification.
+         is OK that tag state is broken\".
       3. Uncommitted changes check.
     Exit codes: 0=ok, 1=signature, 2=tag/untagged, 3=uncommitted
 
@@ -185,7 +187,7 @@ Forwarded arguments:
 ##   able to tamper with a submodule's HEAD without also tampering
 ##   with the superproject commit would be caught at the superproject
 ##   level. The per-submodule sq-git log call here is definitional,
-##   plus the tag / uncommitted-changes hygiene checks.
+##   plus the tag / uncommitted-changes checks.
 ##
 ## sq-git version assumption:
 ##
@@ -202,11 +204,6 @@ Forwarded arguments:
 ##
 ##   If you hit an sq-git issue that predates 0.4.0, please upgrade
 ##   sequoia-git rather than adding a workaround here.
-
-set -e
-set -o pipefail
-
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ## Define 'die' early, BEFORE the standalone bootstrap below, because the
 ## bootstrap's cwd-restore step ('cd -- "$orig_pwd" || die ...') would
@@ -395,35 +392,54 @@ print_allow_hint() {
    printf '%s\n' "${bold}${under}--allow-untagged true${eunder} ${under}--allow-uncommitted true${eunder}${reset}" >&2
 }
 
+split_tag() {
+  local tag_contents output_dir tag_lines tag_line tag_line_idx sig_start_idx
+
+  tag_contents="${1:-}";
+  [ -z "${tag_contents}" ] && return 1;
+  output_dir="${2:-}";
+  [ -z "${output_dir}" ] && return 1;
+
+  readarray -t tag_lines <<< "${tag_contents}"
+
+  if [ "${tag_lines[ ${#tag_lines[@]} - 1 ]}" != '-----END PGP SIGNATURE-----' ]; then
+    ## Commit is or appears unsigned
+    return 1
+  fi
+
+  ## Scan backwards for the '-----BEGIN PGP SIGNATURE-----' line, to reduce
+  ## the risk of spoofing
+  sig_start_idx=-1
+  for (( tag_line_idx=${#tag_lines[@]}; tag_line_idx >= 0; tag_line_idx-- )); do
+    if [ "${tag_lines[tag_line_idx]}" = '-----BEGIN PGP SIGNATURE-----' ]; then
+      sig_start_idx="${tag_line_idx}"
+      break
+    fi
+  done
+
+  if [ "${sig_start_idx}" = '-1' ]; then
+    return 1
+  fi
+
+  printf '%s\n' "${tag_lines[@]:0:sig_start_idx}" > "${output_dir}/tag-text"
+  printf '%s\n' "${tag_lines[@]:sig_start_idx:${#tag_lines[@]}}" > "${output_dir}/tag-sig"
+}
+
 ## Classify a tag ref into one of three states:
 ##
 ##    lightweight        - no tag object at all (ref points directly at a
 ##                         commit). Cannot carry a signature by definition.
 ##    annotated-unsigned - tag object exists but has no PGP signature block
-##                         (per a substring check on the tag body).
-##    annotated-signed   - tag object exists and contains a PGP signature
-##                         block.
+##                         or the signature block cannot verify the tag for
+##                         any reason.
+##    annotated-signed   - tag object exists and is signed by a trusted
+##                         developer.
 ##
 ## Exit status semantics (the caller decides what to do):
 ##    0 - annotated-signed
 ##    1 - lightweight
 ##    2 - annotated-unsigned
 ##    (die() on internal errors like 'cannot inspect tag')
-##
-## This is RELEASE-WORKFLOW HYGIENE, not cryptographic verification. See
-## 'security.md' in the repo root for the full analysis: threat model,
-## spoof attempts, alternative options, and why we do not use
-## 'git tag -v' / 'sq verify' here. The short version:
-##
-##   - sq-git log authenticates COMMITS, not tag objects. A lightweight
-##     tag at HEAD silently passes sq-git log because it resolves to the
-##     signed target commit.
-##   - The substring signature-presence check below is SPOOFABLE by a
-##     tag message that contains the BEGIN marker text. It catches
-##     honest-developer "forgot -s" mistakes and not much else.
-##   - The real release trust anchor is sq-git log on the target commit
-##     (see mode_working_tree step 1). The tag check exists to catch
-##     workflow mistakes, not to provide cryptographic guarantees.
 classify_tag() {
    local tag_ref="$1"
    local context_label="$2"
@@ -450,14 +466,48 @@ classify_tag() {
    fi
    case "$tag_body" in
       *'-----BEGIN PGP SIGNATURE-----'*|*'-----BEGIN PGP MESSAGE-----'*|*'-----BEGIN SSH SIGNATURE-----'*)
-         ## annotated-signed
-         return 0
+         ## annotated and signed, but not yet verified
          ;;
       *)
          ## annotated-unsigned
          return 2
          ;;
    esac
+
+   ## Extract tag signing keys from sq_git_policy_file
+   ##
+   ## TODO: verify_tag_dir will be leaked if the script errors out. Unsure
+   ## how to make this interact with the 'help-steps/pre' error handler.
+   local verify_tag_dir
+   verify_tag_dir="$(mktemp -d)"
+   chmod 0700 -- "${verify_tag_dir}"
+   mkdir --parents -- "${verify_tag_dir}/certs"
+   ## Populates "${verify_tag_dir}/certs" with certificate files
+   "$MYDIR/extract-openpgp-policy-trusted-certs" "${sq_git_policy_file}" 'sign_tag' "${verify_tag_dir}/certs"
+
+   ## Extract tag text and signature
+   local tag_contents
+   tag_contents="$(git cat-file tag "${tag_ref}")"
+   mkdir --parents -- "${verify_tag_dir}/tag"
+   ## Populates "${verify_tag_dir}/tag" with files 'tag-text' and 'tag-sig'
+   split_tag "${tag_contents}" "${verify_tag_dir}/tag"
+
+   ## Verify the tag against any one of the extracted certs
+   local verify_tag_cert
+   for verify_tag_cert in "${verify_tag_dir}/certs/"/*; do
+     if ! [ -r "${verify_tag_cert}" ]; then
+       continue
+     fi
+     if sqop verify "${verify_tag_dir}/tag/tag-sig" "${verify_tag_cert}" < "${verify_tag_dir}/tag/tag-text" >/dev/null 2>&1; then
+       safe-rm --recursive --force -- "${verify_tag_dir}"
+       ## annotated and signed by a trusted developer
+       return 0
+     fi
+   done
+
+   safe-rm --recursive --force -- "${verify_tag_dir}"
+   ## annotated, signed but not by a trusted developer
+   return 2
 }
 
 ## ----------------------------------------------------------------------------
@@ -519,8 +569,9 @@ mode_working_tree() {
                exit 2
                ;;
             2)
-               printf '%s\n' "${bold}${red}ERROR: Tag '${tags_at_head[0]}' in ${context} is annotated but unsigned${reset}" >&2
-               printf '%s\n' "${cyan}INFO: Policy: all tags in this repo must be signed. Recreate the tag with 'git tag -a -s ...' (or '-u <key>' for a specific signer).${reset}" >&2
+               printf '%s\n' "${bold}${red}ERROR: Tag '${tags_at_head[0]}' in ${context} is annotated but is not signed by a trusted developer, possible downgrade attack?${reset}" >&2
+               printf '%s\n' "${cyan}INFO: Policy: all tags in this repo must be signed by a trusted developer.${reset}" >&2
+               printf '%s\n' "${cyan}INFO: If you are a developer, you might have forgotten to use 'git tag -a -s ...'.${reset}" >&2
                printf '%s\n' "${cyan}INFO: --allow-untagged does NOT bypass this check - it only covers the 'no tag at all' case.${reset}" >&2
                exit 2
                ;;
@@ -603,7 +654,7 @@ mode_ref() {
       case "$cls" in
          0) : ;;
          1) die "ref '${resolve_ref}' is a lightweight tag - not an annotated signed tag" ;;
-         2) die "ref '${resolve_ref}' is annotated but unsigned - release tags must be signed" ;;
+         2) die "ref '${resolve_ref}' is annotated but not signed by a trusted developer - release tags must be signed" ;;
       esac
    else
       resolve_ref="${ref}"
@@ -643,10 +694,14 @@ mode_submodules() {
    ##
    ## We export MYDIR so the foreach subshell (POSIX sh) can expand it.
    ## '$displaypath' is set by 'git submodule foreach' itself.
+   ##
+   ## Submodules are not always tagged, and the superproject associates
+   ## specific submodule commits with superproject tags, therefore we set
+   ## dist_build_ignore_untagged here.
    [ -r "${MYDIR}/git_sanity_test" ] || die "helper script not found or not readable: '${MYDIR}/git_sanity_test'"
 
    export MYDIR
-   sq_git_trust_root=HEAD \
+   sq_git_trust_root=HEAD dist_build_ignore_untagged='true' \
       git submodule foreach --recursive \
          'bash "$MYDIR/git_sanity_test" --mode working-tree --context "$displaypath"'
 }
