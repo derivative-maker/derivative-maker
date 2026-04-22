@@ -4,6 +4,7 @@
 * The only time where trust matters in the derivative-maker codebase is when running derivative-update - the files present on the filesystem when derivative-update runs are considered trusted, but the files that are being fetched from upstream are not trusted until they have been cryptographically verified.
   * This means that derivative-update must never run git checkout until after it has verified whatever ref it is about to check out.
 * Verbose logging is generally considered a feature, not a bug, unless you can find a specific secrets leak in CI logs.
+* For detailed analysis of `help-steps/git_sanity_test` tag verification (threat model, sq-git limitations, design options), see `agents/git_sanity_test_security.md`.
 
 secrets:
 

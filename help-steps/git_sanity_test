@@ -88,128 +88,18 @@ Forwarded arguments:
 "
 }
 
-## Argument forwarding only takes effect when the script is invoked
-## standalone (env vars not yet set). When invoked from a build context
-## where the parent has already populated the env vars, passing forwarded
-## arguments is an error. Set --allow-* on the parent build invocation
-## instead (e.g. 'derivative-update --allow-untagged true').
+## Required env vars (set by help-steps/variables):
+##   sq_git_policy_file             absolute path to openpgp-policy.toml
+##   sq_git_trust_root              trust root for sq-git log
+##   dist_build_ignore_untagged     "true" or "false"
+##   dist_build_ignore_uncommitted  "true" or "false"
 ##
-## Environment variables (all REQUIRED when using within build infrastructure;
-## no implicit defaults):
-##
-##   sq_git_policy_file
-##     Absolute path to the openpgp-policy.toml policy file. Set in
-##     'help-steps/variables'.
-##
-##   sq_git_trust_root
-##     Trust root for 'sq-git log --trust-root'. Caller must
-##     decide explicitly. 'help-steps/variables' sets this based on build
-##     mode (HEAD for CI / non-redistributable, a fixed commit hash for
-##     redistributable builds). For --mode submodules, this script
-##     internally overrides to "HEAD" because the parent repo (already
-##     verified) pins each submodule commit.
-##
-##   dist_build_ignore_untagged
-##     "true" or "false". Narrow escape hatch for --mode
-##     working-tree that covers ONE failure mode only:
-##       - "no tag at HEAD" (i.e. building from a non-release commit)
-##     When "true", that case passes with an INFO message. It does NOT
-##     cover any other tag-hygiene failure, see above.
-##
-##     sq-git log commit authentication (the cryptographic gate) runs
-##     in all cases and is never affected by this setting.
-##
-##     --mode ref does not consult this variable at all.
-##
-##     Set by 'help-steps/parse-cmd' from --allow-untagged; defaulted
-##     to "false" by 'help-steps/variables' otherwise.
-##
-##   dist_build_ignore_uncommitted
-##     "true" or "false". Whether to skip the uncommitted check.
-##     Set by 'help-steps/parse-cmd' from --allow-uncommitted; defaulted to
-##     "false" by 'help-steps/variables' otherwise.
-##
-## Optional environment variables:
-##
-##   dist_source_help_steps_folder
-##     Used only to print a 'cleanup-files' hint on uncommitted-changes
-##     failure. If unset, the hint is omitted.
-##
-## Standalone use:
-##   When invoked directly by a developer (env vars not yet set), this
-##   script sources 'help-steps/pre' and 'help-steps/variables' to populate
-##   the required env vars - the same way 'derivative-update' and
-##   'build-steps.d/*' do. This makes the script work when run from a freshly
-##   cloned working tree:
-##
-##     cd derivative-maker
-##     ./help-steps/git_sanity_test
-##
-##   When invoked from a build context (env vars already set), this
-##   script does NOT re-source the build infrastructure.
-##
-## Trust model:
-##
-##   sq-git log authenticates a commit range from 'sq_git_trust_root'
-##   to a target commit against the authorized signers listed in
-##   'openpgp-policy.toml'. The trust root is the anchor: sq-git does
-##   NOT cryptographically re-verify the trust root itself; it is
-##   accepted as definitionally trusted.
-##
-##   TOFU (trust-on-first-use) model:
-##     CI builds and non-redistributable builds set
-##     'sq_git_trust_root="HEAD"' in help-steps/variables. In that
-##     case sq-git log's "chain" is the single commit HEAD itself and
-##     authentication is definitional (the script accepts HEAD because
-##     the caller declared HEAD as the trust root, not because sq-git
-##     walked any signatures). On first run the operator must verify
-##     the checkout manually - see:
-##     https://www.kicksecure.com/wiki/Dev/Build_Documentation/images
-##     On subsequent runs, 'derivative-update' plus this script keep
-##     the checkout pinned to a verified state as long as the trust
-##     root declaration itself is not tampered with.
-##
-##   Redistributable builds (non-CI) pin 'sq_git_trust_root' to a
-##   specific historical commit in help-steps/variables. sq-git log
-##   then walks the chain from that commit to HEAD, validating every
-##   commit signature in between; this is strictly stronger than TOFU.
-##
-## Submodule trust model:
-##
-##   '--mode submodules' iterates every submodule via 'git submodule
-##   foreach --recursive' and runs '--mode working-tree' on each.
-##   Every submodule invocation forces 'sq_git_trust_root=HEAD' (the
-##   submodule's HEAD), which is the TOFU case described above. The
-##   real integrity guarantee for submodule commits comes from the
-##   SUPERPROJECT's verification: the parent repo was already
-##   authenticated by the main '--mode working-tree' pass, and the
-##   parent repo pins each submodule's gitlink (commit SHA). Anyone
-##   able to tamper with a submodule's HEAD without also tampering
-##   with the superproject commit would be caught at the superproject
-##   level. The per-submodule sq-git log call here is definitional,
-##   plus the tag / uncommitted-changes checks.
-##
-## sq-git version assumption:
-##
-##   This script targets sequoia-git 0.4.0+ as shipped in Debian
-##   trixie ('sequoia-git' package). It does NOT carry workarounds
-##   for older sq-git behaviours by design. Specifically:
-##
-##     - sequoia-git issue #37 ('sq-git log --trust-root=HEAD HEAD'
-##       errored with "The given range contains no commits") was
-##       fixed in 2023. We rely on the fixed behaviour where sq-git
-##       log accepts trust_root == target and prints:
-##         "Verified that there is an authenticated path from the
-##          trust root <sha> to <sha>."
-##
-##   If you hit an sq-git issue that predates 0.4.0, please upgrade
-##   sequoia-git rather than adding a workaround here.
+## For detailed design docs (trust model, TOFU, submodule trust, sq-git
+## version assumptions, tag verification analysis), see:
+##   agents/git_sanity_test_design.md
+##   agents/git_sanity_test_security.md
 
-## Define 'die' early, BEFORE the standalone bootstrap below, because the
-## bootstrap's cwd-restore step ('cd -- "$orig_pwd" || die ...') would
-## otherwise reference a not-yet-defined function. Shell functions are
-## not hoisted, so calling die before its definition would fail with a
-## "command not found" instead of our intended error.
+## die() must be defined before the bootstrap (which uses it in cd-restore).
 die() {
    printf '%s\n' "${bold}${red}${0##*/}: ERROR: $*${reset}" >&2
    exit 1
@@ -218,19 +108,8 @@ die() {
 ## ----------------------------------------------------------------------------
 ## Argument parsing
 ## ----------------------------------------------------------------------------
-##
-## Two layers:
-##  1. Script-specific args (--mode/--context/--ref/--ref-type/--help)
-##     are parsed here and consumed.
-##  2. Anything else (e.g. --allow-untagged true, --allow-uncommitted true,
-##     --debug) is forwarded to 'help-steps/parse-cmd' via 'help-steps/
-##     variables' during the standalone bootstrap below. This avoids
-##     duplicating parse-cmd's argument vocabulary in this script.
-##
-## NOTE: Forwarding only takes effect during the standalone bootstrap, i.e.
-## when the build infrastructure has not yet been set up in a parent. When
-## invoked from a build context, passing forwarded args directly to this
-## script is a hard error.
+## Our args: --mode/--context/--ref/--ref-type/--help.
+## Everything else is forwarded to parse-cmd via the standalone bootstrap.
 
 mode=""
 context=""
@@ -245,12 +124,7 @@ while [ $# -gt 0 ]; do
       --ref)       ref="$2";      shift 2 ;;
       --ref-type)  ref_type="$2"; shift 2 ;;
       --help|-h)   print_help;    exit  0 ;;
-      ## Everything else: forward to parse-cmd via the standalone bootstrap.
-      ## Forward ONE TOKEN at a time (preserving order). parse-cmd itself
-      ## knows how many arguments each of its flags takes and will consume
-      ## the values from the positional parameters on its side. Forwarding
-      ## pairs here would miscount for bare flags (e.g. '--debug') and
-      ## accidentally swallow subsequent tokens.
+      ## Forward unknown args to parse-cmd (one token at a time).
       *)
          forwarded_args+=("$1")
          shift
@@ -258,8 +132,7 @@ while [ $# -gt 0 ]; do
    esac
 done
 
-## Default mode: when run with no '--mode', do the most thorough check
-## (main repo + all submodules). This is the safest default.
+## Default: --mode all (most thorough check).
 [ -n "$mode" ] || mode="all"
 case "$mode" in
    all|working-tree)
@@ -268,52 +141,9 @@ case "$mode" in
 esac
 
 ## ----------------------------------------------------------------------------
-## Standalone-use bootstrap: source build infrastructure if not already done.
+## Standalone bootstrap (skip if build infrastructure already sourced).
+## See agents/git_sanity_test_design.md for why this is conditional.
 ## ----------------------------------------------------------------------------
-##
-## Detection: 'dist_build_one_parsed' is the flag 'help-steps/variables' sets
-## and exports after it has sourced parse-cmd and run
-## 'dist_build_one_parse_cmd'. When we see it inherited as "true", the build
-## infrastructure has already been set up in a parent process and the env
-## vars we need (sq_git_policy_file, sq_git_trust_root, ...) are exported and
-## visible to us.
-##
-## When invoked from 'derivative-update' or 'build-steps.d/1100_sanity-tests',
-## the build infrastructure has already been sourced and the env vars are
-## inherited. When invoked directly by a developer from a fresh shell,
-## 'dist_build_one_parsed' is unset; we source 'pre' and 'variables' here to
-## populate the env vars - the same scripts the normal callers source.
-##
-## Why conditional (and not the standard help-steps unconditional pattern):
-## sourcing 'help-steps/variables' executes 'cd "$source_code_folder_dist"',
-## which moves the cwd to the main repo. Two consequences are handled:
-##
-##   1. 'git submodule foreach --recursive' re-invokes this script from
-##      each submodule directory. In that case the env vars are already
-##      inherited from the parent ('dist_build_one_parsed=true'), the
-##      bootstrap is skipped, and the cwd stays in the submodule where
-##      'git rev-parse HEAD' / 'git status' operate on the submodule.
-##
-##   2. In the standalone bootstrap path, we save $PWD before sourcing
-##      and restore it afterwards so that '--mode working-tree' keeps
-##      verifying the repo at the caller's original cwd - matching the
-##      documented behaviour "Verify the current working directory's
-##      git repo".
-##
-## We forward unrecognized command-line args (e.g. --allow-untagged true,
-## --allow-uncommitted true, --debug) to 'help-steps/parse-cmd' via 'help-
-## steps/variables'. variables sources parse-cmd and calls
-## 'dist_build_one_parse_cmd "$@"' with whatever positional parameters are
-## set when variables is sourced - so we 'set --' to our forwarded_args
-## first. This avoids duplicating parse-cmd's argument parsing here.
-##
-## 'dist_build_internal_run="true"' tells parse-cmd to accept being
-## invoked with zero or unknown args without exiting (it would otherwise
-## reject empty argv as "No option chosen!").
-##
-## NOTE: 'pre' disables 'set -e' and installs ERR/EXIT traps for build-step
-## error handling. Our explicit 'exit N' calls still propagate via pre's
-## EXIT trap. Unexpected command failures are caught by pre's ERR trap.
 if [ "${dist_build_one_parsed:-}" != "true" ]; then
    orig_pwd="$PWD"
    set -- "${forwarded_args[@]}"
@@ -323,50 +153,25 @@ if [ "${dist_build_one_parsed:-}" != "true" ]; then
    cd -- "$orig_pwd" || die "cannot restore original cwd: $orig_pwd"
    unset orig_pwd
 elif [ "${#forwarded_args[@]}" -gt 0 ]; then
-   ## Build-context invocation: env vars are already set, but the user
-   ## passed extra args meant for parse-cmd. We cannot re-run parse-cmd
-   ## here without re-sourcing the build infrastructure (which would
-   ## change cwd and break the recursive submodule case). Erroring out
-   ## is the safe choice: the user expected the args to take effect,
-   ## but they would not.
-   printf '%s\n' "${0##*/}: ERROR: extra args cannot be honoured in build context (env vars already set by parent): ${forwarded_args[*]}" >&2
-   printf '%s\n' "${0##*/}:        pass --allow-untagged / --allow-uncommitted etc. on the parent build invocation instead." >&2
+   ## Not re-running parse-cmd in build context.
+   printf '%s\n' "${0##*/}: ERROR: extra args not honoured in build context: ${forwarded_args[*]}" >&2
+   printf '%s\n' "${0##*/}:        Pass these on the parent build invocation instead." >&2
    exit 1
 fi
 
-## ----------------------------------------------------------------------------
-## Env var validation (all REQUIRED, no implicit defaults)
-## ----------------------------------------------------------------------------
-
+## Env var validation.
 [ -n "${sq_git_policy_file:-}" ]            || die "env var sq_git_policy_file must be set"
 [ -n "${sq_git_trust_root:-}" ]             || die "env var sq_git_trust_root must be set"
 [ -n "${dist_build_ignore_untagged:-}" ]    || die "env var dist_build_ignore_untagged must be set ('true' or 'false')"
 [ -n "${dist_build_ignore_uncommitted:-}" ] || die "env var dist_build_ignore_uncommitted must be set ('true' or 'false')"
-
-## sq_git_policy_file must be an absolute path. Relative paths would
-## break in --mode submodules (where 'git submodule foreach --recursive'
-## runs per-submodule with a changed cwd).
-if ! [[ "${sq_git_policy_file}" =~ ^/ ]]; then
-   die "sq_git_policy_file must be an absolute path, got: '${sq_git_policy_file}'"
-fi
-[ -r "${sq_git_policy_file}" ] || die "sq_git_policy_file is not readable: '${sq_git_policy_file}'"
-
-case "${dist_build_ignore_untagged}" in
-   true|false) ;;
-   *) die "dist_build_ignore_untagged must be 'true' or 'false', got: '${dist_build_ignore_untagged}'" ;;
-esac
-case "${dist_build_ignore_uncommitted}" in
-   true|false) ;;
-   *) die "dist_build_ignore_uncommitted must be 'true' or 'false', got: '${dist_build_ignore_uncommitted}'" ;;
-esac
+[[ "${sq_git_policy_file}" =~ ^/ ]]         || die "sq_git_policy_file must be an absolute path, got: '${sq_git_policy_file}'"
+[ -r "${sq_git_policy_file}" ]              || die "sq_git_policy_file is not readable: '${sq_git_policy_file}'"
+[[ "${dist_build_ignore_untagged}"    =~ ^(true|false)$ ]] || die "dist_build_ignore_untagged must be 'true' or 'false', got: '${dist_build_ignore_untagged}'"
+[[ "${dist_build_ignore_uncommitted}" =~ ^(true|false)$ ]] || die "dist_build_ignore_uncommitted must be 'true' or 'false', got: '${dist_build_ignore_uncommitted}'"
 
 ## ----------------------------------------------------------------------------
 ## Verification primitives
 ## ----------------------------------------------------------------------------
-
-## sq-git allows offloading the complexity of OpenPGP signing key import.
-## File 'openpgp-policy.toml' contains authorized signing key(s) and supports
-## multiple authorized signers natively.
 sq_git_verify() {
    local target_ref="$1"
    local label="$2"
@@ -403,7 +208,7 @@ split_tag() {
   readarray -t tag_lines <<< "${tag_contents}"
 
   if [ "${tag_lines[ ${#tag_lines[@]} - 1 ]}" != '-----END PGP SIGNATURE-----' ]; then
-    ## Commit is or appears unsigned
+    ## Tag is or appears unsigned
     return 1
   fi
 
@@ -425,21 +230,8 @@ split_tag() {
   printf '%s\n' "${tag_lines[@]:sig_start_idx:${#tag_lines[@]}}" > "${output_dir}/tag-sig"
 }
 
-## Classify a tag ref into one of three states:
-##
-##    lightweight        - no tag object at all (ref points directly at a
-##                         commit). Cannot carry a signature by definition.
-##    annotated-unsigned - tag object exists but has no PGP signature block
-##                         or the signature block cannot verify the tag for
-##                         any reason.
-##    annotated-signed   - tag object exists and is signed by a trusted
-##                         developer.
-##
-## Exit status semantics (the caller decides what to do):
-##    0 - annotated-signed
-##    1 - lightweight
-##    2 - annotated-unsigned
-##    (die() on internal errors like 'cannot inspect tag')
+## Classify a tag: 0=annotated-signed, 1=lightweight, 2=annotated-unsigned.
+## See agents/git_sanity_test_security.md for the full tag verification analysis.
 classify_tag() {
    local tag_ref="$1"
    local context_label="$2"
@@ -464,8 +256,9 @@ classify_tag() {
    if ! tag_body="$(git cat-file tag "${tag_ref}")"; then
       die "cannot read tag object for '${tag_ref}' in ${context_label}"
    fi
+   ## Only OpenPGP signatures are supported (not SSH, not PGP MESSAGE).
    case "$tag_body" in
-      *'-----BEGIN PGP SIGNATURE-----'*|*'-----BEGIN PGP MESSAGE-----'*|*'-----BEGIN SSH SIGNATURE-----'*)
+      *'-----BEGIN PGP SIGNATURE-----'*)
          ## annotated and signed, but not yet verified
          ;;
       *)
@@ -474,14 +267,14 @@ classify_tag() {
          ;;
    esac
 
-   ## Extract tag signing keys from sq_git_policy_file
-   ##
-   ## TODO: verify_tag_dir will be leaked if the script errors out. Unsure
-   ## how to make this interact with the 'help-steps/pre' error handler.
+   command -v sqop >/dev/null || die "sqop (Stateless OpenPGP) is required for tag signature verification but is not installed. Install package 'sqop' (Debian: apt install sqop)."
+
+   ## Extract tag signing keys from sq_git_policy_file and verify.
    local verify_tag_dir
-   verify_tag_dir="$(mktemp -d)"
-   chmod 0700 -- "${verify_tag_dir}"
+   verify_tag_dir="${binary_build_folder_dist}/verify_tag_temp"
+   safe-rm --recursive --force -- "${verify_tag_dir}"
    mkdir --parents -- "${verify_tag_dir}/certs"
+   chmod 0700 -- "${verify_tag_dir}"
    ## Populates "${verify_tag_dir}/certs" with certificate files
    "$MYDIR/extract-openpgp-policy-trusted-certs" "${sq_git_policy_file}" 'sign_tag' "${verify_tag_dir}/certs"
 
@@ -601,12 +394,11 @@ mode_working_tree() {
          printf '%s\n' "${bold}${red}ERROR: Uncommitted changes in: ${context}${reset}" >&2
          git status >&2
          print_allow_hint
-         ## Non-destructively print untracked files.
-         ##
-         ## TODO: This doesn't really show uncommitted changes. `git diff --compact-summary HEAD` will.
-         printf '%s\n' "${cyan}INFO: Non-destructively listing untracked files with 'git clean -d --force --force --dry-run':${reset}" >&2
+         ## Show untracked files.
+         printf '%s\n' "${cyan}INFO: Listing untracked files with 'git clean -d --force --force --dry-run':${reset}" >&2
          git clean -d --force --force --dry-run >&2 || true
-         printf '%s\n' "${cyan}INFO: Displaying uncommitted changes to tracked files with 'git diff --compact-summary ${head}':${reset}" >&2
+         ## Show uncommitted changes to tracked files.
+         printf '%s\n' "${cyan}INFO: Displaying uncommitted changes with 'git diff --compact-summary ${head}':${reset}" >&2
          git diff --compact-summary "${head}" >&2
          if [ -n "${dist_source_help_steps_folder:-}" ]; then
             printf '%s\n' "${cyan}You most likely like to run:${reset}" >&2
@@ -630,17 +422,8 @@ mode_ref() {
 
    local resolve_ref ref_commit
 
-   ## For --ref-type tag:
-   ##   - Normalize to a fully qualified 'refs/tags/...' ref. Callers
-   ##     may pass either a short tag name ('v1.2.3') or the fully
-   ##     qualified form ('refs/tags/v1.2.3'); both are accepted.
-   ##   - Require the ref to exist under refs/tags/. Other refs cannot
-   ##     be tags and are rejected.
-   ##   - Require the tag to be annotated-and-signed according to
-   ##     classify_tag.
-   ##
-   ## For --ref-type commit, accept any valid commit-ish (branch name,
-   ## commit SHA, etc.) and skip the tag classification.
+   ## For --ref-type tag: normalize to refs/tags/..., verify exists, classify.
+   ## For --ref-type commit: accept any commit-ish, skip tag classification.
    if [ "$ref_type" = 'tag' ]; then
       case "$ref" in
          refs/tags/*)  resolve_ref="$ref" ;;
@@ -672,36 +455,14 @@ mode_ref() {
 }
 
 mode_submodules() {
-   ## Comprehensive submodule checks via 'git submodule foreach --recursive'.
-   ## Handles nested submodules, paths with special characters, moved paths.
-   ##
-   ## Submodule repositories intentionally do not include their own 'sq-git'
-   ## policy file ('openpgp-policy.toml'). The parent repo's policy file is
-   ## used for all verification, keeping signing policy centralized.
-   ##
-   ## NOTE: 'git submodule foreach' runs commands under /bin/sh, not bash.
-   ## We re-invoke this script (under bash) per submodule to keep strict
-   ## shell options and shared verification logic.
-   ##
-   ## Helper path: use '$MYDIR' (the absolute path to THIS script's
-   ## directory, computed at startup from $BASH_SOURCE). Earlier
-   ## revisions used '$(git rev-parse --show-toplevel)/help-steps/...'
-   ## which broke when the caller ran the script from inside a
-   ## nested git repo (e.g. a submodule) - '--show-toplevel' then
-   ## points at the nested repo, which doesn't contain this helper.
-   ## $MYDIR always points at this script's own directory regardless
-   ## of the caller's cwd.
-   ##
-   ## We export MYDIR so the foreach subshell (POSIX sh) can expand it.
-   ## '$displaypath' is set by 'git submodule foreach' itself.
-   ##
-   ## Submodules are not always tagged, and the superproject associates
-   ## specific submodule commits with superproject tags, therefore we set
-   ## dist_build_ignore_untagged here.
+   ## Run working-tree checks on every submodule via
+   ## 'git submodule foreach --recursive'.
+   ## Uses $MYDIR (not git rev-parse --show-toplevel) to find this script.
+   ## foreach runs under /bin/sh, so we re-invoke via bash.
    [ -r "${MYDIR}/git_sanity_test" ] || die "helper script not found or not readable: '${MYDIR}/git_sanity_test'"
 
    export MYDIR
-   sq_git_trust_root=HEAD dist_build_ignore_untagged='true' \
+   sq_git_trust_root=HEAD \
       git submodule foreach --recursive \
          'bash "$MYDIR/git_sanity_test" --mode working-tree --context "$displaypath"'
 }
