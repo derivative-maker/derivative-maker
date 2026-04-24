@@ -242,6 +242,51 @@ If sq-git supported native tag authentication using the existing
 `sign_tag` policy field, it would eliminate the need for this
 workaround.
 
+## Errexit suppression in functions called from || or &&
+
+Bash suppresses both `set -e` (errexit) and the ERR trap for ALL
+commands inside a function when that function is called from within
+a `||` or `&&` list. For example:
+
+```
+classify_tag "${tags_at_head[0]}" "${context}" || cls=$?
+```
+
+Every command inside `classify_tag` -- `mkdir`, `chmod`, `safe-rm`,
+`extract-openpgp-policy-trusted-certs`, `split_tag`, etc. -- runs
+with errexit disabled and the ERR trap suppressed. A failing
+command returns non-zero but execution continues to the next line
+as if nothing happened.
+
+This is why `help-steps/pre` ending with `set +e` is NOT the sole
+cause of the problem. Even if `pre` kept `set -e`, the `|| cls=$?`
+call pattern would still suppress it inside the function.
+
+### Guard strategy
+
+Every external command and subprocess call inside a function that
+may be called from `||`/`&&` context MUST have an explicit guard:
+
+- Critical commands: `|| die "message"` (die calls exit 1, which
+  always exits regardless of errexit state)
+- Cleanup commands that should not abort: `|| true`
+- Commands already inside `if !` or `if` conditions: already
+  guarded (bash only suppresses errexit, not the if-condition
+  check itself)
+
+Pre-flight `command -v` checks at the top of the script catch
+missing binaries early with clear error messages, before we enter
+any suppressed context.
+
+### Fail-safe analysis
+
+Even WITHOUT the explicit guards, all failure modes in
+`classify_tag` are fail-safe: silent failures cause the function to
+return 2 (annotated-unsigned / untrusted), which callers treat as a
+hard error. No silent failure path leads to false acceptance. The
+guards are added for clear error messages and defense in depth, not
+because the old code could accept bad tags.
+
 ## dist_build_current_git_head
 
 Set unconditionally by `help-steps/variables` from `git rev-parse HEAD`.

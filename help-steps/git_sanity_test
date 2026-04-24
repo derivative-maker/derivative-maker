@@ -169,6 +169,12 @@ fi
 [[ "${dist_build_ignore_untagged}"    =~ ^(true|false)$ ]] || die "dist_build_ignore_untagged must be 'true' or 'false', got: '${dist_build_ignore_untagged}'"
 [[ "${dist_build_ignore_uncommitted}" =~ ^(true|false)$ ]] || die "dist_build_ignore_uncommitted must be 'true' or 'false', got: '${dist_build_ignore_uncommitted}'"
 
+## Pre-flight dependency checks. Explicit guards here are necessary because
+## help-steps/pre does 'set +e' and functions called from '|| cls=$?' have
+## errexit AND ERR trap suppressed for all commands inside them.
+command -v git    >/dev/null || die "git is required but not installed"
+command -v sq-git >/dev/null || die "sq-git (sequoia-git) is required for commit signature verification but is not installed. Install package 'sequoia-git' (Debian: apt install sequoia-git)."
+
 ## ----------------------------------------------------------------------------
 ## Verification primitives
 ## ----------------------------------------------------------------------------
@@ -271,20 +277,29 @@ classify_tag() {
    command -v safe-rm >/dev/null || die "safe-rm missing. (Debian: apt install safe-rm)."
 
    ## Extract tag signing keys from sq_git_policy_file and verify.
+   ##
+   ## Every command below needs an explicit '|| die' guard because
+   ## classify_tag is called from a '|| cls=$?' context, which
+   ## suppresses both errexit and the ERR trap for all commands inside
+   ## the function. Without guards, failures are silently ignored.
    local verify_tag_dir
    verify_tag_dir="${binary_build_folder_dist}/verify_tag_temp"
-   safe-rm --recursive --force -- "${verify_tag_dir}"
-   mkdir --parents -- "${verify_tag_dir}/certs"
-   chmod 0700 -- "${verify_tag_dir}"
-   ## Populates "${verify_tag_dir}/certs" with certificate files
-   "$MYDIR/extract-openpgp-policy-trusted-certs" "${sq_git_policy_file}" 'sign_tag' "${verify_tag_dir}/certs"
+   safe-rm --recursive --force -- "${verify_tag_dir}" \
+      || die "failed to clean verify_tag_dir: ${verify_tag_dir}"
+   mkdir --parents -- "${verify_tag_dir}/certs" \
+      || die "failed to create directory: ${verify_tag_dir}/certs"
+   chmod 0700 -- "${verify_tag_dir}" \
+      || die "failed to set permissions on: ${verify_tag_dir}"
+   "$MYDIR/extract-openpgp-policy-trusted-certs" "${sq_git_policy_file}" 'sign_tag' "${verify_tag_dir}/certs" \
+      || die "failed to extract trusted certificates from policy file: ${sq_git_policy_file}"
 
-   ## Extract tag text and signature
    local tag_contents
-   tag_contents="$(git cat-file tag "${tag_ref}")"
-   mkdir --parents -- "${verify_tag_dir}/tag"
-   ## Populates "${verify_tag_dir}/tag" with files 'tag-text' and 'tag-sig'
-   split_tag "${tag_contents}" "${verify_tag_dir}/tag"
+   tag_contents="$(git cat-file tag "${tag_ref}")" \
+      || die "cannot read tag object for '${tag_ref}' in ${context_label}"
+   mkdir --parents -- "${verify_tag_dir}/tag" \
+      || die "failed to create directory: ${verify_tag_dir}/tag"
+   split_tag "${tag_contents}" "${verify_tag_dir}/tag" \
+      || die "failed to extract signature from tag '${tag_ref}' in ${context_label}"
 
    ## Verify the tag against any one of the extracted certs
    local verify_tag_cert
@@ -293,13 +308,13 @@ classify_tag() {
        continue
      fi
      if sqop verify "${verify_tag_dir}/tag/tag-sig" "${verify_tag_cert}" < "${verify_tag_dir}/tag/tag-text" >/dev/null 2>&1; then
-       safe-rm --recursive --force -- "${verify_tag_dir}"
+       safe-rm --recursive --force -- "${verify_tag_dir}" || true
        ## annotated and signed by a trusted developer
        return 0
      fi
    done
 
-   safe-rm --recursive --force -- "${verify_tag_dir}"
+   safe-rm --recursive --force -- "${verify_tag_dir}" || true
    ## annotated, signed but not by a trusted developer
    return 2
 }
