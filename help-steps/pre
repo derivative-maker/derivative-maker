@@ -67,18 +67,14 @@ xtrace_off
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/get_colors.sh"
 xtrace_restore
 
-if test -o xtrace ; then
-   xtrace_was_set="true"
-else
-   xtrace_was_set="false"
-fi
-
 ## Keep xtrace on if '--debug' was passed; otherwise silence it. Cannot be
 ## moved to help-steps/parse-cmd because parse-cmd runs later.
 if ! printf '%s\n' "${@:-}" | grep --fixed-strings -- "--debug" &>/dev/null; then
-   true "\
+   if test -o xtrace ; then
+      true "\
 ${BASH_SOURCE[0]} INFO: Disabling verbose/debug output (xtrace) (set +x). For more verbose output add the following build option: --debug"
-   set +x
+      xtrace_off
+   fi
 fi
 
 #set -x
