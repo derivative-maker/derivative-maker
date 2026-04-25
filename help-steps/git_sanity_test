@@ -210,24 +210,30 @@ print_allow_hint() {
 }
 
 split_tag() {
-  local tag_contents output_dir tag_lines tag_line tag_line_idx sig_start_idx
+  local tag_contents output_dir
+  local -a tag_lines
+  local tag_line_idx sig_start_idx tag_count
 
-  tag_contents="${1:-}";
-  [ -z "${tag_contents}" ] && return 1;
-  output_dir="${2:-}";
-  [ -z "${output_dir}" ] && return 1;
+  tag_contents="${1:-}"
+  [ -z "${tag_contents}" ] && return 1
+
+  output_dir="${2:-}"
+  [ -z "${output_dir}" ] && return 1
 
   readarray -t tag_lines <<< "${tag_contents}"
+  tag_count="${#tag_lines[@]}"
 
-  if [ "${tag_lines[ ${#tag_lines[@]} - 1 ]}" != '-----END PGP SIGNATURE-----' ]; then
+  [ "${tag_count}" -gt 0 ] || return 1
+
+  if [ "${tag_lines[$((tag_count - 1))]}" != '-----END PGP SIGNATURE-----' ]; then
     ## Tag is or appears unsigned
     return 1
   fi
 
   ## Scan backwards for the '-----BEGIN PGP SIGNATURE-----' line, to reduce
-  ## the risk of spoofing
+  ## the risk of spoofing.
   sig_start_idx=-1
-  for (( tag_line_idx=${#tag_lines[@]}; tag_line_idx >= 0; tag_line_idx-- )); do
+  for (( tag_line_idx=tag_count - 1; tag_line_idx >= 0; tag_line_idx-- )); do
     if [ "${tag_lines[tag_line_idx]}" = '-----BEGIN PGP SIGNATURE-----' ]; then
       sig_start_idx="${tag_line_idx}"
       break
@@ -239,7 +245,7 @@ split_tag() {
   fi
 
   printf '%s\n' "${tag_lines[@]:0:sig_start_idx}" > "${output_dir}/tag-text"
-  printf '%s\n' "${tag_lines[@]:sig_start_idx:${#tag_lines[@]}}" > "${output_dir}/tag-sig"
+  printf '%s\n' "${tag_lines[@]:sig_start_idx}" > "${output_dir}/tag-sig"
 }
 
 ## Classify a tag: 0=annotated-signed, 1=lightweight, 2=annotated-unsigned.
@@ -418,7 +424,7 @@ mode_working_tree() {
          git clean -d --force --force --dry-run >&2 || true
          ## Show uncommitted changes to tracked files.
          printf '%s\n' "${cyan}INFO: Displaying uncommitted changes with 'git diff --compact-summary ${head}':${reset}" >&2
-         git diff --compact-summary "${head}" >&2
+         git diff --compact-summary "${head}" >&2 || true
          if [ -n "${dist_source_help_steps_folder:-}" ]; then
             printf '%s\n' "${cyan}You most likely like to run:${reset}" >&2
             printf '%s\n' "${under}${dist_source_help_steps_folder}/cleanup-files${eunder}" >&2
