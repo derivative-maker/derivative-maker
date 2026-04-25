@@ -24,13 +24,48 @@ set -o errtrace
 ## mode errexit is disabled further down anyway.
 shopt -s inherit_errexit
 
+true "${BASH_SOURCE[0]} INFO: begin"
+
+## Suspend xtrace around a block of top-level code that must not be echoed
+## to logs (e.g. secret handling, noisy third-party parser output). Saves
+## the current xtrace state to a single-level global and disables xtrace.
+## Restore with xtrace_restore.
+##
+## Usage:
+##   xtrace_off
+##   export SECRET="$1"       # not traced
+##   xtrace_restore           # xtrace is back to whatever it was
+##
+## Uses a single global (dist_build_xtrace_prev_state); nested
+## xtrace_off/xtrace_restore calls are not supported. For function-scoped
+## silencing inside a function, a local 'trap ... RETURN' snapshot of
+## 'shopt -po xtrace' is cleaner (see function_trace_function).
+xtrace_off() {
+   if test -o xtrace; then
+      dist_build_xtrace_prev_state=on
+   else
+      dist_build_xtrace_prev_state=off
+   fi
+   set +x
+}
+
+xtrace_restore() {
+   ## Read and unset the saved state BEFORE the 'set -x' below so the
+   ## 'unset' does not itself print a trace line after xtrace is re-enabled.
+   local _should_restore="${dist_build_xtrace_prev_state:-off}"
+   unset dist_build_xtrace_prev_state
+   if [ "$_should_restore" = "on" ]; then
+      set -x
+   fi
+}
+
+xtrace_off
 ## help-steps/pre uses color variables (e.g. $red, $bold, $reset) in its
 ## error messages and in root_check (called at end of this file). Source
 ## colors here so callers don't have to worry about source order.
 ## Sourcing it again later (from the caller) is idempotent.
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/get_colors.sh"
-
-true "${BASH_SOURCE[0]} INFO: begin"
+xtrace_restore
 
 if test -o xtrace ; then
    xtrace_was_set="true"
@@ -67,39 +102,6 @@ output_cmd_set() {
       output_cmd="true"
    else
       output_cmd="echo"
-   fi
-}
-
-## Suspend xtrace around a block of top-level code that must not be echoed
-## to logs (e.g. secret handling, noisy third-party parser output). Saves
-## the current xtrace state to a single-level global and disables xtrace.
-## Restore with xtrace_restore.
-##
-## Usage:
-##   xtrace_off
-##   export SECRET="$1"       # not traced
-##   xtrace_restore           # xtrace is back to whatever it was
-##
-## Uses a single global (dist_build_xtrace_prev_state); nested
-## xtrace_off/xtrace_restore calls are not supported. For function-scoped
-## silencing inside a function, a local 'trap ... RETURN' snapshot of
-## 'shopt -po xtrace' is cleaner (see function_trace_function).
-xtrace_off() {
-   if test -o xtrace; then
-      dist_build_xtrace_prev_state=on
-   else
-      dist_build_xtrace_prev_state=off
-   fi
-   set +x
-}
-
-xtrace_restore() {
-   ## Read and unset the saved state BEFORE the 'set -x' below so the
-   ## 'unset' does not itself print a trace line after xtrace is re-enabled.
-   local _should_restore="${dist_build_xtrace_prev_state:-off}"
-   unset dist_build_xtrace_prev_state
-   if [ "$_should_restore" = "on" ]; then
-      set -x
    fi
 }
 
