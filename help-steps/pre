@@ -9,7 +9,28 @@
 ## INT/TERM path:
 ##   exception_handler_signal -> variant cleanup -> exit 128+signum
 
-true "$BASH_SOURCE INFO: begin"
+#set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+## Make '$( ... )' command substitutions inherit errexit. Without this
+## shopt, bash 5.x disables errexit inside '$()' by default, so
+## 'x="$(false; echo later)"' silently sets x to "later" with no error.
+## With it, the 'false' triggers errexit inside the substitution and
+## the outer assignment fails. ( ... ) parenthesized subshells already
+## inherit errexit - this shopt covers the '$()' case only. Only has
+## any effect while errexit itself is on; in pre's default (retry)
+## mode errexit is disabled further down anyway.
+shopt -s inherit_errexit
+
+## help-steps/pre uses color variables (e.g. $red, $bold, $reset) in its
+## error messages and in root_check (called at end of this file). Source
+## help-steps/colors here so callers don't have to worry about source order.
+## Sourcing it again later (from the caller) is idempotent.
+source "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/colors"
+
+true "${BASH_SOURCE[0]} INFO: begin"
 
 if test -o xtrace ; then
    xtrace_was_set="true"
@@ -17,41 +38,73 @@ else
    xtrace_was_set="false"
 fi
 
-## Cannot be implemented in help-steps/parse-cmd since it runs later than this.
-if printf '%s\n' "$@" | grep --fixed-strings -- "--debug" &>/dev/null; then
-   dist_build_no_unset_xtrace=true
-fi
-
-if [ ! "$dist_build_no_unset_xtrace" = "true" ]; then
-   dist_build_no_unset_xtrace=false
-   ## This runs even before the command line parser. So this cannot easily be implemented as a '--debug' option.
+## Keep xtrace on if '--debug' was passed; otherwise silence it. Cannot be
+## moved to help-steps/parse-cmd because parse-cmd runs later.
+if ! printf '%s\n' "${@:-}" | grep --fixed-strings -- "--debug" &>/dev/null; then
    true "\
-$BASH_SOURCE INFO: Disabling verbose/debug output (xtrace) (set +x) because dist_build_no_unset_xtrace=false. For more verbose output add the following build option: --debug"
+${BASH_SOURCE[0]} INFO: Disabling verbose/debug output (xtrace) (set +x). For more verbose output add the following build option: --debug"
    set +x
 fi
 
 #set -x
-set -e
-set -o pipefail
-set -o errtrace
-shopt -s extdebug
 
 if [ "${CI:-}" = "true" ]; then
-   true "$BASH_SOURCE INFO: CI detected."
+   true "${BASH_SOURCE[0]} INFO: CI detected."
    export dist_build_non_interactive=true
-   [ -n "$rsync_cmd" ] || rsync_cmd="echo simulate-only rsync"
+   [ -n "${rsync_cmd:-}" ] || rsync_cmd="echo simulate-only rsync"
 fi
+
+## The error-handler trap functions below pass "${args[@]}" to the cleanup
+## scripts. 'args' is normally set by parse-cmd (args=("$@") in
+## dist_build_one_parse_cmd), but the trap can fire before parse-cmd has
+## run - in that case "${args[@]}" would be unbound under 'set -o nounset'.
+## Initialize 'args' to an empty array here so a later 'args=("$@")' from
+## parse-cmd still wins.
+args=()
 
 output_cmd_set() {
    if [ -o xtrace ]; then
-      output_cmd=true
+      output_cmd="true"
    else
-      output_cmd=echo
+      output_cmd="echo"
+   fi
+}
+
+## Suspend xtrace around a block of top-level code that must not be echoed
+## to logs (e.g. secret handling, noisy third-party parser output). Saves
+## the current xtrace state to a single-level global and disables xtrace.
+## Restore with xtrace_restore.
+##
+## Usage:
+##   xtrace_off
+##   export SECRET="$1"       # not traced
+##   xtrace_restore           # xtrace is back to whatever it was
+##
+## Uses a single global (dist_build_xtrace_prev_state); nested
+## xtrace_off/xtrace_restore calls are not supported. For function-scoped
+## silencing inside a function, a local 'trap ... RETURN' snapshot of
+## 'shopt -po xtrace' is cleaner (see function_trace_function).
+xtrace_off() {
+   if test -o xtrace; then
+      dist_build_xtrace_prev_state=on
+   else
+      dist_build_xtrace_prev_state=off
+   fi
+   set +x
+}
+
+xtrace_restore() {
+   ## Read and unset the saved state BEFORE the 'set -x' below so the
+   ## 'unset' does not itself print a trace line after xtrace is re-enabled.
+   local _should_restore="${dist_build_xtrace_prev_state:-off}"
+   unset dist_build_xtrace_prev_state
+   if [ "$_should_restore" = "on" ]; then
+      set -x
    fi
 }
 
 build_run_function() {
-   case $build_skip_run_functions in
+   case "${build_skip_run_functions:-}" in
    *"$1"*)
       true "${cyan}INFO: ${bold}Skipping${bold} function ${under}$1${eunder}, because variable build_skip_run_functions includes it.${reset}"
       return 0
@@ -68,21 +121,22 @@ error() {
    $output_cmd "${blue}############################################################${reset}"
    $output_cmd "${bold}${under}ERROR:${eunder}${reset}"
    $output_cmd "          ${bold}\$0:${reset} ${under}$0${eunder}"
-   $output_cmd "${bold}\$BASH_SOURCE:${reset} ${under}$BASH_SOURCE${eunder}${reset}"
-   $output_cmd "      ${bold}${red}message:${reset} ${under}${@}${reset}"
+   $output_cmd "${bold}\${BASH_SOURCE[0]}:${reset} ${under}${BASH_SOURCE[0]}${eunder}${reset}"
+   $output_cmd "      ${bold}${red}message:${reset} ${under}$*${reset}"
    $output_cmd "${blue}############################################################${reset}"
-   error_reason="${bold}message:${reset} ${@}
+   error_reason="${bold}message:${reset} $*
 "
    error_ "See above! (There should be a bold, red message surrounded by blue hashtags (#).)"
    true
 }
 
 function_trace_function() {
-   $output_cmd "INFO: BEGIN: $FUNCNAME"
-   if [ -o xtrace ]; then
-      set +x
-      local xtrace_reenable="true"
-   fi
+   $output_cmd "INFO: BEGIN: ${FUNCNAME[0]}"
+   ## 'local -' saves the current shell options (xtrace etc.) and
+   ## restores them when this function returns. 'set +x' below silences
+   ## the function's own machinery without needing a RETURN trap.
+   local -
+   set +x
    local frame temp one two
    ## Reset the (global) result so repeat errors (auto-retry, multiple
    ## trap invocations) do not append onto stale frames from a prior call.
@@ -91,7 +145,7 @@ function_trace_function() {
    while caller >/dev/null 2>&1 $frame; do
       temp="$(caller $frame)" || true
       read -r one two _ <<< "$temp"
-      if [ "$function_trace_result" = "" ] ; then
+      if [ "${function_trace_result:-}" = "" ] ; then
          function_trace_result="$two (line number: $one)"
       else
          function_trace_result="$function_trace_result
@@ -100,10 +154,7 @@ $two (line number: $one)"
       frame="$(( $frame + 1 ))" || true
    done
    function_trace_result="$(echo "$function_trace_result" | tac)" || true
-   if [ "$xtrace_reenable" = "true" ]; then
-      set -x
-   fi
-   $output_cmd "INFO: END  : $FUNCNAME"
+   $output_cmd "INFO: END  : ${FUNCNAME[0]}"
 }
 
 ## {{{ process_backtrace_function - GPL v2.0 (only)
@@ -114,11 +165,12 @@ process_backtrace_function() {
    ## LICENSE     : GPL v2.0 (only)
    ## Source      : http://stackoverflow.com/a/1438241/2605155
    ## Modification: Patrick Schleizer
-   $output_cmd "INFO: BEGIN: $FUNCNAME"
-   if [ -o xtrace ]; then
-      set +x
-      local xtrace_reenable="true"
-   fi
+   $output_cmd "INFO: BEGIN: ${FUNCNAME[0]}"
+   ## 'local -' saves shell options (xtrace etc.) and restores them on
+   ## return, so 'set +x' below silences this function's own machinery
+   ## without needing a RETURN trap.
+   local -
+   set +x
    local TRACE CP CMDLINE PP loop_counter who_ami ps_p_output
    loop_counter=0
    who_ami="$(whoami)" || true
@@ -126,15 +178,15 @@ process_backtrace_function() {
    CP="$$" ## PID of the script itself [1]
    while true ; do
       loop_counter="$(( loop_counter + 1 ))"
-      if [ "$loop_counter" -ge 20 ]; then
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | loop counter greater than 20. Aborting $FUNCNAME."
+      if [ "${loop_counter:-0}" -ge 20 ]; then
+         printf '%s\n' "${FUNCNAME[0]} ERROR: who_ami: $who_ami | user_name: ${user_name:-} | loop counter greater than 20. Aborting ${FUNCNAME[0]}."
          break
       fi
-      if [ "$CP" = "" ]; then
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | Variable CP is empty."
+      if [ "${CP:-}" = "" ]; then
+         printf '%s\n' "${FUNCNAME[0]} ERROR: who_ami: $who_ami | user_name: ${user_name:-} | Variable CP is empty."
          break
       fi
-      if [ "$CP" = "1" ]; then
+      if [ "${CP:-}" = "1" ]; then
          ## we reach 'init' [PID 1] => backtrace end
          TRACE="$TRACE : init\n"
          break
@@ -150,23 +202,20 @@ process_backtrace_function() {
          CMDLINE="$(cat "/proc/$CP/cmdline" | tr '\000' ' ')" || true
       else
          ps_p_output="$(ps --no-headers -p "$CP")" || true
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/cmdline does not exist | ps_p_output: $ps_p_output"
+         printf '%s\n' "${FUNCNAME[0]} ERROR: who_ami: $who_ami | user_name: ${user_name:-} | /proc/$CP/cmdline does not exist | ps_p_output: $ps_p_output"
       fi
       if test -f "/proc/$CP/status" ; then
          PP="$(grep -- PPid "/proc/$CP/status" | awk '{ print $2; }')" || true
       else
          ps_p_output="$(ps --no-headers -p "$CP")" || true
-         echo "$FUNCNAME ERROR: who_ami: $who_ami | user_name: $user_name | /proc/$CP/status does not exist | ps_p_output: $ps_p_output"
+         printf '%s\n' "${FUNCNAME[0]} ERROR: who_ami: $who_ami | user_name: ${user_name:-} | /proc/$CP/status does not exist | ps_p_output: $ps_p_output"
       fi
       TRACE="$TRACE : $CMDLINE\n"
       CP="$PP"
    done
    ## using tac to "print in reverse" [3]
    process_backtrace_result="$(echo -en "$TRACE" | tac | grep --line-number -- ":")" || true
-   if [ "$xtrace_reenable" = "true" ]; then
-      set -x
-   fi
-   $output_cmd "INFO: END  : $FUNCNAME"
+   $output_cmd "INFO: END  : ${FUNCNAME[0]}"
 }
 
 ## }}} process_backtrace_function - GPL v2.0 (only)
@@ -177,7 +226,7 @@ exception_handler_shell() {
 continue (Recommended against!) or \"exit 1\" to cleanup and exit. (Recommended.)${reset}"
    interactive_chroot_shell_bash_exit_code="0"
    chroot_run /bin/bash || { interactive_chroot_shell_bash_exit_code="${PIPESTATUS[0]}" ; true; };
-   if [ "$interactive_chroot_shell_bash_exit_code" = "0" ]; then
+   if [ "${interactive_chroot_shell_bash_exit_code:-}" = "0" ]; then
       $output_cmd "${cyan}${bold}INFO: Interactive shell terminated with \
 exit code $interactive_chroot_shell_bash_exit_code, will ignore this error and continue...${reset}"
       ignore_error="true"
@@ -189,11 +238,11 @@ exit code $interactive_chroot_shell_bash_exit_code, cleanup and exit as requeste
 }
 
 exception_handler_retry() {
-   if [ ! "$dist_build_dispatch_before_retry" = "" ]; then
+   if [ ! "${dist_build_dispatch_before_retry:-}" = "" ]; then
       $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before)...: $dist_build_dispatch_before_retry ${reset}"
       dist_build_dispatch_before_retry_exit_code="0"
       eval $dist_build_dispatch_before_retry || { dist_build_dispatch_before_retry_exit_code="$?" ; true; };
-      if [ "$dist_build_dispatch_before_retry_exit_code" = "0" ]; then
+      if [ "${dist_build_dispatch_before_retry_exit_code:-}" = "0" ]; then
          $output_cmd "${cyan}${bold}INFO: dispatch before retry (--retry-before) exit code was 0, ok. ${reset}"
       else
          $output_cmd "${red}${bold}INFO: dispatch before retry (--retry-before) non-zero exit code: $dist_build_dispatch_before_retry_exit_code ${reset}"
@@ -205,7 +254,7 @@ exception_handler_retry() {
    $output_cmd "${cyan}${bold}INFO: Retrying last_failed_bash_command...: $last_failed_bash_command ${reset}"
    retry_last_failed_bash_command_exit_code="0"
    $last_failed_bash_command || { retry_last_failed_bash_command_exit_code="$?" ; true; };
-   if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
+   if [ "${retry_last_failed_bash_command_exit_code:-}" = "0" ]; then
       $output_cmd "${cyan}${bold}INFO: Retry succeeded. exit code of last_failed_bash_command: $retry_last_failed_bash_command_exit_code ${reset}"
       unset dist_build_auto_retry_counter
    else
@@ -213,11 +262,11 @@ exception_handler_retry() {
       last_failed_exit_code="$retry_last_failed_bash_command_exit_code"
    fi
 
-   if [ ! "$dist_build_dispatch_after_retry" = "" ]; then
+   if [ ! "${dist_build_dispatch_after_retry:-}" = "" ]; then
       $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after)...: $dist_build_dispatch_after_retry ${reset}"
       dist_build_dispatch_after_retry_exit_code="0"
       eval $dist_build_dispatch_after_retry || { dist_build_dispatch_after_retry_exit_code="$?" ; true; };
-      if [ "$dist_build_dispatch_after_retry_exit_code" = "0" ]; then
+      if [ "${dist_build_dispatch_after_retry_exit_code:-}" = "0" ]; then
          $output_cmd "${cyan}${bold}INFO: dispatch after retry (--retry-after) exit code was 0, ok. ${reset}"
       else
          $output_cmd "${red}${bold}INFO: dispatch after retry (--retry-after) non-zero exit code: $dist_build_dispatch_after_retry_exit_code ${reset}"
@@ -226,7 +275,7 @@ exception_handler_retry() {
       $output_cmd "INFO: Skipping dist_build_dispatch_after_retry (--retry-after), because empty, ok."
    fi
 
-   if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
+   if [ "${retry_last_failed_bash_command_exit_code:-}" = "0" ]; then
       return 0
    else
       exception_handler_process_shared "NONE_(called_by_exception_handler_retry)"
@@ -236,13 +285,13 @@ exception_handler_retry() {
 exception_handler_process_shared() {
    last_script="$0"
    ## $1 contains trap signal type.
-   trap_signal_type_previous="$trap_signal_type_last"
-   if [ "$trap_signal_type_previous" = "" ]; then
+   trap_signal_type_previous="${trap_signal_type_last:-}"
+   if [ "${trap_signal_type_previous:-}" = "" ]; then
       trap_signal_type_previous="unset"
    fi
    trap_signal_type_last="$1"
-   dist_build_error_counter="$(( $dist_build_error_counter + 1 ))"
-   benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+   dist_build_error_counter="$(( dist_build_error_counter + 1 ))"
+   benchmark_took_time="$(benchmark_format "$SECONDS")"
    local first
    read -r first _ <<< "$last_failed_bash_command" || true
 
@@ -263,7 +312,7 @@ Copying/pasting/screenshotting this box alone will not be insightful, and no hel
 In many instances, providing a longer segment above this box or the entire log may be necessary for an effective diagnosis.
 ${blue}${bold}#####${reset}
 
-dist_build_version: ${under}$dist_build_version${eunder}
+dist_build_version: ${under}${dist_build_version:-}${eunder}
 dist_build_error_counter: $dist_build_error_counter
 benchmark: $benchmark_took_time
 last_failed_exit_code: $last_failed_exit_code
@@ -276,7 +325,7 @@ $process_backtrace_result
 ${bold}function_trace_result${reset}:
 $function_trace_result
 
-$error_reason${red}${bold}last_failed_bash_command${reset}: ${bold}$last_failed_bash_command${reset}
+${error_reason:-}${red}${bold}last_failed_bash_command${reset}: ${bold}$last_failed_bash_command${reset}
 ${cyan}${bold}############################################################${reset}
 "
 
@@ -288,21 +337,21 @@ ${cyan}${bold}############################################################${rese
    ## "NONE_(called_by_exception_handler_retry)" (from the retry recursion).
 
    #$output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
-   if [ ! "$dist_build_auto_retry" = "0" ]; then
-      if [ "$dist_build_auto_retry_counter" = "" ] \
-         || [[ "$dist_build_auto_retry_counter" = *[!0-9]* ]]; then
+   if [ ! "${dist_build_auto_retry:-}" = "0" ]; then
+      if [ "${dist_build_auto_retry_counter:-}" = "" ] \
+         || [[ "${dist_build_auto_retry_counter:-}" = *[!0-9]* ]]; then
          dist_build_auto_retry_counter="1"
       fi
-      [ -n "$dist_build_auto_retry" ] || dist_build_auto_retry="2"
-      [ -n "$dist_build_wait_auto_retry" ] || dist_build_wait_auto_retry="5"
-      if [ "$first" = "error_" ]; then
+      [ -n "${dist_build_auto_retry:-}" ] || dist_build_auto_retry="2"
+      [ -n "${dist_build_wait_auto_retry:-}" ] || dist_build_wait_auto_retry="5"
+      if [ "${first:-}" = "error_" ]; then
          $output_cmd 'INFO: No auto retry because first item of last_failed_bash_command is "error_".'
-      elif [ "$dist_build_auto_retry_counter" -gt "$dist_build_auto_retry" ]; then
+      elif [ "${dist_build_auto_retry_counter:-0}" -gt "$dist_build_auto_retry" ]; then
          $output_cmd "${cyan}${bold}INFO: Auto retried (--retry-max) already $dist_build_auto_retry times. No more auto retry. ${reset}"
       else
          $output_cmd "${cyan}${bold}INFO: Auto retry attempt number: $dist_build_auto_retry_counter. Max retry attempts: $dist_build_auto_retry (--retry-max). Auto retry... ${reset}"
          dist_build_auto_retry_counter="$(( $dist_build_auto_retry_counter + 1 ))"
-         if [ ! "$dist_build_wait_auto_retry" = "0" ]; then
+         if [ ! "${dist_build_wait_auto_retry:-}" = "0" ]; then
             $output_cmd "${cyan}${bold}INFO: Waiting (--retry-wait) $dist_build_wait_auto_retry seconds before auto retry... ${reset}"
             sleep "$dist_build_wait_auto_retry" &
             wait "$!"
@@ -324,7 +373,7 @@ ${cyan}${bold}############################################################${rese
       answer=""
       ## Only ERR-family signal types reach this function (see note above),
       ## so no separate "non ERR signal" branch is needed here.
-      if [ "$dist_build_non_interactive" = "true" ]; then
+      if [ "${dist_build_non_interactive:-}" = "true" ]; then
          $output_cmd "INFO: using non-interactive error handler."
          break
       else
@@ -361,18 +410,18 @@ ${blue}${bold}#####${reset}"
          fi
       fi
       error_handler_do_retry=""
-      if [ "$answer" = "continue" ] || [ "$answer" = "c" ]; then
+      if [ "${answer:-}" = "continue" ] || [ "${answer:-}" = "c" ]; then
          ignore_error="true"
          break
-      elif [ "$answer" = "s" ] || [ "$answer" = "shell" ]; then
+      elif [ "${answer:-}" = "s" ] || [ "${answer:-}" = "shell" ]; then
          exception_handler_shell
          break
-      elif [ "$answer" = "r" ] || [ "$answer" = "retry" ]; then
+      elif [ "${answer:-}" = "r" ] || [ "${answer:-}" = "retry" ]; then
          ignore_error="true"
          error_handler_do_retry="true"
          exception_handler_retry
          break
-      elif [ "$answer" = "a" ]; then
+      elif [ "${answer:-}" = "a" ]; then
          ignore_error="false"
          break
       else
@@ -382,25 +431,25 @@ ${blue}${bold}#####${reset}"
    done
 }
 
-if [ "$dist_build_error_counter" = "" ] \
-   || [[ "$dist_build_error_counter" = *[!0-9]* ]]; then
+if [ "${dist_build_error_counter:-}" = "" ] \
+   || [[ "${dist_build_error_counter:-}" = *[!0-9]* ]]; then
    dist_build_error_counter="0"
 fi
 
 exception_handler_maybe_exit() {
-   if [ "$error_handler_do_retry" = "true" ]; then
-      if [ "$retry_last_failed_bash_command_exit_code" = "0" ]; then
-         true "INFO ($FUNCNAME): auto retry succeeded. Will not exit. Continue."
+   if [ "${error_handler_do_retry:-}" = "true" ]; then
+      if [ "${retry_last_failed_bash_command_exit_code:-}" = "0" ]; then
+         true "INFO (${FUNCNAME[0]}): auto retry succeeded. Will not exit. Continue."
          return 0
       fi
    fi
-   if [ "$ignore_error" != "true" ]; then
+   if [ "${ignore_error:-}" != "true" ]; then
       ## Remove lockfile for systemcheck
       rm --force "/run/package_manager_lock"
    fi
-   if [ "$ignore_error" = "true" ]; then
+   if [ "${ignore_error:-}" = "true" ]; then
       $output_cmd "INFO: dist_build_non_interactive: $dist_build_non_interactive"
-      if [ "$dist_build_non_interactive" = "true" ]; then
+      if [ "${dist_build_non_interactive:-}" = "true" ]; then
          $output_cmd "INFO: using non-interactive error handler."
       else
          $output_cmd "${red}${bold}You have chosen to ignore this error. Your build may be unstable!
@@ -420,11 +469,11 @@ exception_handler_general() {
    last_failed_exit_code="$?"
    last_failed_bash_command="$BASH_COMMAND"
    output_cmd_set
-   $output_cmd "${cyan}INFO: Middle of function $FUNCNAME of $0.${reset}"
+   $output_cmd "${cyan}INFO: Middle of function ${FUNCNAME[0]} of $0.${reset}"
    ## $1 contains trap signal type.
    exception_handler_process_shared "$1"
    exception_handler_maybe_exit "$1"
-   $output_cmd "${cyan}INFO: End of function $FUNCNAME of $0.${reset}"
+   $output_cmd "${cyan}INFO: End of function ${FUNCNAME[0]} of $0.${reset}"
 }
 
 exception_handler_unchroot_unmount() {
@@ -433,7 +482,7 @@ exception_handler_unchroot_unmount() {
    output_cmd_set
    ## $1 contains trap signal type.
    exception_handler_process_shared "$1"
-   if [ "$ignore_error" = "false" ]; then
+   if [ "${ignore_error:-}" = "false" ]; then
       "$dist_source_help_steps_folder"/remove-local-temp-apt-repo "${args[@]}"
       "$dist_source_help_steps_folder"/unchroot-raw "${args[@]}"
       "$dist_source_help_steps_folder"/unprevent-daemons-from-starting "${args[@]}"
@@ -448,7 +497,7 @@ exception_handler_unmount() {
    output_cmd_set
    ## $1 contains trap signal type.
    exception_handler_process_shared "$1"
-   if [ "$ignore_error" = "false" ]; then
+   if [ "${ignore_error:-}" = "false" ]; then
       "$dist_source_help_steps_folder"/unmount-raw "${args[@]}"
    fi
    exception_handler_maybe_exit "$1"
@@ -512,9 +561,14 @@ exception_handler_setup() {
    ## e.g. exception_handler_unchroot_unmount -> unchroot_unmount.
    kind="${handler#exception_handler_}"
    for signal ; do
-      if [ "$signal" = "ERR" ]; then
+      ## SC2064: $handler/$signal/$kind are intentionally expanded NOW so
+      ## each trap captures its specific handler and signal name, rather
+      ## than the value at trap-fire time.
+      if [ "${signal:-}" = "ERR" ]; then
+         # shellcheck disable=SC2064
          trap "$handler $signal" "$signal"
       else
+         # shellcheck disable=SC2064
          trap "exception_handler_signal $signal $kind" "$signal"
       fi
    done
@@ -523,81 +577,90 @@ exception_handler_setup() {
 output_cmd_set
 
 exception_handler_setup "exception_handler_general" ERR INT TERM
-set +e
 
-export -f output_cmd_set
-export -f exception_handler_shell
-export -f exception_handler_retry
-export -f exception_handler_process_shared
-export -f exception_handler_maybe_exit
-export -f exception_handler_general
-export -f exception_handler_unchroot_unmount
-export -f exception_handler_unmount
-export -f exception_handler_signal
-export -f exception_handler_setup
-export -f function_trace_function
-export -f process_backtrace_function
+## 'set +e' is only needed when the ERR trap wants to RESUME execution
+## after a failure - i.e. the retry or the interactive "continue/retry"
+## paths in exception_handler_process_shared. Under 'set -o errexit',
+## bash still runs the ERR trap, but exits the script after the trap
+## regardless of what the trap does, so retry cannot put the script
+## back on its feet.
+##
+## In fail-fast mode (auto_retry=0, non_interactive=true), the trap
+## always ends with an explicit 'exit 1' - errexit is redundant but
+## harmless. Keeping errexit ON in that mode lets callers (such as
+## the automated_builder CI scripts) source this file without losing
+## their own fail-on-error behavior. Callers opt in by exporting both
+## flags before sourcing pre.
+if [ "${dist_build_auto_retry:-}" = "0" ] \
+   && [ "${dist_build_non_interactive:-}" = "true" ]; then
+   true "${BASH_SOURCE[0]} INFO: fail-fast mode; keeping errexit on."
+else
+   set +o errexit
+fi
 
-bash -n "$BASH_SOURCE"
+## Benchmark. $SECONDS is a bash builtin - integer seconds since the
+## shell started or since the last assignment to it - so we get script
+## timing without spawning date(1). Reset here to make 'seconds since
+## this script was sourced' the baseline.
+SECONDS=0
 
-maybe_set_plus_x() {
-   if [ "$MINUS_X_SET" = "1" ]; then
-      set +x
+## Format integer seconds as a compact duration: '0s', '42s', '3m42s',
+## '1h03m42s'. 'local -; set +x' suspends xtrace for the function body
+## so the bookkeeping arithmetic does not clutter traces; 'local -'
+## restores the caller's xtrace state on return.
+benchmark_format() {
+   local -
+   set +x
+   local s=${1:-0}
+   if (( s >= 3600 )); then
+      printf '%dh%02dm%02ds' "$((s/3600))" "$(((s%3600)/60))" "$((s%60))"
+   elif (( s >= 60 )); then
+      printf '%dm%02ds' "$((s/60))" "$((s%60))"
+   else
+      printf '%ds' "$s"
    fi
 }
 
-## Thanks to  perreal for the convertsecs function.
-## http://stackoverflow.com/a/12199798
-convertsecs() {
-   local h m s
-   if [[ "${1}" = *[!0-9]* ]]; then
-      return 1
-   fi
-   ((h="${1}/3600")) || true
-   ((m="(${1}%3600)/60")) || true
-   ((s="${1}%60")) || true
-   printf "%02d:%02d:%02d\n" "$h" "$m" "$s" || true
+## Return elapsed time since the given $SECONDS snapshot, formatted.
+## Usage:
+##   local start=$SECONDS
+##   do_work
+##   printf 'took %s\n' "$(benchmark_since "$start")"
+benchmark_since() {
+   local -
+   set +x
+   benchmark_format "$(( SECONDS - ${1:-0} ))"
 }
-
-export -f convertsecs
-
-benchmark_time_start() {
-   export benchmark_time_start="$(date +%s)" || true
-}
-
-benchmarktimeend() {
-   if [[ "${1}" = *[!0-9]* ]]; then
-      return 1
-   fi
-   benchmarktimeend="$(date +%s)" || true
-   benchmark_took_seconds="$(( $benchmarktimeend - $1 ))" || true
-   echo "$(convertsecs "$benchmark_took_seconds")" || true
-}
-
-export -f benchmarktimeend
-
-benchmark_time_start
 
 exithandler() {
-   local exit_code="$?"
-   benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+   local exit_code=$?
+   local elapsed
+   elapsed="$(benchmark_format "$SECONDS")"
    output_cmd_set
    if [ "$exit_code" = "0" ]; then
-      $output_cmd "${bold}INFO: Script ${under}$0${eunder} completed.${reset} Exit Code: ${under}$exit_code${eunder}. Errors Detected: ${under}$dist_build_error_counter${eunder}. Execution Time: $benchmark_took_time${reset}"
+      $output_cmd "${bold}INFO: Script ${under}$0${eunder} completed.${reset} Exit Code: ${under}$exit_code${eunder}. Errors Detected: ${under}$dist_build_error_counter${eunder}. Execution Time: $elapsed${reset}"
    else
-      $output_cmd "${bold}${red}ERROR: Exiting ${under}$0${eunder} with non-zero exit code ${under}$exit_code${eunder}. Errors Detected: ${under}$dist_build_error_counter${eunder}. Execution Time: $benchmark_took_time${reset}."
+      $output_cmd "${bold}${red}ERROR: Exiting ${under}$0${eunder} with non-zero exit code ${under}$exit_code${eunder}. Errors Detected: ${under}$dist_build_error_counter${eunder}. Execution Time: $elapsed${reset}."
    fi
    exit "$exit_code"
 }
 
-export -f exithandler
-
 trap "exithandler" EXIT
 
 root_check() {
-   if [ "$(id -u)" = "0" ]; then
-       $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
-       exit 1
+   if [ "$EUID" = "0" ]; then
+      ## Escape hatch for environments where we legitimately run as root
+      ## (e.g. CI runners, containers without a non-root user). Opt in by
+      ## exporting 'dist_build_allow_root=true' before sourcing pre. This
+      ## also skips the sudo probes below - when we are already root,
+      ## sudo is both moot and potentially unavailable.
+      if [ "${dist_build_allow_root:-}" = "true" ]; then
+         true "INFO: root_check: running as root but dist_build_allow_root=true, allowing."
+         return 0
+      fi
+      $output_cmd "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
+      $output_cmd "${red}${bold}       Export 'dist_build_allow_root=true' to override (CI / container use only).${reset}"
+      exit 1
    fi
    true "INFO: Script running as non-root, ok."
    ## Not using 'sudo --non-interactive --validate' because that caused an
@@ -625,7 +688,7 @@ root_check() {
    ## SUDO_TO_ROOT unavailable here because set in file: help-steps/variables
    local sudo_test_output
    sudo_test_output="$(sudo --non-interactive -- test -d /usr 2>&1)" || true
-   if [ ! "$sudo_test_output" = "" ]; then
+   if [ ! "${sudo_test_output:-}" = "" ]; then
       $output_cmd "${red}${bold}ERROR: Unexpected non-empty sudo command output!${reset}"
       $output_cmd "${red}${bold}ERROR: General system sudo issue. Most likely unrelated to this derivative-maker. Please manually run 'sudo --non-interactive -- test -d /usr' and fix your system issue.${reset}"
       $output_cmd "${red}${bold}sudo_test_output:${reset}"
@@ -648,4 +711,4 @@ nothing_to_commit_test() {
 
 root_check
 
-true "$BASH_SOURCE INFO: End of script, ok."
+true "${BASH_SOURCE[0]} INFO: End of script, ok."

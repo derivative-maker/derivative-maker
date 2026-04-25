@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -32,20 +35,20 @@ zerofree_raw() {
 }
 
 main() {
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
-       true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is set to true.${reset}"
+   if [ "${dist_build_iso:-}" = "true" ]; then
+       true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is set to true.${reset}"
        return 0
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to true.${reset}"
-   elif [ "$dist_build_type_long" = "custom-workstation" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_type_long is set to $dist_build_type_long.${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_install_to_root is set to true.${reset}"
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_type_long is set to $dist_build_type_long.${reset}"
    else
       zerofree_raw "$@"
    fi

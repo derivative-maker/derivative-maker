@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -58,40 +61,40 @@ dist_build_install_to_root: $dist_build_install_to_root"
 }
 
 main() {
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_fast2" = "1" ]; then
-      echo "${bold}${cyan}INFO: run with '--fast 2' switch, skipping $BASH_SOURCE. ${reset}"
+   if [ "${dist_build_fast2:-}" = "1" ]; then
+      printf '%s\n' "${bold}${cyan}INFO: run with '--fast 2' switch, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ ! "$dist_build_script_create_report" = "true" ]; then
+   if [ ! "${dist_build_script_create_report:-}" = "true" ]; then
       true "${bold}${cyan}INFO: run without --report true, skipping, ok. ${reset}"
       return 0
    fi
 
    local report_file report_tempfolder
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       analyze_target "root" "/"
    fi
 
-   if [ "$dist_build_raw" = "true" ]; then
+   if [ "${dist_build_raw:-}" = "true" ]; then
       analyze_target "raw" "$binary_image_raw_file"
    fi
 
-   if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
       analyze_target "ova" "$binary_image_ova_file"
    fi
 
-   if [ "$dist_build_qcow2" = "true" ]; then
+   if [ "${dist_build_qcow2:-}" = "true" ]; then
       analyze_target "qcow2" "$binary_image_qcow2_file"
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
+   if [ "${dist_build_iso:-}" = "true" ]; then
       error "Not implemented!"
    fi
 }

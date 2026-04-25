@@ -20,16 +20,21 @@
 ##   https://github.com/grml/grml-debootstrap/pull/309
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "${bold}INFO: Currently running: $0 (derivative-maker help-steps/mmdebstrap wrapper)${reset}"
+## This wrapper is invoked through PATH by grml-debootstrap, so it does not
+## source help-steps/colors; use plain (uncolored) log messages.
+true "INFO: Currently running: $0 (derivative-maker help-steps/mmdebstrap wrapper)"
 
-args_original="$@"
+args_original="$*"
 
 path_variable_remove_help_steps() {
    local path_part path_array
 
-   true "${bold}INFO: Old PATH: $PATH${reset}"
+   true "INFO: Old PATH: $PATH"
    ## Example PATH:
    ## /home/user/derivative-maker/help-steps:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -37,7 +42,7 @@ path_variable_remove_help_steps() {
 
    new_path=""
    for path_part in "${path_array[@]}"; do
-      if [[ "$path_part" != *"help-steps"* ]]; then
+      if [[ "${path_part:-}" != *"help-steps"* ]]; then
          new_path+="$path_part:"
       fi
    done
@@ -45,7 +50,7 @@ path_variable_remove_help_steps() {
    ## Remove trailing colon.
    new_path="${new_path%:}"
 
-   true "${bold}INFO: New PATH: $new_path${reset}"
+   true "INFO: New PATH: $new_path"
    ## Example PATH:
    ## /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 }
@@ -59,11 +64,11 @@ export PATH="$new_path"
 ### }}}
 
 ## Sanity test.
-[ -n "$APTGETOPT_SERIALIZED" ] || error "APTGETOPT_SERIALIZED is unset!"
+[ -n "${APTGETOPT_SERIALIZED:-}" ] || error "APTGETOPT_SERIALIZED is unset!"
 
 ## Debugging.
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
-printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[*]}"
 
 ## Debugging.
 true "BUILDPLACE: $BUILDPLACE"
@@ -78,7 +83,7 @@ true "dist_build_multiarch_package_item: $dist_build_multiarch_package_item"
 true "dist_build_apt_stable_release: $dist_build_apt_stable_release"
 true "dist_build_apt_sources_mirror: $dist_build_apt_sources_mirror"
 true "dist_aptgetopt_file: $dist_aptgetopt_file"
-cat "$dist_aptgetopt_file"
+cat -- "$dist_aptgetopt_file"
 true "dist_build_sources_list_primary: $dist_build_sources_list_primary"
 cat -- "$dist_build_sources_list_primary"
 
@@ -158,7 +163,7 @@ true "FINAL args_filtered: $args_filtered"
 ##   XXX: Workaround for:
 ##   https://github.com/grml/grml-debootstrap/issues/48
 
-if [ "$BUILDPLACE" = "" ]; then
+if [ "${BUILDPLACE:-}" = "" ]; then
    ## For grml-debootstrap.
 
    true "$0: Variable BUILDPLACE is unset."
@@ -196,10 +201,10 @@ else
 fi
 
 ## Sanity tests.
-[ -n "$dist_build_apt_stable_release" ] || error "dist_build_apt_stable_release is unset!"
-[ -n "$BUILDPLACE" ] || error "BUILDPLACE is unset!"
-[ -n "$dist_build_sources_list_primary" ] || error "dist_build_sources_list_primary is unset!"
-[ -n "$APTGETOPT" ] || error "APTGETOPT is unset!"
+[ -n "${dist_build_apt_stable_release:-}" ] || error "dist_build_apt_stable_release is unset!"
+[ -n "${BUILDPLACE:-}" ] || error "BUILDPLACE is unset!"
+[ -n "${dist_build_sources_list_primary:-}" ] || error "dist_build_sources_list_primary is unset!"
+[ -n "${APTGETOPT:-}" ] || error "APTGETOPT is unset!"
 
 ## '--variant=required' is only supported by 'mmdebstrap'. It might not be supported by 'debootstrap'.
 
@@ -216,24 +221,24 @@ mmdebstrap \
    --variant=required \
    --architectures="$dist_build_multiarch_package_item" \
    --aptopt="$dist_aptgetopt_file" \
-   --customize-hook='echo "mmdebstrap hooks START"' \
-   --customize-hook='echo "----------"' \
-   --customize-hook='ls -la "$1" || true' \
-   --customize-hook='realpath "$1" || true' \
-   --customize-hook='echo "----------"' \
-   --customize-hook='cat "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources" || true' \
-   --customize-hook='cat "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' \
-   --customize-hook='echo "----------"' \
-   --customize-hook='rm --force --verbose "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources"' \
-   --customize-hook='rm --force --verbose "$1/etc/apt/apt.conf.d/99mmdebstrap"' \
-   --customize-hook='echo "----------"' \
-   --customize-hook='echo "mmdebstrap hooks END"' \
+   --customize-hook='printf "%s\n" "mmdebstrap hooks START"' \
+   --customize-hook='printf "%s\n" "----------"' \
+   --customize-hook='ls -la -- "$1" || true' \
+   --customize-hook='realpath -- "$1" || true' \
+   --customize-hook='printf "%s\n" "----------"' \
+   --customize-hook='cat -- "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources" || true' \
+   --customize-hook='cat -- "$1/etc/apt/apt.conf.d/99mmdebstrap" || true' \
+   --customize-hook='printf "%s\n" "----------"' \
+   --customize-hook='rm --force --verbose -- "$1/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources"' \
+   --customize-hook='rm --force --verbose -- "$1/etc/apt/apt.conf.d/99mmdebstrap"' \
+   --customize-hook='printf "%s\n" "----------"' \
+   --customize-hook='printf "%s\n" "mmdebstrap hooks END"' \
    $include_opt \
    "$dist_build_apt_stable_release" \
    "$BUILDPLACE" \
    "$dist_build_sources_list_primary"
 
-true "${bold}INFO: End of script: $0 (derivative-maker help-steps/mmdebstrap wrapper)${reset}"
+true "INFO: End of script: $0 (derivative-maker help-steps/mmdebstrap wrapper)"
 
 ## Example execution when cross-buidling ARM64 on AMD64:
 

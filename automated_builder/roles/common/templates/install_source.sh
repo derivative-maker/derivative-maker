@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 true "$0: START"
 
@@ -78,7 +81,7 @@ install_source_code() {
 }
 
 checkout_code(){
-  if [ -z "$SKIP_TAG" ]; then
+  if [ -z "${SKIP_TAG:-}" ]; then
     git checkout "$COMMIT_BRANCH"
   else
     git checkout "$VERSION_TAG"

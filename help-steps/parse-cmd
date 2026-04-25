@@ -4,6 +4,13 @@
 ## See the file COPYING for copying conditions.
 
 # shellcheck source=../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh
+
+#set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh"
 
 if was_executed "${BASH_SOURCE[0]}"; then
@@ -16,10 +23,10 @@ implicit_dist_type_vm() {
    if printf '%s\n' "${args[@]}" | grep --fixed-strings -- "--type" &>/dev/null; then
       return 0
    fi
-   if [ ! "$dist_build_type" = "" ]; then
+   if [ ! "${dist_build_type:-}" = "" ]; then
       return 0
    fi
-   echo "INFO: implicitly setting '--type vm' because using '$1'."
+   printf '%s\n' "INFO: implicitly setting '--type vm' because using '${1:-}'."
    dist_build_type="vm"
 }
 
@@ -27,25 +34,25 @@ implicit_dist_type_host() {
    if printf '%s\n' "${args[@]}" | grep --fixed-strings -- "--type" &>/dev/null; then
       return 0
    fi
-   if [ ! "$dist_build_type" = "" ]; then
+   if [ ! "${dist_build_type:-}" = "" ]; then
       return 0
    fi
-   echo "INFO: implicitly setting '--type host' because using '$1'."
+   printf '%s\n' "INFO: implicitly setting '--type host' because using '${1:-}'."
    dist_build_type="host"
 }
 
 parse_cmd_type_error() {
-   echo "${red}${bold}ERROR: --type must be either 'vm' or 'host'.${reset}"
+   printf '%s\n' "${red}${bold}ERROR: --type must be either 'vm' or 'host'.${reset}"
    exit 1
 }
 
 parse_cmd_target_error() {
-   echo "${red}${bold}ERROR: --target must be either virtualbox, qcow2, utm, iso, raw, dist-installer-cli, windows or root and can be used multiple times.${reset}"
+   printf '%s\n' "${red}${bold}ERROR: --target must be either virtualbox, qcow2, utm, iso, raw, dist-installer-cli, windows or root and can be used multiple times.${reset}"
    exit 1
 }
 
 parse_cmd_flavor_error() {
-   echo "${red}${bold}You must add either:
+   printf '%s\n' "${red}${bold}You must add either:
 --flavor whonix-gateway-lxqt
 --flavor whonix-gateway-rpi
 --flavor whonix-gateway-cli
@@ -62,10 +69,10 @@ ${reset}"
 }
 
 parse_cmd_freedom_versus_nonfreedom_firmware_choice_check() {
-   if [ "$build_freedom_only" = "true" ]; then
-      true "$BASH_SOURCE INFO: --freedom true, therefore omitting package firmware-nonfreedom."
-   elif [ "$build_freedom_only" = "false" ]; then
-      true "$BASH_SOURCE INFO: --freedom false, therefore adding package firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
+   if [ "${build_freedom_only:-}" = "true" ]; then
+      true "${BASH_SOURCE[0]} INFO: --freedom true, therefore omitting package firmware-nonfreedom."
+   elif [ "${build_freedom_only:-}" = "false" ]; then
+      true "${BASH_SOURCE[0]} INFO: --freedom false, therefore adding package firmware-nonfreedom, ok. See also: https://www.kicksecure.com/wiki/Dev/nonfree"
    else
       error "${red}${bold}When building '--arch amd64' (or 'i386'), you must select firmware. Add either '--freedom true' or '--freedom false'!${reset}"
    fi
@@ -227,9 +234,9 @@ dist_build_one_parse_cmd() {
 
    args=("$@")
 
-   if [ ! "$dist_build_internal_run" = "true" ]; then
+   if [ ! "${dist_build_internal_run:-}" = "true" ]; then
       if [ "${#args[@]}" -eq 0 ]; then
-         echo "${red}${bold}No option chosen! Use '--help'.${reset}"
+         printf '%s\n' "${red}${bold}No option chosen! Use '--help'.${reset}"
          exit 1
       fi
    fi
@@ -243,7 +250,7 @@ dist_build_one_parse_cmd() {
    ## Note, short and combined options such as '-tpu' are unsupported and not planned.
    while :
    do
-       case $1 in
+       case "${1:-}" in
            -h | --help | -\?)
                if [ "${parse_cmd_was_sourced}" = 'true' ]; then
                    ## Script was sourced.
@@ -254,33 +261,33 @@ dist_build_one_parse_cmd() {
                ;;
            --flavor)
                true "${cyan}INFO: --flavor $2 chosen.${reset}"
-               dist_build_flavor="$2"
+               dist_build_flavor="${2:-}"
                export dist_build_flavor
-               if [ "$dist_build_flavor" = "whonix-gateway-lxqt" ]; then
+               if [ "${dist_build_flavor:-}" = "whonix-gateway-lxqt" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-gateway-rpi" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-gateway-rpi" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-gateway-cli" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-gateway-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-workstation-lxqt" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-workstation-lxqt" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-workstation-cli" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-workstation-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-custom-workstation" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-host-cli" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-host-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "whonix-host-lxqt" ]; then
+               elif [ "${dist_build_flavor:-}" = "whonix-host-lxqt" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "kicksecure-cli" ]; then
+               elif [ "${dist_build_flavor:-}" = "kicksecure-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "kicksecure-lxqt" ]; then
+               elif [ "${dist_build_flavor:-}" = "kicksecure-lxqt" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
-               elif [ "$dist_build_flavor" = "dist-installer-cli" ]; then
+               elif [ "${dist_build_flavor:-}" = "dist-installer-cli" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                   export dist_build_installer_dist="true"
                   dist_build_image_upload_supported="true"
-               elif [ "$dist_build_flavor" = "internal" ]; then
+               elif [ "${dist_build_flavor:-}" = "internal" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
                   export dist_build_internal_run="true"
                else
@@ -290,9 +297,9 @@ dist_build_one_parse_cmd() {
                ;;
            --type)
                true "${cyan}INFO: --type $2 chosen.${reset}"
-               if [ "$2" = "host" ]; then
+               if [ "${2:-}" = "host" ]; then
                   dist_build_type="host"
-               elif [ "$2" = "vm" ]; then
+               elif [ "${2:-}" = "vm" ]; then
                   dist_build_type="vm"
                else
                   parse_cmd_type_error
@@ -301,41 +308,41 @@ dist_build_one_parse_cmd() {
                ;;
            --target)
                true "${cyan}INFO: --target $2 chosen.${reset}"
-               if [ "$2" = "virtualbox" ]; then
+               if [ "${2:-}" = "virtualbox" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_virtualbox="true"
                   dist_build_image_upload_supported="true"
                   implicit_dist_type_vm "--target $2"
-               elif [ "$2" = "qcow2" ]; then
+               elif [ "${2:-}" = "qcow2" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_qcow2="true"
                   dist_build_image_upload_supported="true"
                   implicit_dist_type_vm "--target $2"
-               elif [ "$2" = "utm" ]; then
+               elif [ "${2:-}" = "utm" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
                   export dist_build_utm="true"
                   dist_build_image_upload_supported="false"
                   implicit_dist_type_vm "--target $2"
-               elif [ "$2" = "iso" ]; then
+               elif [ "${2:-}" = "iso" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_iso="true"
                   dist_build_image_upload_supported="true"
                   implicit_dist_type_host "--target $2"
-               elif [ "$2" = "raw" ]; then
+               elif [ "${2:-}" = "raw" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_raw="true"
                   dist_build_image_upload_supported="false"
-               elif [ "$2" = "root" ]; then
+               elif [ "${2:-}" = "root" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_install_to_root="true"
                   dist_build_image_upload_supported="false"
-               elif [ "$2" = "windows" ]; then
+               elif [ "${2:-}" = "windows" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   export dist_build_windows_installer="true"
                   dist_build_image_upload_supported="true"
                   implicit_dist_type_vm "--target $2"
-               elif [ "$2" = "source" ]; then
+               elif [ "${2:-}" = "source" ]; then
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   dist_build_source_archive="true"
                   dist_build_image_upload_supported="true"
@@ -346,66 +353,66 @@ dist_build_one_parse_cmd() {
                ;;
            --fast)
                true "${cyan}INFO: --fast $2 chosen.${reset}"
-               if [ "$2" = "1" ]; then
+               if [ "${2:-}" = "1" ]; then
                   export dist_build_fast1="1"
-               elif [ "$2" = "2" ]; then
+               elif [ "${2:-}" = "2" ]; then
                   export dist_build_fast1="1"
                   export dist_build_fast2="1"
                else
-                  echo "${red}${bold}ERROR: supported options for --fast are '1' and '2'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --fast are '1' and '2'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --vmram)
-               export VMRAM="$2"
+               export VMRAM="${2:-}"
                shift 2
-               if [ "$VMRAM" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vmram.${reset}"
+               if [ "${VMRAM:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: You forgot to specify how much MB to use for --vmram.${reset}"
                   exit 1
                fi
                ;;
            --vram)
-               export VRAM="$2"
+               export VRAM="${2:-}"
                shift 2
-               if [ "$VRAM" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much MB to use for --vram.${reset}"
+               if [ "${VRAM:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: You forgot to specify how much MB to use for --vram.${reset}"
                   exit 1
                fi
                ;;
            --vmsize)
-               export VMSIZE="$2"
+               export VMSIZE="${2:-}"
                shift 2
-               if [ "$VMSIZE" = "" ]; then
-                  echo "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize.${reset}"
+               if [ "${VMSIZE:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: You forgot to specify how much GB to use for --vmsize.${reset}"
                   exit 1
                fi
                ;;
            --freshness)
-               if [ "$2" = "frozen" ]; then
-                  echo "${red}${bold}ERROR: Using frozen sources is currently not implemented!${reset}"
+               if [ "${2:-}" = "frozen" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: Using frozen sources is currently not implemented!${reset}"
                   exit 1
-               elif [ "$2" = "current" ]; then
+               elif [ "${2:-}" = "current" ]; then
                   ## default
                   true "${cyan}INFO: Using current sources.${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --freshness are 'frozen' or 'current'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --freshness are 'frozen' or 'current'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --connection)
-               if [ "$2" = "clearnet" ]; then
+               if [ "${2:-}" = "clearnet" ]; then
                   true "${cyan}INFO: Using clearnet apt sources.${reset}"
                   dist_build_sources_clearnet_or_onion="clearnet"
-               elif [ "$2" = "onion" ]; then
+               elif [ "${2:-}" = "onion" ]; then
                   true "${cyan}INFO: Using onion apt sources.${reset}"
                   dist_build_sources_clearnet_or_onion="onion"
                   ## tb-updater
                   ## https://phabricator.whonix.org/T678
                   tb_onion=true
                else
-                  echo "${red}${bold}ERROR: supported options for --connection are 'clearnet' or 'onion'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --connection are 'clearnet' or 'onion'.${reset}"
                   exit 1
                fi
                export tb_onion
@@ -413,11 +420,11 @@ dist_build_one_parse_cmd() {
                shift 2
                ;;
            --release)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --release must not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --release must not be empty.${reset}"
                   exit 1
                else
-                  export BUILD_RELEASE="$2"
+                  export BUILD_RELEASE="${2:-}"
                   true "${cyan}BUILD_RELEASE set to $BUILD_RELEASE.${reset}"
                fi
                shift 2
@@ -432,20 +439,20 @@ dist_build_one_parse_cmd() {
                shift
                ;;
            --arch)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --arch must not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --arch must not be empty.${reset}"
                   exit 1
                else
-                  export dist_build_target_arch="$2"
+                  export dist_build_target_arch="${2:-}"
                   true "${cyan}dist_build_target_arch set to $dist_build_target_arch.${reset}"
                fi
                shift 2
                ;;
            --initramfs)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --initramfs must not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --initramfs must not be empty.${reset}"
                   exit 1
-               elif [ "$2" = "none" ]; then
+               elif [ "${2:-}" = "none" ]; then
                   export BUILD_INITRAMFS_PKGS="none"
                   true "${cyan}BUILD_INITRAMFS_PKGS set to $BUILD_INITRAMFS_PKGS.${reset}"
                else
@@ -455,10 +462,10 @@ dist_build_one_parse_cmd() {
                shift 2
                ;;
            --kernel)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --kernel must not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --kernel must not be empty.${reset}"
                   exit 1
-               elif [ "$2" = "none" ]; then
+               elif [ "${2:-}" = "none" ]; then
                   export BUILD_KERNEL_PKGS="none"
                   true "${cyan}BUILD_KERNEL_PKGS set to $BUILD_KERNEL_PKGS.${reset}"
                else
@@ -468,10 +475,10 @@ dist_build_one_parse_cmd() {
                shift 2
                ;;
            --headers)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --headers must not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --headers must not be empty.${reset}"
                   exit 1
-               elif [ "$2" = "none" ]; then
+               elif [ "${2:-}" = "none" ]; then
                   export BUILD_HEADER_PKGS="none"
                   true "${cyan}BUILD_HEADER_PKGS set to $BUILD_HEADER_PKGS.${reset}"
                else
@@ -481,225 +488,225 @@ dist_build_one_parse_cmd() {
                shift 2
                ;;
            --report)
-               if [ "$2" = "true" ]; then
+               if [ "${2:-}" = "true" ]; then
                   true "${cyan}INFO: Full report.${reset}"
                   export dist_build_script_create_report="true"
-               elif [ "$2" = "false" ]; then
+               elif [ "${2:-}" = "false" ]; then
                   true "${cyan}INFO: No report.${reset}"
                   export dist_build_script_create_report="false"
                else
-                  echo "${red}${bold}ERROR: supported options for --report are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --report are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --verifiable)
-               if [ "$2" = "true" ]; then
+               if [ "${2:-}" = "true" ]; then
                   true "${cyan}INFO: Building verifiable.${reset}"
                   export dist_build_script_verifiable="true"
-               elif [ "$2" = "false" ]; then
+               elif [ "${2:-}" = "false" ]; then
                   true "${cyan}INFO: Not building verifiable.${reset}"
                   export dist_build_script_verifiable="false"
                else
-                  echo "${red}${bold}ERROR: supported options for --verifiable are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --verifiable are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --sanity-tests)
-               if [ "$2" = "true" ]; then
+               if [ "${2:-}" = "true" ]; then
                   true "${cyan}INFO: Sanity tests true.${reset}"
-               elif [ "$2" = "false" ]; then
+               elif [ "${2:-}" = "false" ]; then
                   ## TODO: opt in rather than opt out.
                   true "${cyan}INFO: Sanity tests false.${reset}"
                   export SKIP_SCRIPTS+=" 20_sanity_checks "
                else
-                  echo "${red}${bold}ERROR: supported options for --sanity-tests are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --sanity-tests are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --file-system)
-               export dist_build_file_system="$2"
+               export dist_build_file_system="${2:-}"
                shift 2
                ;;
            --hostname)
-               export dist_build_hostname="$2"
+               export dist_build_hostname="${2:-}"
                shift 2
                ;;
            --retry-max)
-               export dist_build_auto_retry="$2"
+               export dist_build_auto_retry="${2:-}"
                shift 2
                ;;
            --retry-wait)
-               export dist_build_wait_auto_retry="$2"
+               export dist_build_wait_auto_retry="${2:-}"
                shift 2
                ;;
            --retry-before)
-               export dist_build_dispatch_before_retry="$2"
+               export dist_build_dispatch_before_retry="${2:-}"
                shift 2
                ;;
            --retry-after)
-               export dist_build_dispatch_after_retry="$2"
+               export dist_build_dispatch_after_retry="${2:-}"
                shift 2
                ;;
            --allow-untagged)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   true "${cyan}INFO: Would stop if building from untagged commits.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   true "${cyan}INFO: Would build from untagged commits.${reset}"
                   export dist_build_ignore_untagged="true"
                else
-                  echo "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --allow-untagged are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --allow-uncommitted)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   true "${cyan}INFO: Would stop if uncommitted changes detected.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   true "${cyan}INFO: Would ignore if uncommitted changes detected.${reset}"
                   export dist_build_ignore_uncommitted="true"
                else
-                  echo "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --allow-uncommitted are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --confdir)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --confdir may not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --confdir may not be empty.${reset}"
                   exit 1
                else
-                  export dist_build_custom_config_dir="$2"
+                  export dist_build_custom_config_dir="${2:-}"
                   true "${cyan}INFO: --confdir set to: $dist_build_custom_config_dir${reset}"
                   if [ -d "$dist_build_custom_config_dir" ]; then
                      true "${cyan}INFO: --confdir $dist_build_custom_config_dir exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --confdir $dist_build_custom_config_dir does not exist!${reset}"
+                     printf '%s\n' "${red}${bold}ERROR: --confdir $dist_build_custom_config_dir does not exist!${reset}"
                      exit 1
                   fi
                fi
                shift 2
                ;;
            --conffile)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --conffile may not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --conffile may not be empty.${reset}"
                   exit 1
                else
-                  export dist_build_conf_file="$2"
+                  export dist_build_conf_file="${2:-}"
                   true "${cyan}INFO: --conffile set to: $dist_build_conf_file${reset}"
                   if [ -f "$dist_build_conf_file" ]; then
                      true "${cyan}INFO: --conffile $dist_build_conf_file exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --conffile $dist_build_conf_file does not exist!${reset}"
+                     printf '%s\n' "${red}${bold}ERROR: --conffile $dist_build_conf_file does not exist!${reset}"
                      exit 1
                   fi
                fi
                shift 2
                ;;
            --grmlbin)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --grmlbin may not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --grmlbin may not be empty.${reset}"
                   exit 1
                else
-                  export dist_build_grml_bin="$2"
+                  export dist_build_grml_bin="${2:-}"
                   true "${cyan}INFO: --grmlbin set to: $dist_build_grml_bin${reset}"
                   if [ -x "$dist_build_grml_bin" ]; then
                      true "${cyan}INFO: --grmlbin $dist_build_grml_bin exists.${reset}"
                   else
-                     echo "${red}${bold}ERROR: --grmlbin $dist_build_grml_bin is not executable!${reset}"
+                     printf '%s\n' "${red}${bold}ERROR: --grmlbin $dist_build_grml_bin is not executable!${reset}"
                      exit 1
                   fi
                fi
                shift 2
                ;;
            --tb)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --tb may not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --tb may not be empty.${reset}"
                   exit 1
                else
-                  export anon_shared_inst_tb="$2"
+                  export anon_shared_inst_tb="${2:-}"
                   true "${cyan}INFO: --tb set to: $anon_shared_inst_tb${reset}"
                fi
                shift 2
                ;;
            --unsafe-io)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   true "${cyan}INFO: Not using unsafe io.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   dist_build_unsafe_io="true"
                   export dist_build_unsafe_io
                   true "${cyan}INFO: Using unsafe io.${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --unsafe-io are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --unsafe-io are 'true' or 'false'.${reset}"
                   exit 1
                fi
                shift 2
                ;;
            --repo)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   build_remote_repo_enable="false"
                   true "${cyan}INFO: will ${under}not${eunder} enable remote repository.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   build_remote_repo_enable="true"
                   true "${cyan}INFO: will ${under}enable${eunder} remote repository.${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --repo are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --repo are 'true' or 'false'.${reset}"
                   exit 1
                fi
                export build_remote_repo_enable
                shift 2
                ;;
            --remote-derivative-packages)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   build_remote_derivative_pkgs="false"
                   true "${cyan}INFO: will ${under}not${eunder} use remote derivative packages.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   build_remote_derivative_pkgs="true"
                   true "${cyan}INFO: will ${under}use${eunder} remote derivative packages.${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --remote-derivative-packages are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --remote-derivative-packages are 'true' or 'false'.${reset}"
                   exit 1
                fi
                export build_remote_derivative_pkgs
                shift 2
                ;;
            --dry-run)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   build_dry_run="false"
                   true "${cyan}INFO: ${under}not${eunder} --dry-run${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   build_dry_run="true"
                   true "${cyan}INFO: ${under}--dry-run${eunder}${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --dry-run are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --dry-run are 'true' or 'false'.${reset}"
                   exit 1
                fi
                export build_dry_run
                shift 2
                ;;
            --freedom)
-               if [ "$2" = "false" ]; then
+               if [ "${2:-}" = "false" ]; then
                   build_freedom_only="false"
                   true "${cyan}INFO: will include nonfreedom software packages.${reset}"
-               elif [ "$2" = "true" ]; then
+               elif [ "${2:-}" = "true" ]; then
                   build_freedom_only="true"
                   true "${cyan}INFO: will include Freedom Software packages only.${reset}"
                else
-                  echo "${red}${bold}ERROR: supported options for --freedom are 'true' or 'false'.${reset}"
+                  printf '%s\n' "${red}${bold}ERROR: supported options for --freedom are 'true' or 'false'.${reset}"
                   exit 1
                fi
                export build_freedom_only
                shift 2
                ;;
             -t|--tag)
-               target_tag="$2"
+               target_tag="${2:-}"
                shift 2
                ;;
             -r|--ref)
-               target_ref="$2"
+               target_ref="${2:-}"
                shift 2
                ;;
             -u|--update-only)
@@ -707,11 +714,11 @@ dist_build_one_parse_cmd() {
                shift 1
                ;;
            --function)
-               if [ "$2" = "" ]; then
-                  echo "${red}${bold}ERROR: --function may not be empty.${reset}"
+               if [ "${2:-}" = "" ]; then
+                  printf '%s\n' "${red}${bold}ERROR: --function may not be empty.${reset}"
                   exit 1
                else
-                  FUNCTION="$2"
+                  FUNCTION="${2:-}"
                   true "${cyan}INFO: --function set to $FUNCTION${reset}"
                fi
                shift 2
@@ -721,18 +728,18 @@ dist_build_one_parse_cmd() {
                break
                ;;
            -*)
-               if ! [ "$dist_build_internal_run" = "true" ]; then
-                  echo "${red}${bold}unknown option (1): '$1'${reset}"
+               if ! [ "${dist_build_internal_run:-}" = "true" ]; then
+                  printf '%s\n' "${red}${bold}unknown option (1): '${1:-}'${reset}"
                   exit 1
                fi
                break
                ;;
            *)
-               if [ "$1" = "" ]; then
+               if [ "${1:-}" = "" ]; then
                   true
                else
-                  if ! [ "$dist_build_internal_run" = "true" ]; then
-                     echo "${red}${bold}unknown option (2): '$1'${reset}"
+                  if ! [ "${dist_build_internal_run:-}" = "true" ]; then
+                     printf '%s\n' "${red}${bold}unknown option (2): '${1:-}'${reset}"
                      exit 1
                   fi
                fi
@@ -746,10 +753,10 @@ dist_build_one_parse_cmd() {
    [[ -v update_only ]] || update_only=""
    [[ -v architecture_valid ]] || architecture_valid=""
 
-   if [ "$dist_build_target_arch" = "" ]; then
-      if [ "$dist_build_source_archive" = "true" ]; then
+   if [ "${dist_build_target_arch:-}" = "" ]; then
+      if [ "${dist_build_source_archive:-}" = "true" ]; then
          architecture_valid=true
-      elif [ "$dist_build_internal_run" = "true" ]; then
+      elif [ "${dist_build_internal_run:-}" = "true" ]; then
          architecture_valid=true
       else
          error "\
@@ -768,20 +775,20 @@ For ARM CPUs:
 ${bold}--arch arm64${reset}
 ${reset}"
       fi
-   elif [ "$dist_build_target_arch" = "i386" ]; then
-      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
-   elif [ "$dist_build_target_arch" = "amd64" ]; then
-      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
+   elif [ "${dist_build_target_arch:-}" = "i386" ]; then
+      [ -n "${virtualbox_supported_architecture:-}" ] || virtualbox_supported_architecture="true"
+   elif [ "${dist_build_target_arch:-}" = "amd64" ]; then
+      [ -n "${virtualbox_supported_architecture:-}" ] || virtualbox_supported_architecture="true"
       ## https://forums.whonix.org/t/long-wiki-edits-thread/3477/2009
-      [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="Intel_AMD64"
-   elif [ "$dist_build_target_arch" = "arm64" ]; then
-      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="true"
+      [ -n "${target_architecture_pretty_name:-}" ] || target_architecture_pretty_name="Intel_AMD64"
+   elif [ "${dist_build_target_arch:-}" = "arm64" ]; then
+      [ -n "${virtualbox_supported_architecture:-}" ] || virtualbox_supported_architecture="true"
    else
-      [ -n "$virtualbox_supported_architecture" ] || virtualbox_supported_architecture="false"
+      [ -n "${virtualbox_supported_architecture:-}" ] || virtualbox_supported_architecture="false"
    fi
 
-   if [ "$dist_build_virtualbox" = "true" ]; then
-      if [ "$virtualbox_supported_architecture" = "false" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
+      if [ "${virtualbox_supported_architecture:-}" = "false" ]; then
          error "\
 ${red}${bold}VirtualBox architecture support test failed!
 virtualbox_supported_architecture: '$virtualbox_supported_architecture'
@@ -794,13 +801,13 @@ Should VirtualBox meanwhile support other architectures such as 'ppc64el', then 
    fi
 
    for architecture_all_item in "${architecture_all_list[@]}"; do
-      if [ "$dist_build_target_arch" = "$architecture_all_item" ]; then
+      if [ "${dist_build_target_arch:-}" = "$architecture_all_item" ]; then
         architecture_valid=true
         break
       fi
    done
 
-   if ! [ "$architecture_valid" = "true" ]; then
+   if ! [ "${architecture_valid:-}" = "true" ]; then
       error "\
 ${red}${bold}Invalid '--arch' option!${reset}
 
@@ -811,10 +818,10 @@ ${architecture_all_list[*]}
 ${reset}"
    fi
 
-   [ -n "$target_architecture_pretty_name" ] || target_architecture_pretty_name="$dist_build_target_arch"
+   [ -n "${target_architecture_pretty_name:-}" ] || target_architecture_pretty_name="$dist_build_target_arch"
 
-   [ -n "$BUILD_KERNEL_PKGS" ] || BUILD_KERNEL_PKGS="linux-image-${dist_build_target_arch}"
-   [ -n "$BUILD_HEADER_PKGS" ] || BUILD_HEADER_PKGS="linux-headers-${dist_build_target_arch}"
+   [ -n "${BUILD_KERNEL_PKGS:-}" ] || BUILD_KERNEL_PKGS="linux-image-${dist_build_target_arch}"
+   [ -n "${BUILD_HEADER_PKGS:-}" ] || BUILD_HEADER_PKGS="linux-headers-${dist_build_target_arch}"
 
    export BUILD_INITRAMFS_PKGS
    ## Using export, so it can be read by chroot-post.d scripts.
@@ -828,7 +835,7 @@ ${reset}"
    true "${cyan}INFO: BUILD_KERNEL_PKGS       (--kernel): $BUILD_KERNEL_PKGS${reset}"
    true "${cyan}INFO: BUILD_HEADER_PKGS      (--headers): $BUILD_HEADER_PKGS${reset}"
 
-   if [ "$dist_build_sources_clearnet_or_onion" = "" ]; then
+   if [ "${dist_build_sources_clearnet_or_onion:-}" = "" ]; then
       true "${cyan}${bold}INFO: No --connection type 'clearnet' or 'onion' has been chosen. \
 Using default dist_build_sources_clearnet_or_onion=${under}clearnet${eunder}.
 (Alternative value would be 'onion'.)${reset}"
@@ -838,84 +845,84 @@ Using default dist_build_sources_clearnet_or_onion=${under}clearnet${eunder}.
    ## If there are input files (for example) that follow the options, they
    ## will remain in the "$@" positional parameters.
 
-   if [ "$dist_build_internal_run" = "true" ]; then
+   if [ "${dist_build_internal_run:-}" = "true" ]; then
       true
    else
-      if [ "$build_machines_counter" -gt "1" ]; then
-         echo "${red}${bold}You cannot use --flavor multiples times!${reset}"
+      if [ "${build_machines_counter:-0}" -gt "1" ]; then
+         printf '%s\n' "${red}${bold}You cannot use --flavor multiples times!${reset}"
          exit 1
       fi
    fi
 
-   if [ "$build_machines_counter" -le "0" ]; then
-      if [ "$dist_build_one_parsed" = "true" ]; then
+   if [ "${build_machines_counter:-0}" -le "0" ]; then
+      if [ "${dist_build_one_parsed:-}" = "true" ]; then
          true
-      elif [ "$dist_build_internal_run" = "true" ] ; then
+      elif [ "${dist_build_internal_run:-}" = "true" ] ; then
          true
       else
          parse_cmd_flavor_error
       fi
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       true
-   elif [ "$dist_build_virtualbox" = "true" ]; then
+   elif [ "${dist_build_virtualbox:-}" = "true" ]; then
       true
-   elif [ "$dist_build_qcow2" = "true" ]; then
+   elif [ "${dist_build_qcow2:-}" = "true" ]; then
       true
-   elif [ "$dist_build_utm" = "true" ]; then
+   elif [ "${dist_build_utm:-}" = "true" ]; then
       true
-   elif [ "$dist_build_raw" = "true" ]; then
+   elif [ "${dist_build_raw:-}" = "true" ]; then
       true
-   elif [ "$dist_build_installer_dist" = "true" ]; then
+   elif [ "${dist_build_installer_dist:-}" = "true" ]; then
       true
-   elif [ "$dist_build_windows_installer" = "true" ]; then
+   elif [ "${dist_build_windows_installer:-}" = "true" ]; then
       true
-   elif [ "$dist_build_iso" = "true" ]; then
+   elif [ "${dist_build_iso:-}" = "true" ]; then
       true
-   elif [ "$dist_build_internal_run" = "true" ]; then
+   elif [ "${dist_build_internal_run:-}" = "true" ]; then
       true
-   elif [ "$dist_build_source_archive" = "true" ]; then
+   elif [ "${dist_build_source_archive:-}" = "true" ]; then
       true
    else
       parse_cmd_target_error
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      if [ "$build_target_counter" -gt "1" ]; then
-         echo "${red}${bold}You can not combine --target root with other targets.${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      if [ "${build_target_counter:-0}" -gt "1" ]; then
+         printf '%s\n' "${red}${bold}You can not combine --target root with other targets.${reset}"
          exit 1
       fi
    fi
 
-   if [ "$dist_build_type" = "vm" ]; then
+   if [ "${dist_build_type:-}" = "vm" ]; then
       true
-   elif [ "$dist_build_type" = "host" ]; then
+   elif [ "${dist_build_type:-}" = "host" ]; then
       true
-   elif [ "$dist_build_internal_run" = "true" ]; then
+   elif [ "${dist_build_internal_run:-}" = "true" ]; then
       true
-   elif [ "$dist_build_source_archive" = "true" ]; then
+   elif [ "${dist_build_source_archive:-}" = "true" ]; then
       true
-   elif [ "$dist_build_installer_dist" = "true" ]; then
+   elif [ "${dist_build_installer_dist:-}" = "true" ]; then
       true
    else
-      echo "${red}${bold}You must add either:
+      printf '%s\n' "${red}${bold}You must add either:
 '--type vm'
 '--type host'
 ${reset}"
       exit 1
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
-      if [ "$dist_build_target_arch" = "i386" ]; then
+   if [ "${dist_build_iso:-}" = "true" ]; then
+      if [ "${dist_build_target_arch:-}" = "i386" ]; then
          parse_cmd_freedom_versus_nonfreedom_firmware_choice_check
-      elif [ "$dist_build_target_arch" = "amd64" ]; then
+      elif [ "${dist_build_target_arch:-}" = "amd64" ]; then
          parse_cmd_freedom_versus_nonfreedom_firmware_choice_check
       fi
    fi
 
    if [ "${CI:-}" = "true" ]; then
-      if ! [ "$dist_build_flavor" = "kicksecure-cli" ]; then
+      if ! [ "${dist_build_flavor:-}" = "kicksecure-cli" ]; then
          ## TODO: cross-building is too slow. Hits GitHub 6 hours maximum time.
          ## Therefore, build fewer flavors on CI to save build time.
          ## At this time, build flavor 'kicksecure-cli' only on CI.
@@ -924,7 +931,7 @@ ${reset}"
          ## equivalent of '--dry-run true'
          build_dry_run="true"
          export build_dry_run
-         true "$BASH_SOURCE INFO: CI=$CI and dist_build_flavor ($dist_build_flavor) is NOT kicksecure-cli, therefore setting: build_dry_run=$build_dry_run"
+         true "${BASH_SOURCE[0]} INFO: CI=$CI and dist_build_flavor ($dist_build_flavor) is NOT kicksecure-cli, therefore setting: build_dry_run=$build_dry_run"
       fi
    fi
 }

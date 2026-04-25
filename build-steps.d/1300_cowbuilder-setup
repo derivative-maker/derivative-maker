@@ -8,9 +8,12 @@
 #make_cross_build_platform_list="armel armhf i386 amd64 arm64" ./build-steps.d/*_cowbuilder-setup --allow-untagged true --allow-uncommitted true --flavor internal --target root
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -26,7 +29,7 @@ cd "$MYDIR"
 cd ..
 
 source_date_epoch_test() {
-   if [ "$SOURCE_DATE_EPOCH" = "" ]; then
+   if [ "${SOURCE_DATE_EPOCH:-}" = "" ]; then
       error "SOURCE_DATE_EPOCH is still unset!"
    fi
    true "INFO: SOURCE_DATE_EPOCH: $SOURCE_DATE_EPOCH"
@@ -34,9 +37,9 @@ source_date_epoch_test() {
 
 cowbuilder_setup() {
    if cowbuilder_setup_do ; then
-      true "$FUNCNAME: success"
+      true "${FUNCNAME[0]}: success"
    else
-      true "$FUNCNAME: try again"
+      true "${FUNCNAME[0]}: try again"
       cowbuilder_setup_do
    fi
 }
@@ -47,12 +50,12 @@ cowbuilder_setup_do() {
    dist_build_sources_list_primary_contents="$(cat -- "$dist_build_sources_list_primary")"
    export dist_build_sources_list_primary_contents
 
-   if [ "$dist_build_unsafe_io" = "true" ]; then
+   if [ "${dist_build_unsafe_io:-}" = "true" ]; then
       eatmydata_maybe_install="eatmydata"
    fi
 
-   if [ "$dist_build_unsafe_io" = "true" ]; then
-      if [ "$DOCKER" = "true" ]; then
+   if [ "${dist_build_unsafe_io:-}" = "true" ]; then
+      if [ "${DOCKER:-}" = "true" ]; then
          ## https://forums.whonix.org/t/docker-container-that-builds-whonix-images/17494/21
          true "INFO: Skip re-mounting /var/cache/pbuilder as tmpfs because DOCKER=true, ok."
       else
@@ -69,8 +72,8 @@ cowbuilder_setup_do() {
 
    make_cross_build_platform_list_including_host_architecture+=" $make_cross_build_platform_list "
 
-   if [ "$dist_build_virtualbox" = "true" ]; then
-      if [ "$dist_build_target_arch" = "arm64" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
+      if [ "${dist_build_target_arch:-}" = "arm64" ]; then
          true "${cyan}INFO: '--target virtualbox' and '--arch arm64', therefore also building a AMD64 chroot, because at time of writing VirtualBox is available only on ARM64 macOS but not for ARM64 Linux.${reset}"
          make_cross_build_platform_list_including_host_architecture+=" amd64 "
       fi
@@ -95,7 +98,7 @@ cowbuilder_setup_do() {
       ## For development. Skipping base cowbuilder chroot creation during cowbuilder_execute_script development.
       #skip=true
 
-      if [ "$skip" = "true" ]; then
+      if [ "${skip:-}" = "true" ]; then
          true "${cyan}INFO: Skipping cowbuilder chroot creation.${reset}"
       else
          if [ -d "$base_folder" ]; then
@@ -129,7 +132,7 @@ cowbuilder_setup_do() {
             $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
          fi
 
-         if [ ! "$cowbuilder_exit_code" = "0" ]; then
+         if [ ! "${cowbuilder_exit_code:-}" = "0" ]; then
             return "$cowbuilder_exit_code"
          fi
       fi
@@ -169,7 +172,7 @@ cowbuilder_setup_do() {
       cowbuilder_script_list=()
       cowbuilder_script_list+=("$dist_build_pbuilder_main_chroot_script")
 
-      if [ "$dist_build_virtualbox" = "true" ]; then
+      if [ "${dist_build_virtualbox:-}" = "true" ]; then
          ## Install VirtualBox inside the chroot using 'dist-installer-cli'.
          ## Useful for running 'vboxmanage' inside a clean 'cowbuilder' chroot.
          ## TODO: Enable after running 'build-steps.d/*_create-vbox-vm' inside chroot.
@@ -196,12 +199,12 @@ cowbuilder_setup_do() {
             $SUDO_TO_ROOT "$dist_source_help_steps_folder/umount_kill.sh" "$base_folder"
          fi
 
-         if [ ! "$cowbuilder_exit_code" = "0" ]; then
+         if [ ! "${cowbuilder_exit_code:-}" = "0" ]; then
             break
          fi
       done
 
-      if [ ! "$cowbuilder_exit_code" = "0" ]; then
+      if [ ! "${cowbuilder_exit_code:-}" = "0" ]; then
          return "$cowbuilder_exit_code"
       fi
    done
@@ -213,8 +216,8 @@ main() {
    source_date_epoch_test "$@"
 
    ## Not possible because we need *_local-dependencies build step.
-   #if [ "$build_dry_run" = "true" ]; then
-      #true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   #if [ "${build_dry_run:-}" = "true" ]; then
+      #true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       #return 0
    #fi
 

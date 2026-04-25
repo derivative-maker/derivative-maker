@@ -5,9 +5,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -22,7 +25,7 @@ main() {
 
    ## apt_target_key_derivative exists only when using:
    ## build_remote_derivative_pkgs=true / --remote-derivative-packages true
-   if [ ! "$apt_target_key_derivative" = "" ]; then
+   if [ ! "${apt_target_key_derivative:-}" = "" ]; then
       $SUDO_TO_ROOT rm --force "$CHROOT_FOLDER/$apt_target_key_derivative"
    fi
 

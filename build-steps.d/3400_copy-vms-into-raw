@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -21,7 +24,7 @@ source variables
 copy-vm-files(){
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
-   true "${green}INFO: Skipping $BASH_SOURCE, because not yet implemented.${reset}"
+   true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because not yet implemented.${reset}"
    return 0
    ## TODO: port to VirtualBox
 
@@ -74,20 +77,20 @@ copy-vm-files(){
 main() {
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_type_long" = "kicksecure" ]; then
+   if [ "${dist_build_type_long:-}" = "kicksecure" ]; then
       true "INFO: Skipping $0, because dist_build_type_long kicksecure does not need to copy VM images into the build, ok."
       return 0
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
+   if [ "${dist_build_iso:-}" = "true" ]; then
       copy-vm-files "$@"
    else
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is not set to 'true'.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is not set to 'true'.${reset}"
       return 0
    fi
 }

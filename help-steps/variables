@@ -3,9 +3,15 @@
 ## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
 ## See the file COPYING for copying conditions.
 
-true "$BASH_SOURCE INFO: begin"
+#set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-#printf "%s\n" "INFO: Currently running script: $BASH_SOURCE"
+true "${BASH_SOURCE[0]} INFO: begin"
+
+#printf "%s\n" "INFO: Currently running script: ${BASH_SOURCE[0]}"
 
 ## {{ Sanity Tests.
 
@@ -53,19 +59,19 @@ path_variable_adjustments() {
 
    new_path="$PATH"
    for path_part in "${path_array[@]}"; do
-      if [ "$path_part" = "/usr/local/sbin" ]; then
+      if [ "${path_part:-}" = "/usr/local/sbin" ]; then
          local_sbin_found=yes
       fi
-      if [ "$path_part" = "/usr/sbin" ]; then
+      if [ "${path_part:-}" = "/usr/sbin" ]; then
          standard_sbin_found=yes
       fi
    done
 
-   if [ ! "$local_sbin_found" = "yes" ]; then
+   if [ ! "${local_sbin_found:-}" = "yes" ]; then
       new_path="/usr/local/sbin:$new_path"
    fi
 
-   if [ ! "$standard_sbin_found" = "yes" ]; then
+   if [ ! "${standard_sbin_found:-}" = "yes" ]; then
       new_path="$new_path:/usr/sbin"
    fi
 
@@ -85,52 +91,52 @@ path_variable_adjustments
 ## 4. 'whoami' / '$USER' - only trusted if we're not currently root,
 ##    because otherwise they would yield 'root' and 'HOMEVAR=/home/root'
 ##    would silently point at a nonexistent home directory.
-[ -n "$user_name" ] || user_name="$SUDO_USER"
-[ -n "$user_name" ] || user_name="$(logname 2>/dev/null)" || true
-if [ -z "$user_name" ] && [ "$(id -u)" != "0" ]; then
+[ -n "${user_name:-}" ] || user_name="${SUDO_USER:-}"
+[ -n "${user_name:-}" ] || user_name="$(logname 2>/dev/null)" || true
+if [ -z "${user_name:-}" ] && [ "$EUID" != "0" ]; then
    user_name="$(whoami)" || true
-   [ -n "$user_name" ] || user_name="$USER"
+   [ -n "${user_name:-}" ] || user_name="${USER:-}"
 fi
-if [ "$user_name" = "" ]; then
+if [ "${user_name:-}" = "" ]; then
    error "Variable user_name is empty."
 fi
 export user_name
 
-[ -n "$SUDO_TO_ROOT" ] || SUDO_TO_ROOT="sudo --non-interactive"
-[ -n "$HOMEVAR_VBOX_TEMP" ] || HOMEVAR_VBOX_TEMP="/home/dm-vbox-temp"
+[ -n "${SUDO_TO_ROOT:-}" ] || SUDO_TO_ROOT="sudo --non-interactive"
+[ -n "${HOMEVAR_VBOX_TEMP:-}" ] || HOMEVAR_VBOX_TEMP="/home/dm-vbox-temp"
 export HOMEVAR_VBOX_TEMP
 
 ## Use 'sudo' with '-D $HOMEVAR_VBOX_TEMP' ('--chdir') to avoid 'VBoxManage' error.
 #> VBoxManage: error: Could not create the directory '.' (VERR_ACCESS_DENIED)
-[ -n "$SUDO_TO_VBOX_TEMP" ] || SUDO_TO_VBOX_TEMP="sudo --non-interactive -D $HOMEVAR_VBOX_TEMP -u dm-vbox-temp"
+[ -n "${SUDO_TO_VBOX_TEMP:-}" ] || SUDO_TO_VBOX_TEMP="sudo --non-interactive -D $HOMEVAR_VBOX_TEMP -u dm-vbox-temp"
 
-[ -n "$HOMEVAR" ] || HOMEVAR="/home/$user_name"
+[ -n "${HOMEVAR:-}" ] || HOMEVAR="/home/$user_name"
 export HOMEVAR
-[ -n "$binary_build_folder_dist" ] || binary_build_folder_dist="$HOMEVAR/derivative-binary"
+[ -n "${binary_build_folder_dist:-}" ] || binary_build_folder_dist="$HOMEVAR/derivative-binary"
 export binary_build_folder_dist
 
 MYDIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
-[ -n "$source_code_folder_dist" ] || source_code_folder_dist="$(dirname -- "$MYDIR")"
+[ -n "${source_code_folder_dist:-}" ] || source_code_folder_dist="$(dirname -- "$MYDIR")"
 export source_code_folder_dist
 
-[ -n "$dist_parent_folder" ] || dist_parent_folder="$(dirname -- "$source_code_folder_dist")"
-[ -n "$dist_developer_meta_files_folder" ] || dist_developer_meta_files_folder="${source_code_folder_dist}/packages/kicksecure/developer-meta-files"
+[ -n "${dist_parent_folder:-}" ] || dist_parent_folder="$(dirname -- "$source_code_folder_dist")"
+[ -n "${dist_developer_meta_files_folder:-}" ] || dist_developer_meta_files_folder="${source_code_folder_dist}/packages/kicksecure/developer-meta-files"
 
-[ -n "$dist_source_parentdir" ] || dist_source_parentdir="$(dirname -- "$source_code_folder_dist")"
+[ -n "${dist_source_parentdir:-}" ] || dist_source_parentdir="$(dirname -- "$source_code_folder_dist")"
 export dist_source_parentdir
 
-[ -n "$dist_source_help_steps_folder" ] || dist_source_help_steps_folder="${source_code_folder_dist}/help-steps"
+[ -n "${dist_source_help_steps_folder:-}" ] || dist_source_help_steps_folder="${source_code_folder_dist}/help-steps"
 export dist_source_help_steps_folder
 
-[ -n "$str_replace_tool" ] || str_replace_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str_replace"
-[ -n "$str_replace_many_tool" ] || str_replace_many_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str-replace-many"
+[ -n "${str_replace_tool:-}" ] || str_replace_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str_replace"
+[ -n "${str_replace_many_tool:-}" ] || str_replace_many_tool="${source_code_folder_dist}/packages/kicksecure/helper-scripts/usr/bin/str-replace-many"
 
 ## All Debian architectures plus the literal 'source'. 'source' is a
 ## valid Debian "architecture" value referring to source packages (see
 ## 'dpkg-architecture', 'sources.list' Architectures= field). It is not
 ## a typo and it is not shadowing the bash 'source' builtin because
 ## 'architecture_all_list' is an array.
-[ -n "$architecture_all_list" ] || architecture_all_list=( amd64 arm64 armel armhf hurd-i386 hurd-amd64 i386 kfreebsd-amd64 kfreebsd-i386 mips mipsel powerpc ppc64 ppc64el s390x sparc source )
+[ -n "${architecture_all_list:-}" ] || architecture_all_list=( amd64 arm64 armel armhf hurd-i386 hurd-amd64 i386 kfreebsd-amd64 kfreebsd-i386 mips mipsel powerpc ppc64 ppc64el s390x sparc source )
 
 ## NOTE: This 'cd' is by design. Sourcing 'variables' intentionally
 ## changes the caller's working directory to 'source_code_folder_dist'.
@@ -141,7 +147,7 @@ export dist_source_help_steps_folder
 ## side effect and either accept it or save/restore their own CWD.
 cd -- "$source_code_folder_dist"
 
-[ -n "$dist_aptgetopt_file" ] || dist_aptgetopt_file="$binary_build_folder_dist/30_derivative-maker.conf"
+[ -n "${dist_aptgetopt_file:-}" ] || dist_aptgetopt_file="$binary_build_folder_dist/30_derivative-maker.conf"
 export dist_aptgetopt_file
 $SUDO_TO_ROOT rm --force -- "$dist_aptgetopt_file"
 
@@ -162,7 +168,7 @@ aptgetopt_add() {
    APTGETOPT+=("$opt")
    APTGETOPT_SERIALIZED="$(printf '%s\n' "${APTGETOPT[@]}")"
 
-   if [[ "$opt" =~ [Pp]roxy ]]; then
+   if [[ "${opt:-}" =~ [Pp]roxy ]]; then
       return 0
    fi
    APTGETOPT_WITHOUT_APT_CACHE+=("-o")
@@ -188,7 +194,7 @@ export TZ
 
 ## Disable uwt while building Whonix,
 ## because it is not functional while building Whonix from source code.
-[ -n "$UWT_DEV_PASSTHROUGH" ] || UWT_DEV_PASSTHROUGH="1"
+[ -n "${UWT_DEV_PASSTHROUGH:-}" ] || UWT_DEV_PASSTHROUGH="1"
 export UWT_DEV_PASSTHROUGH
 
 ## used by mmdebstrap
@@ -202,29 +208,20 @@ fi
 ## TODO: do not export without thinking this through since also used by debhelper
 export SOURCE_DATE_EPOCH
 
-#[ -n "$DEBDEBUG" ] || export DEBDEBUG="1"
+#[ -n "${DEBDEBUG:-}" ] || export DEBDEBUG="1"
 
-[ -n "$tpo_downloader_debug" ] || tpo_downloader_debug="1"
+[ -n "${tpo_downloader_debug:-}" ] || tpo_downloader_debug="1"
 export tpo_downloader_debug
 
-if [ ! "$dist_build_one_parsed" = "true" ]; then
-   MINUS_X_SET="0"
-   test -o xtrace || { MINUS_X_SET="$?" ; true; };
-   if [ "$MINUS_X_SET" = "0" ]; then
-      ## -x was set - temporarily disable xtrace while sourcing parse-cmd
-      ## and running the parser to avoid flooding output with irrelevant
-      ## bash trace lines from the parser itself. Restore -x afterwards.
-      set +x
-      bash -n -- "${source_code_folder_dist}/help-steps/parse-cmd"
-      source "${source_code_folder_dist}/help-steps/parse-cmd"
-      dist_build_one_parse_cmd "$@"
-      set -x
-   else
-      ## -x was not set - parse normally.
-      bash -n -- "${source_code_folder_dist}/help-steps/parse-cmd"
-      source "${source_code_folder_dist}/help-steps/parse-cmd"
-      dist_build_one_parse_cmd "$@"
-   fi
+if [ ! "${dist_build_one_parsed:-}" = "true" ]; then
+   ## Silence xtrace while sourcing parse-cmd and running the parser, to
+   ## avoid flooding output with irrelevant parser trace lines. Restore
+   ## the previous xtrace state afterwards.
+   xtrace_off
+   bash -n -- "${source_code_folder_dist}/help-steps/parse-cmd"
+   source "${source_code_folder_dist}/help-steps/parse-cmd"
+   dist_build_one_parse_cmd "$@"
+   xtrace_restore
    dist_build_one_parsed="true"
    export dist_build_one_parsed
 fi
@@ -244,7 +241,7 @@ export dist_build_ignore_uncommitted
 
 ## TODO BUG: 'buildconfig.d' is being parsed after, not before this?
 ## NOTE: Variable 'dist_build_redistributable=true' is set in 'help-steps/dm-build-official'.
-if [ "$dist_build_redistributable" = "true" ]; then
+if [ "${dist_build_redistributable:-}" = "true" ]; then
    if [ "${CI:-}" = "true" ]; then
       ## Compatible with git shallow clone.
       ## By design. CI is untrusted. Compromised CI is out-of-scope and not
@@ -268,17 +265,17 @@ if [ "$dist_build_redistributable" = "true" ]; then
    build_remote_repo_enable="true"
    export build_remote_repo_enable
 
-   if [ "$dist_build_target_arch" = "amd64" ]; then
+   if [ "${dist_build_target_arch:-}" = "amd64" ]; then
       ## Make sure official builds for the Intel/AMD64 architecture
       ## come with Tor Browser installed by default.
       ## Fail closed by default in case of Tor Browser download issues.
       ## Same as: '--tb closed'
-      [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="closed"
+      [ -n "${anon_shared_inst_tb:-}" ] || anon_shared_inst_tb="closed"
    else
       ## Tor Browser is not yet available at time of writing for ARM64 and
       ## other architecture.
       ## TODO: reproducible builds
-      [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
+      [ -n "${anon_shared_inst_tb:-}" ] || anon_shared_inst_tb="open"
    fi
 else
    ## Compatible with git shallow clone.
@@ -290,7 +287,7 @@ else
    [[ -v sq_git_trust_root ]] || sq_git_trust_root="HEAD"
 
    ## Non-redistributable builds use '--tb open' by default.
-   [ -n "$anon_shared_inst_tb" ] || anon_shared_inst_tb="open"
+   [ -n "${anon_shared_inst_tb:-}" ] || anon_shared_inst_tb="open"
 fi
 ## Export sq_git_trust_root so 'help-steps/git_sanity_test' can read it.
 export sq_git_trust_root
@@ -322,165 +319,165 @@ repository_dist_initializer_setup() {
 export dist_build_sources_list_primary
 
 ## https://forums.whonix.org/t/kicksecure-etc-hostname-etc-hosts/10919
-[ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
+[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="localhost"
 
-if [ "$dist_build_flavor" = "internalrun" ]; then
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="internalrun"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="internalrun"
+if [ "${dist_build_flavor:-}" = "internalrun" ]; then
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="internalrun"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="internalrun"
 fi
 
-if [ "$dist_build_flavor" = "dist-installer-cli" ]; then
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="dist-installer-cli"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="dist-installer-cli"
+if [ "${dist_build_flavor:-}" = "dist-installer-cli" ]; then
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="dist-installer-cli"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="dist-installer-cli"
 fi
 
-if [ "$dist_build_flavor" = "whonix-gateway-lxqt" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-LXQt"
-   [ -n "$VMRAM" ] || VMRAM="1280"
-   [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="LXQt"
-   [ -n "$dist_build_gui" ] || dist_build_gui="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-gateway-vm-gui-lxqt "
+if [ "${dist_build_flavor:-}" = "whonix-gateway-lxqt" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Gateway"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Gateway-LXQt"
+   [ -n "${VMRAM:-}" ] || VMRAM="1280"
+   [ -n "${VRAM:-}" ] || VRAM="128"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="gateway"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="LXQt"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-gateway-vm-gui-lxqt "
 fi
 
-if [ "$dist_build_flavor" = "whonix-gateway-rpi" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-RPi"
-   [ -n "$VMRAM" ] || VMRAM="768"
-   [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="RPi"
+if [ "${dist_build_flavor:-}" = "whonix-gateway-rpi" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Gateway"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Gateway-RPi"
+   [ -n "${VMRAM:-}" ] || VMRAM="768"
+   [ -n "${VRAM:-}" ] || VRAM="16"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="gateway"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="RPi"
    ## TODO
-   [ -n "$dist_build_gui" ] || dist_build_gui="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   #[ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-gateway-rpi "
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   #[ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-gateway-rpi "
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$dist_build_flavor" = "whonix-gateway-cli" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Gateway"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Gateway-CLI"
-   [ -n "$VMRAM" ] || VMRAM="768"
-   [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="gateway"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$dist_build_gui" ] || dist_build_gui="false"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-gateway-vm-server "
+if [ "${dist_build_flavor:-}" = "whonix-gateway-cli" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Gateway"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Gateway-CLI"
+   [ -n "${VMRAM:-}" ] || VMRAM="768"
+   [ -n "${VRAM:-}" ] || VRAM="16"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="gateway"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="CLI"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="false"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-gateway-vm-server "
 fi
 
-if [ "$dist_build_flavor" = "whonix-workstation-lxqt" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Workstation"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation-LXQt"
-   [ -n "$VMRAM" ] || VMRAM="2048"
-   [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="workstation"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="LXQt"
-   [ -n "$dist_build_gui" ] || dist_build_gui="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-workstation-vm-gui-lxqt "
+if [ "${dist_build_flavor:-}" = "whonix-workstation-lxqt" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Workstation"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Workstation-LXQt"
+   [ -n "${VMRAM:-}" ] || VMRAM="2048"
+   [ -n "${VRAM:-}" ] || VRAM="128"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="workstation"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="LXQt"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-workstation-vm-gui-lxqt "
 fi
 
-if [ "$dist_build_flavor" = "whonix-workstation-cli" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Workstation"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Workstation-CLI"
-   [ -n "$VMRAM" ] || VMRAM="768"
-   [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="workstation"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$dist_build_gui" ] || dist_build_gui="false"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-workstation-vm-server "
+if [ "${dist_build_flavor:-}" = "whonix-workstation-cli" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Workstation"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Workstation-CLI"
+   [ -n "${VMRAM:-}" ] || VMRAM="768"
+   [ -n "${VRAM:-}" ] || VRAM="16"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="workstation"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="CLI"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="false"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-workstation-vm-server "
 fi
 
-if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Custom-Workstation"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Custom-Workstation"
-   [ -n "$VMRAM" ] || VMRAM="2048"
-   [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="custom-workstation"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="CUSTOM"
-   [ -n "$dist_build_gui" ] || dist_build_gui="false"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
-   #[ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" none "
+if [ "${dist_build_flavor:-}" = "whonix-custom-workstation" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Custom-Workstation"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Custom-Workstation"
+   [ -n "${VMRAM:-}" ] || VMRAM="2048"
+   [ -n "${VRAM:-}" ] || VRAM="128"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="custom-workstation"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="CUSTOM"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="false"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
+   #[ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" none "
 fi
 
-if [ "$dist_build_flavor" = "whonix-host-cli" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Host"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Host-CLI"
-   [ -n "$VMRAM" ] || VMRAM="768"
-   [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$dist_build_gui" ] || dist_build_gui="false"
-   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
+if [ "${dist_build_flavor:-}" = "whonix-host-cli" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Host"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Host-CLI"
+   [ -n "${VMRAM:-}" ] || VMRAM="768"
+   [ -n "${VRAM:-}" ] || VRAM="16"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="whonix-host"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="CLI"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="false"
+   [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$dist_build_flavor" = "whonix-host-lxqt" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Whonix-Host"
-   [ -n "$VMNAME" ] || VMNAME="Whonix-Host-LXQt"
-   [ -n "$VMRAM" ] || VMRAM="2048"
-   [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="whonix-host"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="whonix"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="LXQt"
-   [ -n "$dist_build_gui" ] || dist_build_gui="true"
-   [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="host"
+if [ "${dist_build_flavor:-}" = "whonix-host-lxqt" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Whonix-Host"
+   [ -n "${VMNAME:-}" ] || VMNAME="Whonix-Host-LXQt"
+   [ -n "${VMRAM:-}" ] || VMRAM="2048"
+   [ -n "${VRAM:-}" ] || VRAM="128"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="whonix-host"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="whonix"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="LXQt"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="true"
+   [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="host"
    ## TODO: Do not hardcode to VirtualBox.
-   #[ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" whonix-lxqt-host-virtualbox "
+   #[ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" whonix-lxqt-host-virtualbox "
    error "${red}${bold}dist_build_flavor $dist_build_flavor is not implemented.${reset}"
 fi
 
-if [ "$dist_build_flavor" = "kicksecure-cli" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure"
-   [ -n "$VMNAME" ] || VMNAME="Kicksecure-CLI"
-   [ -n "$VMRAM" ] || VMRAM="768"
-   [ -n "$VRAM" ] || VRAM="16"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="CLI"
-   [ -n "$dist_build_gui" ] || dist_build_gui="false"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
-   if [ "$dist_build_type" = "vm" ]; then
-      [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="false"
-      [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure"
-      [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-vm-server "
-   elif [ "$dist_build_type" = "host" ]; then
-      [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
-      [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
-      [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-baremetal-server "
+if [ "${dist_build_flavor:-}" = "kicksecure-cli" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Kicksecure"
+   [ -n "${VMNAME:-}" ] || VMNAME="Kicksecure-CLI"
+   [ -n "${VMRAM:-}" ] || VMRAM="768"
+   [ -n "${VRAM:-}" ] || VRAM="16"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="kicksecure"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="CLI"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="false"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="localhost"
+   if [ "${dist_build_type:-}" = "vm" ]; then
+      [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="false"
+      [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="kicksecure"
+      [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" kicksecure-vm-server "
+   elif [ "${dist_build_type:-}" = "host" ]; then
+      [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="true"
+      [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="kicksecure-host"
+      [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" kicksecure-baremetal-server "
    fi
 fi
 
-if [ "$dist_build_flavor" = "kicksecure-lxqt" ]; then
-   [ -n "$SHORT_VMNAME" ] || SHORT_VMNAME="Kicksecure"
-   [ -n "$VMNAME" ] || VMNAME="Kicksecure-LXQt"
-   [ -n "$VMRAM" ] || VMRAM="2048"
-   [ -n "$VRAM" ] || VRAM="128"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="kicksecure"
-   [ -n "$dist_build_desktop" ] || dist_build_desktop="LXQt"
-   [ -n "$dist_build_gui" ] || dist_build_gui="true"
-   #[ -n "$dist_build_hostname" ] || dist_build_hostname="localhost"
-   if [ "$dist_build_type" = "vm" ]; then
-      [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="false"
-      [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure"
-      [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-vm-gui-lxqt "
-   elif [ "$dist_build_type" = "host" ]; then
-      [ -n "$dist_build_host_operating_system" ] || dist_build_host_operating_system="true"
-      [ -n "$dist_build_type_long" ] || dist_build_type_long="kicksecure-host"
-      [ -n "$flavor_meta_packages_to_install" ] || flavor_meta_packages_to_install=" kicksecure-baremetal-gui-lxqt "
+if [ "${dist_build_flavor:-}" = "kicksecure-lxqt" ]; then
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="Kicksecure"
+   [ -n "${VMNAME:-}" ] || VMNAME="Kicksecure-LXQt"
+   [ -n "${VMRAM:-}" ] || VMRAM="2048"
+   [ -n "${VRAM:-}" ] || VRAM="128"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="kicksecure"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="LXQt"
+   [ -n "${dist_build_gui:-}" ] || dist_build_gui="true"
+   #[ -n "${dist_build_hostname:-}" ] || dist_build_hostname="localhost"
+   if [ "${dist_build_type:-}" = "vm" ]; then
+      [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="false"
+      [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="kicksecure"
+      [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" kicksecure-vm-gui-lxqt "
+   elif [ "${dist_build_type:-}" = "host" ]; then
+      [ -n "${dist_build_host_operating_system:-}" ] || dist_build_host_operating_system="true"
+      [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="kicksecure-host"
+      [ -n "${flavor_meta_packages_to_install:-}" ] || flavor_meta_packages_to_install=" kicksecure-baremetal-gui-lxqt "
    fi
 fi
 
@@ -493,14 +490,14 @@ fi
 ## - buildconfig.d/25_apt_sources.conf to create a APT URIs.
 ## - build-steps.d/*_create-debian-packages to iterate through one or multiple package folders.
 
-if [ "$dist_build_internal_run" = "true" ]; then
-   if [ "$VMNAME" = "" ]; then
+if [ "${dist_build_internal_run:-}" = "true" ]; then
+   if [ "${VMNAME:-}" = "" ]; then
       VMNAME="internal"
       export VMNAME
    fi
-   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
-   [ -n "$dist_build_type_long" ] || dist_build_type_long="internalrun"
-   [ -n "$dist_build_type_short" ] || dist_build_type_short="internalrun"
+   [ -n "${derivative_name_list:-}" ] || derivative_name_list="kicksecure whonix"
+   [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="internalrun"
+   [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="internalrun"
 fi
 
 export dist_build_type_long
@@ -512,46 +509,46 @@ vm_multiple=false
 if [ "${dist_build_type_long}" = "workstation" ]; then
    vm_multiple=true
    ## dist_build_desktop could be KDE, CLI, Xfce, LXQt, RPi or CUSTOM
-   [ -n "$vm_names_to_be_exported" ] || vm_names_to_be_exported="Whonix-Gateway-${dist_build_desktop} Whonix-Workstation-${dist_build_desktop}"
+   [ -n "${vm_names_to_be_exported:-}" ] || vm_names_to_be_exported="Whonix-Gateway-${dist_build_desktop} Whonix-Workstation-${dist_build_desktop}"
 fi
 if [ "${dist_build_type_long}" = "custom-workstation" ]; then
-   [ -n "$vm_names_to_be_exported" ] || vm_names_to_be_exported="${VMNAME}"
+   [ -n "${vm_names_to_be_exported:-}" ] || vm_names_to_be_exported="${VMNAME}"
 fi
 if [ "${dist_build_type_short}" = "kicksecure" ]; then
-   [ -n "$vm_names_to_be_exported" ] || vm_names_to_be_exported="${VMNAME}"
+   [ -n "${vm_names_to_be_exported:-}" ] || vm_names_to_be_exported="${VMNAME}"
 fi
 
 maybe_disable_dist_build_windows_installer() {
-   if [ "$dist_build_internal_run" = "true" ]; then
-      true "$BASH_SOURCE INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+   if [ "${dist_build_internal_run:-}" = "true" ]; then
+      true "${BASH_SOURCE[0]} INFO: dist_build_internal_run set to true, skipping ${FUNCNAME[0]}, ok."
    else
-      true "$BASH_SOURCE INFO: dist_build_internal_run is not set to true, therefore: dist_build_windows_installer=false"
+      true "${BASH_SOURCE[0]} INFO: dist_build_internal_run is not set to true, therefore: dist_build_windows_installer=false"
       dist_build_windows_installer=false
    fi
 }
 
-if [ "$dist_build_type_short" = "kicksecure" ]; then
-   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure"
-   [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Kicksecure"
-   [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com"
-   [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   true "$BASH_SOURCE INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
+   [ -n "${derivative_name_list:-}" ] || derivative_name_list="kicksecure"
+   [ -n "${dist_build_type_short_pretty:-}" ] || dist_build_type_short_pretty="Kicksecure"
+   [ -n "${dist_server_with_upload_location_list_list:-}" ] || dist_server_with_upload_location_list_list="kicksecure.com"
+   [ -n "${project_clearnet:-}" ] || project_clearnet="kicksecure.com"
+   true "${BASH_SOURCE[0]} INFO: dist_build_type_short is 'kicksecure'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
-elif [ "$dist_build_type_short" = "whonix" ]; then
-   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
-   [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="Whonix"
-   [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="whonix.org"
-   [ -n "$project_clearnet" ] || project_clearnet="whonix.org"
-elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
-   [ -n "$derivative_name_list" ] || derivative_name_list="kicksecure whonix"
-   [ -n "$dist_build_type_short_pretty" ] || dist_build_type_short_pretty="dist-installer-cli"
-   [ -n "$dist_server_with_upload_location_list_list" ] || dist_server_with_upload_location_list_list="kicksecure.com whonix.org"
-   [ -n "$project_clearnet" ] || project_clearnet="kicksecure.com"
-   true "$BASH_SOURCE INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+elif [ "${dist_build_type_short:-}" = "whonix" ]; then
+   [ -n "${derivative_name_list:-}" ] || derivative_name_list="kicksecure whonix"
+   [ -n "${dist_build_type_short_pretty:-}" ] || dist_build_type_short_pretty="Whonix"
+   [ -n "${dist_server_with_upload_location_list_list:-}" ] || dist_server_with_upload_location_list_list="whonix.org"
+   [ -n "${project_clearnet:-}" ] || project_clearnet="whonix.org"
+elif [ "${dist_build_type_short:-}" = "dist-installer-cli" ]; then
+   [ -n "${derivative_name_list:-}" ] || derivative_name_list="kicksecure whonix"
+   [ -n "${dist_build_type_short_pretty:-}" ] || dist_build_type_short_pretty="dist-installer-cli"
+   [ -n "${dist_server_with_upload_location_list_list:-}" ] || dist_server_with_upload_location_list_list="kicksecure.com whonix.org"
+   [ -n "${project_clearnet:-}" ] || project_clearnet="kicksecure.com"
+   true "${BASH_SOURCE[0]} INFO: dist_build_type_short is 'dist-installer-cli'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
    ## Hardcoded.
    VMNAME=dist-installer-cli
-elif [ "$dist_build_type_short" = "internalrun" ]; then
+elif [ "${dist_build_type_short:-}" = "internalrun" ]; then
    true
 else
    error "unknown dist_build_type_short!"
@@ -559,35 +556,35 @@ fi
 
 ## example dist_build_desktop_lowercase:
 ## lxqt
-[ -n "$dist_build_desktop_lowercase" ] || dist_build_desktop_lowercase="${dist_build_desktop,,}"
+[ -n "${dist_build_desktop_lowercase:-}" ] || dist_build_desktop_lowercase="${dist_build_desktop,,}"
 
-if [ ! "$dist_build_desktop_lowercase" = "lxqt" ] ; then
-   true "$BASH_SOURCE INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'lxqt'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
+if [ ! "${dist_build_desktop_lowercase:-}" = "lxqt" ] ; then
+   true "${BASH_SOURCE[0]} INFO: dist_build_desktop_lowercase is '$dist_build_desktop_lowercase'. Not 'lxqt'. Build Whonix Windows Installer only for Whonix LXQt for VirtualBox. Therefore: maybe_disable_dist_build_windows_installer"
    maybe_disable_dist_build_windows_installer
 fi
 
 ## vmsize 100 GB does not matter because grml-debootstrap creates sparse files,
 ## i.e. only space, which gets actually filled up, will take disk space.
 
-if [ "$build_dry_run" = "true" ]; then
-   [ -n "$VMSIZE" ] || VMSIZE="1M"
+if [ "${build_dry_run:-}" = "true" ]; then
+   [ -n "${VMSIZE:-}" ] || VMSIZE="1M"
 fi
-[ -n "$VMSIZE" ] || VMSIZE="100G"
+[ -n "${VMSIZE:-}" ] || VMSIZE="100G"
 export VMSIZE
 
 ## Disk identifier for grml-debootstrap.
 ## https://github.com/grml/grml-debootstrap/pull/28
-[ -n "$DISK_IDENTIFIER" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
+[ -n "${DISK_IDENTIFIER:-}" ] || DISK_IDENTIFIER='26ada0c0-1165-4098-884d-aafd2220c2c6'
 export DISK_IDENTIFIER
 
-if [ "$dist_build_install_to_root" = "true" ]; then
-   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER=""
+if [ "${dist_build_install_to_root:-}" = "true" ]; then
+   [ -n "${CHROOT_FOLDER:-}" ] || CHROOT_FOLDER=""
 else
-   [ -n "$CHROOT_FOLDER" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
+   [ -n "${CHROOT_FOLDER:-}" ] || CHROOT_FOLDER="$binary_build_folder_dist/${VMNAME}_image"
 fi
 export CHROOT_FOLDER
 
-true "$BASH_SOURCE INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
+true "${BASH_SOURCE[0]} INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
 
 ## {{{ initramfs
 
@@ -603,9 +600,9 @@ true "$BASH_SOURCE INFO: CHROOT_FOLDER: $CHROOT_FOLDER"
 ##     Actively detrimental. Introduces a file at
 ##     /usr/lib/dracut/dracut.conf.d/50-generic.conf which sets 'hostonly="no",
 ##     overriding /etc/dracut.conf.d/30-dist-base-files.conf.
-[ -n "$BUILD_INITRAMFS_DRACUT" ] || BUILD_INITRAMFS_DRACUT="dracut dracut-live binutils dmsetup pigz"
+[ -n "${BUILD_INITRAMFS_DRACUT:-}" ] || BUILD_INITRAMFS_DRACUT="dracut dracut-live binutils dmsetup pigz"
 
-[ -n "$BUILD_INITRAMFS_PKGS" ] || BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_DRACUT"
+[ -n "${BUILD_INITRAMFS_PKGS:-}" ] || BUILD_INITRAMFS_PKGS="$BUILD_INITRAMFS_DRACUT"
 
 if printf "%s\n" "$BUILD_INITRAMFS_PKGS" | grep --quiet -- "dracut" ; then
    ## INITRD_GENERATOR_OPTS gets read by grml-debootstrap and passed to dracut and is also
@@ -613,7 +610,7 @@ if printf "%s\n" "$BUILD_INITRAMFS_PKGS" | grep --quiet -- "dracut" ; then
    ##
    ## Worked but issue:
    ## https://forums.kicksecure.com/t/iso-error-message-during-boot-mount-sysroot-special-device-liveos-rootfs-does-not-exist/418
-   [ -n "$INITRD_GENERATOR_OPTS" ] || INITRD_GENERATOR_OPTS='--add dmsquash-live --add overlayfs --add bash'
+   [ -n "${INITRD_GENERATOR_OPTS:-}" ] || INITRD_GENERATOR_OPTS='--add dmsquash-live --add overlayfs --add bash'
    export INITRD_GENERATOR_OPTS
 fi
 
@@ -623,30 +620,30 @@ target_dracut_disable_config_snippet="$CHROOT_FOLDER/etc/dracut.conf.d/90-deriva
 source_dkms_suppress_mok_snippet="$source_code_folder_dist/packages/kicksecure/initializer-dist/usr/share/initializer-dist/dkms/90-derivative-maker-build.conf"
 target_dkms_suppress_mok_snippet="$CHROOT_FOLDER/etc/dkms/framework.conf.d/90-derivative-maker-build.conf"
 
-true "${cyan}$BASH_SOURCE INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
+true "${cyan}${BASH_SOURCE[0]} INFO: BUILD_INITRAMFS_PKGS (--initramfs): $BUILD_INITRAMFS_PKGS${reset}"
 
 ## }}}
 
-if [ "$VMNAME" = "unknown" ]; then
+if [ "${VMNAME:-}" = "unknown" ]; then
    true "variables ERROR: VMNAME is unknown. Please report this bug!"
    exit 1
 fi
 
-if [ "$dist_build_internal_run" = "true" ]; then
-   true "$BASH_SOURCE INFO: Internal run."
+if [ "${dist_build_internal_run:-}" = "true" ]; then
+   true "${BASH_SOURCE[0]} INFO: Internal run."
 else
-   true "$BASH_SOURCE INFO: VMNAME is $VMNAME"
+   true "${BASH_SOURCE[0]} INFO: VMNAME is $VMNAME"
 fi
 
-if [ "$VMNAME" = "" ]; then
+if [ "${VMNAME:-}" = "" ]; then
    MSG="${red}${bold}variables ERROR: VMNAME is empty! Please report this bug!${reset}"
    error "$MSG"
 fi
 
-[ -n "$XZ_OPT" ] || XZ_OPT="--threads=8"
+[ -n "${XZ_OPT:-}" ] || XZ_OPT="--threads=8"
 export XZ_OPT
 
-if [ "$dist_build_unsafe_io" = "true" ]; then
+if [ "${dist_build_unsafe_io:-}" = "true" ]; then
    eatmydata_install="true"
    aptgetopt_add "Dpkg::Options::=--force-unsafe-io"
    aptgetopt_conf_add "Dpkg::Options:: \"--force-unsafe-io\";"
@@ -659,16 +656,16 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
    if command -v dpkg-architecture >/dev/null 2>&1 ; then
       libeatmydata_multiarch="$(dpkg-architecture --query=DEB_HOST_MULTIARCH 2>/dev/null)"
    fi
-   if [ -z "$libeatmydata_multiarch" ] && command -v gcc >/dev/null 2>&1 ; then
+   if [ -z "${libeatmydata_multiarch:-}" ] && command -v gcc >/dev/null 2>&1 ; then
       libeatmydata_multiarch="$(gcc -print-multiarch 2>/dev/null)"
    fi
    libeatmydata_file=""
-   if [ -n "$libeatmydata_multiarch" ] && test -f "/usr/lib/${libeatmydata_multiarch}/libeatmydata.so" ; then
+   if [ -n "${libeatmydata_multiarch:-}" ] && test -f "/usr/lib/${libeatmydata_multiarch}/libeatmydata.so" ; then
       libeatmydata_file="/usr/lib/${libeatmydata_multiarch}/libeatmydata.so"
    fi
-   if [ -n "$libeatmydata_file" ] && test -f "$libeatmydata_file" ; then
+   if [ -n "${libeatmydata_file:-}" ] && test -f "$libeatmydata_file" ; then
       true "INFO: eatmydata installed, preloading."
-      if [ -z "$LD_PRELOAD" ]; then
+      if [ -z "${LD_PRELOAD:-}" ]; then
          LD_PRELOAD="$libeatmydata_file"
       else
          LD_PRELOAD="${LD_PRELOAD}:${libeatmydata_file}"
@@ -695,7 +692,7 @@ if [ "$dist_build_unsafe_io" = "true" ]; then
    ## inherit this shell's function table (i.e. subshells of 'bash'),
    ## not spawned binaries that directly exec '/bin/sync' themselves.
    sync() {
-      true "$FUNCNAME: Not running $FUNCNAME, because using '--unsafe-io true'."
+      true "${FUNCNAME[0]}: Not running ${FUNCNAME[0]}, because using '--unsafe-io true'."
    }
 fi
 
@@ -703,7 +700,7 @@ fi
 ## required for --connection clearnet
 ## Port 9977 defined by approx/approx.conf
 ## REPO_PROXY is no longer used now that we're using approx.
-#[ -n "$REPO_PROXY" ] || REPO_PROXY="http://127.0.0.1:9977"
+#[ -n "${REPO_PROXY:-}" ] || REPO_PROXY="http://127.0.0.1:9977"
 [ -n "${APPROX_PROXY_ENABLE}" ] || APPROX_PROXY_ENABLE='yes'
 
 if [ "${APPROX_PROXY_ENABLE}" = "yes" ]; then
@@ -735,7 +732,7 @@ fi
 
 ## Help update-torbrowser and other software find the Tor server if using
 ## '--connection tor'.
-if [ "$dist_build_sources_clearnet_or_onion" = 'onion' ]; then
+if [ "${dist_build_sources_clearnet_or_onion:-}" = 'onion' ]; then
    if [ -z "${CURL_PROXY}" ]; then
       ## TODO: Possibly allow customizing the server and port for this?
       ## HARDCODED.
@@ -756,7 +753,7 @@ chroot_env_vars_var_remove_list="
 
 chroot_remove_env_list=""
 for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_list ; do
-   if [ "$chroot_remove_env_list" = "" ]; then
+   if [ "${chroot_remove_env_list:-}" = "" ]; then
       chroot_remove_env_list="--unset $chroot_env_vars_var_remove_item"
    else
       chroot_remove_env_list+=" --unset $chroot_env_vars_var_remove_item"
@@ -764,7 +761,7 @@ for chroot_env_vars_var_remove_item in $chroot_env_vars_var_remove_list ; do
 done
 unset chroot_env_vars_var_remove_item
 
-if [ "$dist_build_install_to_root" = "true" ]; then
+if [ "${dist_build_install_to_root:-}" = "true" ]; then
    chroot_run() {
       $SUDO_TO_ROOT "$@"
    }
@@ -776,22 +773,22 @@ else
    }
 fi
 
-if [ "$no_git" = "1" ]; then
-   [ -n "$git_bin" ] || git_bin="true"
+if [ "${no_git:-}" = "1" ]; then
+   [ -n "${git_bin:-}" ] || git_bin="true"
 else
-   [ -n "$git_bin" ] || git_bin="git"
+   [ -n "${git_bin:-}" ] || git_bin="git"
 fi
 
 ## Otherwise errors out because there is a folder grml-debootstarp in the root source folder.
 ## Cannot use `which grml-debootstrap` because that would fail before grml-debootstrap gets installed.
-#[ -n "$dist_build_grml_bin" ] || dist_build_grml_bin="$(which grml-debootstrap)"
-[ -n "$dist_build_grml_bin" ] || dist_build_grml_bin="/usr/sbin/grml-debootstrap"
+#[ -n "${dist_build_grml_bin:-}" ] || dist_build_grml_bin="$(which grml-debootstrap)"
+[ -n "${dist_build_grml_bin:-}" ] || dist_build_grml_bin="/usr/sbin/grml-debootstrap"
 
-[ -n "$rsync_cmd" ] || rsync_cmd="rsync"
+[ -n "${rsync_cmd:-}" ] || rsync_cmd="rsync"
 
 ## TODO: hardlinks: rsync error Internal hashtable error: illegal key supplied
 ## --hard-links \
-if [ "$rsync_opts" = "" ]; then
+if [ "${rsync_opts:-}" = "" ]; then
    rsync_opts="\
    --links \
    --safe-links \
@@ -806,7 +803,7 @@ if [ "$rsync_opts" = "" ]; then
    --verbose"
 fi
 
-if [ "$build_dry_run" = "true" ]; then
+if [ "${build_dry_run:-}" = "true" ]; then
    rsync_opts="$rsync_opts --dry-run"
 fi
 
@@ -814,35 +811,35 @@ fi
 ## such as variable APTGETOPT.
 ## Would miss out on security related APT configuration options:
 ## apt-get --error-on=any / -o APT::Update::Error-Mode=any
-[ -n "$dist_build_auto_retry" ] || dist_build_auto_retry="0"
+[ -n "${dist_build_auto_retry:-}" ] || dist_build_auto_retry="0"
 
-[ -n "$dist_build_wait_auto_retry" ] || dist_build_wait_auto_retry="5"
+[ -n "${dist_build_wait_auto_retry:-}" ] || dist_build_wait_auto_retry="5"
 
 ## Sanity Test.
 command -v "$git_bin" >/dev/null
 
-[ -n "$DEB_INSTALL_FOLDER" ] || DEB_INSTALL_FOLDER="mnt/initialdeb"
+[ -n "${DEB_INSTALL_FOLDER:-}" ] || DEB_INSTALL_FOLDER="mnt/initialdeb"
 export DEB_INSTALL_FOLDER
 
-[ -n "$EMPTY_DIR" ] || EMPTY_DIR="/tmp/empty"
+[ -n "${EMPTY_DIR:-}" ] || EMPTY_DIR="/tmp/empty"
 export EMPTY_DIR
 
-[ -n "$derivative_maker" ] || derivative_maker=true
+[ -n "${derivative_maker:-}" ] || derivative_maker=true
 export derivative_maker
 
 ## {{{ dist_build_on_operating_system
 
-if [ "$dist_build_on_operating_system_detect_skip" = "1" ]; then
+if [ "${dist_build_on_operating_system_detect_skip:-}" = "1" ]; then
    true "Probably run by prepare-build-machine script. lsb_release may not yet installed. Skipping setting dist_build_on_operating_system."
 else
    ## Let's find out on which host operating system the build script is running.
-   [ -n "$dist_build_on_operating_system" ] || dist_build_on_operating_system="$(lsb_release --short --id)"
+   [ -n "${dist_build_on_operating_system:-}" ] || dist_build_on_operating_system="$(lsb_release --short --id)"
    ## Converting dist_build_on_operating_system to lower case to make later if comparison easier.
    dist_build_on_operating_system="${dist_build_on_operating_system,,}"
    ## Example dist_build_on_operating_system: debian
    ## Example dist_build_on_operating_system: ubuntu
    ## XXX
-   if [ "$dist_build_on_operating_system" = "whonix" ]; then
+   if [ "${dist_build_on_operating_system:-}" = "whonix" ]; then
       dist_build_on_operating_system="debian"
    fi
 fi
@@ -869,7 +866,7 @@ dist_build_current_git_head="$($git_bin rev-parse HEAD)" || error 'Cannot get he
 
 ## {{{ dist_build_version
 
-if [ "$dist_build_version" = "" ]; then
+if [ "${dist_build_version:-}" = "" ]; then
    ## --always because travis-ci does not fetch tags.
    ## Examples dist_build_version:
    ## 10-13-g20e1b49ff27053784e3e9e163dfd4c98dced73f5
@@ -912,13 +909,13 @@ set_default_variable() {
 
 if [ "${dist_build_source_archive}" = "true" ]; then
     set_default_variable dist_unified_name "derivative-maker-source"
-elif [ "$dist_build_type_short" = "kicksecure" ]; then
+elif [ "${dist_build_type_short:-}" = "kicksecure" ]; then
     set_default_variable dist_unified_name "Kicksecure-${dist_build_desktop}"
-elif [ "$dist_build_type_short" = "whonix" ]; then
+elif [ "${dist_build_type_short:-}" = "whonix" ]; then
     set_default_variable dist_unified_name "Whonix-${dist_build_desktop}"
-elif [ "$dist_build_type_short" = "dist-installer-cli" ]; then
+elif [ "${dist_build_type_short:-}" = "dist-installer-cli" ]; then
     set_default_variable dist_unified_name "dist-installer-cli"
-elif [ "$dist_build_type_short" = "internalrun" ]; then
+elif [ "${dist_build_type_short:-}" = "internalrun" ]; then
     set_default_variable dist_unified_name "internalrun"
 else
     error "dist_unified_name: unhandled dist_build_type_short '$dist_build_type_short'"
@@ -999,31 +996,31 @@ mkdir --parents -- "${dist_binary_build_folder}"
 unset dist_build_files_to_upload
 declare -a dist_build_files_to_upload
 
-if [ "$dist_build_virtualbox" = "true" ]; then
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/ova"
+if [ "${dist_build_virtualbox:-}" = "true" ]; then
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/ova"
 
    dist_build_files_to_upload+=("$binary_image_ova_file")
 fi
 
-if [ "$dist_build_iso" = "true" ]; then
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/iso"
+if [ "${dist_build_iso:-}" = "true" ]; then
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/iso"
 
    dist_build_files_to_upload+=("$binary_image_iso_file")
 fi
 
-if [ "$dist_build_qcow2" = "true" ]; then
-   #[ -n "$ssh_uploader_account" ] || ssh_uploader_account="hulahoop"
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/libvirt"
+if [ "${dist_build_qcow2:-}" = "true" ]; then
+   #[ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="hulahoop"
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/libvirt"
 
    dist_build_files_to_upload+=("$libvirt_target_qcow2_xz_archive_file")
 fi
 
-if [ "$dist_build_installer_dist" = "true" ]; then
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="
+if [ "${dist_build_installer_dist:-}" = "true" ]; then
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="
 ${ssh_uploader_account}@kicksecure.com:/var/rsync/dist-installer-cli
 ${ssh_uploader_account}@whonix.org:/var/rsync/dist-installer-cli
 "
@@ -1031,16 +1028,16 @@ ${ssh_uploader_account}@whonix.org:/var/rsync/dist-installer-cli
    dist_build_files_to_upload+=("$binary_image_installer_dist_file")
 fi
 
-if [ "$dist_build_windows_installer" = "true" ]; then
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/windows"
+if [ "${dist_build_windows_installer:-}" = "true" ]; then
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/windows"
 
    dist_build_files_to_upload+=("$binary_image_windows_installer_file")
 fi
 
-if [ "$dist_build_source_archive" = "true" ]; then
-   [ -n "$ssh_uploader_account" ] || ssh_uploader_account="root"
-   [ -n "$dist_server_with_upload_location_list" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/source"
+if [ "${dist_build_source_archive:-}" = "true" ]; then
+   [ -n "${ssh_uploader_account:-}" ] || ssh_uploader_account="root"
+   [ -n "${dist_server_with_upload_location_list:-}" ] || dist_server_with_upload_location_list="${ssh_uploader_account}@${dist_server_with_upload_location_list_list}:/var/rsync/source"
 
    dist_build_files_to_upload+=("$source_archive_xz_file")
 fi
@@ -1049,7 +1046,7 @@ fi
 
 ## {{{ buildconfig.d
 
-[ -n "$dist_build_config_dirs" ] || dist_build_config_dirs="${source_code_folder_dist}/buildconfig.d /etc/buildconfig-dist.d ../buildconfig.d"
+[ -n "${dist_build_config_dirs:-}" ] || dist_build_config_dirs="${source_code_folder_dist}/buildconfig.d /etc/buildconfig-dist.d ../buildconfig.d"
 
 dist_build_source_config_dir() {
    true "${cyan}INFO: Checking if dist_build_config_dir $dist_build_config_dir exists...${reset}"
@@ -1070,11 +1067,11 @@ for dist_build_config_dir in $dist_build_config_dirs; do
    dist_build_source_config_dir "$dist_build_config_dir"
 done
 
-if [ ! "$dist_build_custom_config_dir" = "" ]; then
+if [ ! "${dist_build_custom_config_dir:-}" = "" ]; then
    dist_build_source_config_dir "$dist_build_custom_config_dir"
 fi
 
-if [ ! "$dist_build_conf_file" = "" ]; then
+if [ ! "${dist_build_conf_file:-}" = "" ]; then
    if [ -f "$dist_build_conf_file" ]; then
       bash -n -- "$dist_build_conf_file"
       source "$dist_build_conf_file"
@@ -1087,36 +1084,36 @@ export make_use_lintian
 export genmkfile_make_cmd
 export make_use_cowbuilder
 
-[ -n "$signify_folder" ] || signify_folder="$HOMEVAR/.signify"
-[ -n "$signify_private_key" ] || signify_private_key="$signify_folder/keyname.sec"
-[ -n "$signify_public_key" ] || signify_public_key="$signify_folder/keyname.pub"
+[ -n "${signify_folder:-}" ] || signify_folder="$HOMEVAR/.signify"
+[ -n "${signify_private_key:-}" ] || signify_private_key="$signify_folder/keyname.sec"
+[ -n "${signify_public_key:-}" ] || signify_public_key="$signify_folder/keyname.pub"
 
 ## {{{ fallback variables for 'debchange' ('dch'), 'dpkg-buildpackage' and 'debuild'
 
 ## see: 'man debchange'
-[ -n "$DEBFULLNAME" ] || DEBFULLNAME="derivative distribution auto generated local APT signing key"
+[ -n "${DEBFULLNAME:-}" ] || DEBFULLNAME="derivative distribution auto generated local APT signing key"
 export DEBFULLNAME
 
-[ -n "$DEBEMAIL" ] || DEBEMAIL="derivative-distribution@local-signing.key"
+[ -n "${DEBEMAIL:-}" ] || DEBEMAIL="derivative-distribution@local-signing.key"
 export DEBEMAIL
 
-[ -n "$debsign_wrapper" ] || debsign_wrapper="$dist_source_help_steps_folder/sq-debsign-wrapper"
-[ -n "$sq_git_wrapper" ] || sq_git_wrapper="$dist_source_help_steps_folder/sq-git-wrapper"
-[ -n "$git_verify_command_wrapper" ] || git_verify_command_wrapper=( git -c "gpg.openpgp.program=$sq_git_wrapper" )
+[ -n "${debsign_wrapper:-}" ] || debsign_wrapper="$dist_source_help_steps_folder/sq-debsign-wrapper"
+[ -n "${sq_git_wrapper:-}" ] || sq_git_wrapper="$dist_source_help_steps_folder/sq-git-wrapper"
+[ -n "${git_verify_command_wrapper:-}" ] || git_verify_command_wrapper=( git -c "gpg.openpgp.program=$sq_git_wrapper" )
 
-[ -n "$make_debsign_opts" ] || make_debsign_opts="-p $debsign_wrapper"
+[ -n "${make_debsign_opts:-}" ] || make_debsign_opts="-p $debsign_wrapper"
 export make_debsign_opts
 
 ## For whatever it may be worth.
 ## https://forums.whonix.org/t/end-to-end-signed-debs-debsign-debsig-and-dpkg-sig
-[ -n "$make_use_debsign" ] || make_use_debsign="true"
+[ -n "${make_use_debsign:-}" ] || make_use_debsign="true"
 export make_use_debsign
 
 ## }}}
 
 ## {{{ apt repository variables
 
-[ -n "$dist_build_apt_codename" ] || dist_build_apt_codename="local"
+[ -n "${dist_build_apt_codename:-}" ] || dist_build_apt_codename="local"
 export dist_build_apt_codename
 ## developer local setting in buildconfig.d folder / dist_build_source_config_dir function:
 ## export dist_build_apt_codename="trixie-developers"
@@ -1131,24 +1128,24 @@ set_dist_build_reprepro_folder_options() {
    valid_repository_name=false
    true "derivative_repository_name: $derivative_repository_name"
    true "make_reprepro_codename_item: $make_reprepro_codename_item"
-   if [ "$derivative_repository_name" = "" ]; then
+   if [ "${derivative_repository_name:-}" = "" ]; then
       error "derivative_repository_name is empty!"
    fi
 
    for derivative_name_item in $derivative_name_list ; do
-      if [ "$derivative_repository_name" = "$derivative_name_item" ]; then
+      if [ "${derivative_repository_name:-}" = "$derivative_name_item" ]; then
          valid_repository_name=true
          break
       fi
    done
 
-   if [ ! "$valid_repository_name" = "true" ]; then
+   if [ ! "${valid_repository_name:-}" = "true" ]; then
       error "derivative_repository_name '$derivative_repository_name' is invalid! (not in derivative_name_list)"
    fi
 
    [[ -v make_reprepro_codename_item ]] || make_reprepro_codename_item="$dist_build_apt_codename"
 
-   if [ ! "$make_reprepro_codename_item" = "local" ]; then
+   if [ ! "${make_reprepro_codename_item:-}" = "local" ]; then
       apt_repo_sub_folder="aptrepo_remote/$derivative_repository_name"
    else
       apt_repo_sub_folder="aptrepo_local/$derivative_repository_name"
@@ -1172,11 +1169,11 @@ set_dist_build_reprepro_folder_options() {
 
 ## }}}
 
-[ -n "$host_architecture" ] || host_architecture="$(dpkg --print-architecture)"
+[ -n "${host_architecture:-}" ] || host_architecture="$(dpkg --print-architecture)"
 export host_architecture
 
-[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="$dist_build_target_arch"
-#[ -n "$make_cross_build_platform_list" ] || make_cross_build_platform_list="i386 amd64"
+[ -n "${make_cross_build_platform_list:-}" ] || make_cross_build_platform_list="$dist_build_target_arch"
+#[ -n "${make_cross_build_platform_list:-}" ] || make_cross_build_platform_list="i386 amd64"
 export make_cross_build_platform_list
 
 set_cowbuilder_folders() {
@@ -1185,7 +1182,7 @@ set_cowbuilder_folders() {
    base_folder="/var/cache/pbuilder/base.cow_${dist_build_multiarch_package_item}"
 }
 
-[ -n "$dist_build_file_system" ] || dist_build_file_system="ext4"
+[ -n "${dist_build_file_system:-}" ] || dist_build_file_system="ext4"
 
 ## cowbuilder (which internally uses pbuilder).
 dist_build_pbuilder_main_chroot_script="$dist_source_help_steps_folder/pbuilder-chroot-script-main"
@@ -1204,7 +1201,7 @@ mkdir --parents -- "$make_cowbuilder_dist_folder"
 
 printf "%s\n" "\
 ## This is an auto generated file.
-## Auto generated by: '$dist_source_help_steps_folder/$(basename -- "$BASH_SOURCE")'
+## Auto generated by: '$dist_source_help_steps_folder/$(basename -- "${BASH_SOURCE[0]}")'
 ## Edits will be lost!
 
 ## build-step cowbuilder-setup copies this file into the cowbuilder chroot to:
@@ -1278,7 +1275,7 @@ for skip_script in $SKIP_SCRIPTS; do
    ## substrings, not regular expressions. Otherwise a '.' or other regex
    ## metacharacter in SKIP_SCRIPTS could match unintended scripts.
    if matched_word=$(printf "%s\n" "$own_filename" | grep --fixed-strings -- "$skip_script") ; then
-      printf "%s\n" "${bold}${green}$BASH_SOURCE INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
+      printf "%s\n" "${bold}${green}${BASH_SOURCE[0]} INFO: Skipping $own_filename, because SKIP_SCRIPTS matches it. matched_word: '$matched_word'${reset}"
       exit 0
    fi
 done
@@ -1338,10 +1335,10 @@ true "INFO: Environment variables that will be passed..."
 ## from nested build-step scripts), without this guard '--preserve-env=...'
 ## would be appended to SUDO_TO_ROOT once per sourcing, producing
 ## duplicated flags and an ever-growing SUDO_TO_ROOT string.
-if [ ! "$variables_sudo_to_root_finalized" = "true" ]; then
+if [ ! "${variables_sudo_to_root_finalized:-}" = "true" ]; then
    sudo_preserve_env_list=""
    for env_vars_var_keep_item in $env_vars_keep_list ; do
-      if [ "$sudo_preserve_env_list" = "" ]; then
+      if [ "${sudo_preserve_env_list:-}" = "" ]; then
          sudo_preserve_env_list="$env_vars_var_keep_item"
       else
          sudo_preserve_env_list+=",$env_vars_var_keep_item"
@@ -1367,8 +1364,8 @@ fi
 #declare -p | awk '{print $3}' | sort | sponge -- ~/temp/varnames
 #exit
 
-if [ "$xtrace_was_set" = "true" ]; then
-   printf "%s\n" "$BASH_SOURCE INFO: xtrace_was_set=true - Therefore re-enable xtrace. (set -x)"
+if [ "${xtrace_was_set:-}" = "true" ]; then
+   printf "%s\n" "${BASH_SOURCE[0]} INFO: xtrace_was_set=true - Therefore re-enable xtrace. (set -x)"
    set -x
 fi
-true "$BASH_SOURCE INFO: End of script, ok."
+true "${BASH_SOURCE[0]} INFO: End of script, ok."

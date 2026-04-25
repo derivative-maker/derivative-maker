@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -38,7 +41,7 @@ apt_get_parse_unmet_dependency() {
    while read -r -d $'\n' line; do
       local unmet_dependency=""
       unmet_dependency="$(printf "%s\n" "$line" | grep -o "Depends:.*" | awk '{print $2}')" || true
-      if [ "$unmet_dependency" = "" ]; then
+      if [ "${unmet_dependency:-}" = "" ]; then
          ## no match
          continue
       else
@@ -70,7 +73,7 @@ pkg-install() {
    pkg_install_item="$1"
    local skip_package
    for skip_package in $dist_build_script_skip_package_install; do
-      if [ "$skip_package" = "$pkg_install_item" ]; then
+      if [ "${skip_package:-}" = "$pkg_install_item" ]; then
          unset skip_package
          true "${bold}${cyan}INFO: Skipping installation of '$pkg_install_item', because variable dist_build_script_skip_package_install includes it.${reset}"
          return 0
@@ -78,7 +81,7 @@ pkg-install() {
    done
    unset skip_package
 
-   true "${cyan}INFO: Installing of '$@', because variable dist_build_script_skip_package_install does not include it... \
+   true "${cyan}INFO: Installing of '$*', because variable dist_build_script_skip_package_install does not include it... \
 This may take a while...${reset}"
 
    ## apt: no way to view dpkg commandline and still run dpkg
@@ -99,15 +102,15 @@ This may take a while...${reset}"
    chroot_run sync
    $SUDO_TO_ROOT sync
 
-   if [ "$apt_get_exit_code" = "0" ]; then
-      true "${cyan}INFO: Installed '$@', no error detected.${reset}"
+   if [ "${apt_get_exit_code:-}" = "0" ]; then
+      true "${cyan}INFO: Installed '$*', no error detected.${reset}"
       return 0
    fi
 
-   true "${bold}${red}ERROR: Failed to install '$@'. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: Failed to install '$*'. (apt_get_exit_code: $apt_get_exit_code) \
 Attempting to gather debug output to diagnose the problem...${reset}"
 
-   true "${bold}${cyan}INFO: Read output of apt-get-noninteractive trying to install '$@' into a \
+   true "${bold}${cyan}INFO: Read output of apt-get-noninteractive trying to install '$*' into a \
 variable for debugging. This may take a while...${reset}"
 
    local apt_get_exit_code="0"
@@ -131,13 +134,13 @@ variable for debugging. This may take a while...${reset}"
    chroot_run sync
    sync
 
-   if [ "$apt_get_exit_code" = "0" ]; then
-      true "${bold}${red}ERROR: Second attempt installing '$@' did not fail?!?${reset}"
+   if [ "${apt_get_exit_code:-}" = "0" ]; then
+      true "${bold}${red}ERROR: Second attempt installing '$*' did not fail?!?${reset}"
       error "See above!"
       return 0
    fi
 
-   true "${bold}${red}ERROR: As expected, failed again to install '$@'. (apt_get_exit_code: $apt_get_exit_code) \
+   true "${bold}${red}ERROR: As expected, failed again to install '$*'. (apt_get_exit_code: $apt_get_exit_code) \
 Trying to diagnose the problem using function apt_get_parse_unmet_dependency...${reset}"
 
    apt_get_parse_unmet_dependency "$@"
@@ -155,7 +158,7 @@ pkg-add-to-install-list() {
    pkg_install_item="$1"
    local skip_package
    for skip_package in $dist_build_script_skip_package_install; do
-      if [ "$skip_package" = "$pkg_install_item" ]; then
+      if [ "${skip_package:-}" = "$pkg_install_item" ]; then
          unset skip_package
          true "${bold}${cyan}INFO: Skipping package $pkg_install_item, because dist_build_script_skip_package_install includes it.${reset}"
          return 0
@@ -163,12 +166,12 @@ pkg-add-to-install-list() {
    done
    unset skip_package
 
-   if [ "$pkg_install_item" = "none" ]; then
+   if [ "${pkg_install_item:-}" = "none" ]; then
       true "${bold}${cyan}INFO: Skipping package $pkg_install_item (none).${reset}"
       return 0
    fi
 
-   if [ "$pkg_install_debug" = "true" ]; then
+   if [ "${pkg_install_debug:-}" = "true" ]; then
       pkg-install "$pkg_install_item"
    else
       pkg_install_list+=" $pkg_install_item "
@@ -178,7 +181,7 @@ pkg-add-to-install-list() {
 pkg-list-install() {
    exception_handler_setup "exception_handler_unchroot_unmount" ERR INT TERM
 
-   if [ "$pkg_install_list" = "" ]; then
+   if [ "${pkg_install_list:-}" = "" ]; then
       true "INFO: pkg_install_list still empty, ok."
       return 0
    else
@@ -235,7 +238,7 @@ install-packages() {
 
    chroot_run apt-get-noninteractive "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts update
 
-#    if [ "$dist_build_target_arch" = "arm64" ]; then
+#    if [ "${dist_build_target_arch:-}" = "arm64" ]; then
 #       ## Install package helper-scripts first so pre.bsh and initramfs-debug-enable is available.
 #       pkg-install helper-scripts
 #
@@ -257,12 +260,12 @@ install-packages() {
    ## meta package installation.
    pkg-install legacy-dist
 
-   if [ "$dist_build_type_short" = "kicksecure" ]; then
+   if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       pkg-install kicksecure-packages-dependencies-pre
-   elif [ "$dist_build_type_short" = "whonix" ]; then
-      if [ "$dist_build_type_long" = "gateway" ];then
+   elif [ "${dist_build_type_short:-}" = "whonix" ]; then
+      if [ "${dist_build_type_long:-}" = "gateway" ];then
          pkg-install whonix-gateway-packages-dependencies-pre
-      elif [ "$dist_build_type_long" = "workstation" ];then
+      elif [ "${dist_build_type_long:-}" = "workstation" ];then
          pkg-install whonix-workstation-packages-dependencies-pre
       else
          true "${bold}${cyan}INFO: No packages-dependencies-pre package, ok.${reset}"
@@ -277,7 +280,7 @@ install-packages() {
    ## Not using lxqt-policykit because it segfaults if pam-info echos any
    ## messages, and sometimes pops up swarms of windows with data from
    ## pam-info.
-   if [ "$dist_build_desktop" = 'LXQt' ]; then
+   if [ "${dist_build_desktop:-}" = 'LXQt' ]; then
      pkg-install mate-polkit
    fi
 
@@ -307,21 +310,21 @@ install-packages() {
    chroot_run apt-cache "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show nano || true
    chroot_run apt-cache "${APTGETOPT[@]}" $apt_sourcelist_empty $apt_sourceparts $apt_unattended_opts show helper-scripts || true
 
-   if [ "$dist_build_script_skip_package_install" = "" ]; then
-      true "${bold}${cyan}INFO $BASH_SOURCE: Variable dist_build_script_skip_package_install is empty. \
+   if [ "${dist_build_script_skip_package_install:-}" = "" ]; then
+      true "${bold}${cyan}INFO ${BASH_SOURCE[0]}: Variable dist_build_script_skip_package_install is empty. \
 No packages will be excluded from installation. This information is relevant for builders using custom configurations, \
 skipping packages such as Terminal-Only.${reset}"
    else
-      true "${bold}${cyan}INFO $BASH_SOURCE: List of packages to be excluded from installation. This information is relevant for \
+      true "${bold}${cyan}INFO ${BASH_SOURCE[0]}: List of packages to be excluded from installation. This information is relevant for \
 builders using custom configurations, skipping packages such as Terminal-Only. dist_build_script_skip_package_install: \
 $dist_build_script_skip_package_install${reset}"
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       true "${bold}${cyan}INFO: dist_build_install_to_root is set to true. Skipping kernel installation (one should already be installed), ok.${reset}"
    else
       ## Need to install initramfs tool before kernel. Otherwise kernel would pull Debian's default which is initramfs-tools.
-      if [ "$BUILD_INITRAMFS_PKGS" = "none" ]; then
+      if [ "${BUILD_INITRAMFS_PKGS:-}" = "none" ]; then
          true "${bold}${cyan}INFO: BUILD_INITRAMFS_PKGS: ${BUILD_INITRAMFS_PKGS} - Skipping initramfs tool installation.${reset}"
       else
          true "${bold}${cyan}INFO: dist_build_install_to_root is not set to true. Add initramfs tool to installation list...${reset}"
@@ -331,7 +334,7 @@ $dist_build_script_skip_package_install${reset}"
             pkg-add-to-install-list "$build_initramfs"
          done
       fi
-      if [ "$BUILD_KERNEL_PKGS" = "none" ]; then
+      if [ "${BUILD_KERNEL_PKGS:-}" = "none" ]; then
          true "${bold}${cyan}INFO: BUILD_KERNEL_PKGS: ${BUILD_KERNEL_PKGS} - Skipping kernel installation.${reset}"
       else
          true "${bold}${cyan}INFO: dist_build_install_to_root is not set to true. Add to kernel image to installation list...${reset}"
@@ -341,7 +344,7 @@ $dist_build_script_skip_package_install${reset}"
             pkg-add-to-install-list "$build_kernel"
          done
       fi
-      if [ "$BUILD_HEADER_PKGS" = "none" ]; then
+      if [ "${BUILD_HEADER_PKGS:-}" = "none" ]; then
          true "${bold}${cyan}INFO: BUILD_HEADER_PKGS: ${BUILD_HEADER_PKGS} - Skipping kernel header installation.${reset}"
       else
          true "${bold}${cyan}INFO: dist_build_install_to_root is not set to true. Add kernel header to installation list...${reset}"
@@ -353,14 +356,14 @@ $dist_build_script_skip_package_install${reset}"
       fi
    fi
 
-   #if [ "$dist_build_flavor" != "whonix-gateway-rpi" ] && [ "$dist_build_target_arch" = "arm64" ]; then
+   #if [ "${dist_build_flavor:-}" != "whonix-gateway-rpi" ] && [ "${dist_build_target_arch:-}" = "arm64" ]; then
       #pkg-add-to-install-list grub2-common
       #pkg-add-to-install-list grub-efi-arm64
    #fi
 
    ## Weak recommended packages. No other package depends on it. Can be
    ## easily uninstalled. For better usability.
-   if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
       ## See also build-steps.d/*_create-debian-packages function
       ## download_virtualbox_packages_from_debian_sid
 
@@ -387,17 +390,17 @@ $dist_build_script_skip_package_install${reset}"
    true "dist_build_type_short: $dist_build_type_short"
    true "dist_build_type_long: $dist_build_type_long"
 
-   if [ "$dist_build_gui" = "true" ]; then
+   if [ "${dist_build_gui:-}" = "true" ]; then
       true "dist_build_gui detected."
-      if [ "$dist_build_type_short" = "kicksecure" ]; then
+      if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
          true "dist_build_type_short kicksecure detected."
          pkg-add-to-install-list user-sysmaint-split
       fi
-      if [ "$dist_build_type_long" = "workstation" ];then
+      if [ "${dist_build_type_long:-}" = "workstation" ];then
          true "dist_build_type_long workstation detected."
          pkg-add-to-install-list user-sysmaint-split
       fi
-      if [ "$dist_build_type_long" = "gateway" ];then
+      if [ "${dist_build_type_long:-}" = "gateway" ];then
          true "dist_build_type_long workstation detected."
          pkg-add-to-install-list user-sysmaint-split
       fi
@@ -429,11 +432,11 @@ $dist_build_script_skip_package_install${reset}"
       fi
    done
 
-   if [ "$dist_build_raw" = "true" ]; then
+   if [ "${dist_build_raw:-}" = "true" ]; then
       ## XXX: Superfluous for non-libvirt raw image builds.
       pkg-add-to-install-list spice-vdagent
       #pkg-add-to-install-list serial-console-enable
-   elif [ "$dist_build_qcow2" = "true" ]; then
+   elif [ "${dist_build_qcow2:-}" = "true" ]; then
       pkg-add-to-install-list spice-vdagent
       #pkg-add-to-install-list serial-console-enable
    else
@@ -442,9 +445,9 @@ $dist_build_script_skip_package_install${reset}"
 
    ## kicksecure-network-conf{,-gui} cannot be listed in metapackages, as it
    ## can break networking in some situations.
-   if [ "$dist_build_type_short" = "kicksecure" ]; then
+   if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       pkg-add-to-install-list kicksecure-network-conf
-      if [ "$dist_build_gui" = 'true' ]; then
+      if [ "${dist_build_gui:-}" = 'true' ]; then
          pkg-add-to-install-list kicksecure-network-conf-gui
       fi
    fi
@@ -456,7 +459,7 @@ $dist_build_script_skip_package_install${reset}"
    ## Debugging.
    #pkg-add-to-install-list debug-misc
 
-   if [ "$flavor_meta_packages_to_install" = "none" ] || [ "$flavor_meta_packages_to_install" = "" ] || [ "$flavor_meta_packages_to_install" = " " ]; then
+   if [ "${flavor_meta_packages_to_install:-}" = "none" ] || [ "${flavor_meta_packages_to_install:-}" = "" ] || [ "${flavor_meta_packages_to_install:-}" = " " ]; then
       true "${cyan}INFO: variable flavor_meta_packages_to_install is set to '$flavor_meta_packages_to_install', skipping.${reset}"
    else
       for flavor_meta_package_item in $flavor_meta_packages_to_install ; do
@@ -465,7 +468,7 @@ $dist_build_script_skip_package_install${reset}"
       done
    fi
 
-   if [ "$install_package_list" = "none" ] || [ "$install_package_list" = "" ] || [ "$install_package_list" = " " ]; then
+   if [ "${install_package_list:-}" = "none" ] || [ "${install_package_list:-}" = "" ] || [ "${install_package_list:-}" = " " ]; then
       true "${cyan}INFO: variable install_package_list (custom additional packages list) is set to '$install_package_list', skipping, ok.${reset}"
    else
       for install_package_item in $install_package_list ; do
@@ -587,7 +590,7 @@ $dist_build_script_skip_package_install${reset}"
         error '/boot/grub/grub.cfg contains root=/dev/mapper and cannot find proper boot device - image most likely unbootable!'
       fi
       grub_probe_target_device="$(cut -d'/' -f4 <<< "${grub_probe_target_device}")"
-      grub_probe_target_device="$(lsblk -rno NAME,UUID | grep "${grub_probe_target_device}")"
+      grub_probe_target_device="$(lsblk -rno NAME,UUID | grep --fixed-strings -- "${grub_probe_target_device}")"
       grub_probe_target_device="$(cut -d' ' -f2 <<< "${grub_probe_target_device}")"
       grub_probe_target_device="$(head -n1 <<< "${grub_probe_target_device}")"
       if [ -z "${grub_probe_target_device}" ]; then
@@ -612,18 +615,18 @@ $dist_build_script_skip_package_install${reset}"
 }
 
 main() {
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
+   if [ "${dist_build_iso:-}" = "true" ]; then
        ## NOTE: ISO builds do not use 'build-steps.d/*_install-packages' to install packages.
-       true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is set to true.${reset}"
+       true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is set to true.${reset}"
        return 0
    fi
 
-   if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
+   if [ "${dist_build_flavor:-}" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping installing packages for $VMNAME.${reset}"
    else
       install-packages "$@"

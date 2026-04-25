@@ -8,8 +8,11 @@
 ## submodules. Used by 'derivative-update' and 'build-steps.d/1100_sanity-tests',
 ## and runnable standalone by developers.
 
-set -e
+#set -x
+set -o errexit
+set -o nounset
 set -o pipefail
+set -o errtrace
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -133,10 +136,10 @@ while [ $# -gt 0 ]; do
 done
 
 ## Default: --mode all (most thorough check).
-[ -n "$mode" ] || mode="all"
+[ -n "${mode:-}" ] || mode="all"
 case "$mode" in
    all|working-tree)
-      [ -n "$context" ] || context="main repo"
+      [ -n "${context:-}" ] || context="main repo"
       ;;
 esac
 
@@ -324,7 +327,7 @@ classify_tag() {
 ## ----------------------------------------------------------------------------
 
 mode_working_tree() {
-   [ -n "$context" ] || die "--context is required for --mode working-tree"
+   [ -n "${context:-}" ] || die "--context is required for --mode working-tree"
 
    local head git_status git_tags_output
    local -a tags_at_head git_tags_cmd
@@ -342,7 +345,7 @@ mode_working_tree() {
    if ! git_tags_output="$( "${git_tags_cmd[@]}" )"; then
       die "'${git_tags_cmd[*]}' failed in ${context}"
    fi
-   if [ -n "$git_tags_output" ]; then
+   if [ -n "${git_tags_output:-}" ]; then
       readarray -t tags_at_head <<< "$git_tags_output"
    else
       tags_at_head=()
@@ -401,7 +404,7 @@ mode_working_tree() {
    ## signal would let unrelated warnings (e.g. advice messages, index
    ## version warnings) be misinterpreted as uncommitted changes.
    git_status="$(git status --porcelain=v1)"
-   if [ -n "$git_status" ]; then
+   if [ -n "${git_status:-}" ]; then
       if [ "${dist_build_ignore_uncommitted}" = "true" ]; then
          printf '%s\n' "${cyan}INFO: Uncommitted changes in ${context}, --allow-uncommitted set, continuing.${reset}"
          ## Debugging.
@@ -429,8 +432,8 @@ mode_working_tree() {
 }
 
 mode_ref() {
-   [ -n "$ref" ]      || die "--ref is required for --mode ref"
-   [ -n "$ref_type" ] || die "--ref-type is required for --mode ref"
+   [ -n "${ref:-}" ]      || die "--ref is required for --mode ref"
+   [ -n "${ref_type:-}" ] || die "--ref-type is required for --mode ref"
    case "$ref_type" in
       tag|commit) ;;
       *) die "--ref-type must be 'tag' or 'commit'" ;;
@@ -440,7 +443,7 @@ mode_ref() {
 
    ## For --ref-type tag: normalize to refs/tags/..., verify exists, classify.
    ## For --ref-type commit: accept any commit-ish, skip tag classification.
-   if [ "$ref_type" = 'tag' ]; then
+   if [ "${ref_type:-}" = 'tag' ]; then
       case "$ref" in
          refs/tags/*)  resolve_ref="$ref" ;;
          refs/*)       die "ref '${ref}' is declared as --ref-type tag but is not under refs/tags/" ;;
@@ -484,7 +487,7 @@ mode_submodules() {
 }
 
 mode_all() {
-   [ -n "$context" ] || die "--context is required for --mode all"
+   [ -n "${context:-}" ] || die "--context is required for --mode all"
    mode_working_tree
    mode_submodules
 }

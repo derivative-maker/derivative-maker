@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -17,7 +20,7 @@ source "$MYDIR/variables"
 error_handler_chroot-raw() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
+${red}${bold}ERROR ${BASH_SOURCE[0]}: | caller: $(caller)${reset}
 "
    exit 1
 }
@@ -27,7 +30,7 @@ main() {
 
    sync
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       true
    else
       devices_mount
@@ -116,7 +119,7 @@ chroot_files_cleanup() {
 
    if test -f "$CHROOT_FOLDER/etc/apt/sources.list" ; then
       ## Ensure the sources.list file inside the chroot is readable by APT.
-      $SUDO_TO_ROOT chmod o+r "$CHROOT_FOLDER/etc/apt/sources.list"
+      $SUDO_TO_ROOT chmod o+r -- "$CHROOT_FOLDER/etc/apt/sources.list"
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/etc/apt/sources.list" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/etc/apt/sources.list, deleting it, ok."
          $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/etc/apt/sources.list"
@@ -129,7 +132,7 @@ chroot_files_cleanup() {
 
    ## Delete extraneous, duplicate '/etc/apt/sources.list.d/0000debian_stable_current_clearnet.sources' by 'mmdebstrap'.
    if test -f "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary" ; then
-      $SUDO_TO_ROOT chmod o+r "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary"
+      $SUDO_TO_ROOT chmod o+r -- "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary"
       if diff "$dist_build_sources_list_primary" "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary" ; then
          true "INFO: Host $dist_build_sources_list_primary matches chroot $CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary, deleting it, ok."
          $SUDO_TO_ROOT rm --verbose "$CHROOT_FOLDER/$dist_mmdebstrap_build_sources_list_primary"
@@ -237,14 +240,14 @@ chroot_mount_files() {
             fi
          done
 
-         if [ "$is_ok" = "no" ] && [ "$mount_base_file" = 'etc/hostname' ]; then
+         if [ "${is_ok:-}" = "no" ] && [ "${mount_base_file:-}" = 'etc/hostname' ]; then
             mount_base_file_etc_hostname_contents="$(cat -- "$CHROOT_FOLDER/$mount_base_file")"
-            if [ "$mount_base_file_etc_hostname_contents" = "$dist_build_hostname" ]; then
+            if [ "${mount_base_file_etc_hostname_contents:-}" = "$dist_build_hostname" ]; then
                is_ok='yes'
             fi
          fi
 
-         if [ "$is_ok" = "no" ]; then
+         if [ "${is_ok:-}" = "no" ]; then
             true "INFO: Shredding '$CHROOT_FOLDER/$mount_base_file'."
             ## Remove leaked host $mount_base_file inside the image.
             $SUDO_TO_ROOT shred -u --zero --force --random-source=/dev/random "$CHROOT_FOLDER/$mount_base_file"
@@ -258,8 +261,8 @@ chroot_mount_files() {
       ## - 'mount' cannot operate on non-existing files.
       $SUDO_TO_ROOT touch "$CHROOT_FOLDER/$mount_base_file"
 
-      if [ "$dist_chroot_mount_resolv_conf" = "0" ]; then
-         true "${cyan}INFO $BASH_SOURCE: Not mounting /$mount_base_file and others inside chroot, as dist_chroot_mount_resolv_conf is 0.${reset}"
+      if [ "${dist_chroot_mount_resolv_conf:-}" = "0" ]; then
+         true "${cyan}INFO ${BASH_SOURCE[0]}: Not mounting /$mount_base_file and others inside chroot, as dist_chroot_mount_resolv_conf is 0.${reset}"
          continue
       fi
 

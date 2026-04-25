@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -66,8 +69,8 @@ convert_raw_to_vdi() {
    ## Debugging.
    $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
 
-   if [ "$dist_build_fast1" = "1" ]; then
-      echo "${bold}${cyan}INFO: run with '--fast 1' switch, skipping compacting vdi. ${reset}"
+   if [ "${dist_build_fast1:-}" = "1" ]; then
+      printf '%s\n' "${bold}${cyan}INFO: run with '--fast 1' switch, skipping compacting vdi. ${reset}"
    else
       $SUDO_TO_VBOX_TEMP VBoxManage modifymedium --compact "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
    fi
@@ -80,7 +83,7 @@ general_setup() {
    ## Create a new VM. Name: $VMNAME
    $SUDO_TO_VBOX_TEMP VBoxManage createvm --name "$VMNAME" --register
 
-   if ! echo "$dist_build_target_arch" | grep "64" ; then
+   if ! printf '%s\n' "$dist_build_target_arch" | grep --fixed-strings -- "64" ; then
       $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --ostype Debian
    else
       $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --ostype Debian_64
@@ -422,8 +425,8 @@ debugging_post() {
 }
 
 main() {
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_virtualbox is not set to 'true'.${reset}"
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_virtualbox is not set to 'true'.${reset}"
       return 0
    fi
 
@@ -451,22 +454,22 @@ main() {
    ## https://forums.whonix.org/t/whonix-vulerable-due-to-missing-processor-microcode-packages/5739/22
    #spectre_meltdown_defenses
 
-   if [ "$dist_build_type_long" = "gateway" ]; then
+   if [ "${dist_build_type_long:-}" = "gateway" ]; then
       whonix-gateway_specific
       dns_specific
       ## For screen reader support.
       audio_enable
-   elif [ "$dist_build_type_long" = "workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "workstation" ]; then
       whonix-workstation_specific
       audio_enable
-   elif [ "$dist_build_type_long" = "custom-workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
       whonix-custom-workstation_specific
       audio_enable
-   elif [ "$dist_build_type_long" = "whonix-host" ]; then
+   elif [ "${dist_build_type_long:-}" = "whonix-host" ]; then
       debian_specific
       dns_specific
       audio_enable
-   elif [ "$dist_build_type_short" = "kicksecure" ]; then
+   elif [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       debian_specific
       audio_enable
    else
@@ -483,7 +486,7 @@ main() {
    ##       prepare-release.
    #delete_vbox_vm
 
-   if [ "$dist_build_raw" = "true" ]; then
+   if [ "${dist_build_raw:-}" = "true" ]; then
       true "INFO: Skip deletion of raw image because using dist_build_raw=true."
    else
       ## Safe disk space.
