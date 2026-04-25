@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -23,9 +26,9 @@ export-libvirt-xml() {
 
    cp "$libvirt_source_kvm_file" "$libvirt_target_kvm_file"
 
-   if [ "$dist_build_type_short" = "kicksecure" ]; then
+   if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       true
-   elif [ "$dist_build_type_short" = "custom-workstation" ]; then
+   elif [ "${dist_build_type_short:-}" = "custom-workstation" ]; then
       true
    else
       cp "$libvirt_source_network_file_external" "$libvirt_target_network_file_external"
@@ -34,21 +37,21 @@ export-libvirt-xml() {
 }
 
 main() {
-#    if [ "$dist_build_host_operating_system" = "true" ]; then
-#       true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_host_operating_system is '$dist_build_host_operating_system', ok.${reset}"
+#    if [ "${dist_build_host_operating_system:-}" = "true" ]; then
+#       true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_host_operating_system is '$dist_build_host_operating_system', ok.${reset}"
 #       return 0
 #    fi
 
-   if [ "$dist_build_raw" = "true" ]; then
+   if [ "${dist_build_raw:-}" = "true" ]; then
       ## Required for Linux libvirt KVM raw image builds.
       ## Interest to maintain arm64 Linux libvirt KVM raw images has been
       ## indicated by HulaHoop until qcow2 image builds are fixed.
       ## XXX: Superfluous for non-libvirt raw image builds.
       export-libvirt-xml "$@"
-   elif [ "$dist_build_qcow2" = "true" ]; then
+   elif [ "${dist_build_qcow2:-}" = "true" ]; then
       export-libvirt-xml "$@"
    else
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_qcow2 is not set to 'true'.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_qcow2 is not set to 'true'.${reset}"
    fi
 }
 

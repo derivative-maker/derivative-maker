@@ -20,9 +20,12 @@
 ## TODO: always check packages/kicksecure/anon-shared-build-apt-sources-tpo/etc/apt/sources.list.d/torproject.sources first!
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -57,8 +60,8 @@ download_tpo_packages() {
 
 download_virtualbox_packages_virtualbox_org() {
    ## Only when using '--target virtualbox'.
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      true "${green}INFO: Skipping ${under}$FUNCNAME${eunder}, because dist_build_virtualbox is not set to 'true'.${reset}"
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
+      true "${green}INFO: Skipping ${under}${FUNCNAME[0]}${eunder}, because dist_build_virtualbox is not set to 'true'.${reset}"
       return 0
    fi
 
@@ -102,16 +105,16 @@ download_packages_from_debian_sid() {
 
    newer_package_list=""
 
-   #if [ ! "$dist_build_iso" = "true" ]; then
+   #if [ ! "${dist_build_iso:-}" = "true" ]; then
       #return 0
    #fi
    ## On Debian trixie, installing calamares from sid has lead to (dependency or other?) issues
    ## A proper backport would be required.
-   #if [ "$dist_build_iso" = "true" ]; then
+   #if [ "${dist_build_iso:-}" = "true" ]; then
       #newer_package_list="calamares"
    #fi
 
-   if [ "$dist_build_virtualbox" = "true" ] || [ "$dist_build_iso" = "true" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ] || [ "${dist_build_iso:-}" = "true" ]; then
       ## See:
       ## https://forums.whonix.org/t/challenges-installing-virtualbox/9984/7
       ##
@@ -144,11 +147,11 @@ download_packages_from_debian_sid() {
 
       newer_package_list="virtualbox-guest-additions-iso"
 
-      if [ "$dist_build_target_arch" = "amd64" ] || [ "$dist_build_target_arch" = "i386" ]; then
+      if [ "${dist_build_target_arch:-}" = "amd64" ] || [ "${dist_build_target_arch:-}" = "i386" ]; then
          newer_package_list+=" virtualbox-guest-utils "
          newer_package_list+=" virtualbox-guest-x11 "
 
-         #if [ "$dist_build_virtualbox" = "true" ]; then
+         #if [ "${dist_build_virtualbox:-}" = "true" ]; then
             ## These packages are not needed for the ISO.
             ##
             ## These 'unstable' ('sid') packages are longer compatible with 'trixie'.
@@ -179,7 +182,7 @@ download_packages_from_debian_forky_backports() {
    newer_package_list=""
 
    ## No need for calamares from debian.backports in Trixie at the moment.
-   #if [ "$dist_build_iso" = "true" ]; then
+   #if [ "${dist_build_iso:-}" = "true" ]; then
    #   true "INFO: Download package from backports for ISO build..."
    #   newer_package_list="calamares"
    #else
@@ -194,11 +197,11 @@ download_packages_from_debian_forky_backports() {
 }
 
 get_newer_packages_from_third_party_repositories() {
-   true "${cyan}$BASH_SOURCE INFO: Downloading newer packages from third-party repository... ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Downloading newer packages from third-party repository... ${reset}"
 
    local cow_folder base_folder
 
-   if [ "$temp_newer_packages" = "" ]; then
+   if [ "${temp_newer_packages:-}" = "" ]; then
       error "variable temp_newer_packages is unset!"
       exit 1
    fi
@@ -216,13 +219,13 @@ get_newer_packages_from_third_party_repositories() {
             architecture_available="true"
             continue
          fi
-         if [ "$dist_build_multiarch_package_item" = "$available_architectures_for_download_only_item" ]; then
+         if [ "${dist_build_multiarch_package_item:-}" = "$available_architectures_for_download_only_item" ]; then
             true "${cyan}INFO: available_architectures_for_download_only_item: '$available_architectures_for_download_only_item'${reset}"
             architecture_available="true"
             continue
          fi
       done
-      if [ ! "$architecture_available" = "true" ]; then
+      if [ ! "${architecture_available:-}" = "true" ]; then
          true "${red}${bold}INFO: Skipping,
 download newer_package_list: ${under}$newer_package_list${eunder}
 for platform: ${under}$dist_build_multiarch_package_item${eunder}
@@ -231,7 +234,7 @@ is not included in available_architectures_for_download_only_list: $available_ar
          return 0
       fi
 
-      if [ "$make_use_cowbuilder" = "true" ]; then
+      if [ "${make_use_cowbuilder:-}" = "true" ]; then
          ## Implemented in help-steps/variables.
          ## sets:
          ## cow_folder
@@ -251,13 +254,13 @@ is not included in available_architectures_for_download_only_list: $available_ar
 
       $SUDO_TO_ROOT mkdir --parents -- "${base_folder}/var/cache/derivative-maker/temporary-repository"
 
-      if [ "$repo_signing_key" = "none" ]; then
+      if [ "${repo_signing_key:-}" = "none" ]; then
          $SUDO_TO_ROOT safe-rm -f -- "${base_folder}/var/cache/derivative-maker/temporary-repository/repo_signing_key.asc"
       else
          $SUDO_TO_ROOT cp -- "$repo_signing_key" "${base_folder}/var/cache/derivative-maker/temporary-repository/repo_signing_key.asc"
       fi
 
-      if [ "$repo_sources_list" = "none" ]; then
+      if [ "${repo_sources_list:-}" = "none" ]; then
          $SUDO_TO_ROOT safe-rm -f -- "${base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources"
       else
          $SUDO_TO_ROOT cp -- "$repo_sources_list" "${base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources"
@@ -267,11 +270,11 @@ is not included in available_architectures_for_download_only_list: $available_ar
       #$SUDO_TO_ROOT cp -- "$dist_build_pbuilder_config_file" "${base_folder}/var/cache/derivative-maker/temporary-repository"
 
       local benchmark_time_start benchmark_took_time
-      benchmark_time_start="$(date +%s)" || true
+      benchmark_time_start="$SECONDS"
       local dist_build_download_script_exit_code
       dist_build_download_script_exit_code=0
 
-      if [ "$make_use_cowbuilder" = "true" ]; then
+      if [ "${make_use_cowbuilder:-}" = "true" ]; then
          $SUDO_TO_ROOT \
             --preserve-env \
                $COWBUILDER_PREFIX \
@@ -302,22 +305,22 @@ is not included in available_architectures_for_download_only_list: $available_ar
 
       $SUDO_TO_ROOT chown --recursive "$user_name:$user_name" "$temp_newer_packages"
 
-      benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
-      true "${cyan}INFO: Done with function ${under}$FUNCNAME${eunder} (benchmark: $benchmark_took_time) ${reset}"
+      benchmark_took_time="$(benchmark_since "$benchmark_time_start")"
+      true "${cyan}INFO: Done with function ${under}${FUNCNAME[0]}${eunder} (benchmark: $benchmark_took_time) ${reset}"
 
-      if [ ! "$dist_build_download_script_exit_code" = "0" ]; then
+      if [ ! "${dist_build_download_script_exit_code:-}" = "0" ]; then
          return "$dist_build_download_script_exit_code"
       fi
    done
 
-   true "${cyan}$BASH_SOURCE INFO: Completed downloading newer packages from third-party repository. ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Completed downloading newer packages from third-party repository. ${reset}"
 
    reprepro_add_newer_packages_from_third_party_repositories
 }
 
 reprepro_add_newer_packages_from_third_party_repositories() {
-   true "${cyan}$BASH_SOURCE INFO: Adding newer packages from third-party repository to reprepro... ${reset}"
-   if [ "$temp_newer_packages" = "" ]; then
+   true "${cyan}${BASH_SOURCE[0]} INFO: Adding newer packages from third-party repository to reprepro... ${reset}"
+   if [ "${temp_newer_packages:-}" = "" ]; then
       error "Variable temp_newer_packages is empty!"
    fi
 
@@ -355,11 +358,11 @@ reprepro_add_newer_packages_from_third_party_repositories() {
       "$dist_developer_meta_files_folder/usr/bin/dm-reprepro-wrapper" includedsc "$dist_build_apt_codename" "$package_absolute_path"
    done
 
-   true "${cyan}$BASH_SOURCE INFO: Added newer packages from third-party repository to reprepro. ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Added newer packages from third-party repository to reprepro. ${reset}"
 }
 
 create_derivative_distribution_debian_packages() {
-   true "${cyan}$BASH_SOURCE INFO: Creating Derivative Debian Packages... ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Creating Derivative Debian Packages... ${reset}"
 
    ## Sanity test.
    printf '%s\n' "" | wc -l >/dev/null
@@ -386,7 +389,7 @@ create_derivative_distribution_debian_packages() {
          local base_name
          base_name="${item##*/}"
 
-#          if [ ! "$base_name" = "hardened-kernel" ]; then
+#          if [ ! "${base_name:-}" = "hardened-kernel" ]; then
 #             true "${cyan}INFO: Skipping $base_name as expected.${reset}"
 #             popd
 #             continue
@@ -397,59 +400,59 @@ create_derivative_distribution_debian_packages() {
          ## any
          ## amd64
          ## linux-amd64
-         if cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "all" ; then
+         if grep --invert-match -- "#" "debian/control" | grep -- "Architecture:" | grep --fixed-strings -- "all" ; then
             true "DEBUG: Architecture: all"
-         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "any" ; then
+         elif grep --invert-match -- "#" "debian/control" | grep -- "Architecture:" | grep --fixed-strings -- "any" ; then
             true "DEBUG: Architecture: any"
-         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "amd64" ; then
+         elif grep --invert-match -- "#" "debian/control" | grep -- "Architecture:" | grep --fixed-strings -- "amd64" ; then
             true "DEBUG: Architecture: amd64"
-            if [ ! "$dist_build_target_arch" = "amd64" ]; then
+            if [ ! "${dist_build_target_arch:-}" = "amd64" ]; then
                true "${cyan}INFO: Skipping platform 'amd64' specific package $base_name as expected.${reset}"
                popd >/dev/null
                continue
             fi
-         elif cat "debian/control" | grep --invert-match "\#" | grep "Architecture:" | grep "linux-amd64" ; then
+         elif grep --invert-match -- "#" "debian/control" | grep -- "Architecture:" | grep --fixed-strings -- "linux-amd64" ; then
             true "DEBUG: Architecture: linux-amd64"
-            if [ ! "$dist_build_target_arch" = "amd64" ]; then
+            if [ ! "${dist_build_target_arch:-}" = "amd64" ]; then
                true "${cyan}INFO: Skipping platform 'linux-amd64' specific package $base_name as expected.${reset}"
                popd >/dev/null
                continue
             fi
          else
-            cat "debian/control" | grep "Architecture:" || true
+            grep -- "Architecture:" "debian/control" || true
             error "unknown Architecture:"
          fi
 
          true "${cyan}INFO: Will build now package ($number_folder_current / $number_folders_total): $base_name ${reset}"
-         benchmark_time_start="$(date +%s)" || true
+         benchmark_time_start="$SECONDS"
          lintian_use_maybe="$make_use_lintian"
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-remove
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
-         if [ "$make_use_cowbuilder" = "false" ]; then
+         if [ "${make_use_cowbuilder:-}" = "false" ]; then
             "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
          fi
          ## Environment variables make_use_lintian, make_use_cowbuilder, dist_build_apt_codename if set are expected to be passed.
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-pkg
 
          "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" reprepro-add
-         benchmark_took_time="$(benchmarktimeend "$benchmark_time_start")" || true
+         benchmark_took_time="$(benchmark_since "$benchmark_time_start")"
          popd >/dev/null
          true "${cyan}INFO: Done with build of package ($number_folder_current / $number_folders_total) (benchmark: $benchmark_took_time): $base_name ${reset}"
       done
    done
 
-   true "${cyan}$BASH_SOURCE INFO: Created Derivative Debian Packages. ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Created Derivative Debian Packages. ${reset}"
 }
 
 create-debian-packages() {
-   if [ "$dist_build_apt_codename" = "" ]; then
+   if [ "${dist_build_apt_codename:-}" = "" ]; then
       error "Variable dist_build_apt_codename is empty!"
    fi
-   true "${cyan}$BASH_SOURCE INFO: Going to update ${under}${dist_build_apt_codename}${eunder} APT repository... ${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Going to update ${under}${dist_build_apt_codename}${eunder} APT repository... ${reset}"
    true "make_cross_build_platform_list: ${under}$make_cross_build_platform_list${eunder}"
    #sleep 3
 
-   if [ ! "$FUNCTION" = "" ]; then
+   if [ ! "${FUNCTION:-}" = "" ]; then
       $FUNCTION
       return 0
    fi
@@ -466,14 +469,14 @@ create-debian-packages() {
 }
 
 main() {
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_flavor" = "whonix-custom-workstation" ]; then
+   if [ "${dist_build_flavor:-}" = "whonix-custom-workstation" ]; then
       true "${cyan}INFO: Skipping creation of packages for custom workstation.${reset}"
-   elif [ "$build_remote_derivative_pkgs" = "true" ]; then
+   elif [ "${build_remote_derivative_pkgs:-}" = "true" ]; then
       true "${cyan}INFO: build_remote_derivative_pkgs is set to $build_remote_derivative_pkgs, skipping creation of packages.${reset}"
    else
       build_run_function create-debian-packages "$@"

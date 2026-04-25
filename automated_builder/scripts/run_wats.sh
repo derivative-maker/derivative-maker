@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 main() {
   prepare_environment
@@ -10,8 +13,13 @@ main() {
 }
 
 prepare_environment() {
-  ## TODO: Why use '--stdin'?
-  echo changeme | sudo --non-interactive --stdin apt-get update -q
+  ## '--non-interactive' makes sudo refuse to prompt; the next line below
+  ## proves we expect passwordless sudo here. Earlier this line piped
+  ## 'changeme' into 'sudo --stdin' as a "fallback password", but
+  ## '--non-interactive' takes precedence over '--stdin' (sudo --help:
+  ## "If -n is specified ... -S has no effect.") so the pipe was always
+  ## a no-op. Drop both '--stdin' and the pipe.
+  sudo --non-interactive -- apt-get update -q
   sudo --non-interactive -- apt-get install git python3-behave python3-pip python3-pyatspi -yq
   pip3 install dogtail -q
   gsettings set org.gnome.desktop.interface toolkit-accessibility true

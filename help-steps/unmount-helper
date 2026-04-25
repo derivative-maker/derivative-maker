@@ -7,11 +7,14 @@
 ## unmount-helper -- /path/to/folder
 
 #set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
-MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MYDIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )"
 
 dist_build_internal_run="true"
 
@@ -20,12 +23,9 @@ source "$MYDIR/colors"
 source "$MYDIR/variables"
 
 main() {
-   local exit_code
-   exit_code=0
-
    while :
    do
-       case $1 in
+       case "${1:-}" in
            --)
                shift
                break
@@ -37,7 +37,11 @@ main() {
    done
 
    local unmount_folder
-   unmount_folder="$1"
+   unmount_folder="${1:-}"
+   if [ -z "$unmount_folder" ]; then
+      printf '%s\n' "$0: ERROR: unmount_folder argument missing." >&2
+      exit 1
+   fi
 
    sync
 
@@ -73,7 +77,7 @@ main() {
       return 0
    fi
 
-   $SUDO_TO_ROOT umount --verbose "$unmount_folder" || { exit_code="$?" ; true "INFO: 'umount --verbose $unmount_folder' non-zero exit code." ;};
+   $SUDO_TO_ROOT umount --verbose "$unmount_folder" || true "INFO: 'umount --verbose $unmount_folder' non-zero exit code."
    sync
    #sleep 6
 
@@ -82,7 +86,7 @@ main() {
       return 0
    fi
 
-   $SUDO_TO_ROOT umount --verbose --force -- "$unmount_folder" || { exit_code="$?" ; true "INFO: umount '--verbose --force $unmount_folder' non-zero exit code." ;};
+   $SUDO_TO_ROOT umount --verbose --force -- "$unmount_folder" || true "INFO: umount '--verbose --force $unmount_folder' non-zero exit code."
    sync
    #sleep 6
 
@@ -96,7 +100,7 @@ main() {
    ## Debugging.
    $SUDO_TO_ROOT cat -- /proc/mounts
 
-   echo "ERROR: unmount_folder '$unmount_folder' not unmounted after three attempts!"
+   printf '%s\n' "ERROR: unmount_folder '$unmount_folder' not unmounted after three attempts!"
    exit 1
 }
 

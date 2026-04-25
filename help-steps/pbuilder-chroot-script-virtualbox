@@ -10,24 +10,30 @@
 ## Useful for running 'vboxmanage' inside a clean 'cowbuilder' chroot.
 
 set -x
-set -e
-
-true "${bold}INFO: Currently running cowbuilder VirtualBox chroot script.${reset}"
-
+set -o errexit
+set -o nounset
 set -o pipefail
-#set -o nounset
+set -o errtrace
+
+## help-steps/colors is not available in the pbuilder chroot where this
+## script runs, so plain (uncolored) log messages.
+true "INFO: Currently running cowbuilder VirtualBox chroot script."
 
 ## /usr/share/doc/pbuilder/examples/D10tmp
-[ -n "$TMP" -a ! -d "$TMP" ] && mkdir -p "$TMP" || true
-[ -n "$TMPDIR" -a ! -d "$TMPDIR" ] && mkdir -p "$TMPDIR" || true
 ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=725434;msg=45
-chmod 1777 "$TMP" || true
-chmod 1777 "$TMPDIR" || true
+if [ -n "${TMP:-}" ]; then
+   [ -d "$TMP" ] || mkdir -p -- "$TMP" || true
+   chmod 1777 -- "$TMP" || true
+fi
+if [ -n "${TMPDIR:-}" ]; then
+   [ -d "$TMPDIR" ] || mkdir -p -- "$TMPDIR" || true
+   chmod 1777 -- "$TMPDIR" || true
+fi
 
 #declare -p | awk '{print $3}' | sort
 
 ## Debugging.
-cat "/home/$user_name/pbuilder_config_file"
+cat -- "/home/$user_name/pbuilder_config_file"
 
 source "/home/$user_name/pbuilder_config_file"
 
@@ -74,7 +80,7 @@ printf '%s\n' "--------------------"
 
 ## Not yet needed but useful as a sanity test.
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
-printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[*]}"
 
 ## NOTE: Code duplication in build-step prepare-build-machine
 ## NOTE: Code duplication in help-step pbuilder-chroot-script-virtualbox
@@ -118,7 +124,7 @@ ls -la -- "/home/dm-vbox-temp/dist-installer-cli-download" || true
 #cat -- "/home/dm-vbox-temp/dist-installer-cli-download/logs/$last_run_integer/user.log"
 
 true "INFO: dist-installer-cli-standalone success: $success"
-if [ "$success" = "false" ];then
+if [ "${success:-}" = "false" ];then
   error "VirtualBox installer failed inside cowbuilder chroot."
 fi
 
@@ -127,4 +133,4 @@ command -v vboxmanage >/dev/null
 
 rm -f -- "/etc/sudoers.d/dm-vbox-temp_nopassword"
 
-true "${bold}INFO: End of script cowbuilder VirtualBox chroot script.${reset}"
+true "INFO: End of script cowbuilder VirtualBox chroot script."

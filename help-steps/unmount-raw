@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -16,14 +19,14 @@ source "$MYDIR/variables"
 
 exception_handler_unmount-raw() {
    true "${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}"
+${red}${bold}ERROR ${BASH_SOURCE[0]}: | caller: $(caller)${reset}"
    exit 1
 }
 
 unmount_raw() {
    trap "exception_handler_unmount-raw" ERR INT TERM
 
-   if [ "$mount_folder" = "" ]; then
+   if [ "${mount_folder:-}" = "" ]; then
       true
    else
       ## hack for help-steps/analyze-image
@@ -32,17 +35,17 @@ unmount_raw() {
 
    sync
 
-   true "INFO: Start of $FUNCNAME. Running losetup --all for debugging before running kpartx."
+   true "INFO: Start of ${FUNCNAME[0]}. Running losetup --all for debugging before running kpartx."
    $SUDO_TO_ROOT losetup --all
 
-   if [ "$kpartx_only" = "true" ]; then
+   if [ "${kpartx_only:-}" = "true" ]; then
       true "INFO: kpartx_only=$kpartx_only, skipping unmount $CHROOT_FOLDER"
    else
       "$dist_source_help_steps_folder/unmount-helper" "$CHROOT_FOLDER"
    fi
 
    local img
-   if [ "$dist_build_mount_raw_file" = "" ]; then
+   if [ "${dist_build_mount_raw_file:-}" = "" ]; then
       img="$binary_image_raw_file"
    else
       img="$dist_build_mount_raw_file"
@@ -89,19 +92,19 @@ unmount_raw() {
       $SUDO_TO_ROOT losetup -d "$loop_devices_item" || true "INFO: losetup non-zero exit code."
    done
 
-   true "INFO: Middle of $FUNCNAME. losetup --associated after kpartx -d (Delete partition mappings.)"
+   true "INFO: Middle of ${FUNCNAME[0]}. losetup --associated after kpartx -d (Delete partition mappings.)"
    local loop_devices_output_after
    loop_devices_output_after="$($SUDO_TO_ROOT losetup --associated "$img" --noheadings --output NAME)"
 
-   if [ ! "$loop_devices_output_after" = "" ]; then
+   if [ ! "${loop_devices_output_after:-}" = "" ]; then
       error "Unmount failed. Variable loop_devices_output_after is non-empty."
    fi
 
-   true "INFO: Middle of $FUNCNAME. Running losetup --all for debugging after kpartx -d (Delete partition mappings.)"
+   true "INFO: Middle of ${FUNCNAME[0]}. Running losetup --all for debugging after kpartx -d (Delete partition mappings.)"
    $SUDO_TO_ROOT losetup --all
    sync
 
-   if [ "$kpartx_only" = "true" ]; then
+   if [ "${kpartx_only:-}" = "true" ]; then
       true "INFO: kpartx_only=$kpartx_only, skipping debugging: ls -la $CHROOT_FOLDER"
    else
       if test -d "$CHROOT_FOLDER" ; then
@@ -111,7 +114,7 @@ unmount_raw() {
       fi
    fi
 
-   if [ "$kpartx_only" = "true" ]; then
+   if [ "${kpartx_only:-}" = "true" ]; then
       true "INFO: kpartx_only=$kpartx_only, skipping rmdir."
    else
       ## Delete temporary folder.
@@ -122,8 +125,8 @@ unmount_raw() {
 }
 
 main() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${green}INFO: Skipping script, because dist_build_install_to_root is set to true: $BASH_SOURCE${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${green}INFO: Skipping script, because dist_build_install_to_root is set to true: ${BASH_SOURCE[0]}${reset}"
       exit 0
    else
       unmount_raw

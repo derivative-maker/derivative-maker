@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -76,26 +79,26 @@ msg_whonix_workstation_low_ram="\
 If your computer has less than 2GB RAM, you can lower the RAM for Whonix-Workstation to 512MB. Performance will suffer, but an advanced user can install a lighter desktop environment. Setting RAM to less than 512MB will boot to a command-line environment."
 
 create-vm-text() {
-   if [ "$dist_build_flavor" = "whonix-gateway-cli" ]; then
+   if [ "${dist_build_flavor:-}" = "whonix-gateway-cli" ]; then
       local TEXT="\
 $msg_whonix_security_advice
 
 $msg_whonix_disclaimer"
-   elif [ "$dist_build_flavor" = "whonix-workstation-cli" ]; then
+   elif [ "${dist_build_flavor:-}" = "whonix-workstation-cli" ]; then
       local TEXT="\
 $msg_whonix_workstation_requires_whonix_gateway
 
 $msg_whonix_security_advice
 
 $msg_whonix_disclaimer"
-   elif [ "$dist_build_type_long" = "gateway" ]; then
+   elif [ "${dist_build_type_long:-}" = "gateway" ]; then
       local TEXT="\
 $msg_graphical_gateway_low_ram
 
 $msg_whonix_security_advice
 
 $msg_whonix_disclaimer"
-   elif [ "$dist_build_type_long" = "workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "workstation" ]; then
       local TEXT="\
 $msg_whonix_workstation_requires_whonix_gateway
 
@@ -104,35 +107,35 @@ $msg_whonix_workstation_low_ram
 $msg_whonix_security_advice
 
 $msg_whonix_disclaimer"
-   elif [ "$dist_build_type_long" = "custom-workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
       local TEXT="\
 $msg_whonix_workstation_requires_whonix_gateway
 
 $msg_whonix_security_advice
 
 $msg_whonix_disclaimer"
-   elif [ "$dist_build_type_long" = "whonix-host" ]; then
+   elif [ "${dist_build_type_long:-}" = "whonix-host" ]; then
       local TEXT="TODO"
-   elif [ "$dist_build_type_long" = "kicksecure" ]; then
+   elif [ "${dist_build_type_long:-}" = "kicksecure" ]; then
       local TEXT="\
 $msg_kicksecure_security_advice
 
 $msg_kicksecure_disclaimer"
    else
-      local MSG="${bold}${red}$BASH_SOURCE ERROR: dist_build_type_long is neither Kicksecure, nor Whonix-Gateway nor Whonix-Workstation. Please report this bug! ${reset}"
+      local MSG="${bold}${red}${BASH_SOURCE[0]} ERROR: dist_build_type_long is neither Kicksecure, nor Whonix-Gateway nor Whonix-Workstation. Please report this bug! ${reset}"
       error "$MSG"
    fi
 
-   echo "$TEXT" | tee "$binary_image_text" >/dev/null
+   printf '%s\n' "$TEXT" | tee -- "$binary_image_text" >/dev/null
 }
 
 main() {
-   if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
       create-vm-text
    else
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_virtualbox is not set to 'true'.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_virtualbox is not set to 'true'.${reset}"
    fi
 }
 
-true "${bold}${under}INFO: Currently running script: $0 "$@"${reset}"
+true "${bold}${under}INFO: Currently running script: $0 $*${reset}"
 main "$@"

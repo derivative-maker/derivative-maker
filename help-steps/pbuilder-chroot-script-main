@@ -4,20 +4,25 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
-
-true "${bold}INFO: Currently running cowbuilder main chroot script.${reset}"
-
+set -o errexit
+set -o nounset
 set -o pipefail
-## TODO
-#set -o nounset
+set -o errtrace
+
+## help-steps/colors is not available in the pbuilder chroot where this
+## script runs, so plain (uncolored) log messages.
+true "INFO: Currently running cowbuilder main chroot script."
 
 ## /usr/share/doc/pbuilder/examples/D10tmp
-[ -n "$TMP" -a ! -d "$TMP" ] && mkdir -p "$TMP" || true
-[ -n "$TMPDIR" -a ! -d "$TMPDIR" ] && mkdir -p "$TMPDIR" || true
 ## https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=725434;msg=45
-chmod 1777 "$TMP" || true
-chmod 1777 "$TMPDIR" || true
+if [ -n "${TMP:-}" ]; then
+   [ -d "$TMP" ] || mkdir -p -- "$TMP" || true
+   chmod 1777 -- "$TMP" || true
+fi
+if [ -n "${TMPDIR:-}" ]; then
+   [ -d "$TMPDIR" ] || mkdir -p -- "$TMPDIR" || true
+   chmod 1777 -- "$TMPDIR" || true
+fi
 
 ## Debugging.
 cat -- "/home/$user_name/pbuilder_config_file"
@@ -28,9 +33,9 @@ source "/home/$user_name/pbuilder_config_file"
 true "apt_unattended_opts: $apt_unattended_opts"
 
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
-printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[*]}"
 
-if [ "$dist_build_unsafe_io" = "true" ]; then
+if [ "${dist_build_unsafe_io:-}" = "true" ]; then
   #if ! test -h /usr/lib/libeatmydata.so ; then
     #ln -s /usr/lib/x86_64-linux-gnu/libeatmydata.so /usr/lib/libeatmydata.so || true
   #fi
@@ -86,4 +91,4 @@ apt-get "${APTGETOPT[@]}" $apt_unattended_opts --yes dist-upgrade
 
 adduser --quiet --group --system --home "/home/$user_name" "$user_name"
 
-true "${bold}INFO: End of script cowbuilder main chroot script.${reset}"
+true "INFO: End of script cowbuilder main chroot script."

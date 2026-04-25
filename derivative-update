@@ -5,8 +5,9 @@
 
 set -x
 set -o errexit
-set -o errtrace
+set -o nounset
 set -o pipefail
+set -o errtrace
 
 true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
@@ -115,9 +116,9 @@ update_repo() {
   ## and recursively verifies all submodules.
   "${git_sanity_test}" --mode all --context "main repo"
 
-  true "INFO: $BASH_SOURCE continuing..."
+  true "INFO: ${BASH_SOURCE[0]} continuing..."
 
-  if [ "$update_only" = "true" ]; then
+  if [ "${update_only:-}" = "true" ]; then
     ## --update-only requires HEAD to be on an exact tag. (The signature
     ## of HEAD and the tag itself were already verified above.)
     target_tag="$(git describe --exact-match --tags HEAD 2>/dev/null)" || target_tag=""
@@ -133,7 +134,7 @@ update_repo() {
   if [ "${target_tag}" = 'latest' ]; then
     true "INFO: latest tag requested: yes"
     latest_tag_commit="$(git rev-list --tags --max-count=1)" || error 'Failed to find latest tag commit.'
-    [[ -z "$latest_tag_commit" ]] && error 'No tags found.'
+    [[ -z "${latest_tag_commit:-}" ]] && error 'No tags found.'
     target_tag="$(git describe --tags -- "$latest_tag_commit")" || error 'Failed to find latest git tag.'
   else
     true "INFO: latest tag requested: no"
@@ -145,7 +146,7 @@ update_repo() {
       abort_update 'Tag verification failed!'
     fi
 
-    if [ "$update_only" = "true" ]; then
+    if [ "${update_only:-}" = "true" ]; then
       true "INFO: --update-only. Not running git checkout."
     else
       ## NOTE: Cannot use end-of-options ("--").
@@ -274,8 +275,8 @@ update_repo() {
   fi
 
   if [ -n "$(git status --porcelain=v1 2>&1)" ]; then
-    if [ "$dist_build_ignore_uncommitted" = "true" ]; then
-      true "${bold}${cyan}$BASH_SOURCE INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
+    if [ "${dist_build_ignore_uncommitted:-}" = "true" ]; then
+      true "${bold}${cyan}${BASH_SOURCE[0]} INFO: Git reports uncommitted changes! But you requested to ignore uncommitted changes, continuing... ${reset}"
     else
       error 'Unexpected uncommitted changes after checkout.'
     fi
@@ -288,7 +289,7 @@ update_repo() {
 }
 
 main() {
-  if [ "$(id -u)" = "0" ]; then
+  if [ "$EUID" = "0" ]; then
     true "${red}${bold}ERROR: This must NOT be run as root (sudo)!${reset}"
     exit 1
   fi

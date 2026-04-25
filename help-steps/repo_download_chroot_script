@@ -4,17 +4,19 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 true "INFO: (hardcoded) this script is: help-steps/repo_download_chroot_script"
 true "INFO:  This script is supposed to be either executed:"
 true "INFO: - by cowbuilder which is expected to run as root (sudo), or"
 true "INFO: - using root (sudo)."
-true "INFO: \$0: '$0' | \$@: '$@'"
+true "INFO: \$0: '$0' | \$*: '$*'"
 
-if [ "$(id -u)" != "0" ]; then
-   echo "ERROR: This must be run as root (sudo)!"
+if [ "$EUID" != "0" ]; then
+   printf '%s\n' "ERROR: This must be run as root (sudo)!"
    exit 1
 fi
 
@@ -34,7 +36,7 @@ true "INFO: APTGETOPT_SERIALIZED: $APTGETOPT_SERIALIZED"
 true "---------------"
 
 mapfile -t APTGETOPT <<< "$APTGETOPT_SERIALIZED"
-printf "%s\n" "APTGETOPT: ${APTGETOPT[@]}"
+printf "%s\n" "APTGETOPT: ${APTGETOPT[*]}"
 
 test -f "${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repository/newer.sources"
 
@@ -53,15 +55,15 @@ if [ -f "${if_no_pbuilder_base_folder}/var/cache/derivative-maker/temporary-repo
    sq cert lint --cert-file "/etc/apt/trusted.gpg.d/newer.asc"
 fi
 
-if [ "$temp_newer_packages" = "" ]; then
-   echo "ERROR $0: temp_newer_packages is empty!"
+if [ "${temp_newer_packages:-}" = "" ]; then
+   printf '%s\n' "ERROR $0: temp_newer_packages is empty!"
    exit 1
 fi
 
-if [ "$apt_target_release" = "" ]; then
-   echo "ERROR $0: apt_target_release is empty!"
+if [ "${apt_target_release:-}" = "" ]; then
+   printf '%s\n' "ERROR $0: apt_target_release is empty!"
    exit 1
-elif [ "$apt_target_release" = "none" ]; then
+elif [ "${apt_target_release:-}" = "none" ]; then
    target_release_option=""
 else
    target_release_option="--target-release=${apt_target_release}"
@@ -115,7 +117,7 @@ apt-get \
    -- \
    $newer_package_list
 
-if [ "$download_source_package" = "true" ]; then
+if [ "${download_source_package:-}" = "true" ]; then
    apt-get \
       "${APTGETOPT[@]}" \
       $apt_unattended_opts \

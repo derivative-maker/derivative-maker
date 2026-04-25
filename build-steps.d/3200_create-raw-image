@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -21,30 +24,30 @@ source variables
 create-debian-raw-image() {
    mkdir --parents "$binary_build_folder_dist/"
 
-   if [ "$dist_build_raw_base_image_create" = "true" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Changing binary_image_raw_file path, because dist_build_raw_base_image_create=true.${reset}"
+   if [ "${dist_build_raw_base_image_create:-}" = "true" ]; then
+      true "${cyan}${BASH_SOURCE[0]} INFO: Changing binary_image_raw_file path, because dist_build_raw_base_image_create=true.${reset}"
       binary_image_raw_file="${dist_binary_build_folder}/base-image.raw"
    fi
 
-   if [ "$dist_build_use_cached_raw_base_image" = "true" ]; then
-      true "${cyan}$BASH_SOURCE INFO: Setting cached_binary_image_raw_file path, because dist_build_use_cached_raw_base_image=true.${reset}"
+   if [ "${dist_build_use_cached_raw_base_image:-}" = "true" ]; then
+      true "${cyan}${BASH_SOURCE[0]} INFO: Setting cached_binary_image_raw_file path, because dist_build_use_cached_raw_base_image=true.${reset}"
       cached_binary_image_raw_file="${dist_binary_build_folder}/base-image.raw"
    fi
 
-   if [ ! "$cached_binary_image_raw_file" = "" ]; then
-      true "${cyan}$BASH_SOURCE INFO: copy and use cached_binary_image_raw_file '$cached_binary_image_raw_file'...${reset}"#
+   if [ ! "${cached_binary_image_raw_file:-}" = "" ]; then
+      true "${cyan}${BASH_SOURCE[0]} INFO: copy and use cached_binary_image_raw_file '$cached_binary_image_raw_file'...${reset}"#
       if ! test -f "$cached_binary_image_raw_file" ; then
          error "cached_binary_image_raw_file '$cached_binary_image_raw_file' does not exist!"
       fi
       $SUDO_TO_ROOT chown "$user_name:$user_name" "$cached_binary_image_raw_file"
       $SUDO_TO_ROOT safe-rm -f -- "$binary_image_raw_file"
       cp "$cached_binary_image_raw_file" "$binary_image_raw_file"
-      true "${cyan}$BASH_SOURCE INFO: copying cached_binary_image_raw_file done.${reset}"
+      true "${cyan}${BASH_SOURCE[0]} INFO: copying cached_binary_image_raw_file done.${reset}"
       return 0
    fi
 
    ARCH="$(uname --machine)"
-   true "${cyan}$BASH_SOURCE INFO: Architecture $ARCH detected.${reset}"
+   true "${cyan}${BASH_SOURCE[0]} INFO: Architecture $ARCH detected.${reset}"
    true "${cyan}INFO: dist_build_target_arch set to: $dist_build_target_arch${reset}"
 
    $SUDO_TO_ROOT mkdir --parents "/etc/debootstrap/etc/apt/sources.list.d"
@@ -52,7 +55,7 @@ create-debian-raw-image() {
 
    ## Info.
    true "${cyan}INFO: Using the following /etc/apt/sources.list.d/derivative.sources for grml-debootstrap: ${reset}"
-   $SUDO_TO_ROOT cat "/etc/debootstrap/etc/apt/sources.list.d/derivative.sources"
+   $SUDO_TO_ROOT cat -- "/etc/debootstrap/etc/apt/sources.list.d/derivative.sources"
 
    ## TODO
    ## /etc/resolv.conf of host leaks into image.
@@ -66,27 +69,27 @@ create-debian-raw-image() {
 
    ## Using export, so grml-debootstrap can read it.
 
-   [ -n "$DEBUG" ] || export DEBUG="true"
+   [ -n "${DEBUG:-}" ] || export DEBUG="true"
 
    ## https://github.com/grml/grml-debootstrap/issues/22
    ## https://github.com/grml/grml-debootstrap/pull/31
-   [ -n "$REPORT_TRAP_ERR" ] || export REPORT_TRAP_ERR="yes"
-   [ -n "$FAIL_TRAP_ERR" ] || export FAIL_TRAP_ERR="yes"
+   [ -n "${REPORT_TRAP_ERR:-}" ] || export REPORT_TRAP_ERR="yes"
+   [ -n "${FAIL_TRAP_ERR:-}" ] || export FAIL_TRAP_ERR="yes"
 
-   [ -n "$DPKG_OPTIONS" ] || export DPKG_OPTIONS="${APTGETOPT[@]}"
+   [ -n "${DPKG_OPTIONS:-}" ] || export DPKG_OPTIONS="${APTGETOPT[*]}"
 
    ## Do not install non-Free software.
-   [ -n "$COMPONENTS" ] || export COMPONENTS='main'
+   [ -n "${COMPONENTS:-}" ] || export COMPONENTS='main'
 
    ## Integrity test.
-   [ -n "$FSCK" ] || export FSCK='yes'
+   [ -n "${FSCK:-}" ] || export FSCK='yes'
 
    ## Set time zone to UTC. Not that important, we will install our own
    ## /etc/timezone file later anyway. Just in case.
-   [ -n "$TIMEZONE" ] || export TIMEZONE='UTC'
+   [ -n "${TIMEZONE:-}" ] || export TIMEZONE='UTC'
 
    ## Do not clean APT cache after installation is finished to safe time.
-   [ -n "$RM_APTCACHE" ] || export RM_APTCACHE='no'
+   [ -n "${RM_APTCACHE:-}" ] || export RM_APTCACHE='no'
 
    ## We do not need to upgrade the image, because when we create an image,
    ## we end up with the most current versions from the repository we are using
@@ -99,23 +102,23 @@ create-debian-raw-image() {
    ## buildconfig-d/30_apt.conf.) https://github.com/grml/grml-debootstrap/issues/8
    ## Even if we wanted to upgrade the system, we'd be better off using our own
    ## build-step for that.
-   [ -n "$UPGRADE_SYSTEM" ] || export UPGRADE_SYSTEM='no'
+   [ -n "${UPGRADE_SYSTEM:-}" ] || export UPGRADE_SYSTEM='no'
 
    ## Use fixed disk identifier. For verifiable builds.
    ## grml-debootstrap sets it to:
    ## 26ada0c0-1165-4098-884d-aafd2220c2c6
-   [ -n "$FIXED_DISK_IDENTIFIERS" ] || export FIXED_DISK_IDENTIFIERS='yes'
+   [ -n "${FIXED_DISK_IDENTIFIERS:-}" ] || export FIXED_DISK_IDENTIFIERS='yes'
 
    ## Speed versus ease of debugging.
    ## Not using grml-debootstrap to install a kernel.
    ## We later install a kernel ourselves.
-   #[ -n "$KERNEL" ] || export KERNEL="none"
-   #[ -n "$NOKERNEL" ] || export NOKERNEL="true"
+   #[ -n "${KERNEL:-}" ] || export KERNEL="none"
+   #[ -n "${NOKERNEL:-}" ] || export NOKERNEL="true"
    ## We later create an initial ramdisk ourselves.
-   #[ -n "$INITRD" ] || export INITRD="no"
+   #[ -n "${INITRD:-}" ] || export INITRD="no"
 
    ## Do not use /etc/network/interfaces by grml-debootstrap.
-   [ -n "$NOINTERFACES" ] || export NOINTERFACES="true"
+   [ -n "${NOINTERFACES:-}" ] || export NOINTERFACES="true"
 
    ### {{{
    true "OLD_PATH: $PATH"
@@ -130,22 +133,22 @@ create-debian-raw-image() {
    true "NEW_PATH: $PATH"
    ### }}}
 
-   #if [ "$dist_build_flavor" = "whonix-gateway-rpi" ] || [ "$dist_build_target_arch" = "arm64" ]; then
+   #if [ "${dist_build_flavor:-}" = "whonix-gateway-rpi" ] || [ "${dist_build_target_arch:-}" = "arm64" ]; then
       ## Do not pass --vmefi to grml-debootstarp due to the following grml-debootstrap bug.
       ## VM build failing if combining `--vmefi` with `--arch arm64`
       ## https://github.com/grml/grml-debootstrap/issues/257
       ##
       ## '--arch arm64' do not need '--vmefi' anyhow because grml-debootstrap setups up EFI
       ## for these VM builds anyhow.
-      #[ -n "$use_vmefi_maybe" ] || use_vmefi_maybe=""
+      #[ -n "${use_vmefi_maybe:-}" ] || use_vmefi_maybe=""
    #else
-      #[ -n "$use_vmefi_maybe" ] || use_vmefi_maybe="--vmefi"
+      #[ -n "${use_vmefi_maybe:-}" ] || use_vmefi_maybe="--vmefi"
    #fi
    ## Should be fixed.
    ## TODO: test and simplify
-   [ -n "$use_vmefi_maybe" ] || use_vmefi_maybe="--vmefi"
+   [ -n "${use_vmefi_maybe:-}" ] || use_vmefi_maybe="--vmefi"
 
-   [ -n "$grml_packages_file" ] || grml_packages_file="$source_code_folder_dist/grml_packages"
+   [ -n "${grml_packages_file:-}" ] || grml_packages_file="$source_code_folder_dist/grml_packages"
 
    ## Why not use 'qemu-debootstrap' by default?
    ## - Would require a lot work, if at all possible.
@@ -167,7 +170,7 @@ create-debian-raw-image() {
       ## This has currently no effect. Since kernel installation and initrd
       ## creating is not done during this step, grml-debootstrap chroot-script
       ## will skip initramfs creation.
-      [ -n "$INITRD_GENERATOR" ] || export INITRD_GENERATOR="dracut"
+      [ -n "${INITRD_GENERATOR:-}" ] || export INITRD_GENERATOR="dracut"
    fi
 
    ## See also /etc/debootstrap/config or
@@ -189,19 +192,19 @@ create-debian-raw-image() {
    ## Pass environment variables:
    ## SOURCE_DATE_EPOCH
 
-   echo "-------------- DEBUGGING BLOCK ---------------------"
-   echo "DEBOOTSTRAP_PREFIX: $DEBOOTSTRAP_PREFIX"
-   echo "new_path: $new_path"
-   echo "dist_build_target_arch: $dist_build_target_arch"
-   echo "dist_build_hostname: $dist_build_hostname"
-   echo "dist_build_apt_stable_release: $dist_build_apt_stable_release"
-   echo "dist_build_file_system: $dist_build_file_system"
-   echo "vmsize: $VMSIZE"
-   echo "packages: $grml_packages_file"
-   echo "mntpoint: $dist_grml_mount_point"
-   echo "target: $binary_image_raw_file"
-   echo "use_vmefi_maybe: $use_vmefi_maybe"
-   echo "------------ END DEBUGGING BLOCK -------------------"
+   printf '%s\n' "-------------- DEBUGGING BLOCK ---------------------"
+   printf '%s\n' "DEBOOTSTRAP_PREFIX: $DEBOOTSTRAP_PREFIX"
+   printf '%s\n' "new_path: $new_path"
+   printf '%s\n' "dist_build_target_arch: $dist_build_target_arch"
+   printf '%s\n' "dist_build_hostname: $dist_build_hostname"
+   printf '%s\n' "dist_build_apt_stable_release: $dist_build_apt_stable_release"
+   printf '%s\n' "dist_build_file_system: $dist_build_file_system"
+   printf '%s\n' "vmsize: $VMSIZE"
+   printf '%s\n' "packages: $grml_packages_file"
+   printf '%s\n' "mntpoint: $dist_grml_mount_point"
+   printf '%s\n' "target: $binary_image_raw_file"
+   printf '%s\n' "use_vmefi_maybe: $use_vmefi_maybe"
+   printf '%s\n' "------------ END DEBUGGING BLOCK -------------------"
 
    ## Sanity test.
    test -n "${dist_build_hostname}"
@@ -238,22 +241,22 @@ permission-fix-raw-image() {
 }
 
 main() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to true.${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_install_to_root is set to true.${reset}"
       return 0
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
-       true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is set to true.${reset}"
+   if [ "${dist_build_iso:-}" = "true" ]; then
+       true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is set to true.${reset}"
        return 0
    fi
 
-   if [ "$build_dry_run" = "true" ]; then
+   if [ "${build_dry_run:-}" = "true" ]; then
       true "${bold}${cyan}INFO: dry-run.${reset}"
       create-empty-raw-image
-   elif [ "$dist_build_type_long" = "custom-workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
       create-empty-raw-image
-   elif [ "$dist_build_type_long" = "internalrun" ]; then
+   elif [ "${dist_build_type_long:-}" = "internalrun" ]; then
       ## Missing variables such as: dist_build_hostname
       error "unsupported flavor: --flavor internal"
    else

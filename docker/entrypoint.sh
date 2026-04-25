@@ -8,8 +8,8 @@
 set -x
 set -o errexit
 set -o nounset
-set -o errtrace
 set -o pipefail
+set -o errtrace
 
 container=docker
 export container

@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -17,7 +20,7 @@ source "$MYDIR/variables"
 error_handler_prevent_daemons_from_starting() {
    : echo "
 ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
+${red}${bold}ERROR ${BASH_SOURCE[0]}: | caller: $(caller)${reset}
 "
    exit 1
 }
@@ -27,7 +30,7 @@ main() {
 
    sync
 
-   echo "$FUNCNAME: copy policy-rc.d into /usr/sbin/ to prevent daemons from starting."
+   printf '%s\n' "${FUNCNAME[0]}: copy policy-rc.d into /usr/sbin/ to prevent daemons from starting."
 
    if [ ! -e "${CHROOT_FOLDER}/usr/sbin/policy-rc.d.derivative-maker" ]; then
       ## Copy custom policy-rc.d into position

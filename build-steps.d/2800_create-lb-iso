@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -149,8 +152,6 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg" \
 
    printf '%s\n' "#!/bin/sh
 
-set -e
-
 lb config noauto \\
    --apt apt-get \\
    --apt-indices false \\
@@ -233,7 +234,7 @@ Signed-By: /usr/share/keyrings/fasttrack-archive-keyring.gpg" | sponge -- archiv
       printf '%s\n' "$sources_list_build_remote_derivative" | sponge -- archives/derivative-temp.sources.chroot
       cp -- "${source_code_folder_dist}/packages/kicksecure/repository-dist/usr/share/keyrings/derivative.asc" archives/derivative-temp.key.chroot
    else
-      if [ "$build_dry_run" = "true" ]; then
+      if [ "${build_dry_run:-}" = "true" ]; then
          true "${bold}${cyan}INFO: Dry-run, skipping setting readlink_result_live_build_localrepo_location. ${reset}"
          readlink_result_live_build_localrepo_location="/nonexisting/build_dry_run"
       else
@@ -320,9 +321,9 @@ Pin-Priority: 900"
          sed -i 's/XXX_FWUPD_SIGNED_XXX/fwupd-signed/' package-lists/z-kicksecure.list.chroot
          ;;
    esac
-   if [ "$build_freedom_only" = "true" ]; then
+   if [ "${build_freedom_only:-}" = "true" ]; then
       sed -i 's/XXX_FIRMWARE_NONFREEDOM_XXX//' package-lists/z-kicksecure.list.chroot
-   elif [ "$build_freedom_only" = "false" ]; then
+   elif [ "${build_freedom_only:-}" = "false" ]; then
       sed -i 's/XXX_FIRMWARE_NONFREEDOM_XXX/firmware-nonfreedom\nfirmware-nonfreedom-noarch/' package-lists/z-kicksecure.list.chroot
    fi
 
@@ -336,7 +337,7 @@ Pin-Priority: 900"
 
    sed -i "s/XXX_KICKSECURE_HOST_XXX/${live_build_flavor_line_list}/" package-lists/z-kicksecure.list.chroot
 
-   if [ "$dist_build_type_short" = 'kicksecure' ]; then
+   if [ "${dist_build_type_short:-}" = 'kicksecure' ]; then
       sed -i "s/XXX_KICKSECURE_NETWORK_CONF_XXX/kicksecure-network-conf/" package-lists/z-kicksecure.list.chroot
       sed -i "s/XXX_KICKSECURE_NETWORK_CONF_GUI_XXX/kicksecure-network-conf-gui/" package-lists/z-kicksecure.list.chroot
    else
@@ -363,8 +364,8 @@ Pin-Priority: 900"
    lb config --dump
    lb config --validate
 
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: Dry-run, skipping the rest of $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Dry-run, skipping the rest of ${BASH_SOURCE[0]}. ${reset}"
       ## Cannot be completely empty, or torrent creation would later fail during the prepare-release step.
       printf '%s\n' "dummy" | sponge -- "${binary_image_iso_file}"
       return 0
@@ -605,12 +606,12 @@ Not running any chroot scripts.${reset}"
 
 main() {
    if [ "${dist_build_install_to_root}" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_install_to_root is set to true.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_install_to_root is set to true.${reset}"
       return 0
    fi
 
    if [ "${dist_build_iso}" != "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is not set to true.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is not set to true.${reset}"
       return 0
    fi
 

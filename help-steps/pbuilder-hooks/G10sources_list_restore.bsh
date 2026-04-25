@@ -9,9 +9,14 @@
 ## derivative-maker build APT sources list.d/debian.sources.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "${bold}INFO: Currently running $0.${reset}"
+## help-steps/colors is not available inside the pbuilder chroot where this
+## hook runs, so plain (uncolored) log messages.
+true "INFO: Currently running $0."
 
 printf '%s\n' "$dist_build_sources_list_primary_contents" | tee -- "/etc/apt/sources.list.d/debian.sources"
 
@@ -29,4 +34,4 @@ rm --force --verbose -- "$dist_mmdebstrap_build_sources_list_primary"
 ## Delete obsolete sources.list file
 rm --force --verbose -- /etc/apt/sources.list
 
-true "${bold}INFO: End of script $0.${reset}"
+true "INFO: End of script $0."

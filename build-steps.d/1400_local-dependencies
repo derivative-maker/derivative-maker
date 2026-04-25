@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -48,11 +51,11 @@ local_dependencies() {
 
    "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-cleanup
 
-   if [ "$make_use_cowbuilder" = "false" ]; then
+   if [ "${make_use_cowbuilder:-}" = "false" ]; then
       "$source_code_folder_dist/packages/kicksecure/genmkfile/usr/bin/genmkfile" deb-build-dep
    fi
 
-   if [ "$make_use_cowbuilder" = "true" ]; then
+   if [ "${make_use_cowbuilder:-}" = "true" ]; then
       cow_folder="/var/cache/pbuilder/cow.cow_${host_architecture}"
       base_folder="/var/cache/pbuilder/base.cow_${host_architecture}"
       if ! test -d "$cow_folder" ; then
@@ -75,7 +78,7 @@ local_dependencies() {
 }
 
 live-build_installation() {
-   if [ ! "$dist_build_iso" = "true" ]; then
+   if [ ! "${dist_build_iso:-}" = "true" ]; then
       true "INFO: Not installing live-build, because not building an ISO."
       return 0
    fi
@@ -149,7 +152,7 @@ live-build_installation() {
    #git checkout HEAD -- ./manpages/
 
    ## Restore uncommitted source tree state
-   #if [ "$restore_uncommitted_state" = 'y' ]; then
+   #if [ "${restore_uncommitted_state:-}" = 'y' ]; then
       #git reset HEAD^
    #fi
 
@@ -162,8 +165,8 @@ live-build_installation() {
 }
 
 virtualbox_windows_installer_download() {
-   if [ ! "$dist_build_windows_installer" = "true" ]; then
-      true "$0: INFO: Skip $FUNCNAME, because dist_build_windows_installer is not set to true."
+   if [ ! "${dist_build_windows_installer:-}" = "true" ]; then
+      true "$0: INFO: Skip ${FUNCNAME[0]}, because dist_build_windows_installer is not set to true."
       return 0
    fi
 
@@ -183,7 +186,7 @@ virtualbox_windows_installer_download() {
    cp --verbose "$source_code_folder_dist/windows/virtualbox/download.txt" "$binary_build_folder_dist/virtualbox-windows-installer-binary/"
    cp --verbose "$source_code_folder_dist/windows/virtualbox/SHA256SUMS" "$binary_build_folder_dist/virtualbox-windows-installer-binary/"
 
-   curl_download_target_url=$(cat "$source_code_folder_dist/windows/virtualbox/download.txt")
+   curl_download_target_url=$(cat -- "$source_code_folder_dist/windows/virtualbox/download.txt")
    ## Exact filename is required for SHA256SUMS verification.
    versioned_virtualbox_file_name=$(basename "$curl_download_target_url")
 

@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -29,19 +32,18 @@ build_machine_setup() {
    ## https://github.com/QubesOS/qubes-issues/issues/1066#issuecomment-1987239106
    $SUDO_TO_ROOT rm -f -- "/etc/apt/apt.conf.d/00notify-hook"
 
-   if [ "$dist_build_fast1" = "1" ]; then
-      true "${bold}${cyan}INFO: run with '--fast 1' switch, skipping $BASH_SOURCE. ${reset}"
+   if [ "${dist_build_fast1:-}" = "1" ]; then
+      true "${bold}${cyan}INFO: run with '--fast 1' switch, skipping ${BASH_SOURCE[0]}. ${reset}"
       exit 0
    fi
 
    ## {{ users and groups
 
    ## TODO: Still needed?
-   ## Check if user "$user_name" already exist.
-#    local id_exit_code
-#    id_exit_code="0"
-#    id "$user_name" || { id_exit_code="$?" ; true; };
-#    if [ "$id_exit_code" = "1" ]; then
+   ## Check if user "$user_name" already exists.
+#    if id "$user_name" >/dev/null 2>&1; then
+#       true "${cyan}INFO: Not creating user \"$user_name\" with password \"changeme\", because it already exists.${reset}"
+#    else
 #       true 'INFO: Creating user "$user_name" with password "changeme", because some things have to be run as "$user_name".'
 #       if command -v qubesdb-read >/dev/null 2>&1 ; then
 #          password=""
@@ -56,11 +58,6 @@ build_machine_setup() {
 #          password="aTayYxVyw5kDo"
 #       fi
 #       $SUDO_TO_ROOT useradd --password "$password" --user-group --create-home --shell /bin/bash "$user_name"
-#    elif [ "$id_exit_code" = "0" ]; then
-#       true "${cyan}INFO: Not creating user \"$user_name\" with password \"changeme\", because it already exists.${reset}"
-#    else
-#       true "${red}${bold}ERROR: id_exit_code was neither 1 or 0, it was: ${id_exit_code}${reset}"
-#       error "See above!"
 #    fi
 
    ## Add user to sudo group.
@@ -70,8 +67,8 @@ build_machine_setup() {
    ## }}
 
    ## Debugging.
-   true 'INFO: Benchmarking "$SUDO_TO_ROOT echo "This is a test echo." using "time"...'
-   time $SUDO_TO_ROOT echo "This is a test echo."
+   true 'INFO: Benchmarking "$SUDO_TO_ROOT printf %s\n test" using "time"...'
+   time $SUDO_TO_ROOT printf '%s\n' "This is a test printf."
 
    ## Nowadays done using: ./derivative-update
    #true "INFO: Updating git sub modules..."
@@ -98,7 +95,7 @@ build_machine_setup() {
          update
 
    true "dist_build_upgrade_build_machine: $dist_build_upgrade_build_machine"
-   if [ ! "$dist_build_upgrade_build_machine" = "0" ]; then
+   if [ ! "${dist_build_upgrade_build_machine:-}" = "0" ]; then
       ## Update package lists and upgrade.
       $SUDO_TO_ROOT \
          apt-get \
@@ -117,14 +114,14 @@ build_machine_setup() {
    local packages_to_be_installed
    packages_to_be_installed+=" $dist_build_script_build_dependency "
 
-   if [ "$eatmydata_install" = "true" ]; then
+   if [ "${eatmydata_install:-}" = "true" ]; then
       true "INFO: Installing eatmydata, because using '--unsafe-io true'."
       packages_to_be_installed+=" $eatmydata "
    else
       true "INFO: Not installing eatmydata, because not using '--unsafe-io true'."
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
+   if [ "${dist_build_iso:-}" = "true" ]; then
       true "INFO: host_architecture: $host_architecture"
       packages_to_be_installed+=" mokutil "
       packages_to_be_installed+=" keyutils "
@@ -170,7 +167,7 @@ build_machine_setup() {
       fi
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       ###########################################
       ## Build Dependency for Bare Metal Builds #
       ###########################################
@@ -178,7 +175,7 @@ build_machine_setup() {
       bare_metal_basic_package_list="$(grep --invert-match --extended-regexp "^\s*#" -- "$source_code_folder_dist/grml_packages" | tr "\n" " ")"
       packages_to_be_installed+=" $bare_metal_basic_package_list "
    else
-      if [ "$dist_build_virtualbox" = "true" ]; then
+      if [ "${dist_build_virtualbox:-}" = "true" ]; then
          #######################################################################
          ## Build Dependencies for creating VirtualBox Images (.vdi and .ova)  #
          #######################################################################
@@ -226,7 +223,7 @@ check-unicode() {
 
    grep_find_unicode_wrapper_output="$("$check_unicode_tool" "$source_code_folder_dist" 2>&1)" || true
 
-   if [ "$grep_find_unicode_wrapper_output" = "" ]; then
+   if [ "${grep_find_unicode_wrapper_output:-}" = "" ]; then
       true "INFO: grep_find_unicode_wrapper_output empty, good, OK."
    else
       error "$0: ERROR: Unicode found!
@@ -245,7 +242,7 @@ check-git-folder() {
 }
 
 approx_proxy_setup() {
-   if [ ! "$APPROX_PROXY_ENABLE" = "yes" ]; then
+   if [ ! "${APPROX_PROXY_ENABLE:-}" = "yes" ]; then
       return 0
    fi
 
@@ -273,7 +270,7 @@ approx_proxy_setup() {
    done
 
    $SUDO_TO_ROOT cp --no-preserve=mode -- "$source_code_folder_dist/approx/approx-derivative-maker.socket" '/usr/lib/systemd/system/approx-derivative-maker.socket'
-   if [ "$dist_build_sources_clearnet_or_onion" = "clearnet" ]; then
+   if [ "${dist_build_sources_clearnet_or_onion:-}" = "clearnet" ]; then
       $SUDO_TO_ROOT cp --no-preserve=mode -- "$source_code_folder_dist/approx/approx-derivative-maker@.service" '/usr/lib/systemd/system/approx-derivative-maker@.service'
       $SUDO_TO_ROOT cp --no-preserve=mode -- "$source_code_folder_dist/approx/approx.conf" '/etc/approx-derivative-maker/approx.conf'
       $SUDO_TO_ROOT cp --no-preserve=mode -- "$source_code_folder_dist/approx/curlrc" '/etc/approx-derivative-maker/curl-home/.curlrc'
@@ -286,29 +283,29 @@ approx_proxy_setup() {
    $SUDO_TO_ROOT systemctl daemon-reload
    $SUDO_TO_ROOT systemctl restart approx-derivative-maker.socket
 
-   if [ "$dist_build_redistributable" != "true" ]; then
+   if [ "${dist_build_redistributable:-}" != "true" ]; then
       return 0
    fi
 
    ## When building redistributable builds, add '/var/cache/approx' to Qubes bind-dirs on build machine.
    $SUDO_TO_ROOT mkdir --parents -- /rw/config/qubes-bind-dirs.d
-   echo "binds+=( '/var/cache/approx-derivative-maker' )" | $SUDO_TO_ROOT tee -- /rw/config/qubes-bind-dirs.d/40_derivative-maker_approx.conf >/dev/null
+   printf '%s\n' "binds+=( '/var/cache/approx-derivative-maker' )" | $SUDO_TO_ROOT tee -- /rw/config/qubes-bind-dirs.d/40_derivative-maker_approx.conf >/dev/null
 
    true
 }
 
 repo_proxy_test() {
-   if [ "$REPO_PROXY" = "" ]; then
+   if [ "${REPO_PROXY:-}" = "" ]; then
       return 0
    fi
-   if [ "$REPO_PROXY" = "none" ]; then
+   if [ "${REPO_PROXY:-}" = "none" ]; then
       return 0
    fi
 
    true "INFO: Testing REPO_PROXY $REPO_PROXY (most likely approx, since default)..."
    local curl_exit_code=0
    curl --fail --silent "$REPO_PROXY" || { curl_exit_code="$?" ; true; };
-   if [ "$curl_exit_code" = "0" ]; then
+   if [ "${curl_exit_code:-}" = "0" ]; then
       true "INFO: approx functional..."
       return 0
    fi
@@ -319,7 +316,7 @@ repo_proxy_test() {
 
 ## Install VirtualBox on the host operating system using 'dist-installer-cli'.
 virtualbox-installation() {
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
       return 0
    fi
 
@@ -363,12 +360,12 @@ virtualbox-installation() {
 }
 
 check-virtualbox-installed() {
-   if [ "$dist_build_internal_run" = "true" ]; then
-      true "INFO: dist_build_internal_run set to true, skipping $FUNCNAME, ok."
+   if [ "${dist_build_internal_run:-}" = "true" ]; then
+      true "INFO: dist_build_internal_run set to true, skipping ${FUNCNAME[0]}, ok."
       return 0
    fi
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
-      true "INFO: dist_build_virtualbox not yet to true, skipping $FUNCNAME, ok."
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
+      true "INFO: dist_build_virtualbox not yet to true, skipping ${FUNCNAME[0]}, ok."
       return 0
    fi
 
@@ -383,11 +380,11 @@ check-virtualbox-installed() {
 }
 
 check-vm-exists() {
-   if [ "$dist_build_internal_run" = "true" ]; then
+   if [ "${dist_build_internal_run:-}" = "true" ]; then
       return 0
    fi
 
-   if [ ! "$dist_build_type_long" = "workstation" ]; then
+   if [ ! "${dist_build_type_long:-}" = "workstation" ]; then
       return 0
    fi
 
@@ -396,13 +393,13 @@ check-vm-exists() {
    ## then skip this function.
    local skip_script
    for skip_script in $SKIP_SCRIPTS; do
-      if matched_word=$(echo "$skip_script" | grep "prepare-release") ; then
-         echo "${bold}${green}$BASH_SOURCE INFO: Skipping $FUNCNAME, because SKIP_SCRIPTS matches 'prepare-release'. matched_word: '$matched_word'${reset}"
+      if matched_word=$(printf '%s\n' "$skip_script" | grep --fixed-strings -- "prepare-release") ; then
+         printf '%s\n' "${bold}${green}${BASH_SOURCE[0]} INFO: Skipping ${FUNCNAME[0]}, because SKIP_SCRIPTS matches 'prepare-release'. matched_word: '$matched_word'${reset}"
          return 0
       fi
    done
 
-   if [ "$dist_build_raw" = "true" ]; then
+   if [ "${dist_build_raw:-}" = "true" ]; then
       if ! test -f "$binary_image_raw_file_for_unified" ; then
          error "\
 Trying to build...
@@ -419,7 +416,7 @@ binary_image_raw_file_for_unified=/path/to/raw ./derivative-maker"
       fi
    fi
 
-   if [ "$dist_build_qcow2" = "true" ]; then
+   if [ "${dist_build_qcow2:-}" = "true" ]; then
       if ! test -f "$binary_image_qcow2_file_for_unified" ; then
          error "\
 Trying to build...
@@ -436,7 +433,7 @@ binary_image_qcow2_file_for_unified=/path/to/qcow ./derivative-maker"
       fi
    fi
 
-   if [ "$dist_build_virtualbox" = "true" ]; then
+   if [ "${dist_build_virtualbox:-}" = "true" ]; then
       true "INFO: vm_names_to_be_exported: $vm_names_to_be_exported"
       local vm_name_item_to_be_exported
       for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
@@ -455,7 +452,7 @@ missing other VM for unified builds: $vm_name_item_to_be_exported
 This means dm-prepare-release would fail later.
 
 Did you build a CLI build first and now intent to mix with a LXQt build? In this case, set environment variable, for example:
-vm_names_to_be_exported=\"Whonix-Gateway-CLI Whonix-Workstation-LXQt\" ./derivative-maker $@"
+vm_names_to_be_exported=\"Whonix-Gateway-CLI Whonix-Workstation-LXQt\" ./derivative-maker $*"
          fi
       done
 
@@ -466,7 +463,7 @@ vm_names_to_be_exported=\"Whonix-Gateway-CLI Whonix-Workstation-LXQt\" ./derivat
 }
 
 create-virtualbox-temporary-user() {
-   if [ ! "$dist_build_virtualbox" = "true" ]; then
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
       return 0
    fi
 
@@ -513,7 +510,7 @@ grml-debootstrap_installation() {
 }
 
 packages_installation_from_backports_repository() {
-   if [ "$dist_build_script_build_dependency_debian_backports" = "" ]; then
+   if [ "${dist_build_script_build_dependency_debian_backports:-}" = "" ]; then
       return 0
    fi
 
@@ -540,14 +537,14 @@ packages_installation_from_backports_repository() {
 
 signing_key() {
    true "INFO: GPG_AGENT_INFO: $GPG_AGENT_INFO"
-   if [ "$GPG_AGENT_INFO" = "" ]; then
+   if [ "${GPG_AGENT_INFO:-}" = "" ]; then
       true "${cyan}${bold}INFO: Environment variable ${under}GPG_AGENT_INFO${eunder} is not set. gnupg-agent will not be available.${reset}"
    fi
 
    if [ "${CI:-}" = "true" ]; then
       true "INFO: Create signing keys if none exist yet because CI detected..."
       "$dist_source_help_steps_folder/signing-key-create" "$@"
-   elif [ "$dist_build_redistributable" = "true" ]; then
+   elif [ "${dist_build_redistributable:-}" = "true" ]; then
       true "INFO: dist_build_redistributable=true, therefore skipping $dist_source_help_steps_folder/signing-key-create, ok.
 Not creating signing key when building redistributable builds.
 (There is no risk of overwriting signing keys because signing-key-create is checking if signing keys already exist and never overwrites.)
@@ -567,7 +564,7 @@ However, if signing keys are missing for redistributable builds, then the keys s
 }
 
 sudo_setup() {
-   if [ "$USER" = "" ]; then
+   if [ "${USER:-}" = "" ]; then
       error "Environment variable USER cannot be empty! Function sudo_setup failed!"
       return 0
    fi
@@ -583,8 +580,8 @@ sudo_setup() {
 ## This file has been automatically created by derivative-maker.
 ## Feel free to delete this file after using derivative-maker.
 ##
-## file: $BASH_SOURCE
-## function: $FUNCNAME
+## file: ${BASH_SOURCE[0]}
+## function: ${FUNCNAME[0]}
 
 ## Enable passwordless sudo for '$USER'.
 ## Avoid 'sudo: a password is required' errors during the build process.

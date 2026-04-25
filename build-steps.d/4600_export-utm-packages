@@ -5,9 +5,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -37,7 +40,7 @@ export_utm_packages() {
    ## Fill in correct architecture and target in UTM template files.
    local utm_arch
    local utm_target
-   if [ "$dist_build_target_arch" = "arm64" ]; then
+   if [ "${dist_build_target_arch:-}" = "arm64" ]; then
       utm_arch="aarch64"
       utm_target="virt"
    else
@@ -73,10 +76,10 @@ export_utm_packages() {
 }
 
 main() {
-   if [ "$dist_build_utm" = "true" ]; then
+   if [ "${dist_build_utm:-}" = "true" ]; then
       export_utm_packages
    else
-      true "${green}INFO: Skipping $BASH_SOURCE, because not using --target utm.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because not using --target utm.${reset}"
    fi
 }
 

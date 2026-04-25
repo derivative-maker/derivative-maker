@@ -1,7 +1,52 @@
 #!/bin/bash
 
+## SC2155: 'export var=$(cmd)' masks the inner exit code, but the
+## whole 'colors()' body wraps tput calls in '2>/dev/null ||:' so
+## those failures are intentionally ignored. File-level disable
+## avoids 25+ duplicate per-line directives in the colors() table.
+# shellcheck disable=SC2155
+
+#set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
+## Initialize color variables to empty strings for nounset compatibility.
+## The colors() function populates real values when TERM is a terminal.
+alt="${alt:-}"
+ealt="${ealt:-}"
+hide="${hide:-}"
+show="${show:-}"
+save="${save:-}"
+load="${load:-}"
+bold="${bold:-}"
+stout="${stout:-}"
+estout="${estout:-}"
+under="${under:-}"
+eunder="${eunder:-}"
+reset="${reset:-}"
+blink="${blink:-}"
+italic="${italic:-}"
+eitalic="${eitalic:-}"
+red="${red:-}"
+green="${green:-}"
+yellow="${yellow:-}"
+blue="${blue:-}"
+magenta="${magenta:-}"
+cyan="${cyan:-}"
+white="${white:-}"
+default="${default:-}"
+eed="${eed:-}"
+eel="${eel:-}"
+ebl="${ebl:-}"
+ewl="${ewl:-}"
+draw="${draw:-}"
+back="${back:-}"
+dist_build_already_defined_colors="${dist_build_already_defined_colors:-}"
+
 colors() {
-   if [ "$TERM" = "" ]; then
+   if [ "${TERM:-}" = "" ]; then
       return 0
    fi
 
@@ -24,7 +69,7 @@ colors() {
        export blink=$(    tput blink  || tput mb      ) # Start blinking
        export italic=$(   tput sitm   || tput ZH      ) # Start italic
        export eitalic=$(  tput ritm   || tput ZR      ) # End   italic
-   [[ $TERM != *-m ]] && {
+   [[ ${TERM:-} != *-m ]] && {
        export red=$(      tput setaf 1|| tput AF 1    )
        export green=$(    tput setaf 2|| tput AF 2    )
        export yellow=$(   tput setaf 3|| tput AF 3    )
@@ -50,6 +95,6 @@ colors() {
    export dist_build_already_defined_colors="true"
 }
 
-if [ ! "$dist_build_already_defined_colors" = "true" ]; then
+if [ ! "${dist_build_already_defined_colors:-}" = "true" ]; then
    colors
 fi

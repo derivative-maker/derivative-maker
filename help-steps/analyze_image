@@ -5,16 +5,13 @@
 
 ## x
 
-[ -o xtrace ]
-## returns:
-## - 0, if -x is set
-## - 1, if -x is not set
-MINUS_X_SET="$?"
-
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -29,7 +26,7 @@ source colors
 source variables
 
 script_help() {
-   echo "\
+   printf '%s\n' "\
 Required options:
 --report reportfile
 --tempfolder folder
@@ -133,8 +130,8 @@ parse_cmd() {
            -bm | --bare-metal | --install-to-root | -itr | --root)
                dist_build_install_to_root="true"
                mount_folder="$2"
-               if [ "$mount_folder" = "" ]; then
-                  echo 'Mount folder must not be empty. Use for example --root "/".'
+               if [ "${mount_folder:-}" = "" ]; then
+                  printf '%s\n' 'Mount folder must not be empty. Use for example --root "/".'
                   exit 1
                fi
                shift 2
@@ -180,12 +177,12 @@ parse_cmd() {
        esac
    done
 
-   if [ "$report_file" = "" ]; then
-      echo "${red}${bold} ERROR: no report_file chosen! ${reset}"
+   if [ "${report_file:-}" = "" ]; then
+      printf '%s\n' "${red}${bold} ERROR: no report_file chosen! ${reset}"
       exit 1
    fi
-   if [ "$tempfolder" = "" ]; then
-      echo "${red}${bold} ERROR: no tempfolder chosen! ${reset}"
+   if [ "${tempfolder:-}" = "" ]; then
+      printf '%s\n' "${red}${bold} ERROR: no tempfolder chosen! ${reset}"
       exit 1
    fi
 }
@@ -204,7 +201,7 @@ ${red}${bold}bash_command${reset}: $bash_command
 ${red}${bold}exit_code${reset}: $exit_code
 "
 
-   if [ "$errorcomment" = "" ]; then
+   if [ "${errorcomment:-}" = "" ]; then
       errorcomment="ERROR: Unfinished report! Error detected!"
    fi
 
@@ -214,7 +211,7 @@ $errorcomment
 bash_command: $bash_command
 exit_code: $exit_code"
 
-   echo "$errorcomment" | tee -a "$report_file" >/dev/null
+   printf '%s\n' "$errorcomment" | tee -a "$report_file" >/dev/null
 
    exit 1
 }
@@ -222,8 +219,8 @@ exit_code: $exit_code"
 trap "error_handler" ERR INT TERM
 
 unmount_image() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -238,16 +235,13 @@ unmount_image() {
    #wait "$!"
    #sync
 
-   #local command_v_exit_code="0"
-   #command -v guestunmount >/dev/null || { command_v_exit_code="$?" ; true; };
-
-   #if [ "$command_v_exit_code" = "0" ]; then
-      #true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
-      #guestunmount "$mount_folder"
+   #if command -v guestunmount >/dev/null; then
+   #   true "${bold}${cyan}INFO: guestunmount available, using it, ok... ${reset}"
+   #   guestunmount "$mount_folder"
    #else
-      ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
-      #true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
-      #fusermount -u "$mount_folder"
+   #   ## guestunmount is not available in Debian Wheezy. Only since Debian Jessie.
+   #   true "${bold}${cyan}INFO: guestunmount not available, using \"fusermount -u\" instead, ok... ${reset}"
+   #   fusermount -u "$mount_folder"
    #fi
 
    unlink "$raw_file_short_link" || true
@@ -258,18 +252,18 @@ unmount_image() {
 }
 
 preparation() {
-   if [ "$minimal_report" = "true" ]; then
+   if [ "${minimal_report:-}" = "true" ]; then
       true "${cyan}INFO: Only creating minimal report file because minimal_report is true.${reset}"
       rm --force "$report_file"
-      echo "$topcomment" | tee -a "$report_file" >/dev/null
-      echo "Only creating minimal report file because minimal_report is true." | tee -a "$report_file" >/dev/null
-      echo "$endcomment" | tee -a "$report_file" >/dev/null
+      printf '%s\n' "$topcomment" | tee -a "$report_file" >/dev/null
+      printf '%s\n' "Only creating minimal report file because minimal_report is true." | tee -a "$report_file" >/dev/null
+      printf '%s\n' "$endcomment" | tee -a "$report_file" >/dev/null
       exit 0
    fi
 
    true "${cyan}INFO: user_name is set to $user_name ${reset}"
-   true "${cyan}INFO: Benchmarking '$SUDO_TO_ROOT time echo \"This is a test echo.\"' using \"time\"... ${reset}"
-   $SUDO_TO_ROOT time echo "This is a test echo."
+   true "${cyan}INFO: Benchmarking '$SUDO_TO_ROOT time printf \"%s\n\" test' using \"time\"... ${reset}"
+   $SUDO_TO_ROOT time printf '%s\n' "This is a test printf."
 
    ## {{ Sanity Tests.
 
@@ -304,7 +298,7 @@ preparation() {
    unset tool
    unset tools
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       ## Tools for VM mouting not installed (not required) in this case.
       true
    else
@@ -333,14 +327,14 @@ preparation() {
    touch "$report_file"
    sync
 
-   if [ ! "$nodeltempfolder" = "1" ]; then
+   if [ ! "${nodeltempfolder:-}" = "1" ]; then
       true "${cyan} INFO: --nodeltempfolder was not used. Deleting $tempfolder... ${reset}"
       rm --recursive --force "$tempfolder"
    fi
 
    ## Using export, because mount_folder gets read by help-steps/mount-raw and
    ## help-steps/unmount-raw.
-   if [ "$dist_build_install_to_root" = "true" ]; then
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
       ## mount_folder has been set in parse_cmd
       ## Remove trailing slash so for example "/" becomes "".
       mount_folder="${mount_folder%/}"
@@ -363,19 +357,19 @@ preparation() {
    to_analyze_file_basename="$(basename "$to_analyze_file")"
    file_type_filename_without_extension="${to_analyze_file_basename%.*}"
 
-   if [ "$vmdk_file" = "" ]; then
+   if [ "${vmdk_file:-}" = "" ]; then
       vmdk_file="$extracted_ova_folder/$file_type_filename_without_extension-disk1.vmdk"
    fi
-   if [ "$vdi_file" = "" ]; then
+   if [ "${vdi_file:-}" = "" ]; then
       vdi_file="$vdi_folder/$file_type_filename_without_extension.vdi"
    fi
-   if [ "$qcow_file" = "" ]; then
+   if [ "${qcow_file:-}" = "" ]; then
       qcow_file="$qcow_folder/$file_type_filename_without_extension.qcow"
    fi
-   if [ "$qcow2_file" = "" ]; then
+   if [ "${qcow2_file:-}" = "" ]; then
       qcow2_file="$qcow2_folder/$file_type_filename_without_extension.qcow2"
    fi
-   if [ "$raw_file" = "" ]; then
+   if [ "${raw_file:-}" = "" ]; then
       raw_file="$raw_folder/$file_type_filename_without_extension.raw"
    fi
    raw_file_short_link="$binary_build_folder_dist/temp_short_link.raw"
@@ -406,23 +400,23 @@ preparation() {
 }
 
 parse_topcomment() {
-   if [ "$topcomment" = "" ]; then
+   if [ "${topcomment:-}" = "" ]; then
       topcomment="No topcomment."
    fi
    topcomment="\
 $topcomment
 ################################################################################"
-   echo "$topcomment" | tee -a "$report_file" >/dev/null
+   printf '%s\n' "$topcomment" | tee -a "$report_file" >/dev/null
 }
 
 extract_ova() {
-   if [ "$ova" = "0" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no ova chosen. ${reset}"
+   if [ "${ova:-}" = "0" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because no ova chosen. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -442,13 +436,13 @@ extract_ova() {
 }
 
 convert_vmdk_to_vdi() {
-   if [ "$vmdk" = "0" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because no vmdk chosen. ${reset}"
+   if [ "${vmdk:-}" = "0" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because no vmdk chosen. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -481,8 +475,8 @@ convert_vmdk_to_vdi() {
 }
 
 convert_x_to_raw() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -490,15 +484,15 @@ convert_x_to_raw() {
       true "${bold}${cyan}INFO: Converting x to raw not required, already done, skipping. ${reset}"
    else
 
-      if [ "$vdi" = "1" ]; then
+      if [ "${vdi:-}" = "1" ]; then
          image_type="vdi"
          image_file="$vdi_file"
       fi
-      if [ "$qcow" = "1" ]; then
+      if [ "${qcow:-}" = "1" ]; then
          image_type="qcow"
          image_file="$qcow_file"
       fi
-      if [ "$qcow2" = "1" ]; then
+      if [ "${qcow2:-}" = "1" ]; then
          image_type="qcow2"
          image_file="$qcow2_file"
       fi
@@ -518,9 +512,9 @@ convert_x_to_raw() {
 }
 
 mount_image() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      mount_raw_exit_code="0"
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      mount_raw_succeeded=true
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -535,39 +529,38 @@ mount_image() {
    ## dist_build_mount_raw_file us read by help-steps/mount-raw
    export dist_build_mount_raw_file="$raw_file_short_link"
 
-   mount_raw_exit_code="0"
-   "$dist_source_help_steps_folder"/mount-raw "$@" || { mount_raw_exit_code="$?" ; true; };
+   if "$dist_source_help_steps_folder"/mount-raw "$@"; then
+      mount_raw_succeeded=true
+      true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
+   else
+      mount_raw_succeeded=false
+      msg="WARNING: Mounting of raw image failed. This is expected for Whonix-Custom-Workstation."
+      true "${bold}${red}${msg}${reset}"
+      printf '%s\n' "${msg}" | tee -a "$report_file" >/dev/null
+   fi
 
    #sync
    ## Mounting read-only so the user or script can not accidentally delete
    ## files within the image.
    #guestmount -o allow_other -a "$raw_file_short_link" -m /dev/sda1 --ro "$mount_folder"
    #sync
-
-   if [ "$mount_raw_exit_code" = "0" ]; then
-      true "${bold}${cyan}INFO: Mounted raw image. ${reset}"
-   else
-      msg="WARNING: Mounting of raw image failed. This is expected for Whonix-Custom-Workstation."
-      true "${bold}${red}${msg}${reset}"
-      echo "${msg}" | tee -a "$report_file" >/dev/null
-   fi
 }
 
 parse_file_system() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
    true "${bold}${cyan}INFO: Parsing file systems... ${reset}"
 
-   if [ "$vdi" = "1" ]; then
+   if [ "${vdi:-}" = "1" ]; then
       $SUDO_TO_ROOT virt-filesystems -a "$vdi_file" 2>&1 | tee -a "$auto_hash_folder/$vdi_file_basename.virt-filesystems-a" >/dev/null
    fi
-   if [ "$qcow" = "1" ]; then
+   if [ "${qcow:-}" = "1" ]; then
       $SUDO_TO_ROOT virt-filesystems -a "$qcow_file" 2>&1 | tee -a "$auto_hash_folder/$qcow_file_basename.virt-filesystems-a" >/dev/null
    fi
-   if [ "$qcow2" = "1" ]; then
+   if [ "${qcow2:-}" = "1" ]; then
       $SUDO_TO_ROOT virt-filesystems -a "$qcow2_file" 2>&1 | tee -a "$auto_hash_folder/$qcow2_file_basename.virt-filesystems-a" >/dev/null
    fi
    $SUDO_TO_ROOT virt-filesystems -a "$raw_file" 2>&1 | tee -a "$auto_hash_folder/$raw_file_basename.virt-filesystems-a" >/dev/null
@@ -576,8 +569,8 @@ parse_file_system() {
 }
 
 parse_mbr() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
@@ -605,20 +598,20 @@ parse_mbr() {
 }
 
 parse_vbr() {
-   if [ "$dist_build_install_to_root" = "true" ]; then
-      true "${bold}${cyan}INFO: Skipping $FUNCNAME, because dist_build_install_to_root is set to true. ${reset}"
+   if [ "${dist_build_install_to_root:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: Skipping ${FUNCNAME[0]}, because dist_build_install_to_root is set to true. ${reset}"
       return 0
    fi
 
    true "${bold}${cyan}INFO: Parsing VBR... ${reset}"
 
-   if [ "$vdi" = "1" ]; then
+   if [ "${vdi:-}" = "1" ]; then
       $SUDO_TO_ROOT guestfish --ro -a "$vdi_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$vdi_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
-   if [ "$qcow" = "1" ]; then
+   if [ "${qcow:-}" = "1" ]; then
       $SUDO_TO_ROOT guestfish --ro -a "$qcow_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$qcow_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
-   if [ "$qcow2" = "1" ]; then
+   if [ "${qcow2:-}" = "1" ]; then
       $SUDO_TO_ROOT guestfish --ro -a "$qcow2_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$qcow2_file_basename.sda1_pread-device.512" >/dev/null || true
    fi
    $SUDO_TO_ROOT guestfish --ro -a "$raw_file" run : pread-device /dev/sda1 512 0 2>&1 | tee -a "$auto_hash_folder/$raw_file_basename.sda1_pread-device.512" >/dev/null || true
@@ -664,12 +657,12 @@ parse_special_files() {
    ## Allow running this script in non-Whonix environments as well.
    if [ -e "$mount_folder/var/lib/dist-base-files/build_version" ]; then
       cp_to_user "$mount_folder/var/lib/dist-base-files/build_version" "$debug_folder/usr_lib_dist-base-files_build_version"
-      echo "$debug_folder/usr_lib_dist-base-files_build_version BEGIN..."
-      cat "$debug_folder/usr_lib_dist-base-files_build_version"
-      echo "END $debug_folder/usr_lib_dist-base-files_build_version"
+      printf '%s\n' "$debug_folder/usr_lib_dist-base-files_build_version BEGIN..."
+      cat -- "$debug_folder/usr_lib_dist-base-files_build_version"
+      printf '%s\n' "END $debug_folder/usr_lib_dist-base-files_build_version"
    else
       msg="Strange, $mount_folder/var/lib/dist-base-files/build_version does not exist. Perhaps not running in Kicksecure or a derivative such as Whonix."
-      echo "$msg" > "$debug_folder/usr_lib_dist-base-files_build_version"
+      printf '%s\n' "$msg" > "$debug_folder/usr_lib_dist-base-files_build_version"
    fi
 
    cp_to_user "$mount_folder/etc/debootstrap/config" "$debug_folder/etc_debootstrap_config" || true
@@ -688,7 +681,7 @@ parse_special_files() {
 
    for file_name in "$mount_folder/usr/share/doc/whonix-"*"/changelog.Debian.gz"; do
       i="$(( $i + 1 ))"
-      echo "file_name number: $i | file_name: $file_name" | tee -a "$debug_folder/usr_share_doc_whonix-x/file_list" >/dev/null
+      printf '%s\n' "file_name number: $i | file_name: $file_name" | tee -a "$debug_folder/usr_share_doc_whonix-x/file_list" >/dev/null
       cp_to_user "$file_name" "$debug_folder/usr_share_doc_whonix-x/changelog.Debian.gz.$i"
    done
 
@@ -811,7 +804,7 @@ parse_folder() {
    true "${cyan}${under}This will take a while.${eunder} This is a security feature. To learn more, read:
 https://www.whonix.org/wiki/Verifiable_Builds${reset}"
 
-   if [ "$disable_xtrace" = "1" ]; then
+   if [ "${disable_xtrace:-}" = "1" ]; then
       true "\
 ${cyan}INFO: \"set +x\", because output would be too verbose. Feel \
 free to comment this out.${reset}"
@@ -836,7 +829,7 @@ tail -f $report_file
       ## Too verbose.
       #echo "$absolute_file_name: $file_name"
 
-      echo "$absolute_file_name" | tee -a "$file_list_file"
+      printf '%s\n' "$absolute_file_name" | tee -a "$file_list_file"
 
       local skip_hash="0"
       local dir_name
@@ -861,9 +854,9 @@ tail -f $report_file
             true
          else
             msg="($sub_folder) $absolute_file_name | $file_name does_not_exist"
-            echo "${cyan} $msg ${reset}"
-            echo "$msg" | tee -a "$report_file" >/dev/null
-            if [ "$dist_build_install_to_root" = "true" ]; then
+            printf '%s\n' "${cyan} $msg ${reset}"
+            printf '%s\n' "$msg" | tee -a "$report_file" >/dev/null
+            if [ "${dist_build_install_to_root:-}" = "true" ]; then
                ## File might no longer exist on bare metal.
                ## For example "sudo stat /proc/13165" could fail.
                continue
@@ -1004,23 +997,23 @@ $temp12 $Type_in_hex\
          read_link_exit_code="0"
          file_link="$(readlink "$file_name" 2>&1)" || { read_link_exit_code="${PIPESTATUS[0]}" ; true; };
 
-         echo "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | symlinks_to $file_link" | tee -a "$report_file" >/dev/null
+         printf '%s\n' "($sub_folder) $absolute_file_name | read_link_exit_code: $read_link_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | symlinks_to $file_link" | tee -a "$report_file" >/dev/null
 
          continue
       fi
 
-      if [ "$skip" = "1" ]; then
+      if [ "${skip:-}" = "1" ]; then
          local file_extension
          file_extension="${file_name##*.}"
          if \
-            [ "$file_extension" = "vmdk"  ] || \
-            [ "$file_extension" = "mf"    ] || \
-            [ "$file_extension" = "ovf"   ] || \
-            [ "$file_extension" = "qcow"  ] || \
-            [ "$file_extension" = "qcow2" ] || \
-            [ "$file_extension" = "vdi"   ] || \
-            [ "$file_extension" = "raw"   ] || \
-            [ "$file_extension" = "img"   ] \
+            [ "${file_extension:-}" = "vmdk"  ] || \
+            [ "${file_extension:-}" = "mf"    ] || \
+            [ "${file_extension:-}" = "ovf"   ] || \
+            [ "${file_extension:-}" = "qcow"  ] || \
+            [ "${file_extension:-}" = "qcow2" ] || \
+            [ "${file_extension:-}" = "vdi"   ] || \
+            [ "${file_extension:-}" = "raw"   ] || \
+            [ "${file_extension:-}" = "img"   ] \
             ; then
                ## Skipping creating a sha512sum of the vmdk, because that wastes
                ## a lot time and we know in advance, there there will be
@@ -1040,37 +1033,37 @@ $temp12 $Type_in_hex\
          fi
       fi
 
-      if [ "$Number_of_blocks_allocated" = "0" ]; then
+      if [ "${Number_of_blocks_allocated:-}" = "0" ]; then
          ## Check if Number_of_blocks_allocated and Total_size_in_bytes are 0,
          ## to avoid any kind of trickery.
-         if [ "$Total_size_in_bytes" = "0" ]; then
+         if [ "${Total_size_in_bytes:-}" = "0" ]; then
             ## Do the probably most expensive (from performance view)
             ## conditions check ("/dev/"**) at the end.
-            if [[ "$absolute_file_name" == "/dev/"** ]]; then
+            if [[ "${absolute_file_name:-}" == "/dev/"** ]]; then
                ## File in /dev with size of 0. No need to build a checksum of
                ## these. Also it would be difficult, because for example:
                ## "sudo sha512sum /dev/console",
                ## "sudo sha512sum /dev/xconsole",
                ## "sudo sha512sum /dev/initctl" or
                ## "sudo sha512sum /dev/full" would run forever.
-               echo "($sub_folder) $absolute_file_name | skipped_0 | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code" | tee -a "$report_file" >/dev/null
+               printf '%s\n' "($sub_folder) $absolute_file_name | skipped_0 | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code" | tee -a "$report_file" >/dev/null
                continue
             fi
          fi
       fi
 
       local maybe_timeout
-      if [ "$dist_build_install_to_root" = "true" ]; then
-         if [[ "$absolute_file_name" == "/dev/"** ]]; then
+      if [ "${dist_build_install_to_root:-}" = "true" ]; then
+         if [[ "${absolute_file_name:-}" == "/dev/"** ]]; then
             ## For example "sudo sha512sum /dev/tty1" would run forever.
             maybe_timeout="timeout --kill-after=1 1"
-         elif [[ "$absolute_file_name" == "/proc/"** ]]; then
+         elif [[ "${absolute_file_name:-}" == "/proc/"** ]]; then
             ## For example "sudo sha512sum /proc/kmsg" would run forever.
             maybe_timeout="timeout --kill-after=1 1"
-         elif [[ "$absolute_file_name" == "/run/"** ]]; then
+         elif [[ "${absolute_file_name:-}" == "/run/"** ]]; then
             ## For example "sha512sum /run/acpi_fakekey" would run forever.
             maybe_timeout="timeout --kill-after=1 1"
-         elif [[ "$absolute_file_name" == "/tmp/"** ]]; then
+         elif [[ "${absolute_file_name:-}" == "/tmp/"** ]]; then
             ## For example "sudo sha512sum /tmp/20140115122244.19545.trace" would run forever.
             maybe_timeout="timeout --kill-after=1 1"
          else
@@ -1081,31 +1074,31 @@ $temp12 $Type_in_hex\
       fi
 
       local checksum_output checksum_exit_code
-      if [ ! "$skip_hash" = "0" ]; then
+      if [ ! "${skip_hash:-}" = "0" ]; then
          checksum_exit_code="$skip_hash"
          checksum_output="$skip_hash"
       else
          checksum_exit_code="0"
          checksum_output="$($maybe_timeout sha512sum "$file_name" 2>&1)" || { checksum_exit_code="${PIPESTATUS[0]}" ; true; };
       fi
-      if [ ! "$checksum_exit_code" = "0" ]; then
+      if [ ! "${checksum_exit_code:-}" = "0" ]; then
          ## Handling cases such as:
          ## - sha512sum /home/user/derivative-binary/$tempfolder/mount_folder/dev/ida/c2d10p14
          ##   sha512sum: /home/user/derivative-binary/$tempfolder/mount_folder/dev/ida/c2d10p14: Permission denied
-         ## - [ ! "$skip_hash" = "0" ]
-         if [ "$checksum_output" = "" ]; then
+         ## - [ ! "${skip_hash:-}" = "0" ]
+         if [ "${checksum_output:-}" = "" ]; then
             checksum_output="sha512sum_echoed_nothing"
          fi
-         if [ "$skip_hash" = "directory" ]; then
-            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_directory: $stat_output_log_directory | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
+         if [ "${skip_hash:-}" = "directory" ]; then
+            printf '%s\n' "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_directory: $stat_output_log_directory | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
          else
-            echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
+            printf '%s\n' "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum_output: $checksum_output" | tee -a "$report_file" >/dev/null
          fi
          continue
       else
          local checksum
          read -r checksum _ <<< "$checksum_output"
-         echo "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum: $checksum" | tee -a "$report_file" >/dev/null
+         printf '%s\n' "($sub_folder) $absolute_file_name | checksum_exit_code: $checksum_exit_code | stat_output_log_file: $stat_output_log_file | stat_exit_code: $stat_exit_code | checksum: $checksum" | tee -a "$report_file" >/dev/null
          continue
       fi
 
@@ -1126,7 +1119,7 @@ parse_file_list_file() {
 }
 
 parse_endcomment() {
-   if [ "$endcomment" = "" ]; then
+   if [ "${endcomment:-}" = "" ]; then
       endcomment="INFO: No endcomment. | $dist_build_error_counter error(s) detected."
    fi
 
@@ -1134,7 +1127,7 @@ parse_endcomment() {
 ################################################################################
 $endcomment"
 
-   echo "$endcomment" | tee -a "$report_file" >/dev/null
+   printf '%s\n' "$endcomment" | tee -a "$report_file" >/dev/null
 }
 
 end() {
@@ -1157,10 +1150,10 @@ main() {
    parse_vbr
    parse_mbr
 
-   ## sets: mount_raw_exit_code
+   ## sets: mount_raw_succeeded
    mount_image "$@"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       parse_special_files
       parse_initrd
    fi
@@ -1172,7 +1165,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       ## skip, because we expect the image to be non-deterministic.
       skip="1"
    fi
@@ -1180,7 +1173,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       ## skip, because we expect the image to be non-deterministic.
       skip="1"
    fi
@@ -1188,7 +1181,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       ## skip, because we expect the image to be non-deterministic.
       skip="1"
    fi
@@ -1196,7 +1189,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       ## skip, because we expect the image to be non-deterministic.
       skip="1"
    fi
@@ -1204,7 +1197,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       ## skip, because we expect the image to be non-deterministic.
       skip="1"
    fi
@@ -1232,7 +1225,7 @@ main() {
    parse_folder
    skip="0"
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       disable_xtrace="1"
       skip="0"
       folder="$mount_folder"
@@ -1241,7 +1234,7 @@ main() {
       disable_xtrace="0"
    fi
 
-   if [ "$mount_raw_exit_code" = "0" ]; then
+   if [ "${mount_raw_succeeded:-false}" = "true" ]; then
       unmount_image "$@"
    fi
 

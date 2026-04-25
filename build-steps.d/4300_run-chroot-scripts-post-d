@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -24,24 +27,24 @@ hostname_check() {
    ## because the image is still chrooted (chroot-raw) at that time. As a result, a host operating
    ## system temporary file (a copy of the host's /etc/hostname) is bind mounted to the chroot's
    ## /etc/hostname file
-   if [ "$dist_build_type_short" = "kicksecure" ]; then
+   if [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       one_expected="$dist_build_hostname"
       two_expected=""
       three_expected=""
-      one_actual=$(chroot_run cat "/etc/hostname")
+      one_actual=$(chroot_run cat -- "/etc/hostname")
       two_actual=""
       three_actual=""
-   elif [ "$dist_build_type_short" = "whonix" ]; then
+   elif [ "${dist_build_type_short:-}" = "whonix" ]; then
       one_expected="host"
       two_expected="host"
       three_expected="$dist_build_hostname"
-      one_actual=$(chroot_run cat "/etc/hostname")
+      one_actual=$(chroot_run cat -- "/etc/hostname")
       ## ./packages/whonix/whonix-base-files/etc/hostname.whonix
-      two_actual=$(chroot_run cat "/etc/hostname.${dist_build_type_short}")
-      three_actual=$(chroot_run cat "/etc/hostname.${dist_build_type_short}-orig")
+      two_actual=$(chroot_run cat -- "/etc/hostname.${dist_build_type_short}")
+      three_actual=$(chroot_run cat -- "/etc/hostname.${dist_build_type_short}-orig")
    fi
 
-   if [ "$one_actual" != "$one_expected" ] || [ "$two_actual" != "$two_expected" ] || [ "$three_actual" != "$three_expected" ]; then
+   if [ "${one_actual:-}" != "$one_expected" ] || [ "${two_actual:-}" != "$two_expected" ] || [ "${three_actual:-}" != "$three_expected" ]; then
       error "hostname_check failed! See above for variable one_expected etc."
    fi
 
@@ -100,30 +103,30 @@ Not running any chroot scripts.${reset}"
 }
 
 main() {
-   if [ "$build_dry_run" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping $BASH_SOURCE. ${reset}"
+   if [ "${build_dry_run:-}" = "true" ]; then
+      true "${bold}${cyan}INFO: dry-run, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_fast2" = "2" ]; then
-      true "${bold}${cyan}INFO: run with '--fast 2' switch, skipping $BASH_SOURCE. ${reset}"
+   if [ "${dist_build_fast2:-}" = "2" ]; then
+      true "${bold}${cyan}INFO: run with '--fast 2' switch, skipping ${BASH_SOURCE[0]}. ${reset}"
       return 0
    fi
 
-   if [ "$dist_build_iso" = "true" ]; then
-       true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_iso is set to true.${reset}"
+   if [ "${dist_build_iso:-}" = "true" ]; then
+       true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_iso is set to true.${reset}"
        return 0
    fi
 
-   if [ "$dist_build_type_long" = "gateway" ]; then
+   if [ "${dist_build_type_long:-}" = "gateway" ]; then
       run-chroot-scripts-post-d "$@"
-   elif [ "$dist_build_type_long" = "workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "workstation" ]; then
       run-chroot-scripts-post-d "$@"
-   elif [ "$dist_build_type_long" = "custom-workstation" ]; then
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
       true "${cyan}INFO: Skipping running chroot-post.d scripts for $VMNAME.${reset}"
-   elif [ "$dist_build_type_long" = "whonix-host" ]; then
+   elif [ "${dist_build_type_long:-}" = "whonix-host" ]; then
       run-chroot-scripts-post-d "$@"
-   elif [ "$dist_build_type_short" = "kicksecure" ]; then
+   elif [ "${dist_build_type_short:-}" = "kicksecure" ]; then
       run-chroot-scripts-post-d "$@"
    else
       error "ERROR: Invalid dist_build_flavor '$dist_build_flavor'. Please report this bug!"

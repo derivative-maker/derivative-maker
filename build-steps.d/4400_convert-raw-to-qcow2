@@ -4,9 +4,12 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
-true "INFO: Currently running script: $BASH_SOURCE $@"
+true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -19,8 +22,8 @@ source colors
 source variables
 
 convert_raw_to_qcow2() {
-   if [ ! "$dist_build_qcow2" = "true" ]; then
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_qcow2 is not set to true.${reset}"
+   if [ ! "${dist_build_qcow2:-}" = "true" ]; then
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_qcow2 is not set to true.${reset}"
       return 0
    fi
 
@@ -52,10 +55,10 @@ convert_raw_to_qcow2() {
 }
 
 main() {
-   if [ "$dist_build_qcow2" = "true" ]; then
+   if [ "${dist_build_qcow2:-}" = "true" ]; then
       convert_raw_to_qcow2
    else
-      true "${green}INFO: Skipping $BASH_SOURCE, because dist_build_qcow2 is not set to 'true'.${reset}"
+      true "${green}INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_qcow2 is not set to 'true'.${reset}"
    fi
 }
 

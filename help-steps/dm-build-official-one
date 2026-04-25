@@ -4,15 +4,18 @@
 ## See the file COPYING for copying conditions.
 
 set -x
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
 
 true "$0: START"
 
 run_cmd() {
-  [ -n "$TESTING_MODE" ] || TESTING_MODE=0
-  if [ "$TESTING_MODE" -eq 1 ]; then
+  [ -n "${TESTING_MODE:-}" ] || TESTING_MODE=0
+  if [ "${TESTING_MODE:-0}" -eq 1 ]; then
     set +x
-    echo "$@"
+    printf '%s\n' "$@"
   else
     "$@"
   fi
@@ -42,7 +45,7 @@ fi
 ## - If environment variable 'dist_build_target_arch' is set, honor it.
 ## - On CI, build ARM64 by default since it is the most recent architecture port.
 ## - Official builds default to Intel/AMD64 at the time of writing.
-if ! [ "$dist_build_target_arch" = "" ]; then
+if ! [ "${dist_build_target_arch:-}" = "" ]; then
   architecture="$dist_build_target_arch"
 elif [ "${CI:-}" = "true" ]; then
   architecture=arm64
@@ -67,7 +70,7 @@ build_args+=(--arch "$architecture")
 ##
 ## NOTE: Fewer flavors are build on CI. If 'CI=true', 'help-steps/parse-cmd'
 ##       will inject 'build_dry_run="true"' (equivalent of '--dry-run true').
-[ -n "$flavors_list" ] || flavors_list=(
+[ -n "${flavors_list:-}" ] || flavors_list=(
   kicksecure-lxqt
   kicksecure-cli
   whonix-gateway-lxqt
@@ -82,7 +85,7 @@ export build_upload_noninteractive
 dist_build_redistributable=true
 export dist_build_redistributable
 
-if [ "$dist_build_redistributable" = "true" ]; then
+if [ "${dist_build_redistributable:-}" = "true" ]; then
   build_args+=(--repo true)
   build_args+=(--tb closed)
   ## Install package 'firmware-nonfreedom' by default.
@@ -97,11 +100,11 @@ if printf '%s\n' "$@" | grep -- "remote-derivative-packages true" &>/dev/null; t
   remote_derivative_packages=true
 fi
 
-if printf '%s\n' "$build_args" | grep -- "remote-derivative-packages true" &>/dev/null; then
+if printf '%s\n' "${build_args[*]}" | grep -- "remote-derivative-packages true" &>/dev/null; then
   remote_derivative_packages=true
 fi
 
-if [ "$remote_derivative_packages" = "true" ]; then
+if [ "${remote_derivative_packages:-}" = "true" ]; then
   ## Skip upload of debug images.
   rsync_cmd="true simulate-only"
   export rsync_cmd
@@ -109,7 +112,7 @@ fi
 
 multi_target_args=()
 
-case $architecture in
+case "${architecture:-}" in
   amd64)
     ## '--target virtualbox'
     ## Build VirtualBox ova. (amd64 for Windows, Linux, Mac)
@@ -183,7 +186,7 @@ export dist_build_use_cached_raw_base_image
 
 ## Build and dm-prepare-release.
 for flavor_item in "${flavors_list[@]}"; do
-  case $flavor_item in
+  case "${flavor_item:-}" in
     kicksecure-lxqt)
       ## For now, create an ISO only for Kicksecure LXQt.
       ## Not for Kicksecure CLI.
@@ -209,7 +212,7 @@ run_cmd dm-upload-images --target source --flavor "whonix-workstation-lxqt" "$@"
 
 ## TODO: Windows
 # if [ "${CI:-}" = "true" ]; then
-# #if [ "$architecture" = "amd64" ]; then
+# #if [ "${architecture:-}" = "amd64" ]; then
 #   ## Also build the Whonix-Windows-Installer.
 #   run_cmd dm-prepare-release "${build_args[@]}" --target windows --flavor whonix-workstation-lxqt
 #   run_cmd dm-upload-images "${build_args[@]}" --target windows --flavor whonix-workstation-lxqt
@@ -222,7 +225,7 @@ for flavor_item in "${flavors_list[@]}"; do
     continue
   fi
 
-  case $flavor_item in
+  case "${flavor_item:-}" in
     kicksecure-lxqt)
       true "INFO: ISO build flavor."
       run_cmd dm-upload-images "${build_args[@]}" --target iso --flavor "$flavor_item" "$@"

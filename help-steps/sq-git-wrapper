@@ -15,10 +15,12 @@
 ## https://www.kicksecure.com/wiki/OpenPGP#Sequoia-PGP_automation
 
 #set -x
-set -o nounset
+
+#set -x
 set -o errexit
-set -o errtrace
+set -o nounset
 set -o pipefail
+set -o errtrace
 
 true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
@@ -126,7 +128,7 @@ while (($#)); do
       ;;
     *)
       ## Be tolerant if a caller passes the signing key as a leftover arg.
-      if [ "$mode" = "sign" ] && [ -z "$signing_key" ]; then
+      if [ "${mode:-}" = "sign" ] && [ -z "${signing_key:-}" ]; then
         signing_key="$1"
         shift
       else
@@ -138,7 +140,7 @@ done
 
 case "$mode" in
   verify)
-    [ -n "$sigfile" ] || die "no signature file supplied"
+    [ -n "${sigfile:-}" ] || die "no signature file supplied"
 
     ## Git provides the signed payload on stdin.
     ##
@@ -174,7 +176,7 @@ case "$mode" in
     ;;
 
   sign)
-    [ -n "$signing_key" ] || die "no signing key supplied"
+    [ -n "${signing_key:-}" ] || die "no signing key supplied"
 
     cmd=( "$sq_bin" sign )
 

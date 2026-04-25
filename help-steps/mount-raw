@@ -4,6 +4,13 @@
 ## See the file COPYING for copying conditions.
 
 # shellcheck source=../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh
+
+#set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../packages/kicksecure/helper-scripts/usr/libexec/helper-scripts/check_runtime.bsh"
 
 if was_executed "${BASH_SOURCE[0]}"; then
@@ -16,7 +23,7 @@ if [ "${mount_raw_was_sourced}" = 'false' ]; then
    set -x
    set -e
 
-   true "INFO: Currently running script: $BASH_SOURCE $@"
+   true "INFO: Currently running script: ${BASH_SOURCE[0]} $*"
 
    MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -27,7 +34,7 @@ if [ "${mount_raw_was_sourced}" = 'false' ]; then
    error_handler_mount-raw() {
       : echo "
    ${red}${bold}BASH_COMMAND${reset}: $BASH_COMMAND
-   ${red}${bold}ERROR $BASH_SOURCE: | caller: $(caller)${reset}
+   ${red}${bold}ERROR ${BASH_SOURCE[0]}: | caller: $(caller)${reset}
    "
       exit 1
    }
@@ -38,7 +45,7 @@ mount_raw() {
       trap "error_handler_mount-raw" ERR INT TERM
    fi
 
-   if [ "$mount_folder" = "" ]; then
+   if [ "${mount_folder:-}" = "" ]; then
       true
    else
       ## hack for help-steps/analyze-image
@@ -47,7 +54,7 @@ mount_raw() {
 
    sync
 
-   if [ "$dist_build_mount_raw_file" = "" ]; then
+   if [ "${dist_build_mount_raw_file:-}" = "" ]; then
       local img="$binary_image_raw_file"
    else
       local img="$dist_build_mount_raw_file"
@@ -82,7 +89,7 @@ mount_raw() {
 
    sync
 
-   if [ "$kpartx_output" = "" ]; then
+   if [ "${kpartx_output:-}" = "" ]; then
       local msg="kpartx did not output anything."
       error "$msg"
    fi
@@ -105,7 +112,7 @@ mount_raw() {
    ## example dev_mapper_device:
    ## /dev/mapper/loop0p3
 
-   if [ "$kpartx_only" = "true" ]; then
+   if [ "${kpartx_only:-}" = "true" ]; then
       true "kpartx_only=$kpartx_only, therefore skipping mount."
       return 0
    fi
@@ -119,8 +126,8 @@ mount_raw() {
 
 if [ "${mount_raw_was_sourced}" = 'false' ]; then
    main() {
-      if [ "$dist_build_install_to_root" = "true" ]; then
-         true "${green}INFO: Skipping script, because dist_build_install_to_root is set to true: $BASH_SOURCE${reset}"
+      if [ "${dist_build_install_to_root:-}" = "true" ]; then
+         true "${green}INFO: Skipping script, because dist_build_install_to_root is set to true: ${BASH_SOURCE[0]}${reset}"
          exit 0
       else
          mount_raw
