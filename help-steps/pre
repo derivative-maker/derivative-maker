@@ -289,7 +289,8 @@ ${cyan}${bold}############################################################${rese
 
    #$output_cmd "INFO: trap_signal_type_last: $trap_signal_type_last, considering auto retry..."
    if [ ! "$dist_build_auto_retry" = "0" ]; then
-      if [ "$dist_build_auto_retry_counter" = "" ]; then
+      if [ "$dist_build_auto_retry_counter" = "" ] \
+         || [[ "$dist_build_auto_retry_counter" = *[!0-9]* ]]; then
          dist_build_auto_retry_counter="1"
       fi
       [ -n "$dist_build_auto_retry" ] || dist_build_auto_retry="2"
@@ -381,7 +382,8 @@ ${blue}${bold}#####${reset}"
    done
 }
 
-if [ "$dist_build_error_counter" = "" ]; then
+if [ "$dist_build_error_counter" = "" ] \
+   || [[ "$dist_build_error_counter" = *[!0-9]* ]]; then
    dist_build_error_counter="0"
 fi
 
@@ -548,6 +550,9 @@ maybe_set_plus_x() {
 ## http://stackoverflow.com/a/12199798
 convertsecs() {
    local h m s
+   if [[ "${1}" = *[!0-9]* ]]; then
+      return 1
+   fi
    ((h="${1}/3600")) || true
    ((m="(${1}%3600)/60")) || true
    ((s="${1}%60")) || true
@@ -561,6 +566,9 @@ benchmark_time_start() {
 }
 
 benchmarktimeend() {
+   if [[ "${1}" = *[!0-9]* ]]; then
+      return 1
+   fi
    benchmarktimeend="$(date +%s)" || true
    benchmark_took_seconds="$(( $benchmarktimeend - $1 ))" || true
    echo "$(convertsecs "$benchmark_took_seconds")" || true
