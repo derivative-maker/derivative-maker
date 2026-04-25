@@ -25,14 +25,14 @@ run_cmd() {
 
 true "INFO: 0: $0"
 
-if [ "$CI" = "true" ]; then
+if [ "${CI:-}" = "true" ]; then
   true "INFO: Skipping test if folder ~/.ssh exists on CI."
 else
   run_cmd test -d ~/.ssh
 fi
 
 ## Optional testing of docker on CI.
-if [ "$CI" = "true" ]; then
+if [ "${CI:-}" = "true" ]; then
   ## Minimal test only for now.
   sudo --non-interactive -- ./docker/derivative-maker-docker-setup
   ./docker/derivative-maker-docker-run --build-step 1100_sanity-tests --target raw --flavor internal
@@ -44,7 +44,7 @@ fi
 ## - Official builds default to Intel/AMD64 at the time of writing.
 if ! [ "$dist_build_target_arch" = "" ]; then
   architecture="$dist_build_target_arch"
-elif [ "$CI" = "true" ]; then
+elif [ "${CI:-}" = "true" ]; then
   architecture=arm64
   build_args+=(--remote-derivative-packages true)
   export dist_build_upgrade_build_machine=1
@@ -208,7 +208,7 @@ run_cmd dm-upload-images --target source --flavor "kicksecure-lxqt" "$@"
 run_cmd dm-upload-images --target source --flavor "whonix-workstation-lxqt" "$@"
 
 ## TODO: Windows
-# if [ "$CI" = "true" ]; then
+# if [ "${CI:-}" = "true" ]; then
 # #if [ "$architecture" = "amd64" ]; then
 #   ## Also build the Whonix-Windows-Installer.
 #   run_cmd dm-prepare-release "${build_args[@]}" --target windows --flavor whonix-workstation-lxqt
