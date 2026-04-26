@@ -173,25 +173,12 @@ build_machine_setup() {
       local bare_metal_basic_package_list
       bare_metal_basic_package_list="$(grep --invert-match --extended-regexp "^\s*#" -- "$source_code_folder_dist/grml_packages" | tr "\n" " ")"
       packages_to_be_installed+=" $bare_metal_basic_package_list "
-   else
-      if [ "${dist_build_virtualbox:-}" = "true" ]; then
-         #######################################################################
-         ## Build Dependencies for creating VirtualBox Images (.vdi and .ova)  #
-         #######################################################################
-         ## uname -r returns on Qubes:
-         ## 4.4.31-11.pvops.qubes.x86_64
-         local linux_headers
-         if command -v qubesdb-read >/dev/null 2>&1 ; then
-            true "INFO: Qubes host detected: yes - therefore selecting linux-headers-amd64."
-            linux_headers="linux-headers-amd64"
-         else
-            true "INFO: Qubes host detected: no - therefore selecting host_architecture $host_architecture and linux-headers-${host_architecture}"
-            linux_headers="linux-headers-${host_architecture}"
-         fi
-         packages_to_be_installed+=" $linux_headers "
-      fi
-
    fi
+   ## No host-side VirtualBox build-dependencies here: VirtualBox is now
+   ## installed into the amd64 cowbuilder chroot (see
+   ## 'help-steps/pbuilder-chroot-script-virtualbox'), not on the build
+   ## host. This keeps the host clean and is required when cross-building
+   ## arm64 VirtualBox OVAs ('Mac M1/M2') from an arm64 Linux host.
 
    $SUDO_TO_ROOT \
       apt-get \
@@ -313,74 +300,12 @@ repo_proxy_test() {
    error "See above!"
 }
 
-## Install VirtualBox on the host operating system using 'dist-installer-cli'.
-virtualbox-installation() {
-   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
-      return 0
-   fi
-   if [ "${build_dry_run:-}" = "true" ]; then
-      true "${bold}${cyan}INFO: dry-run, skipping ${FUNCNAME[0]}. ${reset}"
-      return 0
-   fi
-
-   true "INFO: Checking if VirtualBox is already installed..."
-   if virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox")" ; then
-      true "INFO: virtualbox is already installed."
-      return 0
-   elif virtualbox_version_installed="$(dpkg-query --show --showformat='${Version}' "virtualbox-7.2")" ; then
-      true "INFO: virtualbox-7.2 is already installed."
-      return 0
-   fi
-
-   ## NOTE: Code duplication in build-step prepare-build-machine
-   ## NOTE: Code duplication in help-step pbuilder-chroot-script-virtualbox
-   dist_installer_cli_arguments=()
-   dist_installer_cli_arguments+=("--non-interactive")
-   dist_installer_cli_arguments+=("--virtualbox-only")
-   dist_installer_cli_arguments+=("--log-level=debug")
-   ## Speed up the build? Not possible.
-   ## `apt-get update` is actually needed to fetch
-   ## VirtualBox from Debian 'unstable' repository.
-   ## Option '--noupdate' should is not safe here, because if the installer adds a repository,
-   ## then running 'apt update' is crucial for APT to learn about the new packages.
-   #dist_installer_cli_arguments+=("--noupdate")
-   ##
-   ## Run virtualbox-installer with '--noupgrade' because the system has been updated earlier.
-   ## This is to avoid a race condition where an update is made available shortly after
-   ## to avoid breaking the build.
-   dist_installer_cli_arguments+=("--noupgrade")
-   dist_installer_cli_arguments+=("--ci")
-   ## Redundant.
-   dist_installer_cli_arguments+=("--no-boot")
-   ## Redundant.
-   dist_installer_cli_arguments+=("--no-import")
-   ## NOTE: End code duplication.
-
-   ## virtualbox-installer / dist-installer-cli
-   "$binary_image_installer_dist_source" "${dist_installer_cli_arguments[@]}"
-
-   true
-}
-
-check-virtualbox-installed() {
-   if [ "${dist_build_internal_run:-}" = "true" ]; then
-      true "INFO: dist_build_internal_run set to true, skipping ${FUNCNAME[0]}, ok."
-      return 0
-   fi
-   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
-      true "INFO: dist_build_virtualbox not yet to true, skipping ${FUNCNAME[0]}, ok."
-      return 0
-   fi
-
-   if command -v VBoxManage >/dev/null ; then
-      true "INFO: VBoxManage available, ok."
-      return 0
-   fi
-
-   error "VirtualBox not installed yet. VBoxManage command unavailable."
-
-   true
-}
+## VirtualBox is no longer installed on the host. It is installed into
+## the amd64 cowbuilder chroot only; see
+## 'help-steps/pbuilder-chroot-script-virtualbox' (invoked by
+## 'build-steps.d/*_cowbuilder-setup') and
+## 'help-steps/pbuilder-chroot-script-create-vbox-vm' (invoked by
+## 'build-steps.d/*_create-vbox-vm').
 
 check-vm-exists() {
    if [ "${dist_build_internal_run:-}" = "true" ]; then
@@ -436,71 +361,11 @@ binary_image_qcow2_file_for_unified=/path/to/qcow ./derivative-maker"
       fi
    fi
 
-   if [ "${dist_build_virtualbox:-}" = "true" ]; then
-      true "INFO: vm_names_to_be_exported: $vm_names_to_be_exported"
-      local vm_name_item_to_be_exported
-      for vm_name_item_to_be_exported in $vm_names_to_be_exported ; do
-         if printf "%s\n" "$vm_name_item_to_be_exported" | grep --quiet --ignore-case -- "$dist_build_type_long" ; then
-            true "${cyan}INFO: Build for $VMNAME in progress... No need to check for vm_name_item_to_be_exported $vm_name_item_to_be_exported as we are building that now, ok.${reset}"
-            continue
-         fi
-         true "${cyan}INFO: Build for VMNAME $VMNAME in progress... Checking if corresponding in list of vm_names_to_be_exported vm $vm_name_item_to_be_exported already exists (because if it did not exist, the later dm-prepare-release script would fail)...${reset}"
-         if ! $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$vm_name_item_to_be_exported" >/dev/null ; then
-            error "\
-Trying to build...
-VMNAME: $VMNAME
-dist_build_desktop: $dist_build_desktop
-missing other VM for unified builds: $vm_name_item_to_be_exported
-
-This means dm-prepare-release would fail later.
-
-Did you build a CLI build first and now intent to mix with a LXQt build? In this case, set environment variable, for example:
-vm_names_to_be_exported=\"Whonix-Gateway-CLI Whonix-Workstation-LXQt\" ./derivative-maker $*"
-         fi
-      done
-
-      true "INFO: all vm_names_to_be_exported available, ok."
-   fi
-
-   true
-}
-
-create-virtualbox-temporary-user() {
-   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
-      return 0
-   fi
-
-   ## Debugging. Because SUDO_TO_VBOX_TEMP is failing on CI.
-   if [ "${CI:-}" = "true" ]; then
-      whoami || true
-      ## ansible
-      groups ansible || true
-      ## ansible : ansible sudo vboxusers
-
-      $SUDO_TO_ROOT -- cat /etc/sudoers || true
-      $SUDO_TO_ROOT -- ls -la /etc/sudoers.d || true
-      $SUDO_TO_ROOT -- cat /etc/sudoers.d/90-cloud-init-users || true
-      $SUDO_TO_ROOT -- cat /etc/sudoers.d/ansible-passwordless-sudo || true
-      $SUDO_TO_ROOT -- cat /etc/sudoers.d/README || true
-   fi
-
-   #ansible ALL=NOPASSWD: ALL
-   #root ALL=(ALL) NOPASSWD:ALL
-   #%sudo   ALL=(ALL:ALL) NOPASSWD:ALL
-
-   ## {{ code duplication
-   ##    - prepare-build-machine
-   ##    - pbuilder-chroot-script-virtualbox
-   $SUDO_TO_ROOT -- adduser --system --group --home "$HOMEVAR_VBOX_TEMP" -- "dm-vbox-temp" || true
-   $SUDO_TO_ROOT -- mkdir --parents -- "$HOMEVAR_VBOX_TEMP"
-   $SUDO_TO_ROOT -- chown --recursive -- "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP"
-   ## Debugging.
-   $SUDO_TO_ROOT -- groups -- "dm-vbox-temp" || true
-   $SUDO_TO_ROOT -- ls -la -- "$HOMEVAR_VBOX_TEMP"
-   ## Sanity test.
-   $SUDO_TO_VBOX_TEMP -- test -d "/"
-   $SUDO_TO_VBOX_TEMP -- ls -la -- "$HOMEVAR_VBOX_TEMP"
-   ## }}
+   ## VirtualBox VM existence check for unified builds is no longer done
+   ## here: the VirtualBox registry lives inside the amd64 cowbuilder
+   ## chroot (see 'build-steps.d/*_create-vbox-vm'), not on the host.
+   ## A missing sibling VM will surface as a 'VBoxManage export' error
+   ## when 'build-steps.d/*_prepare-release' runs.
 
    true
 }
@@ -544,8 +409,26 @@ signing_key() {
       true "${cyan}${bold}INFO: Environment variable ${under}GPG_AGENT_INFO${eunder} is not set. gnupg-agent will not be available.${reset}"
    fi
 
+   ## Auto-generate a signing keypair when:
+   ## - CI=true: ansible populates real keys but 'signing-key-create' is
+   ##   idempotent and fills in anything missing.
+   ## - build_dry_run=true: '--dry-run true' is documented (see
+   ##   'help-steps/parse-cmd') as "useful for debugging
+   ##   dm-prepare-release", which signs artifacts. Without auto-gen
+   ##   here, a dev box without real keys cannot exercise the signing
+   ##   step. 'signing-key-create' never overwrites existing real keys
+   ##   so a dev who happens to have real keys is safe.
+   ## - !redistributable: a personal dev build, ditto.
+   ##
+   ## Skip auto-gen ONLY for real redistributable operator builds
+   ## (redistributable && !CI && !dry-run): the operator is expected to
+   ## have populated '~/.signify' with their real release keypair and
+   ## auto-gen would just be dead writes.
    if [ "${CI:-}" = "true" ]; then
       true "INFO: Create signing keys if none exist yet because CI detected..."
+      "$dist_source_help_steps_folder/signing-key-create" "$@"
+   elif [ "${build_dry_run:-}" = "true" ]; then
+      true "INFO: Create signing keys if none exist yet because build_dry_run=true (exercise dm-prepare-release signing path)..."
       "$dist_source_help_steps_folder/signing-key-create" "$@"
    elif [ "${dist_build_redistributable:-}" = "true" ]; then
       true "INFO: dist_build_redistributable=true, therefore skipping $dist_source_help_steps_folder/signing-key-create, ok.
@@ -613,14 +496,11 @@ main() {
    build_machine_setup "$@"
    check-unicode "$@"
    check-git-folder "$@"
-   virtualbox-installation
-   check-virtualbox-installed "$@"
    check-vm-exists "$@"
    grml-debootstrap_installation "$@"
    packages_installation_from_backports_repository "$@"
    signing_key "$@"
    sudo_setup "$@"
-   create-virtualbox-temporary-user "$@"
 }
 
 main "$@"

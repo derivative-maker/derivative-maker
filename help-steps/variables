@@ -784,7 +784,19 @@ fi
 #[ -n "${dist_build_grml_bin:-}" ] || dist_build_grml_bin="$(which grml-debootstrap)"
 [ -n "${dist_build_grml_bin:-}" ] || dist_build_grml_bin="/usr/sbin/grml-debootstrap"
 
-[ -n "${rsync_cmd:-}" ] || rsync_cmd="rsync"
+if [ -z "${rsync_cmd:-}" ]; then
+   if [ "${build_dry_run:-}" = "true" ]; then
+      ## '--dry-run true' is documented as "useful for debugging
+      ## dm-prepare-release"; the artifacts being uploaded are
+      ## placeholders, so mock rsync. This is the same mock
+      ## 'help-steps/pre' applies for '$CI=true' but here it also
+      ## fires for 'build_dry_run=true' (parse-cmd sets that flag
+      ## above this line, so we can read it now).
+      rsync_cmd="echo simulate-only rsync"
+   else
+      rsync_cmd="rsync"
+   fi
+fi
 
 ## TODO: hardlinks: rsync error Internal hashtable error: illegal key supplied
 ## --hard-links \
@@ -1323,7 +1335,40 @@ env_vars_keep_list="
    ALL_PROXY
    DEBIAN_FRONTEND DEBIAN_PRIORITY DEBCONF_NOWARNINGS APT_LISTCHANGES_FRONTEND
    INITRD
+   HOMEVAR
    HOMEVAR_VBOX_TEMP
+   SUDO_TO_ROOT
+   SUDO_TO_VBOX_TEMP
+   build_dry_run
+   dist_build_flavor
+   dist_build_type_long
+   dist_build_type_short
+   dist_build_desktop
+   dist_build_virtualbox
+   dist_build_qcow2
+   dist_build_raw
+   dist_build_iso
+   dist_build_utm
+   dist_build_install_to_root
+   dist_build_internal_run
+   dist_build_fast1
+   dist_build_redistributable
+   VMNAME
+   SHORT_VMNAME
+   VMRAM
+   VRAM
+   dist_unified_name
+   vm_names_to_be_exported
+   target_architecture_pretty_name
+   binary_build_folder_dist
+   dist_binary_build_folder
+   binary_image_raw_file
+   binary_image_raw_file_for_unified
+   binary_image_qcow2_file
+   binary_image_qcow2_file_for_unified
+   binary_image_ova_file
+   source_code_folder_dist
+   dist_developer_meta_files_folder
 "
 ## TODO:
 ## UWT_DEV_PASSTHROUGH

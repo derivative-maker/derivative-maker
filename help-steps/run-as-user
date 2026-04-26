@@ -1,0 +1,158 @@
+#!/bin/bash
+
+## Copyright (C) 2025 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## help-steps/run-as-user
+##
+## Idempotent "root-to-user drop" wrapper. Designed to be called as root
+## with a target sudoers user and an arbitrary command; on first call it
+## sets up the user and a passwordless-sudo drop-in, on subsequent calls
+## it is a no-op (other than the exec), and when the caller is already
+## the target user it just execs the command without touching any
+## privileged state.
+##
+## Use cases:
+## - automated_builder smoke-test harness (test on a non-root user
+##   without bespoke per-test plumbing).
+## - Operator on a fresh VPS who wants:
+##     sudo help-steps/run-as-user builder -- ./derivative-maker ...
+##   without manually running 'useradd' / 'visudo'.
+## - Any script under 'build-steps.d/', 'help-steps/', or 'derivative-*'
+##   that someone wants to drop-and-run as a non-root user.
+##
+## Usage:
+##    help-steps/run-as-user [--chown <dir>] [--shell <shell>] <user> -- <cmd> [args...]
+##
+## Options:
+##    --chown <dir>    'chown -R' <dir> to <user>:<user> after creating
+##                     the user (opt-in; recursive ownership change is
+##                     destructive). Useful when the source tree is
+##                     owned by root and the target user must be able
+##                     to write to it (git, build artifacts).
+##    --shell <shell>  login shell for a newly-created user
+##                     (default: /bin/bash). Ignored if user already
+##                     exists.
+##
+## Security:
+##    This script writes '/etc/sudoers.d/run-as-user-<user>' granting
+##    passwordless sudo to <user>. That is a real privilege grant; only
+##    use this on machines where you have already decided to do so
+##    (build VPS, dedicated test machine, sandboxed CI runner).
+##
+## Idempotence:
+##    - 'useradd' is skipped if <user> already exists.
+##    - The sudoers drop-in is rewritten via 'visudo -f' with 'sponge'
+##      as the editor every call, so its contents are guaranteed to
+##      match this script's intent. visudo validates syntax and writes
+##      atomically.
+##    - When invoked while already running as <user>, no privileged
+##      state is touched at all; the command is exec'd directly.
+
+set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
+die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
+
+chown_dir=""
+target_shell="/bin/bash"
+target_user=""
+
+while [ "$#" -gt 0 ]; do
+   case "$1" in
+      --chown)
+         [ -n "${2:-}" ] || die "--chown requires a directory argument"
+         chown_dir="$2"
+         shift 2
+         ;;
+      --shell)
+         [ -n "${2:-}" ] || die "--shell requires a shell path argument"
+         target_shell="$2"
+         shift 2
+         ;;
+      --)
+         shift
+         break
+         ;;
+      -h|--help)
+         sed -n '/^##/{s/^## \{0,1\}//;p}' -- "$0"
+         exit 0
+         ;;
+      -*)
+         die "unknown option: '$1' (use '--' to separate options from <cmd>)"
+         ;;
+      *)
+         if [ -z "$target_user" ]; then
+            target_user="$1"
+            shift
+         else
+            ## Positional that isn't <user>: caller forgot the '--'
+            ## separator. Error rather than silently treat it as part
+            ## of the command.
+            die "expected '--' before '$1' (after <user>)"
+         fi
+         ;;
+   esac
+done
+
+[ -n "$target_user" ] || die "missing <user> argument; see --help"
+[ "$#" -gt 0 ]        || die "missing <cmd> after '--'; see --help"
+
+case "$target_user" in
+   *[!a-zA-Z0-9_.-]*|"")
+      die "refusing to operate on suspicious username: '$target_user'"
+      ;;
+esac
+
+caller_uid="$(id -u)"
+
+## Re-entrance: already running as <user>? Just exec; no privileged
+## work to do.
+if id -u -- "$target_user" >/dev/null 2>&1; then
+   target_uid="$(id -u -- "$target_user")"
+   if [ "$caller_uid" = "$target_uid" ]; then
+      exec "$@"
+   fi
+fi
+
+[ "$caller_uid" = "0" ] || \
+   die "caller is uid '$caller_uid', not root, and not '$target_user'; refusing to escalate."
+
+## Prerequisite: 'sponge' (moreutils) for atomic visudo write. The
+## build itself installs 'moreutils' in
+## 'build-steps.d/1200_prepare-build-machine' (per
+## 'buildconfig.d/30_dependencies.conf'), but this wrapper runs before
+## any build step, so we need it on the host already.
+command -v sponge >/dev/null \
+   || die "'sponge' not found on PATH; 'apt-get install moreutils' and retry"
+
+## Idempotent user creation.
+if ! id -- "$target_user" >/dev/null 2>&1; then
+   useradd --create-home --shell "$target_shell" -- "$target_user"
+fi
+
+## Idempotent sudoers drop-in. 'visudo -f' with 'sponge' as the editor
+## validates syntax and writes atomically (a partially-written drop-in
+## would otherwise leave sudo unusable).
+sudoers_file="/etc/sudoers.d/run-as-user-$target_user"
+SUDO_EDITOR="" VISUAL="" EDITOR=sponge visudo -f "$sudoers_file" >/dev/null <<EOF
+## Auto-generated by help-steps/run-as-user. Safe to delete after use.
+$target_user ALL=(ALL:ALL) NOPASSWD:ALL
+Defaults:%$target_user runcwd=*
+EOF
+
+## Optional source-tree chown. Recursive ownership changes are
+## destructive, so this is opt-in.
+if [ -n "$chown_dir" ]; then
+   [ -d "$chown_dir" ] || die "--chown target '$chown_dir' is not a directory"
+   chown -R -- "$target_user:$target_user" "$chown_dir"
+fi
+
+## Hand off. 'sudo --preserve-env=PATH' is the conservative default;
+## callers that want more env vars passed through can prepend
+## 'env VAR=val ...' (or use sudo's '-E' if appropriate) inside the
+## command they pass after '--'.
+exec sudo --non-interactive -u "$target_user" --preserve-env=PATH -- "$@"
