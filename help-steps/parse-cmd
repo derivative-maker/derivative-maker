@@ -289,6 +289,8 @@ dist_build_one_parse_cmd() {
                   dist_build_image_upload_supported="true"
                elif [ "${dist_build_flavor:-}" = "internal" ]; then
                   build_machines_counter="$(( $build_machines_counter + 1 ))"
+                  ## XXX: Belonging here?
+                  dist_build_target_arch=internal
                   export dist_build_internal_run="true"
                else
                   parse_cmd_flavor_error
@@ -346,6 +348,8 @@ dist_build_one_parse_cmd() {
                   build_target_counter="$(( $build_target_counter + 1 ))"
                   dist_build_source_archive="true"
                   dist_build_image_upload_supported="true"
+                  ## XXX: Belonging here?
+                  dist_build_target_arch=source
                else
                   parse_cmd_target_error
                fi
@@ -793,14 +797,15 @@ ${reset}"
 ${red}${bold}VirtualBox architecture support test failed!
 virtualbox_supported_architecture: '$virtualbox_supported_architecture'
 dist_build_target_arch is not 'i386', 'amd64' or 'arm64'.
-dist_build_target_arch is '$dist_build_target_arch'.
+dist_build_target_arch is '${dist_build_target_arch:-}'.
 You cannot build '--target virtualbox' if not using '--arch i386', '--arch amd64' or '--arch arm64'.
 This is because at time of writing this check, VirtualBox supports 'i386', 'amd64' and 'arm64' only.
 Should VirtualBox meanwhile support other architectures such as 'ppc64el', then this check can simply be removed in the source code.${reset}"
       fi
    fi
 
-   for architecture_all_item in "${architecture_all_list[@]}"; do
+   ## XXX: 'internal' belonging here?
+   for architecture_all_item in "${architecture_all_list[@]}" "internal"; do
       if [ "${dist_build_target_arch:-}" = "$architecture_all_item" ]; then
         architecture_valid=true
         break

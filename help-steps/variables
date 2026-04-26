@@ -491,13 +491,12 @@ fi
 ## - build-steps.d/*_create-debian-packages to iterate through one or multiple package folders.
 
 if [ "${dist_build_internal_run:-}" = "true" ]; then
-   if [ "${VMNAME:-}" = "" ]; then
-      VMNAME="internal"
-      export VMNAME
-   fi
+   [ -n "${VMNAME:-}" ] || VMNAME="internal"
+   [ -n "${SHORT_VMNAME:-}" ] || SHORT_VMNAME="internal"
    [ -n "${derivative_name_list:-}" ] || derivative_name_list="kicksecure whonix"
    [ -n "${dist_build_type_long:-}" ] || dist_build_type_long="internalrun"
    [ -n "${dist_build_type_short:-}" ] || dist_build_type_short="internalrun"
+   [ -n "${dist_build_desktop:-}" ] || dist_build_desktop="none"
 fi
 
 export dist_build_type_long
@@ -517,6 +516,8 @@ fi
 if [ "${dist_build_type_short}" = "kicksecure" ]; then
    [ -n "${vm_names_to_be_exported:-}" ] || vm_names_to_be_exported="${VMNAME}"
 fi
+## internalrun / source
+[ -n "${vm_names_to_be_exported:-}" ] || vm_names_to_be_exported="none"
 
 maybe_disable_dist_build_windows_installer() {
    if [ "${dist_build_internal_run:-}" = "true" ]; then
