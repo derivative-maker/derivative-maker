@@ -39,19 +39,20 @@
 ##       [--build-user ubuntu] [--source-dir /path/to/derivative-maker] \
 ##       [-- <extra args passed through to dm-build-official>]
 
-## 'set -x' (xtrace) is only enabled under CI=true so local invocations
-## get clean output; CI runs get the full trace for log inspection.
-## The other strict options stay on regardless -- 'errexit', 'nounset',
-## 'pipefail', 'errtrace' surface bugs and we want them in both modes.
-if [ "${CI:-}" = "true" ]; then
-   set -x
-fi
+set -x
 set -o errexit
 set -o nounset
 set -o pipefail
 set -o errtrace
 
-die() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
+die() {
+   printf '%s\n' "ERROR: $*" >&2
+   exit 1
+}
+
+if ! [ "${CI:-}" = "true" ]; then
+   die "$0: Run only inside CI!"
+fi
 
 ## Defaults.
 ##
