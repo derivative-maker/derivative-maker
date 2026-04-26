@@ -30,6 +30,14 @@ true "INFO: 0: $0"
 
 if [ "${CI:-}" = "true" ]; then
   true "INFO: Skipping test if folder ~/.ssh exists on CI."
+elif [ "${build_dry_run:-}" = "true" ]; then
+  ## '--dry-run true' is documented (see 'help-steps/parse-cmd') as
+  ## "useful for debugging dm-prepare-release"; rsync is mocked
+  ## (see 'help-steps/variables' '$rsync_cmd' default for dry-run),
+  ## so '~/.ssh' is not used for real uploads and its absence is not
+  ## an error. Coordinated with
+  ## 'build-steps.d/1100_sanity-tests:check-redistributable-builds-requirements'.
+  true "INFO: Skipping test if folder ~/.ssh exists in dry-run mode."
 else
   run_cmd test -d ~/.ssh
 fi

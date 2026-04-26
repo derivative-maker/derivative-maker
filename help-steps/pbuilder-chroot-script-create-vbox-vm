@@ -1,0 +1,221 @@
+#!/bin/bash
+
+## Copyright (C) 2012 - 2025 ENCRYPTED SUPPORT LLC <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## Runs inside a cowbuilder amd64 chroot. Creates the VirtualBox VM
+## (convertfromraw, createvm, storageattach, modifyvm, ...) so that
+## 'VBoxManage' does not need to be installed on the build host.
+## Invoked by 'build-steps.d/*_create-vbox-vm' via 'cowbuilder --execute'.
+
+set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
+true "INFO: Currently running chroot script: ${BASH_SOURCE[0]} $*"
+
+env_file="${1:-}"
+if [ -z "$env_file" ] || [ ! -r "$env_file" ]; then
+   printf '%s\n' "ERROR: env file '$env_file' not readable inside chroot." >&2
+   exit 1
+fi
+
+## Restores VMNAME, VMRAM, VRAM, binary_image_raw_file,
+## HOMEVAR_VBOX_TEMP, SUDO_TO_VBOX_TEMP, SUDO_TO_ROOT, dist_build_type_*,
+## dist_build_fast1, dist_build_raw, dist_build_virtualbox,
+## vm_names_to_be_exported, etc. passed through from the host wrapper.
+# shellcheck disable=SC1090
+source "$env_file"
+
+error() {
+   printf '%s\n' "ERROR: $*" >&2
+   exit 1
+}
+
+debugging_pre() {
+   qemu-img \
+      info \
+         "$binary_image_raw_file"
+}
+
+delete_vbox_vm() {
+   ## Turning off the VM without saving.
+   $SUDO_TO_VBOX_TEMP VBoxManage controlvm "$VMNAME" poweroff || true
+   sync
+
+   ## Delete old VM.
+   $SUDO_TO_VBOX_TEMP VBoxManage unregistervm "$VMNAME" --delete || true
+   sync
+
+   ## The "$SUDO_TO_VBOX_TEMP VBoxManage unregistervm --delete" does not do its job,
+   ## we have to manually delete the VM folder.
+   $SUDO_TO_ROOT safe-rm -r -f -- "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
+   sync
+}
+
+convert_raw_to_vdi() {
+   $SUDO_TO_VBOX_TEMP mkdir --parents "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME"
+
+   ## Can be safely deleted because stored under dedicated, temporary user account.
+   ## Must be deleted for this step to be idempotent. Otherwise "VBoxManage convertfromraw" would fail.
+   $SUDO_TO_VBOX_TEMP safe-rm -f -- "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   ## Copy $binary_image_raw_file into a folder accessible by "dm-vbox-temp" user.
+   $SUDO_TO_ROOT cp "$binary_image_raw_file" "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+   $SUDO_TO_ROOT chown "dm-vbox-temp:dm-vbox-temp" "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage convertfromraw "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw" "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   $SUDO_TO_VBOX_TEMP safe-rm -- "$HOMEVAR_VBOX_TEMP/temp-raw-image.raw"
+
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   if [ "${dist_build_fast1:-}" = "1" ]; then
+      printf '%s\n' "INFO: run with '--fast 1' switch, skipping compacting vdi."
+   else
+      $SUDO_TO_VBOX_TEMP VBoxManage modifymedium --compact "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+   fi
+
+   $SUDO_TO_VBOX_TEMP qemu-img info "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+}
+
+general_setup() {
+   $SUDO_TO_VBOX_TEMP VBoxManage createvm --name "$VMNAME" --register
+
+   if ! printf '%s' "$dist_build_target_arch" | grep "64" ; then
+      $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --ostype Debian
+   else
+      $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --ostype Debian_64
+   fi
+
+   $SUDO_TO_VBOX_TEMP VBoxManage storagectl "$VMNAME" --add sata --name "controller"
+   $SUDO_TO_VBOX_TEMP VBoxManage storagectl "$VMNAME" --name "controller" --portcount 4
+
+   $SUDO_TO_VBOX_TEMP VBoxManage storageattach "$VMNAME" --storagectl "controller" --nonrotational=on --discard=on --type hdd --port 0 --medium "$HOMEVAR_VBOX_TEMP/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --memory "$VMRAM"
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --vram "$VRAM"
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --pae on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --cpus 3
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --boot4 none
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --boot3 none
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --boot2 none
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --boot1 disk
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --acpi on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --ioapic on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --rtcuseutc on
+   $SUDO_TO_VBOX_TEMP VBoxManage setextradata "$VMNAME" "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled" "1"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --clipboard-mode disabled
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --draganddrop disabled
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-in=off
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --graphicscontroller vmsvga
+
+   $SUDO_TO_VBOX_TEMP VBoxManage getextradata "$VMNAME"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage setextradata "$VMNAME" GUI/LastGuestSizeHint "1920, 1080"
+
+   $SUDO_TO_VBOX_TEMP VBoxManage getextradata "$VMNAME"
+}
+
+whonix-gateway_specific() {
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-driver=none
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-enabled=off
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --nic1 nat
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --nic2 intnet
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --cableconnected2 on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --intnet2 "Whonix"
+}
+
+whonix-workstation_specific() {
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --nic1 intnet
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --intnet1 "Whonix"
+}
+
+whonix-custom-workstation_specific() {
+   whonix-workstation_specific
+
+   $SUDO_TO_VBOX_TEMP VBoxManage storageattach "$VMNAME" --storagectl "controller" --type dvddrive --port 1 --medium emptydrive
+   $SUDO_TO_VBOX_TEMP VBoxManage setextradata "$VMNAME" "GUI/FirstRun" "yes"
+}
+
+debian_specific() {
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --nic1 nat
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --cableconnected1 on
+}
+
+audio_enable() {
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-controller=ac97
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audio-enabled=on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --audioout on
+}
+
+dns_specific() {
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --natdnsproxy1 off
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --natdnshostresolver1 on
+   $SUDO_TO_VBOX_TEMP VBoxManage modifyvm "$VMNAME" --natdnspassdomain1 off
+}
+
+debugging_post() {
+   $SUDO_TO_VBOX_TEMP VBoxManage showvminfo "$VMNAME"
+   $SUDO_TO_VBOX_TEMP VBoxManage getextradata "$VMNAME"
+}
+
+main() {
+   if [ ! "${dist_build_virtualbox:-}" = "true" ]; then
+      printf '%s\n' "INFO: Skipping ${BASH_SOURCE[0]}, because dist_build_virtualbox is not set to 'true'."
+      return 0
+   fi
+
+   debugging_pre
+
+   delete_vbox_vm
+
+   convert_raw_to_vdi
+
+   general_setup
+
+   if [ "${dist_build_type_long:-}" = "gateway" ]; then
+      whonix-gateway_specific
+      dns_specific
+      audio_enable
+   elif [ "${dist_build_type_long:-}" = "workstation" ]; then
+      whonix-workstation_specific
+      audio_enable
+   elif [ "${dist_build_type_long:-}" = "custom-workstation" ]; then
+      whonix-custom-workstation_specific
+      audio_enable
+   elif [ "${dist_build_type_long:-}" = "whonix-host" ]; then
+      debian_specific
+      dns_specific
+      audio_enable
+   elif [ "${dist_build_type_short:-}" = "kicksecure" ]; then
+      debian_specific
+      audio_enable
+   else
+      error "Invalid dist_build_flavor '${dist_build_flavor:-}'. Please report this bug!"
+   fi
+
+   debugging_post
+
+   if [ "${dist_build_raw:-}" = "true" ]; then
+      printf '%s\n' "INFO: Skip deletion of raw image because using dist_build_raw=true."
+   else
+      ## The raw image is bind-mounted from the host, so deleting it from
+      ## inside the chroot deletes it on the host too (intentional: matches
+      ## the previous host-side behavior).
+      $SUDO_TO_ROOT safe-rm -f -- "$binary_image_raw_file"
+   fi
+
+   sync
+}
+
+main "$@"
