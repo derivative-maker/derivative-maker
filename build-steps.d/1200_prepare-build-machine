@@ -409,26 +409,8 @@ signing_key() {
       true "${cyan}${bold}INFO: Environment variable ${under}GPG_AGENT_INFO${eunder} is not set. gnupg-agent will not be available.${reset}"
    fi
 
-   ## Auto-generate a signing keypair when:
-   ## - CI=true: ansible populates real keys but 'signing-key-create' is
-   ##   idempotent and fills in anything missing.
-   ## - build_dry_run=true: '--dry-run true' is documented (see
-   ##   'help-steps/parse-cmd') as "useful for debugging
-   ##   dm-prepare-release", which signs artifacts. Without auto-gen
-   ##   here, a dev box without real keys cannot exercise the signing
-   ##   step. 'signing-key-create' never overwrites existing real keys
-   ##   so a dev who happens to have real keys is safe.
-   ## - !redistributable: a personal dev build, ditto.
-   ##
-   ## Skip auto-gen ONLY for real redistributable operator builds
-   ## (redistributable && !CI && !dry-run): the operator is expected to
-   ## have populated '~/.signify' with their real release keypair and
-   ## auto-gen would just be dead writes.
    if [ "${CI:-}" = "true" ]; then
       true "INFO: Create signing keys if none exist yet because CI detected..."
-      "$dist_source_help_steps_folder/signing-key-create" "$@"
-   elif [ "${build_dry_run:-}" = "true" ]; then
-      true "INFO: Create signing keys if none exist yet because build_dry_run=true (exercise dm-prepare-release signing path)..."
       "$dist_source_help_steps_folder/signing-key-create" "$@"
    elif [ "${dist_build_redistributable:-}" = "true" ]; then
       true "INFO: dist_build_redistributable=true, therefore skipping $dist_source_help_steps_folder/signing-key-create, ok.
@@ -436,6 +418,9 @@ Not creating signing key when building redistributable builds.
 (There is no risk of overwriting signing keys because signing-key-create is checking if signing keys already exist and never overwrites.)
 However, if signing keys are missing for redistributable builds, then the keys should be manually put in place to avoid signing redistributable builds using auto-generated keys."
       #"$dist_source_help_steps_folder/signing-key-create" "$@"
+   elif [ "${build_dry_run:-}" = "true" ]; then
+      true "INFO: Create signing keys if none exist yet because build_dry_run=true (exercise dm-prepare-release signing path)..."
+      "$dist_source_help_steps_folder/signing-key-create" "$@"
    else
       true "INFO: Create signing keys if none exist yet..."
       "$dist_source_help_steps_folder/signing-key-create" "$@"
